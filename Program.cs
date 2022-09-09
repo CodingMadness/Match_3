@@ -30,8 +30,8 @@ class Program
         string net6Path = Environment.CurrentDirectory;
         const string projectName = "Match3";
         int lastProjectNameOccurence = net6Path.LastIndexOf(projectName) + projectName.Length;
-        var fontPath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}\\Assets\\font3.ttf";
-        var tilePath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}\\Assets\\shapes.png";
+        var fontPath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}/Assets/font3.ttf";
+        var tilePath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}/Assets/shapes.png";
         Console.WriteLine(tilePath);
         TileSheet = Raylib.LoadTexture(tilePath);
         Tile.FontPath = fontPath;
@@ -60,20 +60,29 @@ class Program
             {
                 //Console.WriteLine("I WAS CLICKED: !" + position);
                 clickedTiles[swapCounter] = foundTile;
-                foundTile.Selected = true;
+                //foundTile.Selected = true;
                 swapCounter++;
 
                 if (swapCounter == 2)
                 {
-                    _tileMap.Swap(clickedTiles[0], clickedTiles[1]);
-                    clickedTiles[0].Selected = false;
-                    clickedTiles[1].Selected = false;
-                    clickedTiles.AsSpan().Clear();
                     swapCounter = 0;
+                    
+                    if (!clickedTiles[0].Equals(clickedTiles[1]))
+                    {
+                        foundTile.Selected = true;
+                        _tileMap.Swap(clickedTiles[0], clickedTiles[1]);
+                        clickedTiles[0].Selected = false;
+                        clickedTiles[1].Selected = false;
+                        clickedTiles.AsSpan().Clear();
+                    }
+                    else
+                    {
+                        clickedTiles[0].StopFading();
+                        clickedTiles[1].StopFading();
+                    }
 
-                    //DOES NOT WORK YET! INVESTIGATE!
-
-                    /*if (Match3InRightDirection(map, bTile.Coords, match3List))
+                    /*
+                     if (Match3InRightDirection(map, bTile.Coords, match3List))
                     {
                         Console.WriteLine("successfully deleted from LEFT-TO-RIGHT");
 
@@ -83,7 +92,6 @@ class Program
                             item!.Colour = Raylib.ColorAlpha(item.Colour, 0f);
                             item.Selected = true;
                         }
-
                         ;
                     }
 

@@ -49,7 +49,7 @@ public class Tile : IEquatable<Tile>
             }
             else
             {
-                targetAlpha = currentAlpha = 0f;
+                targetAlpha = CurrentAlpha = 0f;
             }
 
             selected = value;
@@ -57,7 +57,7 @@ public class Tile : IEquatable<Tile>
     }
 
     private float targetAlpha = 1;
-    private float currentAlpha = 1;
+    public float CurrentAlpha { get; set; } = 1;
     private const float alphaSpeed = 2f;
 
     private Tile()
@@ -197,6 +197,12 @@ public class Tile : IEquatable<Tile>
         return firstFloat * (1 - by) + secondFloat * by;
     }
 
+    public void StopFading()
+    {
+        Selected = false;
+        CurrentAlpha = 1f;
+    }
+    
     public virtual void Draw(float deltaTime)
     {
         if (!wasDrawn)
@@ -206,11 +212,9 @@ public class Tile : IEquatable<Tile>
         }
 
         Vector2 worldPosition = new Vector2(Coords.X, Coords.Y) * Program.TileSize;
-
-        Color drawColor = Selected ? Color.GRAY : Colour;
-        drawColor = Raylib.ColorAlpha(drawColor, currentAlpha);
-        currentAlpha = Lerp(currentAlpha, targetAlpha, alphaSpeed * deltaTime);
-
+        Color drawColor = Selected ? Color.BLUE : Colour;
+        drawColor = Raylib.ColorAlpha(drawColor, CurrentAlpha);
+        CurrentAlpha = Lerp(CurrentAlpha, targetAlpha, alphaSpeed * deltaTime);
         Raylib.DrawTextureRec(Program.TileSheet, DrawDestination, worldPosition, drawColor);
 
         float xCenter = worldPosition.X + Program.TileSize.X / 4.3f;

@@ -8,8 +8,7 @@ public class TileMap
     private readonly Tile?[,] _tiles;
     public int Width { get; }
     public int Height { get; }
-
-
+    
     public TileMap(int width, int height)
     {
         _tiles = new Tile[width, height];
@@ -20,17 +19,16 @@ public class TileMap
 
     public void Swap(Tile a, Tile b)
     {
-        SetTile(a.Coords, b);
-        SetTile(b.Coords, a);
-        
+        this[a.Coords] = b;
+        this[b.Coords] = a;
         (a.Coords, b.Coords) = (b.Coords, a.Coords);
     }
-    
-    public void SetTile(Int2 position, Tile tile)
+    private Tile? this[Int2 coord]
     {
-        _tiles[position.X, position.Y] = tile;
+        get => _tiles[coord.X, coord.Y];
+        set => _tiles[coord.X, coord.Y] = value;
     }
-
+    
     private void Fill()
     {
         for (int x = 0; x < Width; x++)
@@ -70,7 +68,7 @@ public class TileMap
 
     }
 
-    public bool TryGetTile(Int2 position, [MaybeNullWhen(false)] out Tile tile)
+    private bool TryGetTile(Int2 position, [MaybeNullWhen(false)] out Tile tile)
     {
         if (position.X < 0 || position.X >= Width
                            || position.Y < 0 || position.Y >= Height)
