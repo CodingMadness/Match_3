@@ -3,237 +3,217 @@ using System.Diagnostics;
 using Match_3;
 
 //INITIALIZATION:................................
-Raylib.InitWindow((int) GridData.Window_Width, (int) GridData.Window_Height, "Hello World");
-string net6Path = Environment.CurrentDirectory;
-const string ProjectName = "Match_3";
-int LastProjectNameOccurence = net6Path.LastIndexOf(ProjectName) + ProjectName.Length;
-var fontPath = $"{net6Path.AsSpan(0, LastProjectNameOccurence)}/font3.ttf";
-var tilePath = $"{net6Path.AsSpan(0, LastProjectNameOccurence)}/shapes.png";
-Console.WriteLine(tilePath);
-Texture2D tileSheet = Raylib.LoadTexture(tilePath.ToString());
-string destroyedTilePath = net6Path.AsSpan(0, LastProjectNameOccurence).ToString() + "/destroyedTile";
-Tile.FontPath = fontPath;
-Stopwatch sw = Stopwatch.StartNew();
 
-Tile?[,] FillGrid()
+class Program
 {
-    Tile?[,] map = new Tile?[(int) GridData.TileCountInX, (int) GridData.TileCountInY];
+    private static Texture2D _tileSheet;
+    private static Stopwatch _stopwatch = new();
+    private static TileMap _tileMap = new(8, 8);
+    
+    private const int _tileSize = 64;
+    private const int _tileCountX = 8;
+    private const int _tileCountY = 8;
 
-    Tile.SpriteSheet = tileSheet;
+    public static readonly Int2 WindowSize = new Int2(_tileCountX, _tileCountY) * _tileSize;
+    public static readonly Int2 TileSize = new Int2(_tileSize);
 
-    for (int x = 0; x < (int) GridData.TileCountInX; x++)
+    public static void Main(string[] args)
     {
-        for (int y = 0; y < (int) GridData.TileCountInY; y++)
+        Initialize();
+        GameLoop();
+        CleanUp();
+    }
+
+    public static void Initialize()
+    {
+        Raylib.InitWindow(WindowSize.X, WindowSize.Y, "Hello World");
+        string net6Path = Environment.CurrentDirectory;
+        const string projectName = "Match3";
+        int lastProjectNameOccurence = net6Path.LastIndexOf(projectName) + projectName.Length;
+        var fontPath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}\\Assets\\font3.ttf";
+        var tilePath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}\\Assets\\shapes.png";
+        Console.WriteLine(tilePath);
+        _tileSheet = Raylib.LoadTexture(tilePath);
+        Tile.FontPath = fontPath;
+        _stopwatch = Stopwatch.StartNew();
+    }
+
+    public static void GameLoop()
+    {
+        var clickedTiles = new Tile[2];
+
+        int swapCounter = 0;
+
+        HashSet<Tile> match3List = new(3);
+
+        while (!Raylib.WindowShouldClose())
         {
-            var tile = Tile.GetRandomTile();
-            tile.Coords = (x, y);
-            map[x, y] = tile;
+            Raylib.BeginDrawing();
+
+            Raylib.ClearBackground(Color.BEIGE);
+            
+            _stopwatch.Stop();
+            _tileMap.Draw((float) _stopwatch.Elapsed.TotalSeconds);
+            _stopwatch.Restart();
+
+            if (_tileMap.TryGetClickedTile(out var foundTile))
+            {
+                //Console.WriteLine("I WAS CLICKED: !" + position);
+                clickedTiles[swapCounter] = foundTile;
+                foundTile.Selected = true;
+                swapCounter++;
+
+                if (swapCounter == 2)
+                {
+                    _tileMap.Swap(clickedTiles[0], clickedTiles[1]);
+                    clickedTiles[0].Selected = false;
+                    clickedTiles[1].Selected = false;
+                    clickedTiles.AsSpan().Clear();
+                    swapCounter = 0;
+
+                    //DOES NOT WORK YET! INVESTIGATE!
+
+                    /*if (Match3InRightDirection(map, bTile.Coords, match3List))
+                    {
+                        Console.WriteLine("successfully deleted from LEFT-TO-RIGHT");
+
+                        foreach (var item in match3List)
+                        {
+                            Console.WriteLine(item);
+                            item!.Colour = Raylib.ColorAlpha(item.Colour, 0f);
+                            item.Selected = true;
+                        }
+
+                        ;
+                    }
+
+                    if (Match3InLeftDirection(map, bTile.Coords, match3List))
+                    {
+                        Console.WriteLine("successfully deleted from RIGHT-TO-LEFT");
+
+                        foreach (var item in match3List)
+                        {
+                            Console.WriteLine(item);
+                            item!.Colour = Raylib.ColorAlpha(item.Colour, 0f);
+                            item.Selected = true;
+                        }
+
+                        ;
+                    }
+
+                    else if (Match3InBetween(map, bTile.Coords, match3List))
+                    {
+                        Console.WriteLine("successfully deleted from INBETWEEN");
+
+                        foreach (var item in match3List)
+                        {
+                            Console.WriteLine(item);
+                            item!.Colour = Raylib.ColorAlpha(item.Colour, 0f);
+                            item.Selected = true;
+                        }
+
+                        ;
+                    }
+
+                    match3List.Clear();*/
+                }
+            }
+
+            Raylib.EndDrawing();
         }
     }
 
-    return map;
-}
-
-void DrawTilemap(in Tile?[,] map)
-{
-    var deltaTime = (float)sw.Elapsed.TotalSeconds;
-
-    for (int x = 0; x < (int)GridData.Window_Width; x += 64)
+    public static void CleanUp()
     {
-        for (int y = 0; y < (int)GridData.Window_Height; y += 64)
-        {
-            var currentTile = map[x / 64, y / 64];
-            currentTile?.Draw(deltaTime);
-        }
+        Raylib.UnloadTexture(_tileSheet);
+
+        Raylib.CloseWindow();
     }
-    sw.Restart();
-    //Console.WriteLine(++drawCall + "  DRAWCALLS!");
-}
-
-bool FindTilePosByMousePos(in Tile?[,] map, out (int x, int y) coord)
-{
-    coord = (-1, -1);
-
-    if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
+    
+    static bool AddWhenEqual(Tile first, Tile next, HashSet<Tile> rowOf3)
     {
-        var mouseVec2 = Raylib.GetMousePosition();
-
-        coord.x = (int)(mouseVec2.X / (float)GridData.TileWidth);
-        coord.y = (int)(mouseVec2.Y / (float)GridData.TileWidth);
-
-        if (coord.x >= (int)GridData.TileCountInX || coord.y >= (int)GridData.TileCountInY)
-            return false;
-
-            if (map[coord.x, coord.y] is not null)
+        if (first.Equals(next) && first.Coords.Y == next.Coords.Y)
+        {
+            rowOf3.Add(first);
+            rowOf3.Add(next);
             return true;
+        }
 
-        coord = (-1, -1);
         return false;
     }
 
-    return false;
-}
-
-void Swap2Tiles(Tile?[,] map, (int x, int y) aCoord, (int x, int y) bCoord)
-{
-    var tileA = map[aCoord.x, aCoord.y];
-    var tileB = map[bCoord.x, bCoord.y];
-
-    if (tileA is null || tileB is null)
-        throw new Exception("Ein Swap ist null!!!");
-
-    tileA.Coords = bCoord;
-    map[bCoord.x, bCoord.y] = tileA;
-
-    tileB.Coords = aCoord;
-    map[aCoord.x, aCoord.y] = tileB;
-}
-
-bool AddWhenEqual(Tile first, Tile next, HashSet<Tile> rowOf3)
-{
-    if (first.Equals(next) && first.Coords.gridY == next.Coords.gridY)
+    static bool MatchInDirection(Tile?[,] map, Int2 clickedCoord, Int2 direction, out int count)
     {
-        rowOf3.Add(first);
-        rowOf3.Add(next);
-        return true;
-    }
+        count = 0;
+        var originTile = map[clickedCoord.X, clickedCoord.Y];
 
-    return false;
-}
+        if (originTile is null)
+            return false;
 
-bool Match3InRightDirection(Tile?[,] map, (int x, int y) clickedCoord, HashSet<Tile> rowOf3)
-{
-    if (rowOf3.Count == 3)
-        return true;
-
-    if (clickedCoord.x == (int)GridData.TileCountInX - 1)
-        return Match3InLeftDirection(map, clickedCoord, rowOf3);
-
-    Tile first = map[clickedCoord.x, clickedCoord.y]!;
-    Tile next = map[clickedCoord.x+1, clickedCoord.y]!;
-
-    return AddWhenEqual(first, next, rowOf3) && Match3InRightDirection(map, (clickedCoord.x + 1, clickedCoord.y), rowOf3);
-}
-
-bool Match3InLeftDirection(Tile?[,] map, (int x, int y) clickedCoord,  HashSet<Tile> rowOf3)
-{
-    if (rowOf3.Count == 3)
-        return true;
-
-    if (clickedCoord.x ==  0)
-        return Match3InRightDirection(map, clickedCoord, rowOf3);
-
-    Tile first = map[clickedCoord.x, clickedCoord.y]!;
-    Tile next = map[clickedCoord.x-1, clickedCoord.y]!;
-
-    return AddWhenEqual(first, next, rowOf3) && Match3InLeftDirection(map, (clickedCoord.x - 1, clickedCoord.y), rowOf3);
-}
-
-bool Match3InBetween(Tile?[,] map, (int x, int y) clickedCoord, HashSet<Tile> rowOf3)
-{
-    //Console.WriteLine("Match3InBetween() was CALLED");
-
-    if (rowOf3.Count == 3)
-        return true;
-
-    if (clickedCoord.x == 0)
-        return Match3InRightDirection(map, clickedCoord, rowOf3);
-    
-    if (clickedCoord.x == (int)GridData.TileCountInX)
-        return Match3InLeftDirection(map, clickedCoord, rowOf3);
-
-    //before we went 1 LEFT to check the LEFT neighbor
-    //now we go 2 RIGHT to check the RIGHT neighbor
-    int nextX = rowOf3.Count == 0 ? clickedCoord.x - 1 : clickedCoord.x + 1;
-
-    Tile first = map[clickedCoord.x, clickedCoord.y]!;
-    Tile next = map[nextX, clickedCoord.y]!;
-    return AddWhenEqual(first, next, rowOf3) && Match3InBetween(map, (nextX, clickedCoord.y), rowOf3);
-}
-
-//CALLS!.............................
-var map = FillGrid();
-
-var clickedCoords = new (int x, int y)[2];
-
-int swapCounter = 0;
-
-HashSet<Tile> match3List = new(3);
-
-while (!Raylib.WindowShouldClose())
-{
-    Raylib.BeginDrawing();
-
-    Raylib.ClearBackground(Color.BEIGE);
-
-    DrawTilemap(map);
-
-    (int x, int y) position;
-    bool found = FindTilePosByMousePos(map, out position); 
-
-    if (found)
-    {
-        //Console.WriteLine("I WAS CLICKED: !" + position);
-        clickedCoords[swapCounter] = position;        
-        map[position.x, position.y]!.Selected = true;
-        swapCounter++;
-
-        if (swapCounter == 2)
+        while (true)
         {
-            Swap2Tiles(map, clickedCoords[0], clickedCoords[1]);
-            var aTile = map[clickedCoords[0].x, clickedCoords[0].y];
-            var bTile = map[clickedCoords[1].x, clickedCoords[1].y];
-            bTile!.Selected = false;
-            aTile!.Selected = false;
-            clickedCoords.AsSpan().Clear();
-            swapCounter = 0;
-
-            int moveCounter = 1;
-            //DOES NOT WORK YET! INVESTIGATE!
-            
-            if (Match3InRightDirection(map, bTile.Coords, match3List))
+            var compareTile = map[clickedCoord.X + direction.X * count,
+                clickedCoord.Y + direction.Y * count];
+            if (!originTile.Equals(compareTile))
             {
-                Console.WriteLine("successfully deleted from LEFT-TO-RIGHT");
-
-                foreach (var item in match3List)
-                {
-                    Console.WriteLine(item);
-                    item!.Colour = Raylib.ColorAlpha(item.Colour, 0f);
-                    item.Selected = true;
-                };
+                break;
             }
-            
-            if (Match3InLeftDirection(map, bTile.Coords, match3List))
-            {
-                Console.WriteLine("successfully deleted from RIGHT-TO-LEFT");
 
-                foreach (var item in match3List)
-                {
-                    Console.WriteLine(item);
-                    item!.Colour = Raylib.ColorAlpha(item.Colour, 0f);
-                    item.Selected = true;
-                };
-            }
-            
-            else if (Match3InBetween(map, bTile.Coords, match3List))
-            {
-                Console.WriteLine("successfully deleted from INBETWEEN");
-
-                foreach (var item in match3List)
-                {
-                    Console.WriteLine(item);
-                    item!.Colour = Raylib.ColorAlpha(item.Colour, 0f);
-                    item.Selected = true;
-                };
-            }
-            
-            match3List.Clear();
+            count++;
         }
+
+        return count >= 3;
     }
 
-    Raylib.EndDrawing();
+    static bool Match3InRightDirection(Tile?[,] map, (int x, int y) clickedCoord, HashSet<Tile> rowOf3)
+    {
+        if (rowOf3.Count == 3)
+            return true;
+
+        if (clickedCoord.x == _tileCountX - 1)
+            return Match3InLeftDirection(map, clickedCoord, rowOf3);
+
+        Tile first = map[clickedCoord.x, clickedCoord.y]!;
+        Tile next = map[clickedCoord.x + 1, clickedCoord.y]!;
+
+        return AddWhenEqual(first, next, rowOf3) &&
+               Match3InRightDirection(map, (clickedCoord.x + 1, clickedCoord.y), rowOf3);
+    }
+
+    static bool Match3InLeftDirection(Tile?[,] map, (int x, int y) clickedCoord, HashSet<Tile> rowOf3)
+    {
+        if (rowOf3.Count == 3)
+            return true;
+
+        if (clickedCoord.x == 0)
+            return Match3InRightDirection(map, clickedCoord, rowOf3);
+
+        Tile first = map[clickedCoord.x, clickedCoord.y]!;
+        Tile next = map[clickedCoord.x - 1, clickedCoord.y]!;
+
+        return AddWhenEqual(first, next, rowOf3) &&
+               Match3InLeftDirection(map, (clickedCoord.x - 1, clickedCoord.y), rowOf3);
+    }
+
+    static bool Match3InBetween(Tile?[,] map, (int x, int y) clickedCoord, HashSet<Tile> rowOf3)
+    {
+        //Console.WriteLine("Match3InBetween() was CALLED");
+
+        if (rowOf3.Count == 3)
+            return true;
+
+        if (clickedCoord.x == 0)
+            return Match3InRightDirection(map, clickedCoord, rowOf3);
+
+        if (clickedCoord.x == _tileCountX)
+            return Match3InLeftDirection(map, clickedCoord, rowOf3);
+
+        //before we went 1 LEFT to check the LEFT neighbor
+        //now we go 2 RIGHT to check the RIGHT neighbor
+        int nextX = rowOf3.Count == 0 ? clickedCoord.x - 1 : clickedCoord.x + 1;
+
+        Tile first = map[clickedCoord.x, clickedCoord.y]!;
+        Tile next = map[nextX, clickedCoord.y]!;
+        return AddWhenEqual(first, next, rowOf3) && Match3InBetween(map, (nextX, clickedCoord.y), rowOf3);
+    }
 }
-
-Raylib.UnloadTexture(tileSheet);
-
-Raylib.CloseWindow();

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
 using Raylib_cs;
 
 namespace Match_3;
@@ -13,7 +12,7 @@ public enum Shape : sbyte
     EMPTY = -1
 }
 
-public enum OriginalColor: byte
+public enum OriginalColor : byte
 {
     Blue,
     Yellow,
@@ -28,7 +27,7 @@ public class Tile : IEquatable<Tile>
     public Color Colour { get; set; }
     public OriginalColor OriginColor { get; set; }
     public Rectangle DrawDestination { get; set; }
-    public (int gridX, int gridY) Coords { get; set; }
+    public Int2 Coords { get; set; }
     public static Texture2D SpriteSheet { get; set; }
     public static Texture2D DestroyedTile { get; set; }
     public static string FontPath { get; set; }
@@ -53,6 +52,7 @@ public class Tile : IEquatable<Tile>
             {
                 targetAlpha = currentAlpha = 0f;
             }
+
             selected = value;
         }
     }
@@ -63,32 +63,30 @@ public class Tile : IEquatable<Tile>
 
     private Tile()
     {
-
     }
 
-    private static Tile CreateNewTile(Rectangle drawDestinationRectangle, OriginalColor originCol, Vector2? mapID, bool swapped, Shape kind, Color color)
+    private static Tile CreateNewTile(Rectangle drawDestinationRectangle, OriginalColor originCol, Int2 coord,
+        bool swapped, Shape kind, Color color)
     {
         var mapTile = new Tile
         {
-            DrawDestination = drawDestinationRectangle, // this one was calculated from the current map position and the descriptors map offset values.
+            DrawDestination =
+                drawDestinationRectangle, // this one was calculated from the current map position and the descriptors map offset values.
             Swapped = swapped,
             Shape = kind,
             Colour = color,
             OriginColor = originCol,
-            Coords = mapID != null ?
-                                 ((int)mapID!.Value.X / (int)GridData.TileWidth, (int)mapID.Value.Y / (int)GridData.TileHeight)
-                                 : (-1, -1)
+            Coords = coord
         };
 
         return mapTile;
     }
 
-    private static readonly Rectangle[] frames = new Rectangle[]
-    {
+    private static readonly Rectangle[] frames = {
         new Rectangle(0f, 0f, 64f, 64f), //blue
-        new Rectangle(64f, 0f, 64f, 64f),//yellow
-        new Rectangle(0f, 64f, 64f, 64f),//red
-        new Rectangle(64f, 64f, 64f, 64f),//green
+        new Rectangle(64f, 0f, 64f, 64f), //yellow
+        new Rectangle(0f, 64f, 64f, 64f), //red
+        new Rectangle(64f, 64f, 64f, 64f), //green
     };
 
     private static Shape IdentifyTileKind(Rectangle current)
@@ -113,81 +111,83 @@ public class Tile : IEquatable<Tile>
                 tmp = Shape.Triangle;
                 break;
         }
+
         return tmp;
     }
 
-    private static Tile BLUE_BALL = Tile.CreateNewTile(frames[0],
-                                                      OriginalColor.Blue,
-                                                      null,
-                                                      false,
-                                                      IdentifyTileKind(frames[0]),
-                                                      Color.WHITE);
+    private static Tile BLUE_BALL = CreateNewTile(frames[0],
+        OriginalColor.Blue,
+        -Int2.One,
+        false,
+        IdentifyTileKind(frames[0]),
+        Color.WHITE);
 
 
-    private static Tile YELLOW_CUBE = Tile.CreateNewTile(frames[1],
-                                                      OriginalColor.Yellow,
-                                                      null,
-                                                      false,
-                                                      IdentifyTileKind(frames[1]),
-                                                       Color.WHITE);
+    private static Tile YELLOW_CUBE = CreateNewTile(frames[1],
+        OriginalColor.Yellow,
+        -Int2.One,
+        false,
+        IdentifyTileKind(frames[1]),
+        Color.WHITE);
 
 
-    private static Tile RED_ZYLINDER = Tile.CreateNewTile(frames[2],
-                                                      OriginalColor.Red,
-                                                      null,
-                                                      false,
-                                                      IdentifyTileKind(frames[2]),
-                                                      Color.WHITE);
+    private static Tile RED_ZYLINDER = CreateNewTile(frames[2],
+        OriginalColor.Red,
+        -Int2.One,
+        false,
+        IdentifyTileKind(frames[2]),
+        Color.WHITE);
 
 
-    private static Tile GREEN_TRIANGLE = Tile.CreateNewTile(frames[3],
-                                                      OriginalColor.Green,
-                                                      null,
-                                                      false,
-                                                      IdentifyTileKind(frames[3]),
-                                                      Color.WHITE);
+    private static Tile GREEN_TRIANGLE = CreateNewTile(frames[3],
+        OriginalColor.Green,
+        -Int2.One,
+        false,
+        IdentifyTileKind(frames[3]),
+        Color.WHITE);
 
     public static Tile GetRandomTile()
     {
-        var id = (Shape)Random.Shared.Next((int)Shape.Ball, (int)(Shape.Triangle) + 1);
+        var id = (Shape) Random.Shared.Next((int) Shape.Ball, (int) (Shape.Triangle) + 1);
 
         switch (id)
         {
             case Shape.Ball:
-                return Tile.CreateNewTile(frames[0],
-                                                      OriginalColor.Blue,
-                                                      null,
-                                                      false,
-                                                      IdentifyTileKind(frames[0]),
-                                                      Color.WHITE);
+                return CreateNewTile(frames[0],
+                    OriginalColor.Blue,
+                    -Int2.One,
+                    false,
+                    IdentifyTileKind(frames[0]),
+                    Color.WHITE);
 
             case Shape.Cube:
-                return Tile.CreateNewTile(frames[1],
-                                                      OriginalColor.Yellow,
-                                                      null,
-                                                      false,
-                                                      IdentifyTileKind(frames[1]),
-                                                      Color.WHITE);
+                return CreateNewTile(frames[1],
+                    OriginalColor.Yellow,
+                    -Int2.One,
+                    false,
+                    IdentifyTileKind(frames[1]),
+                    Color.WHITE);
                 ;
 
             case Shape.Zylinder:
-                return Tile.CreateNewTile(frames[2],
-                                                      OriginalColor.Red,
-                                                      null,
-                                                      false,
-                                                      IdentifyTileKind(frames[2]),
-                                                      Color.WHITE);
+                return CreateNewTile(frames[2],
+                    OriginalColor.Red,
+                    -Int2.One,
+                    false,
+                    IdentifyTileKind(frames[2]),
+                    Color.WHITE);
                 ;
 
             case Shape.Triangle:
-                return Tile.CreateNewTile(frames[3],
-                                                      OriginalColor.Green,
-                                                      null,
-                                                      false,
-                                                      IdentifyTileKind(frames[3]),
-                                                      Color.WHITE);
+                return CreateNewTile(frames[3],
+                    OriginalColor.Green,
+                    -Int2.One,
+                    false,
+                    IdentifyTileKind(frames[3]),
+                    Color.WHITE);
                 ;
         }
+
         throw new ArgumentNullException("This code shall NEVER be reached!");
     }
 
@@ -206,17 +206,17 @@ public class Tile : IEquatable<Tile>
             wasDrawn = true;
         }
 
-        Vector2 worldPosition = new Vector2(Coords.gridX, Coords.gridY) * 64;
+        Vector2 worldPosition = new Vector2(Coords.X, Coords.Y) * Program.TileSize;
 
         Color drawColor = Selected ? Color.GRAY : Colour;
         drawColor = Raylib.ColorAlpha(drawColor, currentAlpha);
         currentAlpha = Lerp(currentAlpha, targetAlpha, alphaSpeed * deltaTime);
-    
+
         Raylib.DrawTextureRec(SpriteSheet, DrawDestination, worldPosition, drawColor);
 
-        float xCenter = worldPosition.X + (int)GridData.TileWidth / 4.3f;
-        float yCenter = worldPosition.Y < 128f ? worldPosition.Y + (int)GridData.TileHeight / 2.5f :
-            worldPosition.Y >= 128f ? (worldPosition.Y + (int)GridData.TileHeight / 2f) - 5f : 0f;
+        float xCenter = worldPosition.X + Program.TileSize.X / 4.3f;
+        float yCenter = worldPosition.Y < 128f ? worldPosition.Y + Program.TileSize.Y / 2.5f :
+            worldPosition.Y >= 128f ? (worldPosition.Y + Program.TileSize.Y / 2f) - 5f : 0f;
 
         Vector2 drawPos = new(xCenter - 10f, yCenter);
         Raylib.DrawTextEx(font, Coords.ToString(), drawPos, 20f, 1f, Color.BLACK);
@@ -225,6 +225,6 @@ public class Tile : IEquatable<Tile>
     public bool Equals(Tile? other)
     {
         return Shape == other?.Shape &&
-                 OriginColor == other.OriginColor;
+               OriginColor == other.OriginColor;
     }
 }

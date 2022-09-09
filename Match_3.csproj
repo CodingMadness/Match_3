@@ -12,6 +12,8 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <LangVersion>10.0</LangVersion>
+    <WarningsAsErrors>;NU1605;Nullable</WarningsAsErrors>
+    <NoWarn>1701;1702;Nullable</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="raylib" />
