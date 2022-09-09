@@ -6,10 +6,10 @@ using Match_3;
 
 class Program
 {
-    private static Texture2D _tileSheet;
+    public static Texture2D TileSheet { get; private set; }
     private static Stopwatch _stopwatch = new();
     private static TileMap _tileMap = new(8, 8);
-    
+
     private const int _tileSize = 64;
     private const int _tileCountX = 8;
     private const int _tileCountY = 8;
@@ -33,7 +33,7 @@ class Program
         var fontPath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}\\Assets\\font3.ttf";
         var tilePath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}\\Assets\\shapes.png";
         Console.WriteLine(tilePath);
-        _tileSheet = Raylib.LoadTexture(tilePath);
+        TileSheet = Raylib.LoadTexture(tilePath);
         Tile.FontPath = fontPath;
         _stopwatch = Stopwatch.StartNew();
     }
@@ -51,7 +51,7 @@ class Program
             Raylib.BeginDrawing();
 
             Raylib.ClearBackground(Color.BEIGE);
-            
+
             _stopwatch.Stop();
             _tileMap.Draw((float) _stopwatch.Elapsed.TotalSeconds);
             _stopwatch.Restart();
@@ -125,11 +125,11 @@ class Program
 
     public static void CleanUp()
     {
-        Raylib.UnloadTexture(_tileSheet);
+        Raylib.UnloadTexture(TileSheet);
 
         Raylib.CloseWindow();
     }
-    
+
     static bool AddWhenEqual(Tile first, Tile next, HashSet<Tile> rowOf3)
     {
         if (first.Equals(next) && first.Coords.Y == next.Coords.Y)

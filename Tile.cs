@@ -28,7 +28,6 @@ public class Tile : IEquatable<Tile>
     public OriginalColor OriginColor { get; set; }
     public Rectangle DrawDestination { get; set; }
     public Int2 Coords { get; set; }
-    public static Texture2D SpriteSheet { get; set; }
     public static Texture2D DestroyedTile { get; set; }
     public static string FontPath { get; set; }
     public bool Swapped { get; set; } = true;
@@ -212,7 +211,7 @@ public class Tile : IEquatable<Tile>
         drawColor = Raylib.ColorAlpha(drawColor, currentAlpha);
         currentAlpha = Lerp(currentAlpha, targetAlpha, alphaSpeed * deltaTime);
 
-        Raylib.DrawTextureRec(SpriteSheet, DrawDestination, worldPosition, drawColor);
+        Raylib.DrawTextureRec(Program.TileSheet, DrawDestination, worldPosition, drawColor);
 
         float xCenter = worldPosition.X + Program.TileSize.X / 4.3f;
         float yCenter = worldPosition.Y < 128f ? worldPosition.Y + Program.TileSize.Y / 2.5f :
