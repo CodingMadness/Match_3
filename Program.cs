@@ -40,95 +40,53 @@ class Program
 
     public static void GameLoop()
     {
-        var clickedTiles = new Tile[2];
-
-        int swapCounter = 0;
-
-        HashSet<Tile> match3List = new(3);
-
         while (!Raylib.WindowShouldClose())
         {
             Raylib.BeginDrawing();
 
             Raylib.ClearBackground(Color.BEIGE);
 
+            ProcessSelectedTiles();
+            
             _stopwatch.Stop();
             _tileMap.Draw((float) _stopwatch.Elapsed.TotalSeconds);
             _stopwatch.Restart();
 
-            if (_tileMap.TryGetClickedTile(out var foundTile))
-            {
-                //Console.WriteLine("I WAS CLICKED: !" + position);
-                clickedTiles[swapCounter] = foundTile;
-                //foundTile.Selected = true;
-                swapCounter++;
-
-                if (swapCounter == 2)
-                {
-                    swapCounter = 0;
-                    
-                    if (!clickedTiles[0].Equals(clickedTiles[1]))
-                    {
-                        foundTile.Selected = true;
-                        _tileMap.Swap(clickedTiles[0], clickedTiles[1]);
-                        clickedTiles[0].Selected = false;
-                        clickedTiles[1].Selected = false;
-                        clickedTiles.AsSpan().Clear();
-                    }
-                    else
-                    {
-                        clickedTiles[0].StopFading();
-                        clickedTiles[1].StopFading();
-                    }
-
-                    /*
-                     if (Match3InRightDirection(map, bTile.Coords, match3List))
-                    {
-                        Console.WriteLine("successfully deleted from LEFT-TO-RIGHT");
-
-                        foreach (var item in match3List)
-                        {
-                            Console.WriteLine(item);
-                            item!.Colour = Raylib.ColorAlpha(item.Colour, 0f);
-                            item.Selected = true;
-                        }
-                        ;
-                    }
-
-                    if (Match3InLeftDirection(map, bTile.Coords, match3List))
-                    {
-                        Console.WriteLine("successfully deleted from RIGHT-TO-LEFT");
-
-                        foreach (var item in match3List)
-                        {
-                            Console.WriteLine(item);
-                            item!.Colour = Raylib.ColorAlpha(item.Colour, 0f);
-                            item.Selected = true;
-                        }
-
-                        ;
-                    }
-
-                    else if (Match3InBetween(map, bTile.Coords, match3List))
-                    {
-                        Console.WriteLine("successfully deleted from INBETWEEN");
-
-                        foreach (var item in match3List)
-                        {
-                            Console.WriteLine(item);
-                            item!.Colour = Raylib.ColorAlpha(item.Colour, 0f);
-                            item.Selected = true;
-                        }
-
-                        ;
-                    }
-
-                    match3List.Clear();*/
-                }
-            }
 
             Raylib.EndDrawing();
         }
+    }
+
+    private static Tile? _selectedTile;
+
+    private static void ProcessSelectedTiles()
+    {
+        if (!_tileMap.TryGetClickedTile(out var foundTile))
+            return;
+
+        //No tile selected yet
+        if (_selectedTile is null)
+        {
+            _selectedTile = foundTile;
+
+            _selectedTile.Selected = true;
+            return;
+        }
+
+        //Same tile selected => deselect
+        if (foundTile.Equals(_selectedTile))
+        {
+            _selectedTile.Selected = false;
+            _selectedTile = null;
+            return;
+        }
+
+        //Different tile selected => swap
+        foundTile.Selected = true;
+        _tileMap.Swap(_selectedTile, foundTile);
+        _selectedTile.Selected = false;
+        _selectedTile = null;
+        foundTile.Selected = false;
     }
 
     public static void CleanUp()
