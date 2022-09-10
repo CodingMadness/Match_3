@@ -53,6 +53,7 @@ class Program
 
             _stopwatch.Stop();
             _tileMap.Draw((float)_stopwatch.Elapsed.TotalSeconds);
+            Raylib.DrawFPS(0,0);
             _stopwatch.Restart();
 
             ProcessSelectedTiles();
