@@ -95,7 +95,7 @@ class Program
             Console.WriteLine("FOUND A MATCH-3");
             foreach (var match in _matches)
             {
-                match.IsDeleted = true;
+                _tileMap[match.CurrentCoords] = null;
                 match.Selected = true;
                 Console.WriteLine(match);
             }

@@ -53,7 +53,7 @@ public class TileMap
                 return null;
             }
         }
-        private set => _tiles[coord.X, coord.Y] = value;
+        set => _tiles[coord.X, coord.Y] = value;
     }
     
     private void Fill()
