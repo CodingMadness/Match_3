@@ -41,6 +41,7 @@ class Program
         TileSheet = Raylib.LoadTexture(tilePath);
         Tile.FontPath = fontPath;
         _stopwatch = Stopwatch.StartNew();
+        Raylib.SetTargetFPS(60);
     }
 
     private static void GameLoop()
