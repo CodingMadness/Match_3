@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using Raylib_cs;
 
 namespace Match_3;
@@ -7,19 +8,17 @@ public enum Direction
 {
     PositiveX = 0,
     NegativeX = 1,
-    
+
     NegativeY = 2,
     PositiveY = 3,
 }
 
 public class TileMap
 {
-      
-    
     private readonly Tile?[,] _tiles;
     public int Width { get; }
     public int Height { get; }
-    
+
     public TileMap(int width, int height)
     {
         _tiles = new Tile[width, height];
@@ -35,27 +34,17 @@ public class TileMap
         (a.CurrentCoords, b.CurrentCoords) = (b.CurrentCoords, a.CurrentCoords);
         (a.PreviewCoords, b.PreviewCoords) = (b.CurrentCoords, a.CurrentCoords);
     }
+
     public Tile? this[IntVector2 coord]
     {
         get
         {
-            if (TryGetTile(coord, out var tile))
-                return tile;
-            {
-                /*
-                if (coord.X >= Width)
-                    coord.X = Width - 1;
-                else if (coord.Y >= Height)
-                    coord.Y = Height - 1;
-
-                return this[coord];
-                */
-                return null;
-            }
+            TryGetTile(coord, out var tile);
+            return tile;
         }
         private set => _tiles[coord.X, coord.Y] = value;
     }
-    
+
     private void Fill()
     {
         for (int x = 0; x < Width; x++)
@@ -84,18 +73,18 @@ public class TileMap
     public bool TryGetClickedTile([MaybeNullWhen(false)] out Tile tile)
     {
         tile = null;
-        if (!Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT)) 
+        if (!Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
             return false;
-        
+
         var mouseVec2 = Raylib.GetMousePosition();
 
         IntVector2 position = new IntVector2((int) mouseVec2.X, (int) mouseVec2.Y);
         position /= Program.TileSize;
         return TryGetTile(position, out tile);
-
     }
 
-    private bool TryGetTile(IntVector2 position, [MaybeNullWhen(false)] out Tile tile)
+    [PublicAPI]
+    public bool TryGetTile(IntVector2 position, [MaybeNullWhen(false)] out Tile tile)
     {
         if (position.X < 0 || position.X >= Width
                            || position.Y < 0 || position.Y >= Height)
