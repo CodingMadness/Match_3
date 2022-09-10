@@ -49,14 +49,13 @@ class Program
         while (!Raylib.WindowShouldClose())
         {
             Raylib.BeginDrawing();
-
             Raylib.ClearBackground(Color.BEIGE);
-
             _stopwatch.Stop();
             _tileMap.Draw((float)_stopwatch.Elapsed.TotalSeconds);
+            //var f = Raylib.GetFPS();
+            //Console.WriteLine(f);
             Raylib.DrawFPS(0,0);
             _stopwatch.Restart();
-
             ProcessSelectedTiles();
             Raylib.EndDrawing();
         }
@@ -82,17 +81,21 @@ class Program
             swappyTile = null;
             return;
         }
-
+        
         //Different tile selected => swap
         clickedTile.Selected = true;
-        _tileMap.Swap(swappyTile, clickedTile);
+        
+        if (!swappyTile.IsDeleted || clickedTile.IsDeleted)
+            _tileMap.Swap(swappyTile, clickedTile);
+        
         swappyTile.Selected = false;
-
-        if (Match3InAnyDirection(_tileMap, swappyTile!.CurrentCoords, _matches, _startDirection))
+        
+        if (Match3InAnyDirection(_tileMap, swappyTile!.CurrentCoords, _matches))
         {
             Console.WriteLine("FOUND A MATCH-3");
             foreach (var match in _matches)
             {
+                match.IsDeleted = true;
                 match.Selected = true;
                 Console.WriteLine(match);
             }
@@ -110,7 +113,7 @@ class Program
         Raylib.CloseWindow();
     }
  
-    static bool Match3InAnyDirection(TileMap map, IntVector2 clickedCoord, HashSet<Tile> rowOf3, Direction startDirection)
+    static bool Match3InAnyDirection(TileMap map, IntVector2 clickedCoord, HashSet<Tile> rowOf3)
     {
         static bool AddWhenEqual(Tile? first, Tile? next, Direction direction, HashSet<Tile> rowOf3)
         {
@@ -145,34 +148,29 @@ class Program
             return tmp;
         }
 
+        var lastDir = (Direction)4;
+        //bool isNext = true;
         Tile? first = map[clickedCoord];
-        IntVector2 nextCoords = GetStepsFromDirection(clickedCoord, startDirection);
-        Tile? next = map[nextCoords];
-        bool isNext = true;
         
-        while (isNext)
+        for (Direction i = 0; i <=lastDir ; i++)
         {
-            if (AddWhenEqual(first, next, startDirection, rowOf3))
+            IntVector2 nextCoords = GetStepsFromDirection(clickedCoord, i);
+            Tile? next = map[nextCoords];
+            
+            while (AddWhenEqual(first, next, i, rowOf3) && rowOf3.Count < 3)
             {
-                nextCoords = GetStepsFromDirection(nextCoords, startDirection);
+               // if (rowOf3.Count == 3 &&)
+                //Console.WriteLine($"While-loop at: (x,y): {nextCoords}");
+                nextCoords = GetStepsFromDirection(nextCoords, i);
                 next = map[nextCoords];
-                isNext = rowOf3.Count < 3;
             }
-            else
-            {
-                isNext = false;
-            }
+            int  a = 0;
+            
+            if (rowOf3.Count < 3)
+                rowOf3.Clear();
         }
-
-        if (rowOf3.Count >= 3)
-            return true;
-        
-        rowOf3.Clear();
-            
-        if ((int)startDirection == 3)
-            return false;
-            
-        return Match3InAnyDirection(map, clickedCoord, rowOf3, ++startDirection);
+        return rowOf3.Count >= 3;
+        //return Match3InAnyDirection(map, clickedCoord, rowOf3, ++startDirection);
     }
 }
 

@@ -29,6 +29,8 @@ public class Tile : IEquatable<Tile>
     public Rectangle DrawDestination { get; set; }
     public IntVector2 CurrentCoords { get; set; }
     public IntVector2 PreviewCoords { get; set; }
+
+    public bool IsDeleted { get; set; }
     
     public static Texture2D DestroyedTile { get; set; }
     public static string FontPath { get; set; }
