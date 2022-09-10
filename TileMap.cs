@@ -3,8 +3,19 @@ using Raylib_cs;
 
 namespace Match_3;
 
+public enum Direction
+{
+    PositiveX = 0,
+    NegativeX = 1,
+    
+    NegativeY = 2,
+    PositiveY = 3,
+}
+
 public class TileMap
 {
+      
+    
     private readonly Tile?[,] _tiles;
     public int Width { get; }
     public int Height { get; }
@@ -19,14 +30,30 @@ public class TileMap
 
     public void Swap(Tile a, Tile b)
     {
-        this[a.Coords] = b;
-        this[b.Coords] = a;
-        (a.Coords, b.Coords) = (b.Coords, a.Coords);
+        this[a.CurrentCoords] = b;
+        this[b.CurrentCoords] = a;
+        (a.CurrentCoords, b.CurrentCoords) = (b.CurrentCoords, a.CurrentCoords);
+        (a.PreviewCoords, b.PreviewCoords) = (b.CurrentCoords, a.CurrentCoords);
     }
-    private Tile? this[Int2 coord]
+    public Tile? this[IntVector2 coord]
     {
-        get => _tiles[coord.X, coord.Y];
-        set => _tiles[coord.X, coord.Y] = value;
+        get
+        {
+            if (TryGetTile(coord, out var tile))
+                return tile;
+            {
+                /*
+                if (coord.X >= Width)
+                    coord.X = Width - 1;
+                else if (coord.Y >= Height)
+                    coord.Y = Height - 1;
+
+                return this[coord];
+                */
+                return null;
+            }
+        }
+        private set => _tiles[coord.X, coord.Y] = value;
     }
     
     private void Fill()
@@ -36,7 +63,7 @@ public class TileMap
             for (int y = 0; y < Height; y++)
             {
                 var tile = Tile.GetRandomTile();
-                tile.Coords = new Int2(x, y);
+                tile.CurrentCoords = new IntVector2(x, y);
                 _tiles[x, y] = tile;
             }
         }
@@ -62,13 +89,13 @@ public class TileMap
         
         var mouseVec2 = Raylib.GetMousePosition();
 
-        Int2 position = new Int2((int) mouseVec2.X, (int) mouseVec2.Y);
+        IntVector2 position = new IntVector2((int) mouseVec2.X, (int) mouseVec2.Y);
         position /= Program.TileSize;
         return TryGetTile(position, out tile);
 
     }
 
-    private bool TryGetTile(Int2 position, [MaybeNullWhen(false)] out Tile tile)
+    private bool TryGetTile(IntVector2 position, [MaybeNullWhen(false)] out Tile tile)
     {
         if (position.X < 0 || position.X >= Width
                            || position.Y < 0 || position.Y >= Height)

@@ -27,7 +27,9 @@ public class Tile : IEquatable<Tile>
     public Color Colour { get; set; }
     public OriginalColor OriginColor { get; set; }
     public Rectangle DrawDestination { get; set; }
-    public Int2 Coords { get; set; }
+    public IntVector2 CurrentCoords { get; set; }
+    public IntVector2 PreviewCoords { get; set; }
+    
     public static Texture2D DestroyedTile { get; set; }
     public static string FontPath { get; set; }
     public bool Swapped { get; set; } = true;
@@ -64,7 +66,7 @@ public class Tile : IEquatable<Tile>
     {
     }
 
-    private static Tile CreateNewTile(Rectangle drawDestinationRectangle, OriginalColor originCol, Int2 coord,
+    private static Tile CreateNewTile(Rectangle drawDestinationRectangle, OriginalColor originCol, IntVector2 coord,
         bool swapped, Shape kind, Color color)
     {
         var mapTile = new Tile
@@ -75,7 +77,7 @@ public class Tile : IEquatable<Tile>
             Shape = kind,
             Colour = color,
             OriginColor = originCol,
-            Coords = coord
+            CurrentCoords = coord
         };
 
         return mapTile;
@@ -87,7 +89,7 @@ public class Tile : IEquatable<Tile>
         new Rectangle(0f, 64f, 64f, 64f), //red
         new Rectangle(64f, 64f, 64f, 64f), //green
     };
-
+    
     private static Shape IdentifyTileKind(Rectangle current)
     {
         Shape tmp = Shape.EMPTY;
@@ -116,7 +118,7 @@ public class Tile : IEquatable<Tile>
 
     private static Tile BLUE_BALL = CreateNewTile(frames[0],
         OriginalColor.Blue,
-        -Int2.One,
+        -IntVector2.One,
         false,
         IdentifyTileKind(frames[0]),
         Color.WHITE);
@@ -124,7 +126,7 @@ public class Tile : IEquatable<Tile>
 
     private static Tile YELLOW_CUBE = CreateNewTile(frames[1],
         OriginalColor.Yellow,
-        -Int2.One,
+        -IntVector2.One,
         false,
         IdentifyTileKind(frames[1]),
         Color.WHITE);
@@ -132,7 +134,7 @@ public class Tile : IEquatable<Tile>
 
     private static Tile RED_ZYLINDER = CreateNewTile(frames[2],
         OriginalColor.Red,
-        -Int2.One,
+        -IntVector2.One,
         false,
         IdentifyTileKind(frames[2]),
         Color.WHITE);
@@ -140,7 +142,7 @@ public class Tile : IEquatable<Tile>
 
     private static Tile GREEN_TRIANGLE = CreateNewTile(frames[3],
         OriginalColor.Green,
-        -Int2.One,
+        -IntVector2.One,
         false,
         IdentifyTileKind(frames[3]),
         Color.WHITE);
@@ -154,7 +156,7 @@ public class Tile : IEquatable<Tile>
             case Shape.Ball:
                 return CreateNewTile(frames[0],
                     OriginalColor.Blue,
-                    -Int2.One,
+                    -IntVector2.One,
                     false,
                     IdentifyTileKind(frames[0]),
                     Color.WHITE);
@@ -162,7 +164,7 @@ public class Tile : IEquatable<Tile>
             case Shape.Cube:
                 return CreateNewTile(frames[1],
                     OriginalColor.Yellow,
-                    -Int2.One,
+                    -IntVector2.One,
                     false,
                     IdentifyTileKind(frames[1]),
                     Color.WHITE);
@@ -171,7 +173,7 @@ public class Tile : IEquatable<Tile>
             case Shape.Zylinder:
                 return CreateNewTile(frames[2],
                     OriginalColor.Red,
-                    -Int2.One,
+                    -IntVector2.One,
                     false,
                     IdentifyTileKind(frames[2]),
                     Color.WHITE);
@@ -180,7 +182,7 @@ public class Tile : IEquatable<Tile>
             case Shape.Triangle:
                 return CreateNewTile(frames[3],
                     OriginalColor.Green,
-                    -Int2.One,
+                    -IntVector2.One,
                     false,
                     IdentifyTileKind(frames[3]),
                     Color.WHITE);
@@ -190,7 +192,7 @@ public class Tile : IEquatable<Tile>
         throw new ArgumentNullException("This code shall NEVER be reached!");
     }
 
-    public override string ToString() => $"Position: {Coords}; Tilekind: {Shape} OriginColor: {OriginColor.ToString()}";
+    public override string ToString() => $"CurrentPos: {CurrentCoords}; -- Shape: {Shape} -- OriginColor: {OriginColor} ";
 
     float Lerp(float firstFloat, float secondFloat, float by)
     {
@@ -202,7 +204,10 @@ public class Tile : IEquatable<Tile>
         Selected = false;
         CurrentAlpha = 1f;
     }
-    
+
+    private static bool SameColor(Color c1, Color c2) 
+        => c1.a == c2.a && c1.b == c2.b && c1.g == c2.g && c1.r == c2.r;
+
     public virtual void Draw(float deltaTime)
     {
         if (!wasDrawn)
@@ -211,7 +216,7 @@ public class Tile : IEquatable<Tile>
             wasDrawn = true;
         }
 
-        Vector2 worldPosition = new Vector2(Coords.X, Coords.Y) * Program.TileSize;
+        Vector2 worldPosition = new Vector2(CurrentCoords.X, CurrentCoords.Y) * Program.TileSize;
         Color drawColor = Selected ? Color.BLUE : Colour;
         drawColor = Raylib.ColorAlpha(drawColor, CurrentAlpha);
         CurrentAlpha = Lerp(CurrentAlpha, targetAlpha, alphaSpeed * deltaTime);
@@ -222,7 +227,7 @@ public class Tile : IEquatable<Tile>
             worldPosition.Y >= 128f ? (worldPosition.Y + Program.TileSize.Y / 2f) - 5f : 0f;
 
         Vector2 drawPos = new(xCenter - 10f, yCenter);
-        Raylib.DrawTextEx(font, Coords.ToString(), drawPos, 20f, 1f, Color.BLACK);
+        Raylib.DrawTextEx(font, CurrentCoords.ToString(), drawPos, 20f, 1f, SameColor(Colour, Color.BLACK) ? Color.WHITE : Color.BLACK );
     }
 
     public bool Equals(Tile? other)

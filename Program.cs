@@ -1,5 +1,6 @@
 ﻿using Raylib_cs;
 using System.Diagnostics;
+using System.Numerics;
 using Match_3;
 
 //INITIALIZATION:................................
@@ -9,22 +10,26 @@ class Program
     public static Texture2D TileSheet { get; private set; }
     private static Stopwatch _stopwatch = new();
     private static TileMap _tileMap = new(8, 8);
-
+    private static readonly HashSet<Tile> _matches = new(3);
+    
     private const int _tileSize = 64;
     private const int _tileCountX = 8;
     private const int _tileCountY = 8;
 
-    public static readonly Int2 WindowSize = new Int2(_tileCountX, _tileCountY) * _tileSize;
-    public static readonly Int2 TileSize = new Int2(_tileSize);
+    public static readonly IntVector2 WindowSize = new IntVector2(_tileCountX, _tileCountY) * _tileSize;
+    public static readonly IntVector2 TileSize = new IntVector2(_tileSize);
 
-    public static void Main(string[] args)
+    private static Tile? swappyTile;
+    private static Direction _startDirection = Direction.PositiveX;
+
+    private static void Main(string[] args)
     {
         Initialize();
         GameLoop();
         CleanUp();
     }
 
-    public static void Initialize()
+    private static void Initialize()
     {
         Raylib.InitWindow(WindowSize.X, WindowSize.Y, "Hello World");
         string net6Path = Environment.CurrentDirectory;
@@ -38,7 +43,7 @@ class Program
         _stopwatch = Stopwatch.StartNew();
     }
 
-    public static void GameLoop()
+    private static void GameLoop()
     {
         while (!Raylib.WindowShouldClose())
         {
@@ -46,140 +51,127 @@ class Program
 
             Raylib.ClearBackground(Color.BEIGE);
 
-            ProcessSelectedTiles();
-            
             _stopwatch.Stop();
-            _tileMap.Draw((float) _stopwatch.Elapsed.TotalSeconds);
+            _tileMap.Draw((float)_stopwatch.Elapsed.TotalSeconds);
             _stopwatch.Restart();
 
-
+            ProcessSelectedTiles();
             Raylib.EndDrawing();
         }
     }
 
-    private static Tile? _selectedTile;
-
     private static void ProcessSelectedTiles()
     {
-        if (!_tileMap.TryGetClickedTile(out var foundTile))
+        if (!_tileMap.TryGetClickedTile(out var clickedTile))
             return;
 
         //No tile selected yet
-        if (_selectedTile is null)
+        if (swappyTile is null)
         {
-            _selectedTile = foundTile;
-
-            _selectedTile.Selected = true;
+            swappyTile = clickedTile;
+            swappyTile.Selected = true;
             return;
         }
 
         //Same tile selected => deselect
-        if (foundTile.Equals(_selectedTile))
+        if (clickedTile.Equals(swappyTile))
         {
-            _selectedTile.Selected = false;
-            _selectedTile = null;
+            swappyTile.Selected = false;
+            swappyTile = null;
             return;
         }
 
         //Different tile selected => swap
-        foundTile.Selected = true;
-        _tileMap.Swap(_selectedTile, foundTile);
-        _selectedTile.Selected = false;
-        _selectedTile = null;
-        foundTile.Selected = false;
+        clickedTile.Selected = true;
+        _tileMap.Swap(swappyTile, clickedTile);
+        swappyTile.Selected = false;
+
+        if (Match3InAnyDirection(_tileMap, swappyTile!.CurrentCoords, _matches, _startDirection))
+        {
+            Console.WriteLine("FOUND A MATCH-3");
+            foreach (var match in _matches)
+            {
+                match.Selected = true;
+                Console.WriteLine(match);
+            }
+            Console.WriteLine();
+        }
+        _matches.Clear();
+        swappyTile = null;        
+        clickedTile.Selected = false;
     }
 
-    public static void CleanUp()
+    private static void CleanUp()
     {
         Raylib.UnloadTexture(TileSheet);
 
         Raylib.CloseWindow();
     }
-
-    static bool AddWhenEqual(Tile first, Tile next, HashSet<Tile> rowOf3)
+ 
+    static bool Match3InAnyDirection(TileMap map, IntVector2 clickedCoord, HashSet<Tile> rowOf3, Direction startDirection)
     {
-        if (first.Equals(next) && first.Coords.Y == next.Coords.Y)
+        static bool AddWhenEqual(Tile? first, Tile? next, Direction direction, HashSet<Tile> rowOf3)
         {
-            rowOf3.Add(first);
-            rowOf3.Add(next);
-            return true;
-        }
-
-        return false;
-    }
-
-    static bool MatchInDirection(Tile?[,] map, Int2 clickedCoord, Int2 direction, out int count)
-    {
-        count = 0;
-        var originTile = map[clickedCoord.X, clickedCoord.Y];
-
-        if (originTile is null)
-            return false;
-
-        while (true)
-        {
-            var compareTile = map[clickedCoord.X + direction.X * count,
-                clickedCoord.Y + direction.Y * count];
-            if (!originTile.Equals(compareTile))
+            if (first is not null &&
+                next is not null &&
+                first.Equals(next))
             {
-                break;
+                rowOf3.Add(first);
+                rowOf3.Add(next);
+                return true;
             }
 
-            count++;
+            return false;
+        }
+    
+        static IntVector2 GetStepsFromDirection(IntVector2 input, Direction direction)
+        {
+            IntVector2 tmp = IntVector2.Zero;
+
+            if (direction == Direction.NegativeX)
+                tmp = new IntVector2(input.X - 1, input.Y);
+
+            if (direction == Direction.PositiveX)
+                tmp = new IntVector2(input.X + 1, input.Y);
+        
+            if (direction == Direction.NegativeY)
+                tmp = new IntVector2(input.X, input.Y-1);
+        
+            if (direction == Direction.PositiveY)
+                tmp = new IntVector2(input.X, input.Y + 1);
+
+            return tmp;
         }
 
-        return count >= 3;
-    }
+        Tile? first = map[clickedCoord];
+        IntVector2 nextCoords = GetStepsFromDirection(clickedCoord, startDirection);
+        Tile? next = map[nextCoords];
+        bool isNext = true;
+        
+        while (isNext)
+        {
+            if (AddWhenEqual(first, next, startDirection, rowOf3))
+            {
+                nextCoords = GetStepsFromDirection(nextCoords, startDirection);
+                next = map[nextCoords];
+                isNext = rowOf3.Count < 3;
+            }
+            else
+            {
+                isNext = false;
+            }
+        }
 
-    static bool Match3InRightDirection(Tile?[,] map, (int x, int y) clickedCoord, HashSet<Tile> rowOf3)
-    {
-        if (rowOf3.Count == 3)
+        if (rowOf3.Count >= 3)
             return true;
-
-        if (clickedCoord.x == _tileCountX - 1)
-            return Match3InLeftDirection(map, clickedCoord, rowOf3);
-
-        Tile first = map[clickedCoord.x, clickedCoord.y]!;
-        Tile next = map[clickedCoord.x + 1, clickedCoord.y]!;
-
-        return AddWhenEqual(first, next, rowOf3) &&
-               Match3InRightDirection(map, (clickedCoord.x + 1, clickedCoord.y), rowOf3);
-    }
-
-    static bool Match3InLeftDirection(Tile?[,] map, (int x, int y) clickedCoord, HashSet<Tile> rowOf3)
-    {
-        if (rowOf3.Count == 3)
-            return true;
-
-        if (clickedCoord.x == 0)
-            return Match3InRightDirection(map, clickedCoord, rowOf3);
-
-        Tile first = map[clickedCoord.x, clickedCoord.y]!;
-        Tile next = map[clickedCoord.x - 1, clickedCoord.y]!;
-
-        return AddWhenEqual(first, next, rowOf3) &&
-               Match3InLeftDirection(map, (clickedCoord.x - 1, clickedCoord.y), rowOf3);
-    }
-
-    static bool Match3InBetween(Tile?[,] map, (int x, int y) clickedCoord, HashSet<Tile> rowOf3)
-    {
-        //Console.WriteLine("Match3InBetween() was CALLED");
-
-        if (rowOf3.Count == 3)
-            return true;
-
-        if (clickedCoord.x == 0)
-            return Match3InRightDirection(map, clickedCoord, rowOf3);
-
-        if (clickedCoord.x == _tileCountX)
-            return Match3InLeftDirection(map, clickedCoord, rowOf3);
-
-        //before we went 1 LEFT to check the LEFT neighbor
-        //now we go 2 RIGHT to check the RIGHT neighbor
-        int nextX = rowOf3.Count == 0 ? clickedCoord.x - 1 : clickedCoord.x + 1;
-
-        Tile first = map[clickedCoord.x, clickedCoord.y]!;
-        Tile next = map[nextX, clickedCoord.y]!;
-        return AddWhenEqual(first, next, rowOf3) && Match3InBetween(map, (nextX, clickedCoord.y), rowOf3);
+        
+        rowOf3.Clear();
+            
+        if ((int)startDirection == 3)
+            return false;
+            
+        return Match3InAnyDirection(map, clickedCoord, rowOf3, ++startDirection);
     }
 }
+
+    
