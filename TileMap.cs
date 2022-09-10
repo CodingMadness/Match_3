@@ -18,7 +18,7 @@ public class TileMap
     
     private readonly Tile?[,] _tiles;
     public int Width { get; }
-    public int Height { get; }
+    public int Height { get; }  
     
     public TileMap(int width, int height)
     {
@@ -92,7 +92,6 @@ public class TileMap
         IntVector2 position = new IntVector2((int) mouseVec2.X, (int) mouseVec2.Y);
         position /= Program.TileSize;
         return TryGetTile(position, out tile);
-
     }
 
     private bool TryGetTile(IntVector2 position, [MaybeNullWhen(false)] out Tile tile)

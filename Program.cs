@@ -22,6 +22,8 @@ class Program
     private static Tile? swappedTile;
     private static Direction _startDirection = Direction.PositiveX;
 
+    private static bool isUndoPressed;
+    private static HashSet<Tile> buffer = new (5);
     private static void Main(string[] args)
     {
         Initialize();
@@ -31,7 +33,7 @@ class Program
 
     private static void Initialize()
     {
-        Raylib.InitWindow(WindowSize.X, WindowSize.Y, "Hello World");
+        Raylib.InitWindow(WindowSize.X, WindowSize.Y, "Match3 By Alex und Shpend");
         string net6Path = Environment.CurrentDirectory;
         const string projectName = "Match3";
         int lastProjectNameOccurence = net6Path.LastIndexOf(projectName) + projectName.Length;
@@ -57,6 +59,25 @@ class Program
             Raylib.DrawFPS(0,0);
             _stopwatch.Restart();
             ProcessSelectedTiles();
+            
+            bool keyDown = (Raylib.IsKeyDown(KeyboardKey.KEY_A));
+            
+            if (keyDown)
+                Console.WriteLine("Z down?  " + keyDown);
+            
+            if (keyDown)
+            {
+                //UNDO...!
+                isUndoPressed = true;
+                Console.WriteLine(isUndoPressed);
+                foreach (var match in buffer)
+                {
+                    var item = _tileMap[match.CurrentCoords] = match;
+                    item.Selected = false;
+                    item.Colour = Color.WHITE;
+                }
+            }
+            //UndoLastOperation();
             Raylib.EndDrawing();
         }
     }
@@ -96,13 +117,18 @@ class Program
             
             foreach (var match in _matches)
             {
-                _tileMap[match.CurrentCoords] = null;
-                //match.Selected = true;
+                buffer.Add(_tileMap[match.CurrentCoords]); 
+                _tileMap[match.CurrentCoords]  = null;
                 Console.WriteLine(match);
             }
+
+            Console.WriteLine(_matches.Count);
             Console.WriteLine();
         }
-        _matches.Clear();
+        
+       if(!isUndoPressed)
+           _matches.Clear();
+       
         swappedTile = null;        
         clickedTile.Selected = false;
     }
@@ -150,7 +176,7 @@ class Program
         }
 
         var lastDir = (Direction)4;
-        //bool isNext = true;
+
         Tile? first = map[clickedCoord];
         
         for (Direction i = 0; i <=lastDir ; i++)
@@ -160,18 +186,31 @@ class Program
             
             while (AddWhenEqual(first, next, i, rowOf3) && rowOf3.Count < 3)
             {
-               // if (rowOf3.Count == 3 &&)
-                //Console.WriteLine($"While-loop at: (x,y): {nextCoords}");
                 nextCoords = GetStepsFromDirection(nextCoords, i);
                 next = map[nextCoords];
             }
-            int  a = 0;
             
             if (rowOf3.Count < 3)
                 rowOf3.Clear();
         }
         return rowOf3.Count >= 3;
-        //return Match3InAnyDirection(map, clickedCoord, rowOf3, ++startDirection);
+    }
+
+    private static void UndoLastOperation()
+    {
+        Console.WriteLine(isUndoPressed);
+        if (Raylib.IsKeyDown(KeyboardKey.KEY_Z))
+        {
+            //UNDO...!
+            isUndoPressed = true;
+            Console.WriteLine(isUndoPressed);
+            foreach (var match in buffer)
+            {
+                var item = _tileMap[match.CurrentCoords] = match;
+                item.Selected = false;
+                item.Colour = Color.WHITE;
+            }
+        }
     }
 }
 
