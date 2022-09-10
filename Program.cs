@@ -19,7 +19,7 @@ class Program
     public static readonly IntVector2 WindowSize = new IntVector2(_tileCountX, _tileCountY) * _tileSize;
     public static readonly IntVector2 TileSize = new IntVector2(_tileSize);
 
-    private static Tile? swappyTile;
+    private static Tile? swappedTile;
     private static Direction _startDirection = Direction.PositiveX;
 
     private static void Main(string[] args)
@@ -67,42 +67,43 @@ class Program
             return;
 
         //No tile selected yet
-        if (swappyTile is null)
+        if (swappedTile is null)
         {
-            swappyTile = clickedTile;
-            swappyTile.Selected = true;
+            swappedTile = clickedTile;
+            swappedTile.Selected = true;
             return;
         }
 
         //Same tile selected => deselect
-        if (clickedTile.Equals(swappyTile))
+        if (clickedTile.Equals(swappedTile))
         {
-            swappyTile.Selected = false;
-            swappyTile = null;
+            swappedTile.Selected = false;
+            swappedTile = null;
             return;
         }
         
         //Different tile selected => swap
         clickedTile.Selected = true;
         
-        if (!swappyTile.IsDeleted || clickedTile.IsDeleted)
-            _tileMap.Swap(swappyTile, clickedTile);
+        if (swappedTile is not null || clickedTile is not null)
+            _tileMap.Swap(swappedTile, clickedTile);
         
-        swappyTile.Selected = false;
+        swappedTile.Selected = false;
         
-        if (Match3InAnyDirection(_tileMap, swappyTile!.CurrentCoords, _matches))
+        if (Match3InAnyDirection(_tileMap, swappedTile!.CurrentCoords, _matches))
         {
             Console.WriteLine("FOUND A MATCH-3");
+            
             foreach (var match in _matches)
             {
                 _tileMap[match.CurrentCoords] = null;
-                match.Selected = true;
+                //match.Selected = true;
                 Console.WriteLine(match);
             }
             Console.WriteLine();
         }
         _matches.Clear();
-        swappyTile = null;        
+        swappedTile = null;        
         clickedTile.Selected = false;
     }
 
