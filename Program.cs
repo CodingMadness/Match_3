@@ -59,25 +59,7 @@ class Program
             Raylib.DrawFPS(0,0);
             _stopwatch.Restart();
             ProcessSelectedTiles();
-            
-            bool keyDown = (Raylib.IsKeyDown(KeyboardKey.KEY_A));
-            
-            if (keyDown)
-                Console.WriteLine("Z down?  " + keyDown);
-            
-            if (keyDown)
-            {
-                //UNDO...!
-                isUndoPressed = true;
-                Console.WriteLine(isUndoPressed);
-                foreach (var match in buffer)
-                {
-                    var item = _tileMap[match.CurrentCoords] = match;
-                    item.Selected = false;
-                    item.Colour = Color.WHITE;
-                }
-            }
-            //UndoLastOperation();
+            UndoLastOperation();
             Raylib.EndDrawing();
         }
     }
@@ -105,12 +87,12 @@ class Program
         
         //Different tile selected => swap
         clickedTile.Selected = true;
-        
-        if (swappedTile is not null || clickedTile is not null)
-            _tileMap.Swap(swappedTile, clickedTile);
+        _tileMap.Swap(swappedTile, clickedTile);
+        buffer.Add(clickedTile);
+        buffer.Add(swappedTile);
         
         swappedTile.Selected = false;
-        
+        /*
         if (Match3InAnyDirection(_tileMap, swappedTile!.CurrentCoords, _matches))
         {
             Console.WriteLine("FOUND A MATCH-3");
@@ -125,10 +107,8 @@ class Program
             Console.WriteLine(_matches.Count);
             Console.WriteLine();
         }
-        
-       if(!isUndoPressed)
-           _matches.Clear();
-       
+        */
+        _matches.Clear();
         swappedTile = null;        
         clickedTile.Selected = false;
     }
@@ -198,18 +178,32 @@ class Program
 
     private static void UndoLastOperation()
     {
-        Console.WriteLine(isUndoPressed);
-        if (Raylib.IsKeyDown(KeyboardKey.KEY_Z))
+        bool keyDown = (Raylib.IsKeyDown(KeyboardKey.KEY_A));
+            
+        if (keyDown)
+            Console.WriteLine("Z down?  " + keyDown);
+        
+        //UNDO...!
+        if (keyDown)
         {
-            //UNDO...!
-            isUndoPressed = true;
-            Console.WriteLine(isUndoPressed);
+            //isUndoPressed = true;
+            //Console.WriteLine(isUndoPressed);
             foreach (var match in buffer)
             {
-                var item = _tileMap[match.CurrentCoords] = match;
-                item.Selected = false;
-                item.Colour = Color.WHITE;
+                //check if they have been swapped
+                if (match.Swapped)
+                {
+                    _tileMap.Swap(_tileMap[match.CurrentCoords], _tileMap[match.PreviewCoords]);
+                    break;
+                }
+
+                if (_tileMap[match.CurrentCoords] is { } item)
+                {
+                    item.Selected = false;
+                    item.Colour = Color.WHITE;
+                }
             }
+            buffer.Clear();
         }
     }
 }

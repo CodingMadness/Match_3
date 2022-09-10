@@ -35,7 +35,7 @@ public class Tile : IEquatable<Tile>
     public static Texture2D DestroyedTile { get; set; }
     public static string FontPath { get; set; }
     public bool Swapped { get; set; } = true;
-    public Shape Shape { get; set; } = Shape.EMPTY;
+    private Shape Shape { get; set; } = Shape.EMPTY;
 
     private static Font font;
 

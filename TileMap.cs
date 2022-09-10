@@ -34,6 +34,8 @@ public class TileMap
         this[b.CurrentCoords] = a;
         (a.CurrentCoords, b.CurrentCoords) = (b.CurrentCoords, a.CurrentCoords);
         (a.PreviewCoords, b.PreviewCoords) = (b.CurrentCoords, a.CurrentCoords);
+        a.Swapped = true;
+        b.Swapped = true;
     }
     public Tile? this[IntVector2 coord]
     {
