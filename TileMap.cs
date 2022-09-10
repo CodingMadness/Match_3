@@ -35,12 +35,6 @@ public class TileMap
         (a.CurrentCoords, b.CurrentCoords) = (b.CurrentCoords, a.CurrentCoords);
         (a.PreviewCoords, b.PreviewCoords) = (b.CurrentCoords, a.CurrentCoords);
     }
-
-    public void Delete(IntVector2 coord)
-    {
-        
-    }
-    
     public Tile? this[IntVector2 coord]
     {
         get

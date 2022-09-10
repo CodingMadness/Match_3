@@ -106,9 +106,16 @@ public struct IntVector2
         return new Vector2(left.X * right.X, left.Y * right.Y);
     }
 
+    private static Dictionary<IntVector2, string> _stringCache = new();
     public override string ToString()
     {
-        return $"<{X}, {Y}>";
+        if (!_stringCache.TryGetValue(this, out var result))
+        {
+            result = $"<{X}, {Y}>";
+            _stringCache.Add(this, result);
+        }
+
+        return result;
     }
 
     public bool Equals(IntVector2 other)
