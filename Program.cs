@@ -9,7 +9,8 @@ class Program
 {
     public static Texture2D TileSheet { get; private set; }
     private static Stopwatch _stopwatch = new();
-    private static TileMap _tileMap = new(8, 8);
+  //private static TileMap _tileMap = new(8, 8);
+    private static Tilemap _tileMap;
     private static HashSet<Tile> _matches = new(3);
     
     private const int _tileSize = 64;
@@ -20,10 +21,9 @@ class Program
     public static readonly IntVector2 TileSize = new IntVector2(_tileSize);
 
     private static Tile? secondClickedTile;
-    private static Direction _startDirection = Direction.PositiveX;
-
     private static bool isUndoPressed;
     private static HashSet<Tile> undoBuffer = new (5);
+   
     private static void Main(string[] args)
     {
         Initialize();
@@ -41,6 +41,8 @@ class Program
         var tilePath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}/Assets/shapes.png";
         Console.WriteLine(tilePath);
         TileSheet = Raylib.LoadTexture(tilePath);
+        _tileMap = new(TileSheet,8, 8);
+        _tileMap.CreateMap();
         Tile.FontPath = fontPath;
         _stopwatch = Stopwatch.StartNew();
         Raylib.SetTargetFPS(60);
@@ -53,7 +55,8 @@ class Program
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.BEIGE);
             _stopwatch.Stop();
-            _tileMap.Draw((float)_stopwatch.Elapsed.TotalSeconds);
+            //_tileMap.Draw((float)_stopwatch.Elapsed.TotalSeconds);
+            _tileMap.Draw();
             Raylib.DrawFPS(0,0);
             _stopwatch.Restart();
             ProcessSelectedTiles();
@@ -90,15 +93,15 @@ class Program
         undoBuffer.Add(secondClickedTile);
         secondClickedTile.Selected = false;
         
-        if (_tileMap.MatchInAnyDirection(secondClickedTile!.CurrentCoords, ref _matches))
+        if (_tileMap.MatchInAnyDirection(secondClickedTile!.Cell, ref _matches))
         {
             undoBuffer.Clear();
             //Console.WriteLine("FOUND A MATCH-3");
             
             foreach (var match in _matches)
             {
-                undoBuffer.Add(_tileMap[match.CurrentCoords]); 
-                _tileMap[match.CurrentCoords] = null;
+                undoBuffer.Add(_tileMap[match.Cell]); 
+                _tileMap[match.Cell] = null;
                 //Console.WriteLine(match);
             }
         }
@@ -122,18 +125,13 @@ class Program
         if (keyDown)
         {
             bool wasSwappedBack = false;
-            int i = 0;
 
             foreach (var storedItem in undoBuffer)
             {
-                /*if (i++ == 0)
-                    continue;*/
-                
-                //check if they have been ONLY swapped without leading to a 
-                //match3
-                if (!wasSwappedBack && _tileMap[storedItem.CurrentCoords] is not null)
+                //check if they have been ONLY swapped without leading to a match3
+                if (!wasSwappedBack && _tileMap[storedItem.Cell] is not null)
                 {
-                    var secondTile = _tileMap[storedItem.CurrentCoords];
+                    var secondTile = _tileMap[storedItem.Cell];
                     var firstTie = _tileMap[storedItem.CoordsB4Swap];
                     _tileMap.Swap(secondTile, firstTie);
                     wasSwappedBack = true;
@@ -143,14 +141,14 @@ class Program
                     //their has been a match3 after swap!
                     //for delete we dont have a .IsDeleted, cause we onl NULL
                     //a tile at a certain coordinate, so we test for that
-                    //if (_tileMap[storedItem.CurrentCoords] is { } backupItem)
-                    var tmp = _tileMap[storedItem.CurrentCoords] = storedItem;
+                    //if (_tileMap[storedItem.Cell] is { } backupItem)
+                    var tmp = _tileMap[storedItem.Cell] = storedItem;
                     tmp!.Selected = false;
                     tmp.Colour = Color.WHITE;
                 }
                 if (!wasSwappedBack)
-                    _tileMap.Swap(_tileMap[TileMap.MatchXTrigger.CoordsB4Swap], 
-                        _tileMap[TileMap.MatchXTrigger.CurrentCoords]);
+                    _tileMap.Swap(_tileMap[Tilemap.MatchXTrigger.CoordsB4Swap], 
+                        _tileMap[Tilemap.MatchXTrigger.Cell]);
             }
             undoBuffer.Clear();
         }

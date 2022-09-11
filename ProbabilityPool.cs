@@ -1,8 +1,5 @@
-﻿using System;
-using System.Linq;
-using System.Collections.Generic;
-using Microsoft.Xna.Framework;
-using MonoGame.Extended.Sprites;
+﻿using System.Numerics;
+using Raylib_cs;
 
 namespace Match_3
 {
@@ -58,9 +55,9 @@ namespace Match_3
 
             foreach (var value in values)
             {
-                Vector2 noise = ComputeNoise(value);
+                var noise = ComputeNoise(value);
                 float chance = m_FastNoise.GetNoise(noise.X, noise.Y);
-                Probability<TValue> probability = new(chance.RoundCloser(), value);
+                Probability<TValue> probability = new(MathF.Round(chance), value);
                 m_FixedItems[++runner] = probability;
             }
         }
@@ -112,26 +109,14 @@ namespace Match_3
         
         public bool IgnoreProbability(TValue key) { return false; }
     }
-
-    public class WeightedTilePool : ProbabilityPool<Tile>
+    
+    public class WeightedCellPool : ProbabilityPool<IntVector2>
     {
-        public WeightedTilePool(IEnumerable<Tile> values) : base(values)
+        public WeightedCellPool(IEnumerable<IntVector2> values) : base(values)
         {
         }
 
-        protected override Vector2 ComputeNoise(Tile initial)
-        {
-            return new(initial.Cell.X, initial.Cell.Y);
-        }
-    }
-
-    public class WeightedCellPool : ProbabilityPool<Vector2>
-    {
-        public WeightedCellPool(IEnumerable<Vector2> values) : base(values)
-        {
-        }
-
-        protected override Vector2 ComputeNoise(Vector2 initial)
+        protected override Vector2 ComputeNoise(IntVector2 initial)
         {
             return new(initial.X, initial.Y);
         }
@@ -182,7 +167,6 @@ namespace Match_3
     //        }
 
     //        m_FixedItems = new Probability<PickupCategory>[Count];
- 
 
     //        while (value >= 0)
     //        {

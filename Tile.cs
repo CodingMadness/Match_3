@@ -27,7 +27,7 @@ public sealed class Tile : IEquatable<Tile>
     public Color Colour { get; set; }
     public OriginalColor OriginColor { get; set; }
     public Rectangle DrawDestination { get; set; }
-    public IntVector2 CurrentCoords { get; set; }
+    public IntVector2 Cell { get; set; }
     public IntVector2 CoordsB4Swap { get; set; }
 
     public bool IsDeleted { get; set; }
@@ -66,6 +66,7 @@ public sealed class Tile : IEquatable<Tile>
 
     private Tile()
     {
+       
     }
 
     private static Tile CreateNewTile(Rectangle drawDestinationRectangle, OriginalColor originCol, IntVector2 coord,
@@ -79,7 +80,7 @@ public sealed class Tile : IEquatable<Tile>
             Shape = kind,
             Colour = color,
             OriginColor = originCol,
-            CurrentCoords = coord
+            Cell = coord
         };
 
         return mapTile;
@@ -149,7 +150,7 @@ public sealed class Tile : IEquatable<Tile>
         IdentifyTileKind(frames[3]),
         Color.WHITE);
 
-    public static Tile GetRandomTile()
+    public static Tile GetRandomTile(WeightedCellPool cellPool)
     {
         var id = (Shape) Random.Shared.Next((int) Shape.Ball, (int) (Shape.Triangle) + 1);
 
@@ -158,7 +159,7 @@ public sealed class Tile : IEquatable<Tile>
             case Shape.Ball:
                 return CreateNewTile(frames[0],
                     OriginalColor.Blue,
-                    -IntVector2.One,
+                    cellPool.Next,
                     false,
                     IdentifyTileKind(frames[0]),
                     Color.WHITE);
@@ -166,7 +167,7 @@ public sealed class Tile : IEquatable<Tile>
             case Shape.Cube:
                 return CreateNewTile(frames[1],
                     OriginalColor.Yellow,
-                    -IntVector2.One,
+                    cellPool.Next,
                     false,
                     IdentifyTileKind(frames[1]),
                     Color.WHITE);
@@ -175,7 +176,7 @@ public sealed class Tile : IEquatable<Tile>
             case Shape.Zylinder:
                 return CreateNewTile(frames[2],
                     OriginalColor.Red,
-                    -IntVector2.One,
+                    cellPool.Next,
                     false,
                     IdentifyTileKind(frames[2]),
                     Color.WHITE);
@@ -184,7 +185,7 @@ public sealed class Tile : IEquatable<Tile>
             case Shape.Triangle:
                 return CreateNewTile(frames[3],
                     OriginalColor.Green,
-                    -IntVector2.One,
+                    cellPool.Next,
                     false,
                     IdentifyTileKind(frames[3]),
                     Color.WHITE);
@@ -194,7 +195,7 @@ public sealed class Tile : IEquatable<Tile>
         throw new ArgumentNullException("This code shall NEVER be reached!");
     }
 
-    public override string ToString() => $"CurrentPos: {CurrentCoords}; -- Shape: {Shape} -- OriginColor: {OriginColor} ";
+    public override string ToString() => $"CurrentPos: {Cell}; -- Shape: {Shape} -- OriginColor: {OriginColor} ";
 
     float Lerp(float firstFloat, float secondFloat, float by)
     {
@@ -218,7 +219,7 @@ public sealed class Tile : IEquatable<Tile>
             wasDrawn = true;
         }
 
-        Vector2 worldPosition = new Vector2(CurrentCoords.X, CurrentCoords.Y) * Program.TileSize;
+        Vector2 worldPosition = new Vector2(Cell.X, Cell.Y) * Program.TileSize;
         Color drawColor = Selected ? Color.BLUE : Colour;
         drawColor = Raylib.ColorAlpha(drawColor, CurrentAlpha);
         CurrentAlpha = Lerp(CurrentAlpha, targetAlpha, alphaSpeed * deltaTime);
@@ -229,7 +230,7 @@ public sealed class Tile : IEquatable<Tile>
             worldPosition.Y >= 128f ? (worldPosition.Y + Program.TileSize.Y / 2f) - 5f : 0f;
 
         Vector2 drawPos = new(xCenter - 10f, yCenter);
-        Raylib.DrawTextEx(font, CurrentCoords.ToString(), drawPos, 20f, 1f, SameColor(Colour, Color.BLACK) ? Color.WHITE : Color.BLACK );
+        Raylib.DrawTextEx(font, Cell.ToString(), drawPos, 20f, 1f, SameColor(Colour, Color.BLACK) ? Color.WHITE : Color.BLACK );
     }
 
     public bool Equals(Tile? other)

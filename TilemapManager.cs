@@ -3,46 +3,82 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using Raylib_cs;
 
 namespace Match_3
 {
-    public abstract class Grid
+    public struct GameTime
     {
-        public const int FLOORTILE_WIDTH = 64;
-        public const int FLOORTILE_HEIGHT = 64;
+        public float ElapsedTime { get; set; }
 
-        public double Timer { get; private set; } = 10;
+        public void StartTimer(float lifetime)
+        { 
+            ElapsedTime = lifetime;
+        }
+        
+        //update a timer with the current frame time
+        public void UpdateTimer()
+        {
+            // subtract this frame from the timer if it's not allready expired
+            if (ElapsedTime > 0)
+                ElapsedTime -= Raylib.GetFrameTime();
+        }
+
+        // check if a timer is done.
+        public bool TimerDone()
+        {
+            return ElapsedTime <= 0;
+        }
+    }
+    
+    public abstract class Grid
+    { 
+        enum Direction
+        {
+            PositiveX = 0,
+            NegativeX = 1,
+            PositiveY = 2,
+            NegativeY = 3,
+        }
+
+        public const int TILE_SIZE = 64;
+        private const int MAX_DESTROYABLE_TILES = 3;
+        
+        //public double Timer { get; private set; } = 10;
         public readonly int _tileCountInX;
         public readonly int _tileCountInY;
-        protected readonly Tile[,] _bitmap;
+        protected readonly Tile?[,] _bitmap;
         protected readonly Texture2D _image;
+        public static Tile MatchXTrigger { get; private set; }
 
         private bool stopDrawingSameStuff = false;
+        
+        protected  GameTime _gridTimer { get; private set; }
 
-        protected Grid(int tileCountInX, int tileCountInY, Texture2D img)
+        protected Grid(int tileCountInX, int tileCountInY, Texture2D sheet)
         {
             _tileCountInX = tileCountInX;
             _tileCountInY = tileCountInY;
             _bitmap = new Tile[_tileCountInX, _tileCountInY];
-            _image = img;
+            _image = sheet;
+            _gridTimer.StartTimer(10f);
         }
-
-        protected abstract void internalDraw(SpriteBatch sb, Tile current, SpriteFont font);
 
         public abstract void CreateMap();
 
-        public void Draw(SpriteBatch sb, GameTime deltaTime, SpriteFont font)
+        public void Draw()
         {
             if (stopDrawingSameStuff)
                 return;
-            //–
-            Timer -= deltaTime.ElapsedGameTime.TotalSeconds;
-            // Debug.WriteLine("Timer: " + Timer);
-            const int timeMax = 10;//11 seconds for all tiles to appear
+            
+            //Timer -= deltaTime.ElapsedGameTime.TotalSeconds;
+            _gridTimer.UpdateTimer();
+            
+            const int timeMax = 10;//<timeMax> seconds for all tiles to appear
 
-            var p = (Timer / timeMax);
+            var p = (_gridTimer.ElapsedTime / timeMax);
             var px = p * _tileCountInX;
             var py = p * _tileCountInY;
 
@@ -50,188 +86,153 @@ namespace Match_3
             {
                 for (int y = 0; y < _tileCountInY; y++)
                 {
-                    //if (px < y && py < y)
+                    if (px < y && py < y)
                     {
-                        var tile = _bitmap[x, y];
+                        var tile = this[new(x,y)];
 
-                        if (tile != null)
-                        {
-                            internalDraw(sb, tile, font);
-                            //Debug.WriteLine("I DRAWED SMTH!");
-                        }
+                        tile?.Draw(_gridTimer.ElapsedTime);
                         //stopDrawingSameStuff = x == _tileCountInX-1 && y == _tileCountInY-1;
                         //Debug.WriteLine(stopDrawingSameStuff +  "   :  " + "(" + x + "," + y + ")");
                     }
                 }
             }
-
         }
 
-        public Tile this[int r, int c]
+        public Tile? this[IntVector2 coord]
         {
             get
             {
-                if (r >= 0 && c >= 0 && r < _tileCountInX && c < _tileCountInY)
+                if (coord.X >= 0 && coord.Y >= 0 && coord.X  < _tileCountInX && coord.Y < _tileCountInY)
                 {
-                    var tmp = _bitmap[r, c];
+                    var tmp = _bitmap[coord.X , coord.Y];
                     return tmp ?? throw new IndexOutOfRangeException("");
                 }
                 return null;
             }
             set
             {
-                if (r >= 0 && c >= 0 && r < _tileCountInX && c < _tileCountInY)
+                if (coord.X >= 0 && coord.Y >= 0 && coord.X  < _tileCountInX && coord.Y < _tileCountInY)
                 {
-                    _bitmap[r, c] = value;
+                    _bitmap[coord.X, coord.Y] = value;
                 }
             }
         }
+
+        public bool MatchInAnyDirection(IntVector2 clickedCoord, ref HashSet<Tile> matches)
+        {
+            static bool AddWhenEqual(Tile? first, Tile? next, HashSet<Tile> matches)
+            {
+                if (first is not null &&
+                    next is not null &&
+                    first.Equals(next))
+                {
+                    if (matches.Count ==  MAX_DESTROYABLE_TILES)
+                        return false;
+                    
+                    matches.Add(first);
+                    matches.Add(next);
+                    return true;
+                }
+                return false;
+            }
+        
+            static IntVector2 GetStepsFromDirection(IntVector2 input, Direction direction)
+            {
+                var tmp = direction switch
+                {
+                    Direction.NegativeX => new IntVector2(input.X - 1, input.Y),
+                    Direction.PositiveX => new IntVector2(input.X + 1, input.Y),
+                    Direction.NegativeY => new IntVector2(input.X, input.Y - 1),
+                    Direction.PositiveY => new IntVector2(input.X, input.Y + 1),
+                    _ => IntVector2.Zero
+                };
+
+                return tmp;
+            }
+
+            const Direction lastDir = (Direction)4;
+
+            Tile? first = this[clickedCoord];
+            MatchXTrigger = this[clickedCoord];
+            
+            for (Direction i = 0; (i < lastDir) ; i++)
+            {
+                /*
+                if (matches.Count == MAX_DESTROYABLE_TILES)
+                    return true;
+                */
+                IntVector2 nextCoords = GetStepsFromDirection(clickedCoord, i);
+                Tile? next = this[nextCoords];
+                
+                while (AddWhenEqual(first, next, matches) /*&& matches.Count < MAX_DESTROYABLE_TILES*/)
+                {
+                    //compute the proper (x,y) for next round!
+                    nextCoords = GetStepsFromDirection(nextCoords, i);
+                    next = this[nextCoords];
+                }
+            }
+      
+            return matches.Count == MAX_DESTROYABLE_TILES;
+        }
+        
+        public bool TryGetClickedTile([MaybeNullWhen(false)] out Tile? tile)
+    {
+        tile = null;
+        
+        if (!Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT)) 
+            return false;
+        
+        var mouseVec2 = Raylib.GetMousePosition();
+        IntVector2 position = new IntVector2((int) mouseVec2.X, (int) mouseVec2.Y);
+        position /= Program.TileSize;
+        return this[position] is not null;
+    }
+    
+        public void Swap(Tile? a, Tile? b)
+    {
+        if (a is null || b is null)
+            return;
+        
+        this[a.Cell] = b;
+        this[b.Cell] = a;
+        (a.Cell, b.Cell) = (b.Cell, a.Cell);
+        (a.CoordsB4Swap, b.CoordsB4Swap) = (b.Cell, a.Cell);
+    }
     }
 
-    public class BorderMap : Grid
+    public class Tilemap : Grid
     {
-        public BorderMap(int width, int height, Texture2D single) : base(width, height, single)
-        {
-
-        }
-
-        public override void CreateMap()
-        {
-            //Here x fill the entire LEFT-ROW and RIGHT-ROW
-            int start = 0;
-            //_bitmap[spalte=0, zeile=y]
-            for (int x = 0; x < _tileCountInY; x++)
-            {
-                _bitmap[start, x] = Tile.CreateTile(0, start, x, BORDERTILE_WIDTH, BORDERTILE_HEIGHT, _image, Tile.TileKind.Border);
-
-                if (x == _tileCountInY - 1)
-                {
-                    x = -1;
-                    start = _tileCountInX - 1;
-
-                    if (_bitmap[start, x + 1] != null)
-                        break;
-                }
-            }
-
-            start = 0;
-            //_bitmap[spalte=0, zeile=y]
-            for (int x = 0; x < _tileCountInX; x++)
-            {
-                _bitmap[x, start] = Tile.CreateTile(0, x, start, BORDERTILE_WIDTH, BORDERTILE_HEIGHT, _image, Tile.TileKind.Border);
-
-                if (x == _tileCountInX - 1)
-                {
-                    x = -1;
-                    start = _tileCountInY - 1;
-
-                    if (_bitmap[x + 2, start] != null)
-                        break;
-                }
-            }
-        }
-
-        protected override void internalDraw(SpriteBatch sb, Tile current, SpriteFont font)
-        {
-            sb.Draw(current.TileImg, current.DrawableRect, Color.White);
-            //sb.DrawString(font, $"{current.Cell.X} {current.Cell.Y}", current.Cell, Color.Black);
-        }
-    }
-
-    public class FloorMap : Grid
-    {
-        public FloorMap(int width, int height, Texture2D single) : base(width, height, single)
-        {
-
-        }
-
-        public override void CreateMap()
-        {
-            for (int x = 1; x < (_tileCountInX); x++)
-            {
-                for (int y = 1; y < (_tileCountInX); y++)
-                {
-                    _bitmap[x, y] = Tile.CreateTile(1, x, y, FLOORTILE_WIDTH, FLOORTILE_HEIGHT, _image, Tile.TileKind.Floor);
-                }
-            }
-        }
-
-        protected override void internalDraw(SpriteBatch sb, Tile current, SpriteFont font)
-        {
-            sb.Draw(current.TileImg, current.Cell, Color.White);
-            sb.DrawString(font, $"{current.Cell.X} {current.Cell.Y}", current.Cell, Color.Red);
-        }
-    }
-
-    public class PickupsMap : Grid
-    {
-        private readonly FloorMap pickupGround;
         private readonly WeightedCellPool cellPool;
 
-        private IEnumerable<Vector2> YieldGameWindow()
+        private IEnumerable<IntVector2> YieldGameWindow()
         {
-            for (int x = 1; x < pickupGround._tileCountInX - 0; x++)
+            for (int x = 1; x < _tileCountInX - 0; x++)
             {
-                for (int y = 1; y < pickupGround._tileCountInY - 0; y++)
+                for (int y = 1; y < _tileCountInY - 0; y++)
                 {
-                    Vector2 current = new(x * PICKUPTILE_WIDTH * 2, y * PICKUPTILE_HEIGHT * 2);
-                    //if (x % 2 == 0)
+                    IntVector2 current = new(x * TILE_SIZE * 1, y * TILE_SIZE * 1);
                     yield return current;
                 }
             }
         }
 
-        public PickupsMap(in FloorMap groundForPickups, Texture2D sheet)
-            : base(groundForPickups._tileCountInX, groundForPickups._tileCountInY, sheet)
+        public Tilemap(Texture2D sheet, int tilesInX, int tilesInY)
+            : base(tilesInX, tilesInY, sheet)
         {
-            pickupGround = groundForPickups;
-            //cellPool = new(YieldGameWindow());
+            cellPool = new(YieldGameWindow());
         }
-
+        
         public override void CreateMap()
         {
-            for (int x = 1; x < (_tileCountInX) - 1; x++)
+            for (int x = 0; x < _tileCountInX; x++)
             {
-                Vector2 tmp = new(2 * FLOORTILE_WIDTH, 2 * FLOORTILE_HEIGHT);
-                _bitmap[1, 1] = Tile.CreateRndTileFromSheet(2, tmp/*pickupGround[1, 1].Cell*/, PICKUPTILE_WIDTH,
-                                                                PICKUPTILE_HEIGHT,
-                                                                _image, Tile.TileKind.Pickup);
-                //for (int y = 1; y < (_tileCountInX); y++)
-                //{
-                //    _bitmap[x, y] = Tile.CreateRndTileFromSheet(pickupGround[x,y].Cell, PICKUPTILE_WIDTH, 
-                //                                                PICKUPTILE_HEIGHT, 
-                //                                                _image, Tile.TileKind.Pickup);
-                //}
+                for (int y = 0; y < _tileCountInY; y++)
+                {
+                    var tile = Tile.GetRandomTile(cellPool);
+                    _bitmap[x, y] = tile;
+                }
             }
         }
-
-        protected override void internalDraw(SpriteBatch sb, Tile current, SpriteFont font)
-        {
-            if (current.Cell != default)
-                sb.Draw(current.TileImg, current.Cell, current.DrawableRect, Color.White);
-            //WORKS! //sb.DrawString(font, $"{current.Cell.X} {current.Cell.Y}", current.Cell, Color.Red);
-        }      
     }
 
-    //public sealed class CollisionPool : ICollidable
-    //{
-    //    readonly ICollidable[] _maps;
-
-    //    public CollisionPool(params ICollidable[] maps)
-    //    {
-    //        _maps = maps;
-    //    }
-
-    //    public bool CheckIfPlayerCollidesWithMe(in Rectangle srcToCheck, Direction dir)
-    //    {
-    //        for (int i = 0; i < _maps.Length; i++)
-    //        {
-    //            if (_maps[i].CheckIfPlayerCollidesWithMe(srcToCheck, dir))
-    //            {
-    //                return true;
-    //            }
-    //        }
-    //        return false;
-    //    }
-    //}
 }
