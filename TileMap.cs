@@ -14,10 +14,14 @@ public enum Direction
 
 public class TileMap
 {
+    private const byte MAX_DESTROYABLE_TILES = 3;
+    
     private readonly Tile?[,] _tiles;
     public int Width { get; }
-    public int Height { get; }  
-    
+    public int Height { get; }
+
+    public static Tile? MatchXTrigger { get; private set; }
+
     public TileMap(int width, int height)
     {
         _tiles = new Tile[width, height];
@@ -70,7 +74,7 @@ public class TileMap
             }
         }
     }
-
+    
     public void Draw(float deltaTime)
     {
         for (int x = 0; x < Width; x += 1)
@@ -83,19 +87,21 @@ public class TileMap
         }
     }
 
-    public bool Match3InAnyDirection(IntVector2 clickedCoord, ref HashSet<Tile> rowOf3)
+    public bool MatchInAnyDirection(IntVector2 clickedCoord, ref HashSet<Tile> matches)
     {
-        static bool AddWhenEqual(Tile? first, Tile? next, Direction direction, HashSet<Tile> rowOf3)
+        static bool AddWhenEqual(Tile? first, Tile? next, HashSet<Tile> matches)
         {
             if (first is not null &&
                 next is not null &&
                 first.Equals(next))
             {
-                rowOf3.Add(first);
-                rowOf3.Add(next);
+                if (matches.Count ==  MAX_DESTROYABLE_TILES)
+                    return false;
+                
+                matches.Add(first);
+                matches.Add(next);
                 return true;
             }
-
             return false;
         }
     
@@ -116,26 +122,26 @@ public class TileMap
         const Direction lastDir = (Direction)4;
 
         Tile? first = this[clickedCoord];
+        MatchXTrigger = this[clickedCoord];
         
         for (Direction i = 0; (i < lastDir) ; i++)
         {
-            if (rowOf3.Count == 3)
+            /*
+            if (matches.Count == MAX_DESTROYABLE_TILES)
                 return true;
-            
+            */
             IntVector2 nextCoords = GetStepsFromDirection(clickedCoord, i);
             Tile? next = this[nextCoords];
             
-            while (AddWhenEqual(first, next, i, rowOf3) && rowOf3.Count < 3)
+            while (AddWhenEqual(first, next, matches) /*&& matches.Count < MAX_DESTROYABLE_TILES*/)
             {
                 //compute the proper (x,y) for next round!
                 nextCoords = GetStepsFromDirection(nextCoords, i);
                 next = this[nextCoords];
             }
         }
-/*
-        var only3 = rowOf3.Take(3);
-        rowOf3 = only3.ToHashSet();*/
-        return rowOf3.Count >= 3;
+  
+        return matches.Count == MAX_DESTROYABLE_TILES;
     }
     
     public bool TryGetClickedTile([MaybeNullWhen(false)] out Tile? tile)
@@ -146,7 +152,6 @@ public class TileMap
             return false;
         
         var mouseVec2 = Raylib.GetMousePosition();
-
         IntVector2 position = new IntVector2((int) mouseVec2.X, (int) mouseVec2.Y);
         position /= Program.TileSize;
         return TryGetTile(position, out tile);

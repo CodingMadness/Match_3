@@ -90,7 +90,7 @@ class Program
         undoBuffer.Add(secondClickedTile);
         secondClickedTile.Selected = false;
         
-        if (_tileMap.Match3InAnyDirection(secondClickedTile!.CurrentCoords, ref _matches))
+        if (_tileMap.MatchInAnyDirection(secondClickedTile!.CurrentCoords, ref _matches))
         {
             undoBuffer.Clear();
             //Console.WriteLine("FOUND A MATCH-3");
@@ -138,7 +138,7 @@ class Program
                     _tileMap.Swap(secondTile, firstTie);
                     wasSwappedBack = true;
                 }
-                else 
+                else
                 {
                     //their has been a match3 after swap!
                     //for delete we dont have a .IsDeleted, cause we onl NULL
@@ -148,6 +148,9 @@ class Program
                     tmp!.Selected = false;
                     tmp.Colour = Color.WHITE;
                 }
+                if (!wasSwappedBack)
+                    _tileMap.Swap(_tileMap[TileMap.MatchXTrigger.CoordsB4Swap], 
+                        _tileMap[TileMap.MatchXTrigger.CurrentCoords]);
             }
             undoBuffer.Clear();
         }
