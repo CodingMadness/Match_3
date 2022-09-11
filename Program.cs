@@ -10,7 +10,7 @@ class Program
     public static Texture2D TileSheet { get; private set; }
     private static Stopwatch _stopwatch = new();
     private static TileMap _tileMap = new(8, 8);
-    private static readonly HashSet<Tile> _matches = new(3);
+    private static HashSet<Tile> _matches = new(3);
     
     private const int _tileSize = 64;
     private const int _tileCountX = 8;
@@ -19,11 +19,11 @@ class Program
     public static readonly IntVector2 WindowSize = new IntVector2(_tileCountX, _tileCountY) * _tileSize;
     public static readonly IntVector2 TileSize = new IntVector2(_tileSize);
 
-    private static Tile? swappedTile;
+    private static Tile? secondClickedTile;
     private static Direction _startDirection = Direction.PositiveX;
 
     private static bool isUndoPressed;
-    private static HashSet<Tile> buffer = new (5);
+    private static HashSet<Tile> undoBuffer = new (5);
     private static void Main(string[] args)
     {
         Initialize();
@@ -54,162 +54,105 @@ class Program
             Raylib.ClearBackground(Color.BEIGE);
             _stopwatch.Stop();
             _tileMap.Draw((float)_stopwatch.Elapsed.TotalSeconds);
-            //var f = Raylib.GetFPS();
-            //Console.WriteLine(f);
             Raylib.DrawFPS(0,0);
             _stopwatch.Restart();
             ProcessSelectedTiles();
-            
-            bool keyDown = (Raylib.IsKeyDown(KeyboardKey.KEY_A));
-            
-            if (keyDown)
-                Console.WriteLine("Z down?  " + keyDown);
-            
-            if (keyDown)
-            {
-                //UNDO...!
-                isUndoPressed = true;
-                Console.WriteLine(isUndoPressed);
-                foreach (var match in buffer)
-                {
-                    var item = _tileMap[match.CurrentCoords] = match;
-                    item.Selected = false;
-                    item.Colour = Color.WHITE;
-                }
-            }
-            //UndoLastOperation();
+            UndoAllOperations();
             Raylib.EndDrawing();
         }
     }
 
     private static void ProcessSelectedTiles()
     {
-        if (!_tileMap.TryGetClickedTile(out var clickedTile))
+        if (!_tileMap.TryGetClickedTile(out var firstClickedTile))
             return;
 
         //No tile selected yet
-        if (swappedTile is null)
+        if (secondClickedTile is null)
         {
-            swappedTile = clickedTile;
-            swappedTile.Selected = true;
+            secondClickedTile = firstClickedTile;
+            secondClickedTile.Selected = true;
             return;
         }
 
         //Same tile selected => deselect
-        if (clickedTile.Equals(swappedTile))
+        if (firstClickedTile.Equals(secondClickedTile))
         {
-            swappedTile.Selected = false;
-            swappedTile = null;
+            secondClickedTile.Selected = false;
+            secondClickedTile = null;
             return;
         }
         
         //Different tile selected => swap
-        clickedTile.Selected = true;
+        firstClickedTile.Selected = true;
+        _tileMap.Swap(firstClickedTile, secondClickedTile);
+        undoBuffer.Add(firstClickedTile);
+        undoBuffer.Add(secondClickedTile);
+        secondClickedTile.Selected = false;
         
-        if (swappedTile is not null || clickedTile is not null)
-            _tileMap.Swap(swappedTile, clickedTile);
-        
-        swappedTile.Selected = false;
-        
-        if (Match3InAnyDirection(_tileMap, swappedTile!.CurrentCoords, _matches))
+        if (_tileMap.MatchInAnyDirection(secondClickedTile!.CurrentCoords, ref _matches))
         {
-            Console.WriteLine("FOUND A MATCH-3");
+            undoBuffer.Clear();
+            //Console.WriteLine("FOUND A MATCH-3");
             
             foreach (var match in _matches)
             {
-                buffer.Add(_tileMap[match.CurrentCoords]); 
-                _tileMap[match.CurrentCoords]  = null;
-                Console.WriteLine(match);
+                undoBuffer.Add(_tileMap[match.CurrentCoords]); 
+                _tileMap[match.CurrentCoords] = null;
+                //Console.WriteLine(match);
             }
-
-            Console.WriteLine(_matches.Count);
-            Console.WriteLine();
         }
         
-       if(!isUndoPressed)
-           _matches.Clear();
-       
-        swappedTile = null;        
-        clickedTile.Selected = false;
+        _matches.Clear();
+        secondClickedTile = null;        
+        firstClickedTile.Selected = false;
     }
 
     private static void CleanUp()
     {
         Raylib.UnloadTexture(TileSheet);
-
         Raylib.CloseWindow();
     }
- 
-    static bool Match3InAnyDirection(TileMap map, IntVector2 clickedCoord, HashSet<Tile> rowOf3)
-    {
-        static bool AddWhenEqual(Tile? first, Tile? next, Direction direction, HashSet<Tile> rowOf3)
-        {
-            if (first is not null &&
-                next is not null &&
-                first.Equals(next))
-            {
-                rowOf3.Add(first);
-                rowOf3.Add(next);
-                return true;
-            }
-
-            return false;
-        }
     
-        static IntVector2 GetStepsFromDirection(IntVector2 input, Direction direction)
-        {
-            IntVector2 tmp = IntVector2.Zero;
-
-            if (direction == Direction.NegativeX)
-                tmp = new IntVector2(input.X - 1, input.Y);
-
-            if (direction == Direction.PositiveX)
-                tmp = new IntVector2(input.X + 1, input.Y);
-        
-            if (direction == Direction.NegativeY)
-                tmp = new IntVector2(input.X, input.Y-1);
-        
-            if (direction == Direction.PositiveY)
-                tmp = new IntVector2(input.X, input.Y + 1);
-
-            return tmp;
-        }
-
-        var lastDir = (Direction)4;
-
-        Tile? first = map[clickedCoord];
-        
-        for (Direction i = 0; i <=lastDir ; i++)
-        {
-            IntVector2 nextCoords = GetStepsFromDirection(clickedCoord, i);
-            Tile? next = map[nextCoords];
-            
-            while (AddWhenEqual(first, next, i, rowOf3) && rowOf3.Count < 3)
-            {
-                nextCoords = GetStepsFromDirection(nextCoords, i);
-                next = map[nextCoords];
-            }
-            
-            if (rowOf3.Count < 3)
-                rowOf3.Clear();
-        }
-        return rowOf3.Count >= 3;
-    }
-
-    private static void UndoLastOperation()
+    private static void UndoAllOperations()
     {
-        Console.WriteLine(isUndoPressed);
-        if (Raylib.IsKeyDown(KeyboardKey.KEY_Z))
+        bool keyDown = (Raylib.IsKeyDown(KeyboardKey.KEY_A));
+
+        //UNDO...!
+        if (keyDown)
         {
-            //UNDO...!
-            isUndoPressed = true;
-            Console.WriteLine(isUndoPressed);
-            foreach (var match in buffer)
+            bool wasSwappedBack = false;
+            int i = 0;
+
+            foreach (var storedItem in undoBuffer)
             {
-                var item = _tileMap[match.CurrentCoords] = match;
-                item.Selected = false;
-                item.Colour = Color.WHITE;
+                /*if (i++ == 0)
+                    continue;*/
+                
+                //check if they have been ONLY swapped without leading to a 
+                //match3
+                if (!wasSwappedBack && _tileMap[storedItem.CurrentCoords] is not null)
+                {
+                    var secondTile = _tileMap[storedItem.CurrentCoords];
+                    var firstTie = _tileMap[storedItem.CoordsB4Swap];
+                    _tileMap.Swap(secondTile, firstTie);
+                    wasSwappedBack = true;
+                }
+                else
+                {
+                    //their has been a match3 after swap!
+                    //for delete we dont have a .IsDeleted, cause we onl NULL
+                    //a tile at a certain coordinate, so we test for that
+                    //if (_tileMap[storedItem.CurrentCoords] is { } backupItem)
+                    var tmp = _tileMap[storedItem.CurrentCoords] = storedItem;
+                    tmp!.Selected = false;
+                    tmp.Colour = Color.WHITE;
+                }
+                if (!wasSwappedBack)
+                    _tileMap.Swap(_tileMap[TileMap.MatchXTrigger.CoordsB4Swap], 
+                        _tileMap[TileMap.MatchXTrigger.CurrentCoords]);
             }
+            undoBuffer.Clear();
         }
     }
 }

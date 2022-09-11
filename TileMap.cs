@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using Raylib_cs;
 
 namespace Match_3;
@@ -7,19 +8,20 @@ public enum Direction
 {
     PositiveX = 0,
     NegativeX = 1,
-    
-    NegativeY = 2,
-    PositiveY = 3,
+    PositiveY = 2,
+    NegativeY = 3,
 }
 
 public class TileMap
 {
-      
+    private const byte MAX_DESTROYABLE_TILES = 3;
     
     private readonly Tile?[,] _tiles;
     public int Width { get; }
-    public int Height { get; }  
-    
+    public int Height { get; }
+
+    public static Tile? MatchXTrigger { get; private set; }
+
     public TileMap(int width, int height)
     {
         _tiles = new Tile[width, height];
@@ -28,13 +30,17 @@ public class TileMap
         Fill();
     }
 
-    public void Swap(Tile a, Tile b)
+    public void Swap(Tile? a, Tile? b)
     {
+        if (a is null || b is null)
+            return;
+        
         this[a.CurrentCoords] = b;
         this[b.CurrentCoords] = a;
         (a.CurrentCoords, b.CurrentCoords) = (b.CurrentCoords, a.CurrentCoords);
-        (a.PreviewCoords, b.PreviewCoords) = (b.CurrentCoords, a.CurrentCoords);
+        (a.CoordsB4Swap, b.CoordsB4Swap) = (b.CurrentCoords, a.CurrentCoords);
     }
+ 
     public Tile? this[IntVector2 coord]
     {
         get
@@ -68,7 +74,7 @@ public class TileMap
             }
         }
     }
-
+    
     public void Draw(float deltaTime)
     {
         for (int x = 0; x < Width; x += 1)
@@ -81,20 +87,77 @@ public class TileMap
         }
     }
 
-    public bool TryGetClickedTile([MaybeNullWhen(false)] out Tile tile)
+    public bool MatchInAnyDirection(IntVector2 clickedCoord, ref HashSet<Tile> matches)
+    {
+        static bool AddWhenEqual(Tile? first, Tile? next, HashSet<Tile> matches)
+        {
+            if (first is not null &&
+                next is not null &&
+                first.Equals(next))
+            {
+                if (matches.Count ==  MAX_DESTROYABLE_TILES)
+                    return false;
+                
+                matches.Add(first);
+                matches.Add(next);
+                return true;
+            }
+            return false;
+        }
+    
+        static IntVector2 GetStepsFromDirection(IntVector2 input, Direction direction)
+        {
+            var tmp = direction switch
+            {
+                Direction.NegativeX => new IntVector2(input.X - 1, input.Y),
+                Direction.PositiveX => new IntVector2(input.X + 1, input.Y),
+                Direction.NegativeY => new IntVector2(input.X, input.Y - 1),
+                Direction.PositiveY => new IntVector2(input.X, input.Y + 1),
+                _ => IntVector2.Zero
+            };
+
+            return tmp;
+        }
+
+        const Direction lastDir = (Direction)4;
+
+        Tile? first = this[clickedCoord];
+        MatchXTrigger = this[clickedCoord];
+        
+        for (Direction i = 0; (i < lastDir) ; i++)
+        {
+            /*
+            if (matches.Count == MAX_DESTROYABLE_TILES)
+                return true;
+            */
+            IntVector2 nextCoords = GetStepsFromDirection(clickedCoord, i);
+            Tile? next = this[nextCoords];
+            
+            while (AddWhenEqual(first, next, matches) /*&& matches.Count < MAX_DESTROYABLE_TILES*/)
+            {
+                //compute the proper (x,y) for next round!
+                nextCoords = GetStepsFromDirection(nextCoords, i);
+                next = this[nextCoords];
+            }
+        }
+  
+        return matches.Count == MAX_DESTROYABLE_TILES;
+    }
+    
+    public bool TryGetClickedTile([MaybeNullWhen(false)] out Tile? tile)
     {
         tile = null;
+        
         if (!Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT)) 
             return false;
         
         var mouseVec2 = Raylib.GetMousePosition();
-
         IntVector2 position = new IntVector2((int) mouseVec2.X, (int) mouseVec2.Y);
         position /= Program.TileSize;
         return TryGetTile(position, out tile);
     }
 
-    private bool TryGetTile(IntVector2 position, [MaybeNullWhen(false)] out Tile tile)
+    private bool TryGetTile(IntVector2 position, [MaybeNullWhen(false)] out Tile? tile)
     {
         if (position.X < 0 || position.X >= Width
                            || position.Y < 0 || position.Y >= Height)
