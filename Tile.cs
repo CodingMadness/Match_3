@@ -237,9 +237,14 @@ public sealed class Tile : IEquatable<Tile>
         return Shape == other?.Shape &&
                OriginColor == other.OriginColor;
     }
-/*
+
     public override bool Equals(object obj)
     {
         return Equals(obj as Tile);
-    }*/
+    }
+    /*
+   public override bool Equals(object obj)
+   {
+       return Equals(obj as Tile);
+   }*/
 }

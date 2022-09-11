@@ -10,7 +10,7 @@ class Program
     public static Texture2D TileSheet { get; private set; }
     private static Stopwatch _stopwatch = new();
     private static TileMap _tileMap = new(8, 8);
-    private static readonly HashSet<Tile> _matches = new(3);
+    private static HashSet<Tile> _matches = new(3);
     
     private const int _tileSize = 64;
     private const int _tileCountX = 8;
@@ -90,22 +90,19 @@ class Program
         undoBuffer.Add(secondClickedTile);
         secondClickedTile.Selected = false;
         
-        if (Match3InAnyDirection(_tileMap, secondClickedTile!.CurrentCoords, _matches))
+        if (_tileMap.Match3InAnyDirection(secondClickedTile!.CurrentCoords, ref _matches))
         {
             undoBuffer.Clear();
-            Console.WriteLine("FOUND A MATCH-3");
+            //Console.WriteLine("FOUND A MATCH-3");
             
             foreach (var match in _matches)
             {
                 undoBuffer.Add(_tileMap[match.CurrentCoords]); 
                 _tileMap[match.CurrentCoords] = null;
-                Console.WriteLine(match);
+                //Console.WriteLine(match);
             }
-            //PrintWhereTilesAreNull();
-
-            Console.WriteLine(_matches.Count);
-            Console.WriteLine();
         }
+        
         _matches.Clear();
         secondClickedTile = null;        
         firstClickedTile.Selected = false;
@@ -115,57 +112,6 @@ class Program
     {
         Raylib.UnloadTexture(TileSheet);
         Raylib.CloseWindow();
-    }
- 
-    static bool Match3InAnyDirection(TileMap map, IntVector2 clickedCoord, HashSet<Tile> rowOf3)
-    {
-        static bool AddWhenEqual(Tile? first, Tile? next, Direction direction, HashSet<Tile> rowOf3)
-        {
-            if (first is not null &&
-                next is not null &&
-                first.Equals(next))
-            {
-                rowOf3.Add(first);
-                rowOf3.Add(next);
-                return true;
-            }
-
-            return false;
-        }
-    
-        static IntVector2 GetStepsFromDirection(IntVector2 input, Direction direction)
-        {
-            var tmp = direction switch
-            {
-                Direction.NegativeX => new IntVector2(input.X - 1, input.Y),
-                Direction.PositiveX => new IntVector2(input.X + 1, input.Y),
-                Direction.NegativeY => new IntVector2(input.X, input.Y - 1),
-                Direction.PositiveY => new IntVector2(input.X, input.Y + 1),
-                _ => IntVector2.Zero
-            };
-
-            return tmp;
-        }
-
-        const Direction lastDir = (Direction)4;
-
-        Tile? first = map[clickedCoord];
-        
-        for (Direction i = 0; i < lastDir ; i++)
-        {
-            IntVector2 nextCoords = GetStepsFromDirection(clickedCoord, i);
-            Tile? next = map[nextCoords];
-            
-            while (AddWhenEqual(first, next, i, rowOf3) && rowOf3.Count < 3)
-            {
-                nextCoords = GetStepsFromDirection(nextCoords, i);
-                next = map[nextCoords];
-            }
-            
-            if (rowOf3.Count < 3)
-                rowOf3.Clear();
-        }
-        return rowOf3.Count >= 3;
     }
     
     private static void UndoAllOperations()
