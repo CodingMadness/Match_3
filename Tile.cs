@@ -20,15 +20,15 @@ public enum OriginalColor : byte
     Green
 }
 
-public class Tile : IEquatable<Tile>
+public sealed class Tile : IEquatable<Tile>
 {
     private bool wasDrawn;
-
+    
     public Color Colour { get; set; }
     public OriginalColor OriginColor { get; set; }
     public Rectangle DrawDestination { get; set; }
     public IntVector2 CurrentCoords { get; set; }
-    public IntVector2 PreviewCoords { get; set; }
+    public IntVector2 CoordsB4Swap { get; set; }
 
     public bool IsDeleted { get; set; }
     
@@ -210,7 +210,7 @@ public class Tile : IEquatable<Tile>
     private static bool SameColor(Color c1, Color c2) 
         => c1.a == c2.a && c1.b == c2.b && c1.g == c2.g && c1.r == c2.r;
 
-    public virtual void Draw(float deltaTime)
+    public void Draw(float deltaTime)
     {
         if (!wasDrawn)
         {
@@ -237,4 +237,9 @@ public class Tile : IEquatable<Tile>
         return Shape == other?.Shape &&
                OriginColor == other.OriginColor;
     }
+/*
+    public override bool Equals(object obj)
+    {
+        return Equals(obj as Tile);
+    }*/
 }

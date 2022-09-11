@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 using Raylib_cs;
 
 namespace Match_3;
@@ -14,8 +15,6 @@ public enum Direction
 
 public class TileMap
 {
-      
-    
     private readonly Tile?[,] _tiles;
     public int Width { get; }
     public int Height { get; }  
@@ -28,15 +27,17 @@ public class TileMap
         Fill();
     }
 
-    public void Swap(Tile a, Tile b)
+    public void Swap(Tile? a, Tile? b)
     {
+        if (a is null || b is null)
+            return;
+        
         this[a.CurrentCoords] = b;
         this[b.CurrentCoords] = a;
         (a.CurrentCoords, b.CurrentCoords) = (b.CurrentCoords, a.CurrentCoords);
-        (a.PreviewCoords, b.PreviewCoords) = (b.CurrentCoords, a.CurrentCoords);
-        a.Swapped = true;
-        b.Swapped = true;
+        (a.CoordsB4Swap, b.CoordsB4Swap) = (b.CurrentCoords, a.CurrentCoords);
     }
+ 
     public Tile? this[IntVector2 coord]
     {
         get
@@ -83,9 +84,10 @@ public class TileMap
         }
     }
 
-    public bool TryGetClickedTile([MaybeNullWhen(false)] out Tile tile)
+    public bool TryGetClickedTile([MaybeNullWhen(false)] out Tile? tile)
     {
         tile = null;
+        
         if (!Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT)) 
             return false;
         
@@ -96,7 +98,7 @@ public class TileMap
         return TryGetTile(position, out tile);
     }
 
-    private bool TryGetTile(IntVector2 position, [MaybeNullWhen(false)] out Tile tile)
+    private bool TryGetTile(IntVector2 position, [MaybeNullWhen(false)] out Tile? tile)
     {
         if (position.X < 0 || position.X >= Width
                            || position.Y < 0 || position.Y >= Height)
