@@ -1,23 +1,20 @@
-﻿using System.Data;
-using System.Numerics;
-using Raylib_cs;
+﻿using System.Numerics;
 
 namespace Match_3;
 
-using System.Runtime.CompilerServices;
 using Raylib_cs;
 
 public struct FadeableColor : IEquatable<FadeableColor>
 {
-    private Color toWrapp;
+    private Color _toWrap;
     //private GameTime fadeTimer;
-    public float CurrentAlpha, TargetALpha, AlphaSpeed, ElapsedTime;
+    public float CurrentAlpha, TargetAlpha, AlphaSpeed, ElapsedTime;
     
     private FadeableColor(Color color)
     {
-        toWrapp = color;
+        _toWrap = color;
         CurrentAlpha = 1f;
-        TargetALpha = 1f;
+        TargetAlpha = 1f;
         AlphaSpeed = 0f;
     }
 
@@ -26,7 +23,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
         return firstFloat ?? (float) (firstFloat * (1 - by) + secondFloat * by);
     }
 
-    private static readonly Dictionary<Color, string> strings = new ()
+    private static readonly Dictionary<Color, string> Strings = new ()
     {
         {Color.BLACK, "Black"},
         {Color.BLUE, "Blue"},
@@ -51,16 +48,16 @@ public struct FadeableColor : IEquatable<FadeableColor>
 
     public string ToReadableString()
     {
-        Color compare = toWrapp;
+        Color compare = _toWrap;
         compare.a = byte.MaxValue;
-        return strings.TryGetValue(compare, out var value) ? value : toWrapp.ToString();
+        return Strings.TryGetValue(compare, out var value) ? value : _toWrap.ToString();
     }
     
     private Color Lerp()
     {
-        toWrapp = Raylib.ColorAlpha(toWrapp, CurrentAlpha);
-        CurrentAlpha = _lerp(CurrentAlpha, TargetALpha, AlphaSpeed * ElapsedTime);
-        return toWrapp;
+        _toWrap = Raylib.ColorAlpha(_toWrap, CurrentAlpha);
+        CurrentAlpha = _lerp(CurrentAlpha, TargetAlpha, AlphaSpeed * ElapsedTime);
+        return _toWrap;
     }
 
     public static implicit operator FadeableColor(Color color)
@@ -74,10 +71,10 @@ public struct FadeableColor : IEquatable<FadeableColor>
     }
 
     public static bool operator ==(FadeableColor c1, FadeableColor c2) =>
-        c1.toWrapp.a == c2.toWrapp.a &&
-        c1.toWrapp.b == c2.toWrapp.b &&
-        c1.toWrapp.g == c2.toWrapp.g &&
-        c1.toWrapp.r == c2.toWrapp.r;
+        c1._toWrap.a == c2._toWrap.a &&
+        c1._toWrap.b == c2._toWrap.b &&
+        c1._toWrap.g == c2._toWrap.g &&
+        c1._toWrap.r == c2._toWrap.r;
 
     public bool Equals(FadeableColor other)
     {
@@ -92,7 +89,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(toWrapp, CurrentAlpha);
+        return HashCode.Combine(_toWrap, CurrentAlpha);
     }
 
     public static bool operator !=(FadeableColor c1, FadeableColor c2) => !(c1 == c2);
@@ -116,13 +113,13 @@ public interface ITile //: IEquatable<ITile>
     public int Size { get; }
     public  bool Selected { get; set; }
     public void Draw();
-    public static abstract ITile Create(Int2 position);
+    public static abstract ITile Create(Int2 position, float? noise);
     public bool Equals(ITile? other);
 }
 
 public record struct Shape
 {
-    private readonly ShapeKind IdentifyTileKind()
+    private readonly ShapeKind GetKindByRect()
     {
         return DestRect switch
         {
@@ -134,28 +131,47 @@ public record struct Shape
         };
     }
 
-    private static readonly Rectangle[] frames = {
+    private static readonly Rectangle[] Frames = 
+    {
         new Rectangle(0f, 0f, 64f, 64f), //blue
         new Rectangle(64f, 0f, 64f, 64f), //yellow
         new Rectangle(0f, 64f, 64f, 64f), //red
         new Rectangle(64f, 64f, 64f, 64f), //green
     };
 
-    private readonly Rectangle GetRndRect()
+    private void DefineDestRectByNoise(float? noise)
     {
-        var id = Random.Shared.Next(0, frames.Length);
-        return frames[id];
+        //noise = (noise < 0f ? -noise : noise) * 10f;
+        if (noise <= 0f)
+        {
+            noise += Random.Shared.NextSingle();
+            DefineDestRectByNoise(noise);
+        }
+
+        if (noise <= 0.25f)
+            DestRect = Frames[0];
+        
+        else if (noise is >= 0.15f and <= 0.40000f)
+            DestRect = Frames[1];
+        
+        else if (noise is >= 0.400001f and <= 0.650001f)
+            DestRect = Frames[2];
+        
+        else if (noise is >= 0.660001f and <= 1f)
+            DestRect = Frames[3];
+
+        //Console.WriteLine(DestRect.width + "   " + DestRect.height);
     }
 
-    public Shape()
+    public Shape(float? noise)
     {
-        DestRect = GetRndRect();
-        Kind = IdentifyTileKind();
+        DefineDestRectByNoise(noise);
+        Kind = GetKindByRect();
     }
     
     public readonly ShapeKind Kind { get; }
 
-    public readonly Rectangle DestRect { get; }
+    public Rectangle DestRect { get; private set; }
 
     //THIS must be mutable!
     public FadeableColor SrcColor { get; set; }
@@ -182,16 +198,16 @@ public record struct Shape
 public sealed class Tile :  ITile
 {
     public Int2 Cell { get; set; }
-    public int Size => Grid<Tile>.TILE_SIZE;
+    public int Size => Grid<Tile>.TileSize;
     public Int2 CoordsB4Swap { get; set; }
 
-    private bool selected;
+    private bool _selected;
 
     private Shape _backingShape;
 
     public bool Selected
     {
-        get => selected;
+        get => _selected;
 
         set
         {
@@ -203,11 +219,11 @@ public sealed class Tile :  ITile
             }
             else
             {
-                color.TargetALpha = color.CurrentAlpha = 0f;
+                color.TargetAlpha = color.CurrentAlpha = 0f;
             }
 
             _backingShape.SrcColor = color;
-            selected = value;
+            _selected = value;
         }
     }
     
@@ -216,15 +232,15 @@ public sealed class Tile :  ITile
        
     }
 
-    private static Tile CreateNewTile(Int2 coord)
+    private static Tile CreateNewTile(Int2 coord, float? noise)
     {
         var mapTile = new Tile
         {
             Cell = coord,
             CoordsB4Swap = -Int2.One,
-            selected = false,
+            _selected = false,
            
-            _backingShape = new()
+            _backingShape = new(noise)
             {
                 SrcColor = Color.WHITE
             }
@@ -248,9 +264,9 @@ public sealed class Tile :  ITile
         _backingShape.SrcColor = color;
     }
     
-    public static ITile Create(Int2 position)
+    public static ITile Create(Int2 position, float? noise)
     {
-        return CreateNewTile(position);
+        return CreateNewTile(position, noise);
     }
 
     public bool Equals(ITile? other)

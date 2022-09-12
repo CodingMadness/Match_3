@@ -27,5 +27,6 @@
   <ItemGroup>
     <Compile Remove="Extension.cs" />
     <Compile Remove="FadeableColour.cs" />
+    <Compile Remove="ProbabilityPool.cs" />
   </ItemGroup>
 </Project>

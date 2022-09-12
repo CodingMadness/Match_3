@@ -1,6 +1,5 @@
 ﻿//using DotNext;
 
-using System.Diagnostics.CodeAnalysis;
 using Raylib_cs;
 
 namespace Match_3
@@ -20,34 +19,39 @@ namespace Match_3
         //public double Timer { get; private set; } = 10;
         public readonly int TileWidth;
         public readonly int TileHeight;
-        public const int TILE_SIZE = 64;
-        private const int MAX_DESTROYABLE_TILES = 3;
-        private bool stopDrawingSameStuff = false;
+        public const int TileSize = 64;
+        private const int MaxDestroyableTiles = 3;
+        //private bool _stopDrawingSameStuff = false;
 
-        public static TTile MatchXTrigger { get; private set; }
+        public static TTile? MatchXTrigger { get; private set; }
         private GameTime _gridTimer;
-        private WeightedCellPool CellPool { get; }
+
+        private bool isDone;
+        //private WeightedCellPool CellPool { get; }
 
         private void CreateMap(bool shuffle)
         {
+            FastNoiseLite noiseMaker = new(DateTime.UtcNow.GetHashCode());
+            noiseMaker.SetFrequency(10f);
+            noiseMaker.SetFractalType(FastNoiseLite.FractalType.PingPong);
+            noiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
+            
             for (int x = 0; x < TileWidth; x++)
             {
                 for (int y = 0; y < TileHeight; y++)
                 {
-                    //_bitmap[x, y] = (TTile)TTile.Create(shuffle ? CellPool.GetNext() : new(x, y));
-                    _bitmap[x, y] = (TTile)TTile.Create(new(x, y));
-                }
-            }
-        }
+                    float noise = noiseMaker.GetNoise(x,y);
+                    
+                    if (noise < 0f)
+                        noise -= noise;
+                    else if (noise == 0f)
+                        Console.WriteLine(noise);
+                    //    noise = noiseMaker.GetNoise(x, y);
 
-        private IEnumerable<Int2> YieldGameWindow()
-        {
-            for (int x = 0; x < TileWidth - 0; x++)
-            {
-                for (int y = 0; y < TileHeight - 0; y++)
-                {
-                    Int2 current = new(x * TILE_SIZE * 1, y * TILE_SIZE * 1);
-                    yield return current;
+                    _bitmap[x, y] = (TTile?)Tile.Create(new(x, y), noise);
+                    //Console.WriteLine($"NOISE: AT{f.Cell}  " + noise);
+                    
+                    //if (f is Tile a) Console.WriteLine(a);
                 }
             }
         }
@@ -78,15 +82,14 @@ namespace Match_3
                 {
                     if (px < x && py < y)
                     {
-                        //var tile = Tile.Create(new(x, y));
                         var tile = this[new(x, y)];
+                        if (tile is Tile d)
+                        //    Console.WriteLine("DRAW: " + d);
                         tile?.Draw();
-                        
-                        //stopDrawingSameStuff = x == TileWidth-1 && y == TileHeight-1;
-                        //Debug.WriteLine(stopDrawingSameStuff +  "   :  " + "(" + x + "," + y + ")");
                     }
                 }
             }
+            isDone = true;
         }
 
         public TTile? this[Int2 coord]
@@ -118,7 +121,7 @@ namespace Match_3
                     next is not null &&
                     first.Equals(next))
                 {
-                    if (matches.Count == MAX_DESTROYABLE_TILES)
+                    if (matches.Count == MaxDestroyableTiles)
                         return false;
 
                     matches.Add(first);
@@ -165,7 +168,7 @@ namespace Match_3
                 }
             }
 
-            return matches.Count == MAX_DESTROYABLE_TILES;
+            return matches.Count == MaxDestroyableTiles;
         }
 
         public bool TryGetClickedTile(out TTile? tile)
@@ -177,7 +180,7 @@ namespace Match_3
 
             var mouseVec2 = Raylib.GetMousePosition();
             Int2 position = new Int2((int)mouseVec2.X, (int)mouseVec2.Y);
-            position /= TILE_SIZE;
+            position /= TileSize;
             tile = this[position];
             return tile is not null;
         }

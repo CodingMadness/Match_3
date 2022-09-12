@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Raylib_cs;
 
 namespace Match_3
 {
@@ -33,7 +32,7 @@ namespace Match_3
 
         public int Count { get; protected set; }
 
-        protected abstract Vector2 ComputeNoise(TValue initial);
+        protected abstract Vector2 Peek(TValue initial);
 
         protected ProbabilityPool(IEnumerable<TValue>? values)
         {
@@ -55,10 +54,10 @@ namespace Match_3
 
             foreach (var value in values)
             {
-                var noise = ComputeNoise(value);
-                float chance = m_FastNoise.GetNoise(noise.X, noise.Y);
-                Probability<TValue> probability = new(MathF.Round(chance), value);
-                m_FixedItems[++runner] = probability;
+                //var noise = Peek(value);
+                //float chance = m_FastNoise.GetNoise(value);
+                //Probability<TValue> probability = new(MathF.Round(chance), value);
+                //m_FixedItems[++runner] = probability;
             }
         }
         
@@ -82,7 +81,7 @@ namespace Match_3
 
                 return m_FixedItems[minIndex].Chance;
             }
-         /*
+         
             int runner = 0;
 
             Recursion:
@@ -92,7 +91,6 @@ namespace Match_3
             float val = m_Random.NextSingle();
             float result = FindNearest(val);
             var different = m_FixedItems.FirstOrDefault(x => x.Chance == result).Value;
-            //var sorted = CellsOccupiedDict.Keys.OrderBy(state => state.X).OrderBy(state => state.Y).ToArray();
 
             if (!CellsOccupiedDict.Contains(different))
             {
@@ -104,25 +102,26 @@ namespace Match_3
                 runner++;
                 goto Recursion;
             }
-            */
-            return m_FixedItems[m_Random.Next(0, m_FixedItems.Length)].Value;
+            
+            //return m_FixedItems[m_Random.Next(0, m_FixedItems.Length)].Value;
         }
         
         public bool IgnoreProbability(TValue key) { return false; }
     }
     
+    /*
     public class WeightedCellPool : ProbabilityPool<Int2>
     {
         public WeightedCellPool(IEnumerable<Int2> values) : base(values)
         {
         }
 
-        protected override Vector2 ComputeNoise(Int2 initial)
+        protected override Vector2 Peek(Int2 initial)
         {
             return new(initial.X, initial.Y);
         }
     }
-
+*/
     //public class WeightedStatePool : ProbabilityPool<TileAttributes>
     //{ 
     //    public WeightedStatePool(TileAttributes set) : base(null)
@@ -140,7 +139,7 @@ namespace Match_3
 
     //        while (moveBy2 <= (int)set)
     //        {                
-    //            Vector2 noise = ComputeNoise(set);
+    //            Vector2 noise = Peek(set);
     //            float chance = m_FastNoise.GetNoise(noise.X, noise.Y);
     //            Probability<TileAttributes> probability = new(chance.RoundCloser(), set);
     //            m_FixedItems[++runner] = probability;
@@ -148,7 +147,7 @@ namespace Match_3
     //        }
     //    }
 
-    //    protected override Vector2 ComputeNoise(TileAttributes initial)
+    //    protected override Vector2 Peek(TileAttributes initial)
     //    {
     //        var roundUp = 1 << m_Random.GetNext(1,10);
     //        return new((float)initial, (float)(TileAttributes)roundUp);
@@ -171,7 +170,7 @@ namespace Match_3
 
     //        while (value >= 0)
     //        {
-    //            Vector2 noise = ComputeNoise(value);
+    //            Vector2 noise = Peek(value);
     //            float chance = m_FastNoise.GetNoise(noise.X, noise.Y);
     //            Probability<PickupCategory> probability = new(chance.RoundCloser(), value);
     //            m_FixedItems[++runner] = probability;
@@ -179,7 +178,7 @@ namespace Match_3
     //        }
     //    }
 
-    //    protected override Vector2 ComputeNoise(PickupCategory initial)
+    //    protected override Vector2 Peek(PickupCategory initial)
     //    {
     //        var roundUp = 1 << m_Random.GetNext(1, 10);
     //        return new((float)initial, (float)(TileAttributes)roundUp);
@@ -197,7 +196,7 @@ namespace Match_3
 
     //        foreach (var sprite in copy.Sprites)
     //        {
-    //            Vector2 noise = ComputeNoise(sprite);
+    //            Vector2 noise = Peek(sprite);
     //            float chance = m_FastNoise.GetNoise(noise.X, noise.Y);
     //            Probability<Sprite> probability = new(chance.RoundCloser(), sprite);
     //            m_FixedItems[++runner] = probability;
@@ -205,7 +204,7 @@ namespace Match_3
 
     //    }
 
-    //    protected override Vector2 ComputeNoise(Sprite initial)
+    //    protected override Vector2 Peek(Sprite initial)
     //    {
     //        return initial.Origin;
     //    }

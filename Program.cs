@@ -1,6 +1,4 @@
 ﻿using Raylib_cs;
-using System.Diagnostics;
-using System.Numerics;
 using Match_3;
 
 //INITIALIZATION:................................
@@ -25,9 +23,9 @@ class Program
 
     private static void Initialize()
     {
-        _tileMap = new(8, 8, false);
-        WindowWidth = _tileMap.TileWidth * Grid<Tile>.TILE_SIZE;
-        WindowHeight = _tileMap.TileHeight * Grid<Tile>.TILE_SIZE;
+        _tileMap = new(14, 8, false);
+        WindowWidth = _tileMap.TileWidth * Grid<Tile>.TileSize;
+        WindowHeight = _tileMap.TileHeight * Grid<Tile>.TileSize;
         Raylib.SetTargetFPS(60);
         Raylib.InitWindow(WindowWidth, WindowHeight, "Match3 By Alex und Shpend");
         AssetManager.Init();
@@ -40,6 +38,8 @@ class Program
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.BEIGE);
             _tileMap.Draw();
+            
+           // _tileMap.Iterate();
             ProcessSelectedTiles();
             UndoAllOperations();
             Raylib.EndDrawing();
