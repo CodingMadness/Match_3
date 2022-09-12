@@ -7,21 +7,21 @@ namespace Match_3;
 using System.Runtime.CompilerServices;
 using Raylib_cs;
 
-public struct FadeableColour : IEquatable<FadeableColour>
+public struct FadeableColor : IEquatable<FadeableColor>
 {
     private Color toWrapp;
+    //private GameTime fadeTimer;
     public float CurrentAlpha, TargetALpha, AlphaSpeed, ElapsedTime;
-
-    private FadeableColour(Color color)
+    
+    private FadeableColor(Color color)
     {
         toWrapp = color;
-        CurrentAlpha = 0f;
-        TargetALpha = 0f;
+        CurrentAlpha = 1f;
+        TargetALpha = 1f;
         AlphaSpeed = 0f;
-        ElapsedTime = 0f;
     }
 
-    private static float Lerp(float? firstFloat, float secondFloat, float? by)
+    private static float _lerp(float? firstFloat, float secondFloat, float? by)
     {
         return firstFloat ?? (float) (firstFloat * (1 - by) + secondFloat * by);
     }
@@ -55,30 +55,31 @@ public struct FadeableColour : IEquatable<FadeableColour>
         compare.a = byte.MaxValue;
         return strings.TryGetValue(compare, out var value) ? value : toWrapp.ToString();
     }
-    private Color Lerp(float degree)
+    
+    private Color Lerp()
     {
-        toWrapp = Raylib.ColorAlpha(toWrapp, degree);
-        CurrentAlpha = Lerp(CurrentAlpha, TargetALpha, AlphaSpeed * ElapsedTime);
+        toWrapp = Raylib.ColorAlpha(toWrapp, CurrentAlpha);
+        CurrentAlpha = _lerp(CurrentAlpha, TargetALpha, AlphaSpeed * ElapsedTime);
         return toWrapp;
     }
 
-    public static implicit operator FadeableColour(Color color)
+    public static implicit operator FadeableColor(Color color)
     {
-        return new FadeableColour(color);
+        return new FadeableColor(color);
     }
 
-    public static implicit operator Color(FadeableColour color)
+    public static implicit operator Color(FadeableColor color)
     {
-        return color.Lerp(color.ElapsedTime);
+        return color.Lerp();
     }
 
-    public static bool operator ==(FadeableColour c1, FadeableColour c2) =>
+    public static bool operator ==(FadeableColor c1, FadeableColor c2) =>
         c1.toWrapp.a == c2.toWrapp.a &&
         c1.toWrapp.b == c2.toWrapp.b &&
         c1.toWrapp.g == c2.toWrapp.g &&
         c1.toWrapp.r == c2.toWrapp.r;
 
-    public bool Equals(FadeableColour other)
+    public bool Equals(FadeableColor other)
     {
         return this == other &&
                Math.Abs(CurrentAlpha - (other.CurrentAlpha)) < 1e-3;
@@ -86,7 +87,7 @@ public struct FadeableColour : IEquatable<FadeableColour>
 
     public override bool Equals(object? obj)
     {
-        return obj is FadeableColour other && Equals(other);
+        return obj is FadeableColor other && Equals(other);
     }
 
     public override int GetHashCode()
@@ -94,9 +95,9 @@ public struct FadeableColour : IEquatable<FadeableColour>
         return HashCode.Combine(toWrapp, CurrentAlpha);
     }
 
-    public static bool operator !=(FadeableColour c1, FadeableColour c2) => !(c1 == c2);
+    public static bool operator !=(FadeableColor c1, FadeableColor c2) => !(c1 == c2);
 
-    public override string ToString() => nameof(toWrapp);
+    public override string ToString() => ToReadableString();
 }
 
 public enum ShapeKind : sbyte
@@ -105,7 +106,7 @@ public enum ShapeKind : sbyte
     Cube,
     Cylinder,
     Triangle,
-    EMPTY = -1
+    Empty = -1
 }
 
 public interface ITile //: IEquatable<ITile>
@@ -114,28 +115,25 @@ public interface ITile //: IEquatable<ITile>
     public Int2 CoordsB4Swap { get; set; }
     public int Size { get; }
     public  bool Selected { get; set; }
-    public void Draw(float? elapsedTime);
+    public void Draw();
     public static abstract ITile Create(Int2 position);
+    public bool Equals(ITile? other);
 }
 
-public struct Shape
+public record struct Shape
 {
-    public ShapeKind Form { get; }
-    
-    public FadeableColour Tint;
-    
-    public Rectangle DestRect { get; }
-    
-    private static ShapeKind IdentifyTileKind(Rectangle current) =>
-        current switch
+    private readonly ShapeKind IdentifyTileKind()
+    {
+        return DestRect switch
         {
             { x: 0f, y: 0f } => ShapeKind.Ball,
             { x: 64f, y: 0f } => ShapeKind.Cube,
             { x: 0f, y: 64f } => ShapeKind.Cylinder,
             { x: 64f, y: 64f } => ShapeKind.Triangle,
-            _ => ShapeKind.EMPTY
+            _ => ShapeKind.Empty
         };
-    
+    }
+
     private static readonly Rectangle[] frames = {
         new Rectangle(0f, 0f, 64f, 64f), //blue
         new Rectangle(64f, 0f, 64f, 64f), //yellow
@@ -143,51 +141,53 @@ public struct Shape
         new Rectangle(64f, 64f, 64f, 64f), //green
     };
 
-    public static Rectangle GetRndRect()
+    private readonly Rectangle GetRndRect()
     {
         var id = Random.Shared.Next(0, frames.Length);
         return frames[id];
     }
-    
-    public Shape(Rectangle current)
+
+    public Shape()
     {
-        Tint = Color.WHITE;
-        DestRect = current;
-        Form = IdentifyTileKind(current);
+        DestRect = GetRndRect();
+        Kind = IdentifyTileKind();
     }
     
-    public void Draw(Vector2 position)
+    public readonly ShapeKind Kind { get; }
+
+    public readonly Rectangle DestRect { get; }
+
+    //THIS must be mutable!
+    public FadeableColor SrcColor { get; set; }
+    
+    public readonly void Draw(Vector2 position)
     {
         Raylib.DrawTextureRec(AssetManager.SpriteSheet, DestRect, position, Color.WHITE);
+        //Console.WriteLine(DestRect);
     }
     
-    public void DrawTextOnTop(in Vector2 worldPosition, bool selected)
+    public readonly void  DrawTextOnTop(in Vector2 worldPosition, bool selected)
     {
         float xCenter = worldPosition.X + DestRect.width / 4.3f;
         float yCenter = worldPosition.Y < 128f ? worldPosition.Y + DestRect.height / 2.5f :
             worldPosition.Y >= 128f ? (worldPosition.Y + DestRect.height / 2f) - 5f : 0f;
         
         Vector2 drawPos = new(xCenter - 10f, yCenter);
-        FadeableColour drawColor = selected ? Color.BLACK : Tint;
+        FadeableColor drawColor = selected ? Color.BLACK : SrcColor;
         Raylib.DrawTextEx(AssetManager.Font, worldPosition.ToString(), drawPos, 
-            20f, 1f, drawColor == Tint ? Color.WHITE : Color.BLACK);
+            20f, 1f, drawColor == SrcColor ? Color.WHITE : Color.BLACK);
     }
 }
 
 public sealed class Tile :  ITile
 {
     public Int2 Cell { get; set; }
-    public int Size => 64;
+    public int Size => Grid<Tile>.TILE_SIZE;
     public Int2 CoordsB4Swap { get; set; }
 
     private bool selected;
 
     private Shape _backingShape;
-    
-    public ref Shape GetTileShape( )
-    {
-        return ref _backingShape;
-    }
 
     public bool Selected
     {
@@ -195,15 +195,18 @@ public sealed class Tile :  ITile
 
         set
         {
+            var color = _backingShape.SrcColor;
+            
             if (!value)
             {
-                _backingShape.Tint.TargetALpha = 1;
+                color.AlphaSpeed = 1f; 
             }
             else
             {
-                _backingShape.Tint.TargetALpha = _backingShape.Tint.CurrentAlpha = 0f;
+                color.TargetALpha = color.CurrentAlpha = 0f;
             }
 
+            _backingShape.SrcColor = color;
             selected = value;
         }
     }
@@ -220,26 +223,31 @@ public sealed class Tile :  ITile
             Cell = coord,
             CoordsB4Swap = -Int2.One,
             selected = false,
-            _backingShape = new (Shape.GetRndRect())
+           
+            _backingShape = new()
             {
-                Tint = Color.WHITE
+                SrcColor = Color.WHITE
             }
-            
         };
 
         return mapTile;
     }
     
     public override string ToString() => $"CurrentPos: {Cell}; --" +
-                                         $" ShapeKind: {_backingShape.Form} -- Tint: {_backingShape.Tint.ToReadableString()} ";
+                                         $" ShapeKind: {_backingShape.Kind} -- SrcColor: {_backingShape.SrcColor} ";
 
-    public void Draw(float? elapsedTime)
+    public void Draw()
     {
-        Vector2 worldPosition = new Vector2(Cell.X, Cell.Y);
+        Vector2 worldPosition = new Vector2(Cell.X, Cell.Y) * Size;
         _backingShape.Draw(worldPosition);
-        _backingShape.DrawTextOnTop(worldPosition, selected);
+        //_backingShape.DrawTextOnTop(worldPosition, selected);
     }
 
+    public void ChangeTo(FadeableColor color)
+    {
+        _backingShape.SrcColor = color;
+    }
+    
     public static ITile Create(Int2 position)
     {
         return CreateNewTile(position);
@@ -249,8 +257,8 @@ public sealed class Tile :  ITile
     {
         if (other is Tile d)
         {
-            return _backingShape.Form == d._backingShape.Form &&
-                   _backingShape.Tint == d._backingShape.Tint;
+            return _backingShape.Kind == d._backingShape.Kind &&
+                   _backingShape.SrcColor == d._backingShape.SrcColor;
         }
         return false;
     }

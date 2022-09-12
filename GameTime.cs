@@ -2,13 +2,21 @@ using Raylib_cs;
 
 namespace Match_3;
 
-public class GameTime
+public struct GameTime
 {
+    public GameTime()
+    {
+        
+    }
+    
     public float ElapsedTime { get; set; }
 
-    public void StartTimer(float lifetime)
+    public  static GameTime GetTimer(float lifetime)
     { 
-        ElapsedTime = lifetime;
+        return new GameTime
+        {
+            ElapsedTime = lifetime
+        };
     }
 
     public void UpdateTimer()

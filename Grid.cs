@@ -34,7 +34,8 @@ namespace Match_3
             {
                 for (int y = 0; y < TileHeight; y++)
                 {
-                    _bitmap[x, y] = (TTile)TTile.Create(shuffle ? CellPool.GetNext() : new(x, y));
+                    //_bitmap[x, y] = (TTile)TTile.Create(shuffle ? CellPool.GetNext() : new(x, y));
+                    _bitmap[x, y] = (TTile)TTile.Create(new(x, y));
                 }
             }
         }
@@ -56,9 +57,8 @@ namespace Match_3
             TileWidth = tileWidth;
             TileHeight = tileHeight;
             _bitmap = new TTile?[TileWidth, TileHeight];
-            _gridTimer = new();
-            CellPool = new WeightedCellPool(YieldGameWindow());
-            _gridTimer.StartTimer(10f);
+            _gridTimer = GameTime.GetTimer(10f);
+            //CellPool = new WeightedCellPool(YieldGameWindow());
             CreateMap(shuffle);
         }
 
@@ -78,9 +78,10 @@ namespace Match_3
                 {
                     if (px < x && py < y)
                     {
+                        //var tile = Tile.Create(new(x, y));
                         var tile = this[new(x, y)];
-
-                        tile?.Draw(_gridTimer.ElapsedTime);
+                        tile?.Draw();
+                        
                         //stopDrawingSameStuff = x == TileWidth-1 && y == TileHeight-1;
                         //Debug.WriteLine(stopDrawingSameStuff +  "   :  " + "(" + x + "," + y + ")");
                     }

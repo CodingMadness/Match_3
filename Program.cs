@@ -25,7 +25,7 @@ class Program
 
     private static void Initialize()
     {
-        _tileMap = new(8, 8, true);
+        _tileMap = new(8, 8, false);
         WindowWidth = _tileMap.TileWidth * Grid<Tile>.TILE_SIZE;
         WindowHeight = _tileMap.TileHeight * Grid<Tile>.TILE_SIZE;
         Raylib.SetTargetFPS(60);
@@ -125,7 +125,7 @@ class Program
                     //if (_tileMap[storedItem.Cell] is { } backupItem)
                     var tmp = (_tileMap[storedItem.Cell] = storedItem) as Tile;
                     tmp!.Selected = false;
-                    tmp.GetTileShape().Tint = Color.WHITE;
+                    tmp.ChangeTo(Color.WHITE);
                 }
                 if (!wasSwappedBack)
                     _tileMap.Swap(_tileMap[Grid<Tile>.MatchXTrigger.CoordsB4Swap], 
