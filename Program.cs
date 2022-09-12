@@ -7,22 +7,14 @@ using Match_3;
 
 class Program
 {
-    public static Texture2D TileSheet { get; private set; }
-    private static Stopwatch _stopwatch = new();
-  //private static TileMap _tileMap = new(8, 8);
-    private static Tilemap _tileMap;
-    private static ISet<ITile> _matches = new HashSet<ITile>(3);
-    
-    private const int _tileSize = 64;
-    private const int _tileCountX = 8;
-    private const int _tileCountY = 8;
-
-    public static readonly Int2 WindowSize = new Int2(_tileCountX, _tileCountY) * _tileSize;
-    public static readonly Int2 TileSize = new Int2(_tileSize);
-
+    private static Grid<Tile> _tileMap;
+    private static ISet<Tile> _matches = new HashSet<Tile>(3);
     private static Tile? secondClickedTile;
     private static bool isUndoPressed;
     private static HashSet<Tile> undoBuffer = new (5);
+   
+    public static int WindowWidth;
+    public static int WindowHeight;
    
     private static void Main(string[] args)
     {
@@ -33,18 +25,12 @@ class Program
 
     private static void Initialize()
     {
-        Raylib.InitWindow(WindowSize.X, WindowSize.Y, "Match3 By Alex und Shpend");
-        string net6Path = Environment.CurrentDirectory;
-        const string projectName = "Match3";
-        int lastProjectNameOccurence = net6Path.LastIndexOf(projectName) + projectName.Length;
-        var fontPath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}/Assets/font3.ttf";
-        var tilePath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}/Assets/shapes.png";
-        Console.WriteLine(tilePath);
-        TileSheet = Raylib.LoadTexture(tilePath);
-        _tileMap = new(TileSheet,8, 8);
-        Tile.FontPath = fontPath;
-        _stopwatch = Stopwatch.StartNew();
+        _tileMap = new(8, 8, true);
+        WindowWidth = _tileMap.TileWidth * Grid<Tile>.TILE_SIZE;
+        WindowHeight = _tileMap.TileHeight * Grid<Tile>.TILE_SIZE;
         Raylib.SetTargetFPS(60);
+        Raylib.InitWindow(WindowWidth, WindowHeight, "Match3 By Alex und Shpend");
+        AssetManager.Init();
     }
 
     private static void GameLoop()
@@ -53,11 +39,7 @@ class Program
         {
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.BEIGE);
-            _stopwatch.Stop();
-            //_tileMap.Draw((float)_stopwatch.Elapsed.TotalSeconds);
             _tileMap.Draw();
-            Raylib.DrawFPS(0,0);
-            _stopwatch.Restart();
             ProcessSelectedTiles();
             UndoAllOperations();
             Raylib.EndDrawing();
@@ -112,7 +94,7 @@ class Program
 
     private static void CleanUp()
     {
-        Raylib.UnloadTexture(TileSheet);
+        Raylib.UnloadTexture(AssetManager.SpriteSheet);
         Raylib.CloseWindow();
     }
     
@@ -143,11 +125,11 @@ class Program
                     //if (_tileMap[storedItem.Cell] is { } backupItem)
                     var tmp = (_tileMap[storedItem.Cell] = storedItem) as Tile;
                     tmp!.Selected = false;
-                    tmp.Blur = Color.WHITE;
+                    tmp.GetTileShape().Tint = Color.WHITE;
                 }
                 if (!wasSwappedBack)
-                    _tileMap.Swap(_tileMap[Tilemap.MatchXTrigger.CoordsB4Swap], 
-                        _tileMap[Tilemap.MatchXTrigger.Cell]);
+                    _tileMap.Swap(_tileMap[Grid<Tile>.MatchXTrigger.CoordsB4Swap], 
+                        _tileMap[Grid<Tile>.MatchXTrigger.Cell]);
             }
             undoBuffer.Clear();
         }

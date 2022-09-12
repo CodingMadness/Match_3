@@ -62,51 +62,50 @@ namespace Match_3
             }
         }
         
-        public TValue NextRnd
+        public TValue GetNext()
         {
-            get
+            float FindNearest(float compare)
             {
-                float FindNearest(float compare)
+                var min = float.MaxValue;
+                var minIndex = 0;
+
+                for (var i = 0; i < m_FixedItems.Length; i++)
                 {
-                    var min = float.MaxValue;
-                    var minIndex = 0;
-
-                    for (var i = 0; i < m_FixedItems.Length; i++)
-                    {
-                        var distance = Math.Abs(compare - m_FixedItems[i].Chance);
+                    var distance = Math.Abs(compare - m_FixedItems[i].Chance);
                         
-                        if (distance < min)
-                        {
-                            min = distance;
-                            minIndex = i;
-                        }
+                    if (distance < min)
+                    {
+                        min = distance;
+                        minIndex = i;
                     }
-
-                    return m_FixedItems[minIndex].Chance;
                 }
-         
-                int runner = 0;
+
+                return m_FixedItems[minIndex].Chance;
+            }
+         /*
+            int runner = 0;
 
             Recursion:
-                if (runner == m_FixedItems.Length)
-                    return default;
+            if (runner == m_FixedItems.Length)
+                return default;
 
-                float val = m_Random.NextSingle();
-                float result = FindNearest(val);
-                var different = m_FixedItems.FirstOrDefault(x => x.Chance == result).Value;
-                //var sorted = CellsOccupiedDict.Keys.OrderBy(state => state.X).OrderBy(state => state.Y).ToArray();
+            float val = m_Random.NextSingle();
+            float result = FindNearest(val);
+            var different = m_FixedItems.FirstOrDefault(x => x.Chance == result).Value;
+            //var sorted = CellsOccupiedDict.Keys.OrderBy(state => state.X).OrderBy(state => state.Y).ToArray();
 
-                if (!CellsOccupiedDict.Contains(different))
-                {
-                    CellsOccupiedDict.Add(different);
-                    return different;
-                }
-                else
-                {
-                    runner++;
-                    goto Recursion;
-                }
+            if (!CellsOccupiedDict.Contains(different))
+            {
+                CellsOccupiedDict.Add(different);
+                return different;
             }
+            else
+            {
+                runner++;
+                goto Recursion;
+            }
+            */
+            return m_FixedItems[m_Random.Next(0, m_FixedItems.Length)].Value;
         }
         
         public bool IgnoreProbability(TValue key) { return false; }
@@ -151,7 +150,7 @@ namespace Match_3
 
     //    protected override Vector2 ComputeNoise(TileAttributes initial)
     //    {
-    //        var roundUp = 1 << m_Random.NextRnd(1,10);
+    //        var roundUp = 1 << m_Random.GetNext(1,10);
     //        return new((float)initial, (float)(TileAttributes)roundUp);
     //    }
     //}
@@ -182,7 +181,7 @@ namespace Match_3
 
     //    protected override Vector2 ComputeNoise(PickupCategory initial)
     //    {
-    //        var roundUp = 1 << m_Random.NextRnd(1, 10);
+    //        var roundUp = 1 << m_Random.GetNext(1, 10);
     //        return new((float)initial, (float)(TileAttributes)roundUp);
     //    }
     //}
