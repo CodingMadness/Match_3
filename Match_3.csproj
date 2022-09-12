@@ -26,5 +26,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Extension.cs" />
+    <Compile Remove="FadeableColour.cs" />
   </ItemGroup>
 </Project>
