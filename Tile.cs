@@ -20,19 +20,27 @@ public enum OriginalColor : byte
     Green
 }
 
-public sealed class Tile : IEquatable<Tile>
+public interface ITile : IEquatable<ITile>
+{
+    public Int2 Cell { get; set; }
+    public Int2 CoordsB4Swap { get; set; }
+    public int Size { get; }
+    public  bool Selected { get; set; }
+    public void Draw(float? elapsedTime);
+}
+
+public sealed class Tile :  ITile
 {
     private bool wasDrawn;
     
-    public Color Colour { get; set; }
+    public Color Blur { get; set; }
     public OriginalColor OriginColor { get; set; }
     public Rectangle DrawDestination { get; set; }
-    public IntVector2 Cell { get; set; }
-    public IntVector2 CoordsB4Swap { get; set; }
-
-    public bool IsDeleted { get; set; }
-    
-    public static Texture2D DestroyedTile { get; set; }
+    public Int2 Cell { get; set; }
+   
+    public Int2 SwappedCell { get; set; }
+    public int Size => 64;
+    public Int2 CoordsB4Swap { get; set; }
     public static string FontPath { get; set; }
     public bool Swapped { get; set; } = true;
     private Shape Shape { get; set; } = Shape.EMPTY;
@@ -69,7 +77,7 @@ public sealed class Tile : IEquatable<Tile>
        
     }
 
-    private static Tile CreateNewTile(Rectangle drawDestinationRectangle, OriginalColor originCol, IntVector2 coord,
+    private static Tile CreateNewTile(Rectangle drawDestinationRectangle, OriginalColor originCol, Int2 coord,
         bool swapped, Shape kind, Color color)
     {
         var mapTile = new Tile
@@ -78,7 +86,7 @@ public sealed class Tile : IEquatable<Tile>
                 drawDestinationRectangle, // this one was calculated from the current map position and the descriptors map offset values.
             Swapped = swapped,
             Shape = kind,
-            Colour = color,
+            Blur = color,
             OriginColor = originCol,
             Cell = coord
         };
@@ -95,57 +103,42 @@ public sealed class Tile : IEquatable<Tile>
     
     private static Shape IdentifyTileKind(Rectangle current)
     {
-        Shape tmp = Shape.EMPTY;
-
-        switch (current)
+       return current switch
         {
-            case Rectangle ballRec when ballRec.x == 0f && ballRec.y == 0f:
-                tmp = Shape.Ball;
-                break;
-
-            case Rectangle cubeRec when cubeRec.x == 64f && cubeRec.y == 0f:
-                tmp = Shape.Cube;
-                break;
-
-            case Rectangle zylinderRec when zylinderRec.x == 0f && zylinderRec.y == 64f:
-                tmp = Shape.Zylinder;
-                break;
-
-            case Rectangle triangleRec when triangleRec.x == 64f && triangleRec.y == 64f:
-                tmp = Shape.Triangle;
-                break;
-        }
-
-        return tmp;
+            Rectangle ballRec when ballRec.x == 0f && ballRec.y == 0f => Shape.Ball,
+            Rectangle cubeRec when cubeRec.x == 64f && cubeRec.y == 0f => Shape.Cube,
+            Rectangle zylinderRec when zylinderRec.x == 0f && zylinderRec.y == 64f => Shape.Zylinder,
+            Rectangle triangleRec when triangleRec.x == 64f && triangleRec.y == 64f => Shape.Triangle,
+            _ => Shape.EMPTY
+        };
     }
 
-    private static Tile BLUE_BALL = CreateNewTile(frames[0],
+    private static readonly Tile BLUE_BALL = CreateNewTile(frames[0],
         OriginalColor.Blue,
-        -IntVector2.One,
+        -Int2.One,
         false,
         IdentifyTileKind(frames[0]),
         Color.WHITE);
 
-
-    private static Tile YELLOW_CUBE = CreateNewTile(frames[1],
+    private static readonly Tile YELLOW_CUBE = CreateNewTile(frames[1],
         OriginalColor.Yellow,
-        -IntVector2.One,
+        -Int2.One,
         false,
         IdentifyTileKind(frames[1]),
         Color.WHITE);
 
 
-    private static Tile RED_ZYLINDER = CreateNewTile(frames[2],
+    private static readonly Tile RED_ZYLINDER = CreateNewTile(frames[2],
         OriginalColor.Red,
-        -IntVector2.One,
+        -Int2.One,
         false,
         IdentifyTileKind(frames[2]),
         Color.WHITE);
 
 
-    private static Tile GREEN_TRIANGLE = CreateNewTile(frames[3],
+    private static readonly Tile GREEN_TRIANGLE = CreateNewTile(frames[3],
         OriginalColor.Green,
-        -IntVector2.One,
+        -Int2.One,
         false,
         IdentifyTileKind(frames[3]),
         Color.WHITE);
@@ -154,38 +147,38 @@ public sealed class Tile : IEquatable<Tile>
     {
         var id = (Shape) Random.Shared.Next((int) Shape.Ball, (int) (Shape.Triangle) + 1);
 
-        switch (id)
+        switch (id, true)
         {
-            case Shape.Ball:
+            case (Shape.Ball, _):
                 return CreateNewTile(frames[0],
                     OriginalColor.Blue,
-                    cellPool.Next,
+                    cellPool.NextRnd,
                     false,
                     IdentifyTileKind(frames[0]),
                     Color.WHITE);
 
-            case Shape.Cube:
+            case (Shape.Cube, _):
                 return CreateNewTile(frames[1],
                     OriginalColor.Yellow,
-                    cellPool.Next,
+                    cellPool.NextRnd,
                     false,
                     IdentifyTileKind(frames[1]),
                     Color.WHITE);
                 ;
 
-            case Shape.Zylinder:
+            case (Shape.Zylinder, _):
                 return CreateNewTile(frames[2],
                     OriginalColor.Red,
-                    cellPool.Next,
+                    cellPool.NextRnd,
                     false,
                     IdentifyTileKind(frames[2]),
                     Color.WHITE);
                 ;
 
-            case Shape.Triangle:
+            case (Shape.Triangle, _):
                 return CreateNewTile(frames[3],
                     OriginalColor.Green,
-                    cellPool.Next,
+                    cellPool.NextRnd,
                     false,
                     IdentifyTileKind(frames[3]),
                     Color.WHITE);
@@ -197,21 +190,7 @@ public sealed class Tile : IEquatable<Tile>
 
     public override string ToString() => $"CurrentPos: {Cell}; -- Shape: {Shape} -- OriginColor: {OriginColor} ";
 
-    float Lerp(float firstFloat, float secondFloat, float by)
-    {
-        return firstFloat * (1 - by) + secondFloat * by;
-    }
-
-    public void StopFading()
-    {
-        Selected = false;
-        CurrentAlpha = 1f;
-    }
-
-    private static bool SameColor(Color c1, Color c2) 
-        => c1.a == c2.a && c1.b == c2.b && c1.g == c2.g && c1.r == c2.r;
-
-    public void Draw(float deltaTime)
+    public void Draw(float? elapsedTime)
     {
         if (!wasDrawn)
         {
@@ -220,9 +199,9 @@ public sealed class Tile : IEquatable<Tile>
         }
 
         Vector2 worldPosition = new Vector2(Cell.X, Cell.Y) * Program.TileSize;
-        Color drawColor = Selected ? Color.BLUE : Colour;
-        drawColor = Raylib.ColorAlpha(drawColor, CurrentAlpha);
-        CurrentAlpha = Lerp(CurrentAlpha, targetAlpha, alphaSpeed * deltaTime);
+        Color drawColor = Selected ? Color.BLUE : Blur;
+        //drawColor = Raylib.ColorAlpha(drawColor, CurrentAlpha);
+        //CurrentAlpha = Lerp(CurrentAlpha, targetAlpha, alphaSpeed * elapsedTime);
         Raylib.DrawTextureRec(Program.TileSheet, DrawDestination, worldPosition, drawColor);
 
         float xCenter = worldPosition.X + Program.TileSize.X / 4.3f;
@@ -230,22 +209,18 @@ public sealed class Tile : IEquatable<Tile>
             worldPosition.Y >= 128f ? (worldPosition.Y + Program.TileSize.Y / 2f) - 5f : 0f;
 
         Vector2 drawPos = new(xCenter - 10f, yCenter);
-        Raylib.DrawTextEx(font, Cell.ToString(), drawPos, 20f, 1f, SameColor(Colour, Color.BLACK) ? Color.WHITE : Color.BLACK );
+        Raylib.DrawTextEx(font, Cell.ToString(), drawPos, 20f, 1f, SameColor(Blur, Color.BLACK) ? Color.WHITE : Color.BLACK );
     }
-
-    public bool Equals(Tile? other)
+    
+    public bool Equals(ITile? other)
     {
-        return Shape == other?.Shape &&
-               OriginColor == other.OriginColor;
-    }
+        if (other is Tile d)
+        {
+            return Shape == d.Shape &&
+                   OriginColor == d.OriginColor;
+        }
 
-    public override bool Equals(object obj)
-    {
-        return Equals(obj as Tile);
+        return false;
     }
-    /*
-   public override bool Equals(object obj)
-   {
-       return Equals(obj as Tile);
-   }*/
+    
 }

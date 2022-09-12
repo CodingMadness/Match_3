@@ -11,14 +11,14 @@ class Program
     private static Stopwatch _stopwatch = new();
   //private static TileMap _tileMap = new(8, 8);
     private static Tilemap _tileMap;
-    private static HashSet<Tile> _matches = new(3);
+    private static ISet<ITile> _matches = new HashSet<ITile>(3);
     
     private const int _tileSize = 64;
     private const int _tileCountX = 8;
     private const int _tileCountY = 8;
 
-    public static readonly IntVector2 WindowSize = new IntVector2(_tileCountX, _tileCountY) * _tileSize;
-    public static readonly IntVector2 TileSize = new IntVector2(_tileSize);
+    public static readonly Int2 WindowSize = new Int2(_tileCountX, _tileCountY) * _tileSize;
+    public static readonly Int2 TileSize = new Int2(_tileSize);
 
     private static Tile? secondClickedTile;
     private static bool isUndoPressed;
@@ -42,7 +42,6 @@ class Program
         Console.WriteLine(tilePath);
         TileSheet = Raylib.LoadTexture(tilePath);
         _tileMap = new(TileSheet,8, 8);
-        _tileMap.CreateMap();
         Tile.FontPath = fontPath;
         _stopwatch = Stopwatch.StartNew();
         Raylib.SetTargetFPS(60);
@@ -73,7 +72,7 @@ class Program
         //No tile selected yet
         if (secondClickedTile is null)
         {
-            secondClickedTile = firstClickedTile;
+            secondClickedTile = firstClickedTile as Tile; 
             secondClickedTile.Selected = true;
             return;
         }
@@ -89,18 +88,18 @@ class Program
         //Different tile selected => swap
         firstClickedTile.Selected = true;
         _tileMap.Swap(firstClickedTile, secondClickedTile);
-        undoBuffer.Add(firstClickedTile);
+        undoBuffer.Add(firstClickedTile as Tile);
         undoBuffer.Add(secondClickedTile);
         secondClickedTile.Selected = false;
         
-        if (_tileMap.MatchInAnyDirection(secondClickedTile!.Cell, ref _matches))
+        if (_tileMap.MatchInAnyDirection(secondClickedTile!.Cell, _matches))
         {
             undoBuffer.Clear();
             //Console.WriteLine("FOUND A MATCH-3");
             
             foreach (var match in _matches)
             {
-                undoBuffer.Add(_tileMap[match.Cell]); 
+                undoBuffer.Add(_tileMap[match.Cell] as Tile); 
                 _tileMap[match.Cell] = null;
                 //Console.WriteLine(match);
             }
@@ -126,7 +125,7 @@ class Program
         {
             bool wasSwappedBack = false;
 
-            foreach (var storedItem in undoBuffer)
+            foreach (Tile storedItem in undoBuffer)
             {
                 //check if they have been ONLY swapped without leading to a match3
                 if (!wasSwappedBack && _tileMap[storedItem.Cell] is not null)
@@ -142,9 +141,9 @@ class Program
                     //for delete we dont have a .IsDeleted, cause we onl NULL
                     //a tile at a certain coordinate, so we test for that
                     //if (_tileMap[storedItem.Cell] is { } backupItem)
-                    var tmp = _tileMap[storedItem.Cell] = storedItem;
+                    var tmp = (_tileMap[storedItem.Cell] = storedItem) as Tile;
                     tmp!.Selected = false;
-                    tmp.Colour = Color.WHITE;
+                    tmp.Blur = Color.WHITE;
                 }
                 if (!wasSwappedBack)
                     _tileMap.Swap(_tileMap[Tilemap.MatchXTrigger.CoordsB4Swap], 

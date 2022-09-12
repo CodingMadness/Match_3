@@ -62,7 +62,7 @@ namespace Match_3
             }
         }
         
-        public TValue Next
+        public TValue NextRnd
         {
             get
             {
@@ -74,6 +74,7 @@ namespace Match_3
                     for (var i = 0; i < m_FixedItems.Length; i++)
                     {
                         var distance = Math.Abs(compare - m_FixedItems[i].Chance);
+                        
                         if (distance < min)
                         {
                             min = distance;
@@ -83,6 +84,7 @@ namespace Match_3
 
                     return m_FixedItems[minIndex].Chance;
                 }
+         
                 int runner = 0;
 
             Recursion:
@@ -110,13 +112,13 @@ namespace Match_3
         public bool IgnoreProbability(TValue key) { return false; }
     }
     
-    public class WeightedCellPool : ProbabilityPool<IntVector2>
+    public class WeightedCellPool : ProbabilityPool<Int2>
     {
-        public WeightedCellPool(IEnumerable<IntVector2> values) : base(values)
+        public WeightedCellPool(IEnumerable<Int2> values) : base(values)
         {
         }
 
-        protected override Vector2 ComputeNoise(IntVector2 initial)
+        protected override Vector2 ComputeNoise(Int2 initial)
         {
             return new(initial.X, initial.Y);
         }
@@ -149,7 +151,7 @@ namespace Match_3
 
     //    protected override Vector2 ComputeNoise(TileAttributes initial)
     //    {
-    //        var roundUp = 1 << m_Random.Next(1,10);
+    //        var roundUp = 1 << m_Random.NextRnd(1,10);
     //        return new((float)initial, (float)(TileAttributes)roundUp);
     //    }
     //}
@@ -180,7 +182,7 @@ namespace Match_3
 
     //    protected override Vector2 ComputeNoise(PickupCategory initial)
     //    {
-    //        var roundUp = 1 << m_Random.Next(1, 10);
+    //        var roundUp = 1 << m_Random.NextRnd(1, 10);
     //        return new((float)initial, (float)(TileAttributes)roundUp);
     //    }
     //}
