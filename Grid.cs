@@ -26,7 +26,7 @@ namespace Match_3
         public static TTile? MatchXTrigger { get; private set; }
         private GameTime _gridTimer;
 
-        private bool isDone;
+        private bool isDrawn = true;
 
         private void CreateMap()
         {
@@ -52,37 +52,47 @@ namespace Match_3
             }
         }
 
-        public Grid(int tileWidth, int tileHeight, GameTime gridTimer)
+        public Grid(int tileWidth, int tileHeight, in GameTime gridTimer)
         {
             TileWidth = tileWidth;
             TileHeight = tileHeight;
             _bitmap = new TTile?[TileWidth, TileHeight];
-            _gridTimer= gridTimer;
-            //CellPool = new WeightedCellPool(YieldGameWindow());
+            _gridTimer = gridTimer;
+            _gridTimer = GameTime.GetTimer(5*60);
             CreateMap();
         }
 
         public void Draw()
         {
-            /*
-            var p = (_gridTimer.ElapsedSeconds / timeMax);
-            var px = p * TileWidth;
-            var py = p * TileHeight;        
-            */
-            
-            for (int x = _gridTimer.INIT_TIME * 0; x < _gridTimer.INIT_TIME * TileWidth; x*=_gridTimer.INIT_TIME)
+            //Do this Draw second per second OLNLY ONCE
+            for (int x = 0; x < TileWidth; x++)
             {
-                for (int y = _gridTimer.INIT_TIME * 0; y < _gridTimer.INIT_TIME * TileHeight; y*=_gridTimer.INIT_TIME )
+                for (int y = 0; y < TileHeight; y++ )
                 {
-                    //if (px < x && py < y)
-                    if(_gridTimer.TimerDone())
+                    var tile = _bitmap[x, y];
+                    
+                    if (!isDrawn)
                     {
-                        var tile = this[new(x, y)];
-                        tile?.Draw();
-                        _gridTimer.Reset();        
+                        _gridTimer.UpdateTimer();
+                        Console.WriteLine(_gridTimer.ElapsedSeconds);
+                        if (_gridTimer.TimerDone())
+                        {
+                            tile?.Draw();
+                            //Console.WriteLine(x + ":  " + "  " + y);
+                            _gridTimer.Reset();
+                        }
                     }
+                    else
+                    {
+                        tile?.Draw();
+                        //Draw normally!
+                    }
+                    //Console.WriteLine(x + ":  " + "  " + y);
                 }
             }
+
+            //isDrawn = true;
+            //Console.WriteLine("ITERATION OVER FOR THIS DRAW-CALL!");
         }
 
         public TTile? this[Int2 coord]
@@ -113,8 +123,8 @@ namespace Match_3
         {
             static bool AddWhenEqual(TTile? first, TTile? next, ISet<TTile> matches)
             {
-                if (first is not null &&
-                    next is not null &&
+                if (first is { } &&
+                    next is { } &&
                     first.Equals(next))
                 {
                     if (matches.Count == MaxDestroyableTiles)
