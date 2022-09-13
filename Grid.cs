@@ -77,14 +77,14 @@ namespace Match_3
                         Console.WriteLine(_gridTimer.ElapsedSeconds);
                         if (_gridTimer.TimerDone())
                         {
-                            tile?.Draw();
+                            tile?.Draw(new(x,y));
                             //Console.WriteLine(x + ":  " + "  " + y);
                             _gridTimer.Reset();
                         }
                     }
                     else
                     {
-                        tile?.Draw();
+                        tile?.Draw(new(x,y));
                         //Draw normally!
                     }
                     //Console.WriteLine(x + ":  " + "  " + y);
@@ -123,8 +123,8 @@ namespace Match_3
         {
             static bool AddWhenEqual(TTile? first, TTile? next, ISet<TTile> matches)
             {
-                if (first is { } &&
-                    next is { } &&
+                if (first is not null &&
+                    next is not null &&
                     first.Equals(next))
                 {
                     if (matches.Count == MaxDestroyableTiles)

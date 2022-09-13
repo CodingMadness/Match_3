@@ -51,8 +51,6 @@ class Program
                 timer.Reset();
             }*/
 
-            //Console.WriteLine(timer.ElapsedSeconds);
-           // _tileMap.Iterate();
             ProcessSelectedTiles();
             UndoAllOperations();
             Raylib.EndDrawing();
@@ -80,14 +78,14 @@ class Program
             return;
         }
         
-        //Different tile selected => swap
+        /*Different tile selected => swap*/
         firstClickedTile.Selected = true;
         _tileMap.Swap(firstClickedTile, secondClickedTile);
         undoBuffer.Add(firstClickedTile as Tile);
         undoBuffer.Add(secondClickedTile);
         secondClickedTile.Selected = false;
         
-        if (_tileMap.MatchInAnyDirection(secondClickedTile!.Cell, _matches))
+        /*if (_tileMap.MatchInAnyDirection(secondClickedTile!.Cell, _matches))
         {
             undoBuffer.Clear();
             //Console.WriteLine("FOUND A MATCH-3");
@@ -99,7 +97,7 @@ class Program
                 //Console.WriteLine(match);
             }
         }
-        
+        */
         _matches.Clear();
         secondClickedTile = null;        
         firstClickedTile.Selected = false;
