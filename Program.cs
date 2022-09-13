@@ -41,7 +41,17 @@ class Program
             Raylib.ClearBackground(Color.BEIGE);
             timer.UpdateTimer();
             _tileMap.Draw();
+            //WORKS GOOD!:
             
+            /*
+             * if (timer.TimerDone())
+             
+            {
+                Console.WriteLine("TIMER IS AT 3 SEC NOW!" + Raylib.GetFrameTime());
+                timer.Reset();
+            }*/
+
+            //Console.WriteLine(timer.ElapsedSeconds);
            // _tileMap.Iterate();
             ProcessSelectedTiles();
             UndoAllOperations();
@@ -131,8 +141,9 @@ class Program
                     tmp.ChangeTo(Color.WHITE);
                 }
                 if (!wasSwappedBack)
-                    _tileMap.Swap(_tileMap[Grid<Tile>.MatchXTrigger.CoordsB4Swap], 
-                        _tileMap[Grid<Tile>.MatchXTrigger.Cell]);
+                    if (Grid<Tile>.MatchXTrigger is { })
+                        _tileMap.Swap(_tileMap[Grid<Tile>.MatchXTrigger.CoordsB4Swap],
+                            _tileMap[Grid<Tile>.MatchXTrigger.Cell]);
             }
             undoBuffer.Clear();
         }
