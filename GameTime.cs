@@ -8,26 +8,32 @@ public struct GameTime
     {
         
     }
-    
-    public float ElapsedTime { get; set; }
 
-    public  static GameTime GetTimer(float lifetime)
+    private int ElapsedSeconds { get; set; }
+    public int INIT_TIME { get; init; }
+    
+    public static GameTime GetTimer(int lifetime)
     { 
         return new GameTime
         {
-            ElapsedTime = lifetime
+            INIT_TIME = lifetime,
+            ElapsedSeconds = lifetime
         };
     }
 
     public void UpdateTimer()
     {
         // subtract this frame from the timer if it's not allready expired
-        if (ElapsedTime > 0)
-            ElapsedTime -= Raylib.GetFrameTime();
+        if ((ElapsedSeconds) > 0)
+            ElapsedSeconds -= (int)(Raylib.GetFrameTime());
+        
+//        Console.WriteLine((int)ElapsedSeconds + " time gone");
     }
 
     public bool TimerDone()
     {
-        return ElapsedTime <= 0;
+        return ElapsedSeconds <= 0;
     }
+
+    public void Reset() => ElapsedSeconds = INIT_TIME;
 }

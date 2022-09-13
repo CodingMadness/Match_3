@@ -5,6 +5,7 @@ using Match_3;
 
 class Program
 {
+    private static GameTime timer;
     private static Grid<Tile> _tileMap;
     private static ISet<Tile> _matches = new HashSet<Tile>(3);
     private static Tile? secondClickedTile;
@@ -23,7 +24,8 @@ class Program
 
     private static void Initialize()
     {
-        _tileMap = new(14, 8, false);
+        timer = GameTime.GetTimer(3);
+        _tileMap = new(14, 8, timer);
         WindowWidth = _tileMap.TileWidth * Grid<Tile>.TileSize;
         WindowHeight = _tileMap.TileHeight * Grid<Tile>.TileSize;
         Raylib.SetTargetFPS(60);
@@ -37,6 +39,7 @@ class Program
         {
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.BEIGE);
+            timer.UpdateTimer();
             _tileMap.Draw();
             
            // _tileMap.Iterate();

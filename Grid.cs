@@ -27,9 +27,8 @@ namespace Match_3
         private GameTime _gridTimer;
 
         private bool isDone;
-        //private WeightedCellPool CellPool { get; }
 
-        private void CreateMap(bool shuffle)
+        private void CreateMap()
         {
             FastNoiseLite noiseMaker = new(DateTime.UtcNow.GetHashCode());
             noiseMaker.SetFrequency(10f);
@@ -53,40 +52,37 @@ namespace Match_3
             }
         }
 
-        public Grid(int tileWidth, int tileHeight, bool shuffle)
+        public Grid(int tileWidth, int tileHeight, GameTime gridTimer)
         {
             TileWidth = tileWidth;
             TileHeight = tileHeight;
             _bitmap = new TTile?[TileWidth, TileHeight];
-            _gridTimer = GameTime.GetTimer(10f);
+            _gridTimer= gridTimer;
             //CellPool = new WeightedCellPool(YieldGameWindow());
-            CreateMap(shuffle);
+            CreateMap();
         }
 
         public void Draw()
         {
-            _gridTimer.UpdateTimer();
-
-            const int timeMax = 10; //<timeMax> seconds for all tiles to appear
-
-            var p = (_gridTimer.ElapsedTime / timeMax);
+            /*
+            var p = (_gridTimer.ElapsedSeconds / timeMax);
             var px = p * TileWidth;
-            var py = p * TileHeight;
-
-            for (int x = 0; x < TileWidth; x++)
+            var py = p * TileHeight;        
+            */
+            
+            for (int x = _gridTimer.INIT_TIME * 0; x < _gridTimer.INIT_TIME * TileWidth; x*=_gridTimer.INIT_TIME)
             {
-                for (int y = 0; y < TileHeight; y++)
+                for (int y = _gridTimer.INIT_TIME * 0; y < _gridTimer.INIT_TIME * TileHeight; y*=_gridTimer.INIT_TIME )
                 {
-                    if (px < x && py < y)
+                    //if (px < x && py < y)
+                    if(_gridTimer.TimerDone())
                     {
                         var tile = this[new(x, y)];
-                        if (tile is Tile d)
-                        //    Console.WriteLine("DRAW: " + d);
                         tile?.Draw();
+                        _gridTimer.Reset();        
                     }
                 }
             }
-            isDone = true;
         }
 
         public TTile? this[Int2 coord]
