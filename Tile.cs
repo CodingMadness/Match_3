@@ -113,7 +113,7 @@ public interface ITile //: IEquatable<ITile>
     public Int2 CoordsB4Swap { get; set; }
     public int Size { get; }
     public  bool Selected { get; set; }
-    public void Draw();
+    public void Draw(Int2 position);
     public static abstract ITile Create(Int2 position, float? noise);
     public bool Equals(ITile? other);
 }
@@ -180,37 +180,17 @@ public record struct Shape
 
     public Shape(float? noise)
     {
-        Tint = Color.WHITE;
+        FadeTint = Color.WHITE;
         DefineDestRectByNoise(noise);
         Kind = GetKindByRect();
     }
     
     public readonly ShapeKind Kind { get; }
-
     public Rectangle DestRect { get; private set; }
 
     ///THIS is the MAINSRC color, the actualy pixeldata behind the texture!
     public FadeableColor PixelColor { get; set; }
-    
-    public FadeableColor Tint { get; set; } 
-   
-    public readonly void Draw(Vector2 position)
-    {
-        Raylib.DrawTextureRec(AssetManager.SpriteSheet, DestRect, position, Tint);
-        //Console.WriteLine(DestRect);
-    }
-    
-    public readonly void  DrawTextOnTop(in Vector2 worldPosition, bool selected)
-    {
-        float xCenter = worldPosition.X + DestRect.width / 4.3f;
-        float yCenter = worldPosition.Y < 128f ? worldPosition.Y + DestRect.height / 2.5f :
-            worldPosition.Y >= 128f ? (worldPosition.Y + DestRect.height / 2f) - 5f : 0f;
-        
-        Vector2 drawPos = new(xCenter - 10f, yCenter);
-        FadeableColor drawColor = selected ? Color.BLACK : Tint;
-        Raylib.DrawTextEx(AssetManager.Font, worldPosition.ToString(), drawPos, 
-            14f, 1f, selected ? Color.BLACK : Tint);
-    }
+    public FadeableColor FadeTint { get; set; }
 }
 
 public sealed class Tile :  ITile
@@ -229,18 +209,20 @@ public sealed class Tile :  ITile
 
         set
         {
-            var color = _backingShape.Tint;
+            var tint = _backingShape.FadeTint;
             
-            if (!value)
+            if (!value) 
             {
-                color.AlphaSpeed = 1f; 
+                tint.AlphaSpeed = 0.2f;
+                tint.TargetAlpha = 1f;
+                Console.WriteLine("TARGET ALPHA  : " + tint.TargetAlpha );
             }
             else
             {
-                color.TargetAlpha = color.CurrentAlpha = 0f;
+                tint.TargetAlpha = tint.CurrentAlpha = 0f;
             }
 
-            _backingShape.Tint = color;
+            _backingShape.FadeTint = tint;
             _selected = value;
         }
     }
@@ -260,7 +242,7 @@ public sealed class Tile :  ITile
            
             _backingShape = new(noise)
             {
-                Tint = Color.WHITE
+                FadeTint = Color.WHITE
             }
         };
 
@@ -268,23 +250,41 @@ public sealed class Tile :  ITile
     }
     
     public override string ToString() => $"CurrentPos: {Cell}; --" +
-                                         $" ShapeKind: {_backingShape.Kind} -- Tint: {_backingShape.Tint} ";
-
-    public void Draw()
-    {
-        Vector2 worldPosition = new Vector2(Cell.X, Cell.Y) * Size;
-        _backingShape.Draw(worldPosition);
-        _backingShape.DrawTextOnTop(worldPosition, _selected);
-    }
+                                         $" ShapeKind: {_backingShape.Kind} -- FadeTint: {_backingShape.FadeTint} ";
 
     public void ChangeTo(FadeableColor color)
     {
-        _backingShape.Tint = color;
+        _backingShape.FadeTint = color;
     }
     
     public static ITile Create(Int2 position, float? noise)
     {
         return CreateNewTile(position, noise);
+    }
+    
+    public void Draw(Int2 position)
+    { 
+        void  DrawTextOnTop(in Vector2 worldPosition, bool selected)
+        {
+            float xCenter = worldPosition.X + _backingShape.DestRect.width / 4.3f;
+            float yCenter = worldPosition.Y < 128f ? worldPosition.Y + _backingShape.DestRect.height / 2.5f :
+                worldPosition.Y >= 128f ? (worldPosition.Y + _backingShape.DestRect.height / 2f) - 5f : 0f;
+        
+            Vector2 drawPos = new(xCenter - 10f, yCenter);
+            FadeableColor drawColor = selected ? Color.BLACK : Color.WHITE;
+            Raylib.DrawTextEx(AssetManager.Font, worldPosition.ToString(), drawPos, 
+                14f, 1f, selected ? Color.BLACK : drawColor);
+        }
+        position *= Size;
+
+        FadeableColor drawColor = _selected ? Color.WHITE : Color.WHITE;//_backingShape.FadeTint;
+        
+        Raylib.DrawTextureRec(AssetManager.SpriteSheet,
+            _backingShape.DestRect,
+            position, 
+            drawColor);
+        
+        DrawTextOnTop(position, _selected);
     }
 
     public bool Equals(ITile? other)
@@ -292,7 +292,7 @@ public sealed class Tile :  ITile
         if (other is Tile d)
         {
             return _backingShape.Kind == d._backingShape.Kind &&
-                   _backingShape.Tint == d._backingShape.Tint;
+                   _backingShape.FadeTint == d._backingShape.FadeTint;
         }
         return false;
     }
