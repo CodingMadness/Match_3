@@ -7,7 +7,7 @@ class Program
 {
     private static GameTime timer;
     private static Grid<Tile> _tileMap;
-    private static ISet<Tile> _matches = new HashSet<Tile>(3);
+    private static ISet<Tile> _matchesOf3 = new HashSet<Tile>(3);
     private static Tile? secondClickedTile;
     private static bool isUndoPressed;
     private static HashSet<Tile> undoBuffer = new (5);
@@ -17,6 +17,8 @@ class Program
    
     private static void Main(string[] args)
     {
+        //Now I wanna give the player the task to collect
+        //X-Reds, Y-Blues, Z-Greens
         Initialize();
         GameLoop();
         CleanUp();
@@ -24,7 +26,8 @@ class Program
 
     private static void Initialize()
     {
-        timer = GameTime.GetTimer(3);
+        timer = GameTime.GetTimer(30);
+        GameTasks.SetQuest();
         _tileMap = new(14, 8, timer);
         WindowWidth = _tileMap.TileWidth * Grid<Tile>.TileSize;
         WindowHeight = _tileMap.TileHeight * Grid<Tile>.TileSize;
@@ -39,9 +42,10 @@ class Program
         {
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.BEIGE);
-            timer.UpdateTimer();
+            timer.UpdateTimerOnScreen();
             _tileMap.Draw();
-            //WORKS GOOD!:
+            
+            ////WORKS GOOD!:
             
             /*
              * if (timer.TimerDone())
@@ -85,20 +89,30 @@ class Program
         undoBuffer.Add(secondClickedTile);
         secondClickedTile.Selected = false;
         
-        /*if (_tileMap.MatchInAnyDirection(secondClickedTile!.Cell, _matches))
+        if (_tileMap.MatchInAnyDirection(secondClickedTile!.Cell, _matchesOf3))
         {
             undoBuffer.Clear();
             //Console.WriteLine("FOUND A MATCH-3");
+            int tileCounter = 0;
             
-            foreach (var match in _matches)
+            foreach (var match in _matchesOf3)
             {
-                undoBuffer.Add(_tileMap[match.Cell] as Tile); 
-                _tileMap[match.Cell] = null;
+                if (GameTasks.TryGetShapeKind(match.TileShape, out int toCollect))
+                {
+                    Console.WriteLine($"SHAPE:  {match.TileShape}   To collect: {toCollect}");
+                        
+                    if (++tileCounter == toCollect)
+                    {
+                        Console.WriteLine($"Nice, U COLLECTED.  {tileCounter}! Good job!");
+                        GameTasks.RemoveQuest(match.TileShape);
+                        tileCounter = 0;
+                    }
+                }
                 //Console.WriteLine(match);
+                _tileMap.Delete(match.Cell);
             }
         }
-        */
-        _matches.Clear();
+        _matchesOf3.Clear();
         secondClickedTile = null;        
         firstClickedTile.Selected = false;
     }
