@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Match_3;
 
@@ -70,21 +71,21 @@ public struct FadeableColor : IEquatable<FadeableColor>
         return color.Lerp();
     }
 
-    public static bool operator ==(FadeableColor c1, FadeableColor c2) =>
-        c1._toWrap.a == c2._toWrap.a &&
-        c1._toWrap.b == c2._toWrap.b &&
-        c1._toWrap.g == c2._toWrap.g &&
-        c1._toWrap.r == c2._toWrap.r;
+    public static bool operator ==(FadeableColor c1, FadeableColor c2)
+    {
+        int bytes_4_c1 = Unsafe.As<Color, int>(ref c1._toWrap);
+        int bytes_4_c2 = Unsafe.As<Color, int>(ref c2._toWrap);
+        return bytes_4_c1 == bytes_4_c2 && Math.Abs(c1.CurrentAlpha - (c2.CurrentAlpha)) < 1e-3;;
+    }
 
     public bool Equals(FadeableColor other)
     {
-        return this == other &&
-               Math.Abs(CurrentAlpha - (other.CurrentAlpha)) < 1e-3;
+        return this == other;
     }
 
     public override bool Equals(object? obj)
     {
-        return obj is FadeableColor other && Equals(other);
+        return obj is FadeableColor other && this == other;
     }
 
     public override int GetHashCode()
@@ -179,6 +180,7 @@ public record struct Shape
 
     public Shape(float? noise)
     {
+        Tint = Color.WHITE;
         DefineDestRectByNoise(noise);
         Kind = GetKindByRect();
     }
@@ -187,12 +189,14 @@ public record struct Shape
 
     public Rectangle DestRect { get; private set; }
 
-    //THIS must be mutable!
-    public FadeableColor SrcColor { get; set; }
+    ///THIS is the MAINSRC color, the actualy pixeldata behind the texture!
+    public FadeableColor PixelColor { get; set; }
     
+    public FadeableColor Tint { get; set; } 
+   
     public readonly void Draw(Vector2 position)
     {
-        Raylib.DrawTextureRec(AssetManager.SpriteSheet, DestRect, position, Color.WHITE);
+        Raylib.DrawTextureRec(AssetManager.SpriteSheet, DestRect, position, Tint);
         //Console.WriteLine(DestRect);
     }
     
@@ -203,9 +207,9 @@ public record struct Shape
             worldPosition.Y >= 128f ? (worldPosition.Y + DestRect.height / 2f) - 5f : 0f;
         
         Vector2 drawPos = new(xCenter - 10f, yCenter);
-        FadeableColor drawColor = selected ? Color.BLACK : SrcColor;
+        FadeableColor drawColor = selected ? Color.BLACK : Tint;
         Raylib.DrawTextEx(AssetManager.Font, worldPosition.ToString(), drawPos, 
-            14f, 1f, drawColor == SrcColor ? Color.WHITE : Color.BLACK);
+            14f, 1f, selected ? Color.BLACK : Tint);
     }
 }
 
@@ -225,7 +229,7 @@ public sealed class Tile :  ITile
 
         set
         {
-            var color = _backingShape.SrcColor;
+            var color = _backingShape.Tint;
             
             if (!value)
             {
@@ -236,7 +240,7 @@ public sealed class Tile :  ITile
                 color.TargetAlpha = color.CurrentAlpha = 0f;
             }
 
-            _backingShape.SrcColor = color;
+            _backingShape.Tint = color;
             _selected = value;
         }
     }
@@ -256,7 +260,7 @@ public sealed class Tile :  ITile
            
             _backingShape = new(noise)
             {
-                SrcColor = Color.WHITE
+                Tint = Color.WHITE
             }
         };
 
@@ -264,7 +268,7 @@ public sealed class Tile :  ITile
     }
     
     public override string ToString() => $"CurrentPos: {Cell}; --" +
-                                         $" ShapeKind: {_backingShape.Kind} -- SrcColor: {_backingShape.SrcColor} ";
+                                         $" ShapeKind: {_backingShape.Kind} -- Tint: {_backingShape.Tint} ";
 
     public void Draw()
     {
@@ -275,7 +279,7 @@ public sealed class Tile :  ITile
 
     public void ChangeTo(FadeableColor color)
     {
-        _backingShape.SrcColor = color;
+        _backingShape.Tint = color;
     }
     
     public static ITile Create(Int2 position, float? noise)
@@ -288,7 +292,7 @@ public sealed class Tile :  ITile
         if (other is Tile d)
         {
             return _backingShape.Kind == d._backingShape.Kind &&
-                   _backingShape.SrcColor == d._backingShape.SrcColor;
+                   _backingShape.Tint == d._backingShape.Tint;
         }
         return false;
     }
