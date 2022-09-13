@@ -1,3 +1,4 @@
+using System.Numerics;
 using Raylib_cs;
 
 namespace Match_3;
@@ -30,6 +31,18 @@ public struct GameTime
         //Console.WriteLine((int)ElapsedSeconds + "  time gone");
     }
 
+    public void UpdateTimerOnScreen()
+    {
+        Vector2 upperRightCornor = new(0f, 0f);
+        UpdateTimer();
+        
+        Raylib.DrawTextEx(AssetManager.Font, 
+            ((int)ElapsedSeconds).ToString(),
+            upperRightCornor,
+            50f, 
+            1f, 
+            Color.RED);
+    }
     public bool TimerDone()
     {
         return ElapsedSeconds <= 0;

@@ -84,6 +84,9 @@ namespace Match_3
                     }
                     else
                     {
+                        if ((x, y) == (0, 0))
+                            continue;
+                        
                         tile?.Draw(new(x,y));
                         //Draw normally!
                     }
