@@ -49,9 +49,6 @@ namespace Match_3
                     //    noise = noiseMaker.GetNoise(x, y);
 
                     _bitmap[x, y] = (TTile?)Tile.Create(new(x, y), noise);
-                    //Console.WriteLine($"NOISE: AT{f.Cell}  " + noise);
-                    
-                    //if (f is Tile a) Console.WriteLine(a);
                 }
             }
         }
@@ -96,13 +93,16 @@ namespace Match_3
         {
             get
             {
-                if (coord.X >= 0 && coord.Y >= 0 && coord.X < TileWidth && coord.Y < TileHeight)
+                if (coord.X >= 0 && coord.X < TileWidth 
+                                 &&coord.Y >= 0 && coord.Y < TileHeight)
                 {
+                    //its within bounds!
                     var tmp = _bitmap[coord.X, coord.Y];
-                    return tmp ?? throw new IndexOutOfRangeException("");
+                    return tmp;
                 }
 
                 return default;
+                //throw new Exception("ck.ysdnjlfdnajöilsfshfl");
             }
             set
             {

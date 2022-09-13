@@ -131,7 +131,7 @@ public record struct Shape
         };
     }
 
-    private static readonly Rectangle[] Frames = 
+    private readonly Rectangle[] Frames = new []
     {
         new Rectangle(0f, 0f, 64f, 64f), //blue
         new Rectangle(64f, 0f, 64f, 64f), //yellow
@@ -139,26 +139,40 @@ public record struct Shape
         new Rectangle(64f, 64f, 64f, 64f), //green
     };
 
+    private int _id = 0, _noiseCounter = 0;
+    
+    /// <summary>
+    /// TODO: PLAY WITH THIS FUNCTION ABIT MORE TO GET BETTER PROBABILITY
+    /// </summary>
+    /// <param name="noise"></param>
     private void DefineDestRectByNoise(float? noise)
     {
-        //noise = (noise < 0f ? -noise : noise) * 10f;
+        /*
+        if (_noiseCounter++ == 3) ;
+        {
+            Array.Reverse(Frames);
+            _noiseCounter = 0;
+        }
+        */
         if (noise <= 0f)
         {
             noise += Random.Shared.NextSingle();
             DefineDestRectByNoise(noise);
         }
-
+        else if (noise <= 0.1)
+            noise *= 10;
+        
         if (noise <= 0.25f)
-            DestRect = Frames[0];
+            DestRect = Frames.ElementAt(0);
         
         else if (noise is >= 0.15f and <= 0.40000f)
-            DestRect = Frames[1];
+            DestRect = Frames.ElementAt(1);
         
         else if (noise is >= 0.400001f and <= 0.650001f)
-            DestRect = Frames[2];
+            DestRect = Frames.ElementAt(2);
         
         else if (noise is >= 0.660001f and <= 1f)
-            DestRect = Frames[3];
+            DestRect = Frames.ElementAt(3);
 
         //Console.WriteLine(DestRect.width + "   " + DestRect.height);
     }
@@ -191,7 +205,7 @@ public record struct Shape
         Vector2 drawPos = new(xCenter - 10f, yCenter);
         FadeableColor drawColor = selected ? Color.BLACK : SrcColor;
         Raylib.DrawTextEx(AssetManager.Font, worldPosition.ToString(), drawPos, 
-            20f, 1f, drawColor == SrcColor ? Color.WHITE : Color.BLACK);
+            14f, 1f, drawColor == SrcColor ? Color.WHITE : Color.BLACK);
     }
 }
 
@@ -256,7 +270,7 @@ public sealed class Tile :  ITile
     {
         Vector2 worldPosition = new Vector2(Cell.X, Cell.Y) * Size;
         _backingShape.Draw(worldPosition);
-        //_backingShape.DrawTextOnTop(worldPosition, selected);
+        _backingShape.DrawTextOnTop(worldPosition, _selected);
     }
 
     public void ChangeTo(FadeableColor color)
