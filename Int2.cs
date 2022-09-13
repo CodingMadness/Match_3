@@ -19,7 +19,10 @@ public struct Int2
         Y = v;
     }
 
-    public static bool operator ==(Int2 left, Int2 right)
+   // public static bool operator implicit Vector2(Int2 intVec) => return
+   public static implicit operator Vector2(Int2 intPos) => new(intPos.X, intPos.Y);
+   
+   public static bool operator ==(Int2 left, Int2 right)
     {
         return left.X == right.X && left.Y == right.Y;
     }
