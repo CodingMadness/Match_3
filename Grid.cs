@@ -204,5 +204,7 @@ namespace Match_3
             (a.Cell, b.Cell) = (b.Cell, a.Cell);
             (a.CoordsB4Swap, b.CoordsB4Swap) = (b.Cell, a.Cell);
         }
+
+        public void Delete(Int2 coord) => this[coord] = default;
     }
 }
