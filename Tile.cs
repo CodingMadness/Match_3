@@ -111,7 +111,7 @@ public enum ShapeKind : sbyte
 
 public interface ITile //: IEquatable<ITile>
 {
-    public Int2 Cell { get; set; }
+    public Int2 Current { get; set; }
     public Int2 CoordsB4Swap { get; set; }
     public int Size { get; }
     public  bool Selected { get; set; }
@@ -220,7 +220,7 @@ public struct Shape : IEquatable<Shape>
 
 public sealed class Tile :  ITile
 {
-    public Int2 Cell { get; set; }
+    public Int2 Current { get; set; }
     public int Size => Grid<Tile>.TileSize;
     public Int2 CoordsB4Swap { get; set; }
 
@@ -266,7 +266,7 @@ public sealed class Tile :  ITile
     {
         var mapTile = new Tile
         {
-            Cell = coord,
+            Current = coord,
             CoordsB4Swap = -Int2.One,
             _selected = false,
            
@@ -279,7 +279,7 @@ public sealed class Tile :  ITile
         return mapTile;
     }
     
-    public override string ToString() => $"Current Position: {Cell};  {TileShape}";
+    public override string ToString() => $"Current Position: {Current};  {TileShape}";
 
     public void ChangeTo(FadeableColor color)
     {

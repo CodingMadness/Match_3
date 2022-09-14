@@ -199,10 +199,10 @@ namespace Match_3
             if (a is null || b is null)
                 return;
 
-            this[a.Cell] = b;
-            this[b.Cell] = a;
-            (a.Cell, b.Cell) = (b.Cell, a.Cell);
-            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.Cell, a.Cell);
+            this[a.Current] = b;
+            this[b.Current] = a;
+            (a.Current, b.Current) = (b.Current, a.Current);
+            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.Current, a.Current);
         }
 
         public void Delete(Int2 coord) => this[coord] = default;

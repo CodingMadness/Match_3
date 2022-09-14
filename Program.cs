@@ -82,14 +82,14 @@ class Program
             return;
         }
         
-        /*Different tile selected => swap*/
+        /*Different tile selected ==> swap*/
         firstClickedTile.Selected = true;
         _tileMap.Swap(firstClickedTile, secondClickedTile);
-        UndoBuffer.Add(firstClickedTile as Tile);
+        UndoBuffer.Add(firstClickedTile);
         UndoBuffer.Add(secondClickedTile);
         secondClickedTile.Selected = false;
         
-        if (_tileMap.MatchInAnyDirection(secondClickedTile!.Cell, MatchesOf3))
+        if (_tileMap.MatchInAnyDirection(secondClickedTile!.Current, MatchesOf3))
         {
             UndoBuffer.Clear();
             //Console.WriteLine("FOUND A MATCH-3");
@@ -108,7 +108,9 @@ class Program
                     }
                     //  Console.WriteLine($"You sill have to collect: {toCollect- tileCounter}");
                 }
-                _tileMap.Delete(match.Cell);
+
+                UndoBuffer.Add(_tileMap[match.Current]);
+                _tileMap.Delete(match.Current);
                 //Console.WriteLine(match)
             }
         }
@@ -135,9 +137,9 @@ class Program
             foreach (Tile storedItem in UndoBuffer)
             {
                 //check if they have been ONLY swapped without leading to a match3
-                if (!wasSwappedBack && _tileMap[storedItem.Cell] is not null)
+                if (!wasSwappedBack && _tileMap[storedItem.Current] is not null)
                 {
-                    var secondTile = _tileMap[storedItem.Cell];
+                    var secondTile = _tileMap[storedItem.Current];
                     var firstTie = _tileMap[storedItem.CoordsB4Swap];
                     _tileMap.Swap(secondTile, firstTie);
                     wasSwappedBack = true;
@@ -147,15 +149,22 @@ class Program
                     //their has been a match3 after swap!
                     //for delete we dont have a .IsDeleted, cause we onl NULL
                     //a tile at a certain coordinate, so we test for that
-                    //if (_tileMap[storedItem.Cell] is { } backupItem)
-                    var tmp = (_tileMap[storedItem.Cell] = storedItem) as Tile;
+                    //if (_tileMap[storedItem.Current] is { } backupItem)
+                    var tmp = (_tileMap[storedItem.Current] = storedItem) as Tile;
                     tmp!.Selected = false;
                     tmp.ChangeTo(Color.WHITE);
                 }
+
                 if (!wasSwappedBack)
-                    if (Grid<Tile>.MatchXTrigger is { })
-                        _tileMap.Swap(_tileMap[Grid<Tile>.MatchXTrigger.CoordsB4Swap],
-                            _tileMap[Grid<Tile>.MatchXTrigger.Cell]);
+                {
+                    var trigger = Grid<Tile>.MatchXTrigger;
+                    
+                    if (trigger is not null)
+                        _tileMap.Swap(_tileMap[trigger.CoordsB4Swap], 
+                                       _tileMap[trigger.Current]);
+
+                    wasSwappedBack = true;
+                }
             }
             UndoBuffer.Clear();
         }
