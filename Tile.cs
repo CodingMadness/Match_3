@@ -100,7 +100,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
 
 public enum ShapeKind : sbyte
 {
-    Ball,
+    Ball=0,
     Cube,
     Cylinder,
     Triangle,

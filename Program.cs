@@ -7,10 +7,10 @@ class Program
 {
     private static GameTime timer;
     private static Grid<Tile> _tileMap;
-    private static ISet<Tile> _matchesOf3 = new HashSet<Tile>(3);
+    private static readonly ISet<Tile> MatchesOf3 = new HashSet<Tile>(3);
     private static Tile? secondClickedTile;
     private static bool isUndoPressed;
-    private static HashSet<Tile> undoBuffer = new (5);
+    private static readonly HashSet<Tile> UndoBuffer = new (5);
    
     public static int WindowWidth;
     public static int WindowHeight;
@@ -28,6 +28,7 @@ class Program
     {
         timer = GameTime.GetTimer(30);
         GameTasks.SetQuest();
+        GameTasks.LogQuest();
         _tileMap = new(14, 8, timer);
         WindowWidth = _tileMap.TileWidth * Grid<Tile>.TileSize;
         WindowHeight = _tileMap.TileHeight * Grid<Tile>.TileSize;
@@ -46,7 +47,6 @@ class Program
             _tileMap.Draw();
             
             ////WORKS GOOD!:
-            
             /*
              * if (timer.TimerDone())
              
@@ -85,34 +85,34 @@ class Program
         /*Different tile selected => swap*/
         firstClickedTile.Selected = true;
         _tileMap.Swap(firstClickedTile, secondClickedTile);
-        undoBuffer.Add(firstClickedTile as Tile);
-        undoBuffer.Add(secondClickedTile);
+        UndoBuffer.Add(firstClickedTile as Tile);
+        UndoBuffer.Add(secondClickedTile);
         secondClickedTile.Selected = false;
         
-        if (_tileMap.MatchInAnyDirection(secondClickedTile!.Cell, _matchesOf3))
+        if (_tileMap.MatchInAnyDirection(secondClickedTile!.Cell, MatchesOf3))
         {
-            undoBuffer.Clear();
+            UndoBuffer.Clear();
             //Console.WriteLine("FOUND A MATCH-3");
             int tileCounter = 0;
             
-            foreach (var match in _matchesOf3)
+            foreach (var match in MatchesOf3)
             {
-                if (GameTasks.TryGetShapeKind(match.TileShape, out int toCollect))
+                if (GameTasks.TryGetQuest(match.TileShape, out int toCollect) &&
+                    !GameTasks.IsQuestDone(match.TileShape, tileCounter))
                 {
-                    Console.WriteLine($"SHAPE:  {match.TileShape}   To collect: {toCollect}");
-                        
                     if (++tileCounter == toCollect)
                     {
-                        Console.WriteLine($"Nice, U COLLECTED.  {tileCounter}! Good job!");
-                        GameTasks.RemoveQuest(match.TileShape);
+                        Console.WriteLine($"Good job, you got your {tileCounter} match3! by {match.TileShape.Kind}");
+                        GameTasks.RemoveSubQuest(match.TileShape);
                         tileCounter = 0;
                     }
+                    //  Console.WriteLine($"You sill have to collect: {toCollect- tileCounter}");
                 }
-                //Console.WriteLine(match);
                 _tileMap.Delete(match.Cell);
+                //Console.WriteLine(match)
             }
         }
-        _matchesOf3.Clear();
+        MatchesOf3.Clear();
         secondClickedTile = null;        
         firstClickedTile.Selected = false;
     }
@@ -132,7 +132,7 @@ class Program
         {
             bool wasSwappedBack = false;
 
-            foreach (Tile storedItem in undoBuffer)
+            foreach (Tile storedItem in UndoBuffer)
             {
                 //check if they have been ONLY swapped without leading to a match3
                 if (!wasSwappedBack && _tileMap[storedItem.Cell] is not null)
@@ -157,7 +157,7 @@ class Program
                         _tileMap.Swap(_tileMap[Grid<Tile>.MatchXTrigger.CoordsB4Swap],
                             _tileMap[Grid<Tile>.MatchXTrigger.Cell]);
             }
-            undoBuffer.Clear();
+            UndoBuffer.Clear();
         }
     }
 }
