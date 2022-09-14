@@ -115,7 +115,7 @@ public interface ITile //: IEquatable<ITile>
     public Int2 CoordsB4Swap { get; set; }
     public int Size { get; }
     public  bool Selected { get; set; }
-    public void Draw(Int2 position);
+    public void Draw(Int2 position, float elapsedTime);
     public static abstract ITile Create(Int2 position, float? noise);
     public bool Equals(ITile? other);
 }
@@ -204,7 +204,7 @@ public struct Shape : IEquatable<Shape>
     public readonly ShapeKind Kind { get; }
     public Rectangle DestRect { get; private set; }
     public readonly FadeableColor SrcColor { get; }
-    public FadeableColor FadeTint { get; set; }
+    public FadeableColor FadeTint;
 
     public bool Equals(Shape other) => 
         Kind == other.Kind && SrcColor == other.SrcColor;
@@ -234,19 +234,16 @@ public sealed class Tile :  ITile
 
         set
         {
-            var tint = TileShape.FadeTint;
-            
             if (!value) 
             {
-                tint.AlphaSpeed = 0.2f;
-                tint.TargetAlpha = 1f;
+                _tileShape.FadeTint.AlphaSpeed = 1.5f;
+                _tileShape.FadeTint.TargetAlpha = 1f;
             }
             else
             {
-                tint.TargetAlpha = tint.CurrentAlpha = 0f;
+                _tileShape.FadeTint.TargetAlpha = _tileShape.FadeTint.CurrentAlpha = 0f;
             }
 
-            _tileShape.FadeTint = tint;
             _selected = value;
         }
     }
@@ -290,7 +287,7 @@ public sealed class Tile :  ITile
         return CreateNewTile(position, noise);
     }
     
-    public void Draw(Int2 position)
+    public void Draw(Int2 position, float elapsedTime)
     { 
         void  DrawTextOnTop(in Vector2 worldPosition, bool selected)
         {
@@ -305,12 +302,19 @@ public sealed class Tile :  ITile
         }
         position *= Size;
 
-        FadeableColor drawColor = _selected ? Color.WHITE : Color.WHITE;//_tileShape.FadeTint;
+        _tileShape.FadeTint = _selected ? Color.BLUE : Color.WHITE;//_tileShape.FadeTint;
+        _tileShape.FadeTint.ElapsedTime = elapsedTime;
         
+        if (_selected)
+            Console.WriteLine("dsdsd");
+        else
+        {
+            Console.WriteLine("dsjdjsdsd");
+        }
         Raylib.DrawTextureRec(AssetManager.SpriteSheet,
-            TileShape.DestRect,
+            _tileShape.DestRect,
             position, 
-            drawColor);
+            _tileShape.FadeTint);
         
         DrawTextOnTop(position, _selected);
     }

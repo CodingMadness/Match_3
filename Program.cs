@@ -44,16 +44,8 @@ class Program
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.BEIGE);
             timer.UpdateTimerOnScreen();
-            _tileMap.Draw();
             
-            ////WORKS GOOD!:
-            /*
-             * if (timer.TimerDone())
-             
-            {
-                Console.WriteLine("TIMER IS AT 3 SEC NOW!" + Raylib.GetFrameTime());
-                timer.Reset();
-            }*/
+            _tileMap.Draw((float)Raylib.GetTime());
 
             ProcessSelectedTiles();
             UndoAllOperations();

@@ -62,7 +62,7 @@ namespace Match_3
             CreateMap();
         }
 
-        public void Draw()
+        public void Draw(float elapsedTime)
         {
             //Do this Draw second per second OLNLY ONCE
             for (int x = 0; x < TileWidth; x++)
@@ -77,7 +77,7 @@ namespace Match_3
                         Console.WriteLine(_gridTimer.ElapsedSeconds);
                         if (_gridTimer.TimerDone())
                         {
-                            tile?.Draw(new(x,y));
+                            //tile?.Draw(new(x,y));
                             //Console.WriteLine(x + ":  " + "  " + y);
                             _gridTimer.Reset();
                         }
@@ -87,7 +87,7 @@ namespace Match_3
                         if ((x, y) == (0, 0))
                             continue;
                         
-                        tile?.Draw(new(x,y));
+                        tile?.Draw(new(x,y), elapsedTime);
                         //Draw normally!
                     }
                     //Console.WriteLine(x + ":  " + "  " + y);
