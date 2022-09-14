@@ -26,7 +26,7 @@ class Program
 
     private static void Initialize()
     {
-        timer = GameTime.GetTimer(30);
+        timer = GameTime.GetTimer(10);
         GameTasks.SetQuest();
         GameTasks.LogQuest();
         _tileMap = new(14, 8, timer);
