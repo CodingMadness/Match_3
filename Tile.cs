@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+using Raylib_CsLo;
 
 namespace Match_3;
 
-using Raylib_cs;
 
 public struct FadeableColor : IEquatable<FadeableColor>
 {
@@ -26,25 +26,25 @@ public struct FadeableColor : IEquatable<FadeableColor>
 
     private static readonly Dictionary<Color, string> Strings = new ()
     {
-        {Color.BLACK, "Black"},
-        {Color.BLUE, "Blue"},
-        {Color.BROWN, "Brown"},
-        {Color.DARKGRAY, "DarkGray"},
-        {Color.GOLD, "Gold"},
-        {Color.GRAY, "Gray"},
-        {Color.GREEN, "Green"},
-        {Color.LIGHTGRAY, "LightGray"},
-        {Color.MAGENTA, "Magenta"},
-        {Color.MAROON, "Maroon"},
-        {Color.ORANGE, "Orange"},
-        {Color.PINK, "Pink"},
-        {Color.PURPLE, "Purple"},
-        {Color.RAYWHITE, "RayWhite"},
-        {Color.RED, "Red"},
-        {Color.SKYBLUE, "SkyBlue"},
-        {Color.VIOLET, "Violet"},
-        {Color.WHITE, "White"},
-        {Color.YELLOW, "Yellow"}
+        {Raylib.BLACK, "Black"},
+        {Raylib.BLUE, "Blue"},
+        {Raylib.BROWN, "Brown"},
+        {Raylib.DARKGRAY, "DarkGray"},
+        {Raylib.GOLD, "Gold"},
+        {Raylib.GRAY, "Gray"},
+        {Raylib.GREEN, "Green"},
+        {Raylib.LIGHTGRAY, "LightGray"},
+        {Raylib.MAGENTA, "Magenta"},
+        {Raylib.MAROON, "Maroon"},
+        {Raylib.ORANGE, "Orange"},
+        {Raylib.PINK, "Pink"},
+        {Raylib.PURPLE, "Purple"},
+        {Raylib.RAYWHITE, "RayWhite"},
+        {Raylib.RED, "Red"},
+        {Raylib.SKYBLUE, "SkyBlue"},
+        {Raylib.VIOLET, "Violet"},
+        {Raylib.WHITE, "White"},
+        {Raylib.YELLOW, "Yellow"}
     };
 
     public string ToReadableString()
@@ -184,7 +184,7 @@ public struct Shape : IEquatable<Shape>
 
     public Shape(float? noise)
     {
-        FadeTint = Color.WHITE;
+        FadeTint = Raylib.WHITE;
         var fadetint = FadeTint;
         fadetint.AlphaSpeed = 0f;
         fadetint.CurrentAlpha = 1f;
@@ -195,10 +195,10 @@ public struct Shape : IEquatable<Shape>
 
         SrcColor = Kind switch
         {
-            ShapeKind.Ball => Color.BLUE,
-            ShapeKind.Cube => Color.YELLOW,
-            ShapeKind.Cylinder => Color.RED,
-            ShapeKind.Triangle => Color.GREEN,
+            ShapeKind.Ball => Raylib.BLUE,
+            ShapeKind.Cube => Raylib.YELLOW,
+            ShapeKind.Cylinder => Raylib.RED,
+            ShapeKind.Triangle => Raylib.GREEN,
             _ => SrcColor
         };
     }
@@ -279,7 +279,7 @@ public sealed class Tile :  ITile
            
             TileShape = new(noise)
             {
-                FadeTint = Color.WHITE
+                FadeTint = Raylib.WHITE
             }
         };
 
@@ -307,13 +307,13 @@ public sealed class Tile :  ITile
                 worldPosition.Y >= 128f ? (worldPosition.Y + TileShape.DestRect.height / 2f) - 5f : 0f;
         
             Vector2 drawPos = new(xCenter - 10f, yCenter);
-            FadeableColor drawColor = selected ? Color.BLACK : Color.WHITE;
+            FadeableColor drawColor = selected ? Raylib.BLACK : Raylib.WHITE;
             Raylib.DrawTextEx(AssetManager.DebugFont, worldPosition.ToString(), drawPos, 
-                14f, 1f, selected ? Color.BLACK : drawColor);
+                14f, 1f, selected ? Raylib.BLACK : drawColor);
         }
         position *= Size;
 
-        _tileShape.FadeTint = _selected ? Color.BLUE : Color.WHITE;//_tileShape.FadeTint;
+        _tileShape.FadeTint = _selected ? Raylib.BLUE : Raylib.WHITE;//_tileShape.FadeTint;
         _tileShape.FadeTint.ElapsedTime = elapsedTime;
         
      

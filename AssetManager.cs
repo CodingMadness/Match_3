@@ -1,13 +1,14 @@
-using Raylib_cs;
+using Raylib_CsLo;
+ 
 
 namespace Match_3;
 
 public static class AssetManager
 {
-    public static Texture2D SpriteSheet { get; private set; }
+    public static Texture SpriteSheet { get; private set; }
     public static Font DebugFont { get; private set; }
 
-    public static Optimized.Font WelcomeFont;
+    public static Font WelcomeFont;
 
     static AssetManager()
     {
@@ -27,8 +28,9 @@ public static class AssetManager
     public static void Init()
     {
         var assetFolder = GetAssetfolderName();
-        DebugFont = Raylib.LoadFont(assetFolder + "font3.ttf");
+        DebugFont = Raylib.LoadFont(assetFolder + "font3.otf");
         WelcomeFont = Optimized.Raylib.LoadFont(assetFolder + "font4.otf");
         SpriteSheet = Raylib.LoadTexture(assetFolder + "shapes.png");
     }
+     
 }

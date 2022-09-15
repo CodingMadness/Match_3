@@ -1,0 +1,9 @@
+{
+   "InitialTime": 
+		{"low": 15, "high": 150},
+   "gameOverScreenTimer": 3,
+   "tileWidth": 
+		{"low": 7, "high": 17},
+   "tileHeight": 
+		{"low": 7, "high": 17}
+}

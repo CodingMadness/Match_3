@@ -1,25 +1,25 @@
 ﻿global using Optimized = Raylib_CsLo;
-global using Brighter = Raylib_cs;
 
 using Match_3;
+using Raylib_CsLo;
 using System.Collections.Generic;
+using System.Numerics;
+ 
+using System.Runtime.InteropServices;
 
 //INITIALIZATION:................................
 
 class Program
 {
+    private static GameState state;
     private static GameTime globalTimer, gameOverScreenTimer;
-    public static int WindowWidth;
-    public static int WindowHeight;
-
+  
     private static Grid<Tile> _tileMap;
     private static readonly ISet<Tile> MatchesOf3 = new HashSet<Tile>(3);
     private static Tile? secondClickedTile;
     private static readonly ISet<Tile> UndoBuffer = new HashSet<Tile>(5);
     private static bool? wasGameWonB4Timeout = null;
     private static bool toggleGame = false;
-
-    private static bool isNewScene = false;
 
     private static void Main(string[] args)
     {
@@ -32,33 +32,41 @@ class Program
 
     private static void Initialize()
     {
-        globalTimer = GameTime.GetTimer(10);
-        gameOverScreenTimer = GameTime.GetTimer(3);
-        GameTasks.SetQuest();
-        GameTasks.LogQuest();
-        _tileMap = new(14, 8, globalTimer);
-        WindowWidth = _tileMap.TileWidth * Grid<Tile>.TileSize;
-        WindowHeight = _tileMap.TileHeight * Grid<Tile>.TileSize;
-        Brighter.Raylib.SetTargetFPS(60);
-        Brighter.Raylib.InitWindow(WindowWidth, WindowHeight, "Match3 By Alex und Shpend");
+        state = GameStateManager.State;
+        globalTimer = GameTime.GetTimer(state!.GameStartAt);
+        gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
+        _tileMap = new(state);
+        Raylib.SetTargetFPS(60);
+        Raylib.InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Alex und Shpend");
         AssetManager.Init();
     }
 
-
-    private static float ScaleText(string txt)
+    private static float ScaleText(string txt, int initialFontSize)
     {
-        const int initialFontSize = 30;
-        float fontSize = Brighter.Raylib.MeasureText(txt, initialFontSize);
-        float scale = WindowWidth / fontSize;
-        return scale * initialFontSize;
+        float fontSize = Raylib.MeasureText(txt, initialFontSize);
+        float scale = state.WINDOW_WIDTH / fontSize;
+        return scale * (initialFontSize);
+    }
+
+    public static void UpdateTimerOnScreen(ref GameTime timer)
+    {
+        timer.UpdateTimer();
+        string txt = ((int)timer.ElapsedSeconds).ToString();
+
+        Raylib.DrawTextEx(AssetManager.DebugFont,
+            txt,
+            state.MIDDLE_TOP,
+            ScaleText(txt, 1), //problem is here!...
+            1f,
+            timer.ElapsedSeconds > 0f ? Raylib.RED : Raylib.BEIGE);
     }
 
     private static bool ShowWelcomeScreenOnLoop(bool shallClearTxt)
     {
         string txt = "WELCOME PLAYER - ARE YOU READY TO GET ATLEAST HERE A MATCH IF NOT ON TINDER?";
-        Optimized.Raylib.DrawTextEx(AssetManager.WelcomeFont, txt,
-                         new Int2(0, 0), ScaleText(txt),
-                         1.3f, Optimized.Raylib.ColorAlpha(Optimized.Raylib.BLUE, shallClearTxt ? 0f : 1f));
+        Raylib.DrawTextEx(AssetManager.WelcomeFont, txt,
+                                    Int2.Zero, ScaleText(txt, 25),
+                                    1.3f, Optimized.Raylib.ColorAlpha(Optimized.Raylib.BLUE, shallClearTxt ? 0f : 1f));
         return shallClearTxt;
     }
 
@@ -71,26 +79,27 @@ class Program
 
         var output = gameWon.Value ? "YOU WON!" : "YOU LOST";
         //Console.WriteLine(output);
-        gameOverScreenTimer.UpdateTimerOnScreen();
-        Brighter.Raylib.ClearBackground(Brighter.Color.WHITE);
-        Brighter.Raylib.DrawText(output, (WindowWidth / 2) - (WindowWidth / 4), (WindowHeight / 2) + 50, 80, Brighter.Color.RED);
+        UpdateTimerOnScreen(ref gameOverScreenTimer);
+        Raylib.ClearBackground(Raylib.WHITE);
+        Raylib.DrawText(output, (state.WINDOW_WIDTH / 2) - (state.WINDOW_WIDTH/ 4), (state.WINDOW_HEIGHT/ 2) + 50, 80, Raylib.RED);
         return gameOverScreenTimer.Done();
     }
 
     private static void GameLoop()
     {
-        while (!Brighter.Raylib.WindowShouldClose())
+        while (!Raylib.WindowShouldClose())
         {
-            Optimized.Raylib.BeginDrawing();
-            Optimized.Raylib.ClearBackground(Optimized.Raylib.BEIGE);
+            Raylib.BeginDrawing();
+            Raylib.ClearBackground(Raylib.BEIGE);
 
             //render text on 60fps
             if (!toggleGame)
                 ShowWelcomeScreenOnLoop(false);
 
-            if (Brighter.Raylib.IsMouseButtonPressed(Brighter.MouseButton.MOUSE_BUTTON_LEFT) || toggleGame)
+            //UpdateTimerOnScreen(ref globalTimer);
+
+            if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT) || toggleGame)
             {
-                globalTimer.UpdateTimerOnScreen();
                 bool isGameOver = globalTimer.Done();
 
                 if (isGameOver)
@@ -102,15 +111,18 @@ class Program
                 {
                     if (OnGameOver(true))
                     {
-                        //prepare nextlevel
-                          //1. New Map!
-                          //2. New Quest
-                          
-                        return;
+                        ///TODO: prepare nextlevel
+                        //1. New Map!
+                        GameStateManager.SetNewLevl();
+                        //2. New Quest
+                        GameStateManager.SetCollectQuest();
+
+                        break;
                     }
                 }
                 else
                 {
+                    UpdateTimerOnScreen(ref globalTimer);
                     ShowWelcomeScreenOnLoop(true);
                     _tileMap.Draw(globalTimer.ElapsedSeconds);
                     ProcessSelectedTiles();
@@ -118,8 +130,8 @@ class Program
                 }
                 toggleGame = true;
             }
-            
-            Optimized.Raylib.EndDrawing();                        
+
+            Raylib.EndDrawing();
         }
     }
 
@@ -159,16 +171,16 @@ class Program
 
             foreach (var match in MatchesOf3)
             {
-                if (GameTasks.TryGetSubQuest(match.TileShape, out int toCollect))
+                if (GameStateManager.TryGetSubQuest(match.TileShape, out int toCollect))
                 {
                     if (++tileCounter == toCollect)
                     {
                         Console.WriteLine($"Good job, you got your {tileCounter} match3! by {match.TileShape.Kind}");
-                        GameTasks.RemoveSubQuest(match.TileShape);
+                        GameStateManager.RemoveSubQuest(match.TileShape);
                         tileCounter = 0;
                     }
                     //Console.WriteLine($"You sill have to collect: {toCollect- tileCounter}");
-                    wasGameWonB4Timeout = GameTasks.IsQuestDone();
+                    wasGameWonB4Timeout = GameStateManager.IsQuestDone();
                 }
 
                 UndoBuffer.Add(_tileMap[match.Current]);
@@ -183,7 +195,7 @@ class Program
 
     private static void UndoLastOperation()
     {
-        bool keyDown = (Brighter.Raylib.IsKeyDown(Brighter.KeyboardKey.KEY_A));
+        bool keyDown = (Raylib.IsKeyDown(KeyboardKey.KEY_A));
 
         //UNDO...!
         if (keyDown)
@@ -208,7 +220,7 @@ class Program
                     //if (_tileMap[storedItem.Current] is { } backupItem)
                     var tmp = (_tileMap[storedItem.Current] = storedItem);
                     tmp!.Selected = false;
-                    tmp.ChangeTo(Brighter.Color.WHITE);
+                    tmp.ChangeTo(Raylib.WHITE);
                 }
 
                 if (!wasSwappedBack)
@@ -228,8 +240,8 @@ class Program
 
     private static void CleanUp()
     {
-        Brighter.Raylib.UnloadTexture(AssetManager.SpriteSheet);
-        Brighter.Raylib.CloseWindow();
+        Raylib.UnloadTexture(AssetManager.SpriteSheet);
+        Raylib.CloseWindow();
     }
 }
 

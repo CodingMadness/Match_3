@@ -53,12 +53,11 @@ namespace Match_3
             }
         }
 
-        public Grid(int tileWidth, int tileHeight, in GameTime gridTimer)
+        public Grid(GameState current)
         {
-            TileWidth = tileWidth;
-            TileHeight = tileHeight;
+            TileWidth = current.TilemapWidth;
+            TileHeight = current.TilemapHeight;
             _bitmap = new TTile?[TileWidth, TileHeight];
-            _gridTimer = gridTimer;
             _gridTimer = GameTime.GetTimer(5*60);
             CreateMap();
         }
