@@ -292,6 +292,7 @@ public sealed class Tile :  ITile
     {
         _tileShape.FadeTint = color;
     }
+  
     public static ITile Create(Int2 position, float? noise)
     {
         return CreateNewTile(position, noise);
@@ -326,10 +327,6 @@ public sealed class Tile :  ITile
 
     public bool Equals(ITile? other)
     {
-        if (other is Tile d)
-        {
-            return TileShape.Equals(d.TileShape);
-        }
-        return false;
+        return other is Tile d && TileShape.Equals(d.TileShape);
     }
 }

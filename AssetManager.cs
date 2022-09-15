@@ -7,7 +7,7 @@ public static class AssetManager
     public static Texture2D SpriteSheet { get; private set; }
     public static Font DebugFont { get; private set; }
 
-    public static Font WelcomeFont;
+    public static Optimized.Font WelcomeFont;
 
     static AssetManager()
     {
@@ -28,7 +28,7 @@ public static class AssetManager
     {
         var assetFolder = GetAssetfolderName();
         DebugFont = Raylib.LoadFont(assetFolder + "font3.ttf");
-        WelcomeFont = Raylib.LoadFont(assetFolder + "font4.otf");
+        WelcomeFont = Optimized.Raylib.LoadFont(assetFolder + "font4.otf");
         SpriteSheet = Raylib.LoadTexture(assetFolder + "shapes.png");
     }
 }

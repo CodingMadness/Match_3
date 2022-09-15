@@ -1,4 +1,6 @@
-﻿using Raylib_cs;
+﻿global using Optimized = Raylib_CsLo;
+global using Brighter = Raylib_cs;
+
 using Match_3;
 using System.Collections.Generic;
 
@@ -37,9 +39,8 @@ class Program
         _tileMap = new(14, 8, globalTimer);
         WindowWidth = _tileMap.TileWidth * Grid<Tile>.TileSize;
         WindowHeight = _tileMap.TileHeight * Grid<Tile>.TileSize;
-        Raylib.SetTargetFPS(60);
-        Raylib.InitWindow(WindowWidth, WindowHeight, "Match3 By Alex und Shpend");
-        Raylib.SetWindowState(ConfigFlags.FLAG_WINDOW_MAXIMIZED);
+        Brighter.Raylib.SetTargetFPS(60);
+        Brighter.Raylib.InitWindow(WindowWidth, WindowHeight, "Match3 By Alex und Shpend");
         AssetManager.Init();
     }
 
@@ -47,7 +48,7 @@ class Program
     private static float ScaleText(string txt)
     {
         const int initialFontSize = 30;
-        float fontSize = Raylib.MeasureText(txt, initialFontSize);
+        float fontSize = Brighter.Raylib.MeasureText(txt, initialFontSize);
         float scale = WindowWidth / fontSize;
         return scale * initialFontSize;
     }
@@ -55,9 +56,9 @@ class Program
     private static bool ShowWelcomeScreenOnLoop(bool shallClearTxt)
     {
         string txt = "WELCOME PLAYER - ARE YOU READY TO GET ATLEAST HERE A MATCH IF NOT ON TINDER?";
-        Raylib.DrawTextEx(AssetManager.WelcomeFont, txt,
+        Optimized.Raylib.DrawTextEx(AssetManager.WelcomeFont, txt,
                          new Int2(0, 0), ScaleText(txt),
-                         1.3f, Raylib.ColorAlpha(Color.BLUE, shallClearTxt ? 0f : 1f));
+                         1.3f, Optimized.Raylib.ColorAlpha(Optimized.Raylib.BLUE, shallClearTxt ? 0f : 1f));
         return shallClearTxt;
     }
 
@@ -71,23 +72,23 @@ class Program
         var output = gameWon.Value ? "YOU WON!" : "YOU LOST";
         //Console.WriteLine(output);
         gameOverScreenTimer.UpdateTimerOnScreen();
-        Raylib.ClearBackground(Color.WHITE);
-        Raylib.DrawText(output, (WindowWidth / 2) - (WindowWidth / 4), (WindowHeight / 2) + 50, 80, Color.RED);
+        Brighter.Raylib.ClearBackground(Brighter.Color.WHITE);
+        Brighter.Raylib.DrawText(output, (WindowWidth / 2) - (WindowWidth / 4), (WindowHeight / 2) + 50, 80, Brighter.Color.RED);
         return gameOverScreenTimer.Done();
     }
 
     private static void GameLoop()
     {
-        while (!Raylib.WindowShouldClose())
+        while (!Brighter.Raylib.WindowShouldClose())
         {
-            Raylib.BeginDrawing();
-            Raylib.ClearBackground(Color.BEIGE);
+            Optimized.Raylib.BeginDrawing();
+            Optimized.Raylib.ClearBackground(Optimized.Raylib.BEIGE);
 
             //render text on 60fps
             if (!toggleGame)
                 ShowWelcomeScreenOnLoop(false);
 
-            if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT) || toggleGame)
+            if (Brighter.Raylib.IsMouseButtonPressed(Brighter.MouseButton.MOUSE_BUTTON_LEFT) || toggleGame)
             {
                 globalTimer.UpdateTimerOnScreen();
                 bool isGameOver = globalTimer.Done();
@@ -100,7 +101,13 @@ class Program
                 else if (wasGameWonB4Timeout == true)
                 {
                     if (OnGameOver(true))
+                    {
+                        //prepare nextlevel
+                          //1. New Map!
+                          //2. New Quest
+                          
                         return;
+                    }
                 }
                 else
                 {
@@ -111,7 +118,8 @@ class Program
                 }
                 toggleGame = true;
             }
-            Raylib.EndDrawing();
+            
+            Optimized.Raylib.EndDrawing();                        
         }
     }
 
@@ -175,7 +183,7 @@ class Program
 
     private static void UndoLastOperation()
     {
-        bool keyDown = (Raylib.IsKeyDown(KeyboardKey.KEY_A));
+        bool keyDown = (Brighter.Raylib.IsKeyDown(Brighter.KeyboardKey.KEY_A));
 
         //UNDO...!
         if (keyDown)
@@ -200,7 +208,7 @@ class Program
                     //if (_tileMap[storedItem.Current] is { } backupItem)
                     var tmp = (_tileMap[storedItem.Current] = storedItem);
                     tmp!.Selected = false;
-                    tmp.ChangeTo(Color.WHITE);
+                    tmp.ChangeTo(Brighter.Color.WHITE);
                 }
 
                 if (!wasSwappedBack)
@@ -220,8 +228,8 @@ class Program
 
     private static void CleanUp()
     {
-        Raylib.UnloadTexture(AssetManager.SpriteSheet);
-        Raylib.CloseWindow();
+        Brighter.Raylib.UnloadTexture(AssetManager.SpriteSheet);
+        Brighter.Raylib.CloseWindow();
     }
 }
 

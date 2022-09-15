@@ -11,7 +11,7 @@ public static class GameTasks
     {
         for (int i = 0; i < (int)ShapeKind.Length; i++)
         {
-            int count = 3;//Random.Shared.Next(Max3PerKind, Max3PerKind + 3);
+            int count = Random.Shared.Next(Max3PerKind-1, Max3PerKind + 3);
             ToCollect.TryAdd((ShapeKind)i, (count ));
         }
     }
@@ -20,7 +20,7 @@ public static class GameTasks
     {
         return  ToCollect.TryGetValue(shape.Kind, out number);
     }
-
+     
     public static void RemoveSubQuest(in Shape shape) => ToCollect.Remove(shape.Kind);
 
     public static bool IsSubQuestDone(in Shape shape, int alreadyMatched) => 
