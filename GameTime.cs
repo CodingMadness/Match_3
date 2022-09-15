@@ -11,6 +11,7 @@ public struct GameTime
     }
 
     public float ElapsedSeconds { get; private set; }
+    
     public int MAX_TIMER_VALUE { get; init; }
     
     public static GameTime GetTimer(int lifetime)
@@ -24,7 +25,7 @@ public struct GameTime
 
     public void UpdateTimer()
     {
-        // subtract this frame from the timer if it's not allready expired
+        // subtract this frame from the globalTimer if it's not allready expired
         if ((ElapsedSeconds) > 0.000f)
             ElapsedSeconds -= (float)(Raylib.GetFrameTime());
         
@@ -41,12 +42,19 @@ public struct GameTime
             upperRightCornor,
             50f, 
             1f, 
-            Color.RED);
-    }
-    public bool Done()
-    {
-        return ElapsedSeconds <= 0;
+            ElapsedSeconds > 0f ? Color.RED : Color.WHITE);
     }
 
-    public void Reset() => ElapsedSeconds = MAX_TIMER_VALUE;
+    //public readonly TimeSpan Stop() => 
+    //    TimeSpan.FromMilliseconds(ElapsedSeconds - Raylib.GetFrameTime());
+
+    public readonly bool Done()
+    {        
+        bool done = ElapsedSeconds <= 0f;
+        //ElapsedSeconds = done ? 0f : ElapsedSeconds;
+        return done;
+     }
+
+    public void Reset(float? newStart) => 
+        ElapsedSeconds = newStart is not null ? newStart.Value : MAX_TIMER_VALUE;
 }

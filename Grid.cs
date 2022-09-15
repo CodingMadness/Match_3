@@ -81,7 +81,7 @@ namespace Match_3
                         {
                             //tile?.Draw(new(x,y));
                             //Console.WriteLine(x + ":  " + "  " + y);
-                            _gridTimer.Reset();
+                            _gridTimer.Reset(null);
                         }
                     }
                     else

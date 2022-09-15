@@ -1,23 +1,20 @@
 ﻿using Raylib_cs;
 using Match_3;
+using System.Collections.Generic;
 
 //INITIALIZATION:................................
 
 class Program
 {
-    private static GameTime timer;
-    private static Grid<Tile> _tileMap;
-    private static readonly ISet<Tile> MatchesOf3 = new HashSet<Tile>(3);
-    private static Tile? secondClickedTile;
-    private static bool isUndoPressed;
-    private static readonly HashSet<Tile> UndoBuffer = new(5);
-    private static bool isGameOver = false;
-
+    private static GameTime globalTimer, gameOverScreenTimer;
     public static int WindowWidth;
     public static int WindowHeight;
 
-    private delegate void GameOverHandler(bool isDone);
-    private static event GameOverHandler CheckForGameOverEvent;
+    private static Grid<Tile> _tileMap;
+    private static readonly ISet<Tile> MatchesOf3 = new HashSet<Tile>(3);
+    private static Tile? secondClickedTile;
+    private static readonly ISet<Tile> UndoBuffer = new HashSet<Tile>(5);
+    private static bool? wasGameWonB4Timeout = null;
 
     private static void Main(string[] args)
     {
@@ -30,29 +27,32 @@ class Program
 
     private static void Initialize()
     {
-        timer = GameTime.GetTimer(15);
+        globalTimer = GameTime.GetTimer(5);
+        gameOverScreenTimer = GameTime.GetTimer(3);
         GameTasks.SetQuest();
         GameTasks.LogQuest();
-        _tileMap = new(14, 8, timer);
+        _tileMap = new(14, 8, globalTimer);
         WindowWidth = _tileMap.TileWidth * Grid<Tile>.TileSize;
         WindowHeight = _tileMap.TileHeight * Grid<Tile>.TileSize;
         Raylib.SetTargetFPS(60);
         Raylib.InitWindow(WindowWidth, WindowHeight, "Match3 By Alex und Shpend");
         AssetManager.Init();
-        CheckForGameOverEvent += CheckForGameOver;
     }
 
-    private static void CheckForGameOver(bool isDone)
+ 
+    private static bool OnGameOver(bool? gameWon)
     {
-        ShowResultAfterGame(isDone);
-    }
+        if (gameWon is null)
+        {
+            return false;
+        }
 
-    private static void ShowResultAfterGame(bool gameWon)
-    {
-        var output = gameWon ? "YOU WON!" : "YOU LOST";
+        var output = gameWon.Value ? "YOU WON!" : "YOU LOST";
         //Console.WriteLine(output);
+        gameOverScreenTimer.UpdateTimerOnScreen();
         Raylib.ClearBackground(Color.WHITE);
-        Raylib.DrawText(output, (WindowWidth / 2)-(WindowWidth/4), (WindowHeight/2) +50, 80, Color.RED);
+        Raylib.DrawText(output, (WindowWidth / 2) - (WindowWidth / 4), (WindowHeight / 2) + 50, 80, Color.RED);
+        return gameOverScreenTimer.Done();
     }
 
     private static void GameLoop()
@@ -61,22 +61,24 @@ class Program
         {
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.BEIGE);
-            timer.UpdateTimerOnScreen();
+            globalTimer.UpdateTimerOnScreen();
+            bool isGameOver = globalTimer.Done();
 
             if (isGameOver)
             {
-                ShowResultAfterGame(true);
-                return;
-            }          
-            _tileMap.Draw(timer.ElapsedSeconds);
-
-            ProcessSelectedTiles();
-            UndoLastOperation();
-
-            if (timer.Done())
+                if (OnGameOver(false))
+                    return;
+            }
+            else if (wasGameWonB4Timeout == true)
             {
-                ShowResultAfterGame(GameTasks.IsQuestDone());
-                isGameOver = true;
+                if (OnGameOver(true))
+                    return;
+            }
+            else
+            {
+                _tileMap.Draw(globalTimer.ElapsedSeconds);
+                ProcessSelectedTiles();
+                UndoLastOperation();
             }
 
             Raylib.EndDrawing();
@@ -128,16 +130,11 @@ class Program
                         tileCounter = 0;
                     }
                     //Console.WriteLine($"You sill have to collect: {toCollect- tileCounter}");
-                    if (GameTasks.IsQuestDone())
-                    {
-                        isGameOver = true;
-                        return;
-                        //ShowResultAfterGame(isGameOver);
-                    }
+                    wasGameWonB4Timeout = GameTasks.IsQuestDone();
                 }
 
                 UndoBuffer.Add(_tileMap[match.Current]);
-                _tileMap.Delete(match.Current);               
+                _tileMap.Delete(match.Current);
             }
         }
 

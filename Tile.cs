@@ -206,6 +206,7 @@ public struct Shape : IEquatable<Shape>
     public readonly ShapeKind Kind { get; }
     public Rectangle DestRect { get; private set; }
     public readonly FadeableColor SrcColor { get; }
+    
     public FadeableColor FadeTint;
 
     public bool Equals(Shape other) => 
@@ -228,7 +229,9 @@ public struct Shape : IEquatable<Shape>
 public sealed class Tile :  ITile
 {
     public Int2 Current { get; set; }
+    
     public int Size => Grid<Tile>.TileSize;
+
     public Int2 CoordsB4Swap { get; set; }
 
     private bool _selected;
