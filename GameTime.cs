@@ -37,7 +37,7 @@ public struct GameTime
         Vector2 upperRightCornor = new(0f, 0f);
         UpdateTimer();
         
-        Raylib.DrawTextEx(AssetManager.Font, 
+        Raylib.DrawTextEx(AssetManager.DebugFont, 
             ((int)ElapsedSeconds).ToString(),
             upperRightCornor,
             50f, 

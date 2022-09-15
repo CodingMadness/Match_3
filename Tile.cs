@@ -307,7 +307,7 @@ public sealed class Tile :  ITile
         
             Vector2 drawPos = new(xCenter - 10f, yCenter);
             FadeableColor drawColor = selected ? Color.BLACK : Color.WHITE;
-            Raylib.DrawTextEx(AssetManager.Font, worldPosition.ToString(), drawPos, 
+            Raylib.DrawTextEx(AssetManager.DebugFont, worldPosition.ToString(), drawPos, 
                 14f, 1f, selected ? Color.BLACK : drawColor);
         }
         position *= Size;

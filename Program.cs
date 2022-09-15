@@ -15,6 +15,9 @@ class Program
     private static Tile? secondClickedTile;
     private static readonly ISet<Tile> UndoBuffer = new HashSet<Tile>(5);
     private static bool? wasGameWonB4Timeout = null;
+    private static bool toggleGame = false;
+
+    private static bool isNewScene = false;
 
     private static void Main(string[] args)
     {
@@ -27,7 +30,7 @@ class Program
 
     private static void Initialize()
     {
-        globalTimer = GameTime.GetTimer(5);
+        globalTimer = GameTime.GetTimer(10);
         gameOverScreenTimer = GameTime.GetTimer(3);
         GameTasks.SetQuest();
         GameTasks.LogQuest();
@@ -36,10 +39,28 @@ class Program
         WindowHeight = _tileMap.TileHeight * Grid<Tile>.TileSize;
         Raylib.SetTargetFPS(60);
         Raylib.InitWindow(WindowWidth, WindowHeight, "Match3 By Alex und Shpend");
+        Raylib.SetWindowState(ConfigFlags.FLAG_WINDOW_MAXIMIZED);
         AssetManager.Init();
     }
 
- 
+
+    private static float ScaleText(string txt)
+    {
+        const int initialFontSize = 30;
+        float fontSize = Raylib.MeasureText(txt, initialFontSize);
+        float scale = WindowWidth / fontSize;
+        return scale * initialFontSize;
+    }
+
+    private static bool ShowWelcomeScreenOnLoop(bool shallClearTxt)
+    {
+        string txt = "WELCOME PLAYER - ARE YOU READY TO GET ATLEAST HERE A MATCH IF NOT ON TINDER?";
+        Raylib.DrawTextEx(AssetManager.WelcomeFont, txt,
+                         new Int2(0, 0), ScaleText(txt),
+                         1.3f, Raylib.ColorAlpha(Color.BLUE, shallClearTxt ? 0f : 1f));
+        return shallClearTxt;
+    }
+
     private static bool OnGameOver(bool? gameWon)
     {
         if (gameWon is null)
@@ -61,26 +82,35 @@ class Program
         {
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.BEIGE);
-            globalTimer.UpdateTimerOnScreen();
-            bool isGameOver = globalTimer.Done();
 
-            if (isGameOver)
-            {
-                if (OnGameOver(false))
-                    return;
-            }
-            else if (wasGameWonB4Timeout == true)
-            {
-                if (OnGameOver(true))
-                    return;
-            }
-            else
-            {
-                _tileMap.Draw(globalTimer.ElapsedSeconds);
-                ProcessSelectedTiles();
-                UndoLastOperation();
-            }
+            //render text on 60fps
+            if (!toggleGame)
+                ShowWelcomeScreenOnLoop(false);
 
+            if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT) || toggleGame)
+            {
+                globalTimer.UpdateTimerOnScreen();
+                bool isGameOver = globalTimer.Done();
+
+                if (isGameOver)
+                {
+                    if (OnGameOver(false))
+                        return;
+                }
+                else if (wasGameWonB4Timeout == true)
+                {
+                    if (OnGameOver(true))
+                        return;
+                }
+                else
+                {
+                    ShowWelcomeScreenOnLoop(true);
+                    _tileMap.Draw(globalTimer.ElapsedSeconds);
+                    ProcessSelectedTiles();
+                    UndoLastOperation();
+                }
+                toggleGame = true;
+            }
             Raylib.EndDrawing();
         }
     }

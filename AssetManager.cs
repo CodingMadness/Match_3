@@ -5,7 +5,9 @@ namespace Match_3;
 public static class AssetManager
 {
     public static Texture2D SpriteSheet { get; private set; }
-    public static Font Font { get; private set; }
+    public static Font DebugFont { get; private set; }
+
+    public static Font WelcomeFont;
 
     static AssetManager()
     {
@@ -25,7 +27,8 @@ public static class AssetManager
     public static void Init()
     {
         var assetFolder = GetAssetfolderName();
-        Font = Raylib.LoadFont(assetFolder + "font3.ttf");
+        DebugFont = Raylib.LoadFont(assetFolder + "font3.ttf");
+        WelcomeFont = Raylib.LoadFont(assetFolder + "font4.otf");
         SpriteSheet = Raylib.LoadTexture(assetFolder + "shapes.png");
     }
 }
