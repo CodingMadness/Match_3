@@ -11,15 +11,21 @@ public static class AssetManager
     {
         
     }
+    
+    private static string GetAssetfolderName()
+    {
+        var net6Path = Environment.CurrentDirectory.AsSpan();
+        const string projectName = "Match3_Backup";
+        int lastProjectNameOccurence = net6Path.LastIndexOf(projectName, StringComparison.Ordinal) + projectName.Length;
+        var projectPath = net6Path.Slice(0, lastProjectNameOccurence);
+        var assetFolderName = Environment.OSVersion.Platform == PlatformID.Unix ? "/Assets/" : "\\Assets\\";
+        return $"{projectPath}{assetFolderName}"; 
+    }
 
     public static void Init()
     {
-        string net6Path = Environment.CurrentDirectory;
-        const string projectName = "Match3";
-        int lastProjectNameOccurence = net6Path.LastIndexOf(projectName, StringComparison.Ordinal) + projectName.Length;
-        var fontPath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}/Assets/font3.ttf";
-        Font = Raylib.LoadFont(fontPath);
-        var tilePath = $"{net6Path.AsSpan(0, lastProjectNameOccurence)}/Assets/shapes.png";
-        SpriteSheet = Raylib.LoadTexture(tilePath);
+        var assetFolder = GetAssetfolderName();
+        Font = Raylib.LoadFont(assetFolder + "font3.ttf");
+        SpriteSheet = Raylib.LoadTexture(assetFolder + "shapes.png");
     }
 }
