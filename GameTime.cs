@@ -32,19 +32,7 @@ public struct GameTime
         //Console.WriteLine((int)ElapsedSeconds + "  time gone");
     }
 
-    public void UpdateTimerOnScreen()
-    {
-        Vector2 upperRightCornor = new(0f, 0f);
-        UpdateTimer();
-        
-        Raylib.DrawTextEx(AssetManager.DebugFont, 
-            ((int)ElapsedSeconds).ToString(),
-            upperRightCornor,
-            50f, 
-            1f, 
-            ElapsedSeconds > 0f ? Color.RED : Color.WHITE);
-    }
-
+    
     //public readonly TimeSpan Stop() => 
     //    TimeSpan.FromMilliseconds(ElapsedSeconds - Raylib.GetFrameTime());
 
