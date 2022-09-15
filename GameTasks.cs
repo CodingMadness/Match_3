@@ -16,15 +16,17 @@ public static class GameTasks
         }
     }
 
-    public static bool TryGetQuest(in Shape shape, out int number)
+    public static bool TryGetSubQuest(in Shape shape, out int number)
     {
         return  ToCollect.TryGetValue(shape.Kind, out number);
     }
 
     public static void RemoveSubQuest(in Shape shape) => ToCollect.Remove(shape.Kind);
 
-    public static bool IsQuestDone(in Shape shape, int alreadyMatched) => 
-        TryGetQuest(shape, out int result) && alreadyMatched >= result;
+    public static bool IsSubQuestDone(in Shape shape, int alreadyMatched) => 
+        TryGetSubQuest(shape, out int result) && alreadyMatched >= result;
+
+    public static bool IsQuestDone() => ToCollect.Count == 0;
 
     public static void LogQuest()
     {
