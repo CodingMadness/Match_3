@@ -40,14 +40,15 @@ namespace Match_3
                 for (int y = 0; y < TileHeight; y++)
                 {
                     float noise = noiseMaker.GetNoise(x,y);
-                    
+
                     if (noise < 0f)
                         noise -= noise;
-                    else if (noise == 0f)
-                        Console.WriteLine(noise);
+
+                    else if (noise == 0f) ;
+                    // Console.WriteLine(noise);
                     //    noise = noiseMaker.GetNoise(x, y);
 
-                    _bitmap[x, y] = (TTile?)Tile.Create(new(x, y), noise);
+                    _bitmap[x, y] = (TTile)TTile.Create(new(x, y), noise);
                 }
             }
         }
@@ -75,7 +76,8 @@ namespace Match_3
                     {
                         _gridTimer.UpdateTimer();
                         Console.WriteLine(_gridTimer.ElapsedSeconds);
-                        if (_gridTimer.TimerDone())
+
+                        if (_gridTimer.Done())
                         {
                             //tile?.Draw(new(x,y));
                             //Console.WriteLine(x + ":  " + "  " + y);
@@ -111,7 +113,6 @@ namespace Match_3
                 }
 
                 return default;
-                //throw new Exception("ck.ysdnjlfdnajöilsfshfl");
             }
             set
             {
@@ -126,9 +127,9 @@ namespace Match_3
         {
             static bool AddWhenEqual(TTile? first, TTile? next, ISet<TTile> matches)
             {
-                if (first is not null &&
-                    next is not null &&
-                    first.Equals(next))
+                if (first is Tile f &&
+                    next is Tile n &&
+                    f.Equals(n))
                 {
                     if (matches.Count == MaxDestroyableTiles)
                         return false;

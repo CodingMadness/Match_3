@@ -43,7 +43,7 @@ public struct GameTime
             1f, 
             Color.RED);
     }
-    public bool TimerDone()
+    public bool Done()
     {
         return ElapsedSeconds <= 0;
     }

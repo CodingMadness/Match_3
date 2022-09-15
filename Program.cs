@@ -10,11 +10,15 @@ class Program
     private static readonly ISet<Tile> MatchesOf3 = new HashSet<Tile>(3);
     private static Tile? secondClickedTile;
     private static bool isUndoPressed;
-    private static readonly HashSet<Tile> UndoBuffer = new (5);
-   
+    private static readonly HashSet<Tile> UndoBuffer = new(5);
+    private static bool isGameOver = false;
+
     public static int WindowWidth;
     public static int WindowHeight;
-   
+
+    private delegate void GameOverHandler(bool isDone);
+    private static event GameOverHandler CheckForGameOverEvent;
+
     private static void Main(string[] args)
     {
         //Now I wanna give the player the task to collect
@@ -26,7 +30,7 @@ class Program
 
     private static void Initialize()
     {
-        timer = GameTime.GetTimer(10);
+        timer = GameTime.GetTimer(15);
         GameTasks.SetQuest();
         GameTasks.LogQuest();
         _tileMap = new(14, 8, timer);
@@ -35,6 +39,20 @@ class Program
         Raylib.SetTargetFPS(60);
         Raylib.InitWindow(WindowWidth, WindowHeight, "Match3 By Alex und Shpend");
         AssetManager.Init();
+        CheckForGameOverEvent += CheckForGameOver;
+    }
+
+    private static void CheckForGameOver(bool isDone)
+    {
+        ShowResultAfterGame(isDone);
+    }
+
+    private static void ShowResultAfterGame(bool gameWon)
+    {
+        var output = gameWon ? "YOU WON!" : "YOU LOST";
+        //Console.WriteLine(output);
+        Raylib.ClearBackground(Color.WHITE);
+        Raylib.DrawText(output, (WindowWidth / 2)-(WindowWidth/4), (WindowHeight/2) +50, 80, Color.RED);
     }
 
     private static void GameLoop()
@@ -44,11 +62,23 @@ class Program
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.BEIGE);
             timer.UpdateTimerOnScreen();
-            
-            _tileMap.Draw((float)Raylib.GetTime());
+
+            if (isGameOver)
+            {
+                ShowResultAfterGame(true);
+                return;
+            }          
+            _tileMap.Draw(timer.ElapsedSeconds);
 
             ProcessSelectedTiles();
-            UndoAllOperations();
+            UndoLastOperation();
+
+            if (timer.Done())
+            {
+                ShowResultAfterGame(GameTasks.IsQuestDone());
+                isGameOver = true;
+            }
+
             Raylib.EndDrawing();
         }
     }
@@ -61,7 +91,7 @@ class Program
         //No tile selected yet
         if (secondClickedTile is null)
         {
-            secondClickedTile = firstClickedTile as Tile; 
+            secondClickedTile = firstClickedTile;
             secondClickedTile.Selected = true;
             return;
         }
@@ -73,24 +103,23 @@ class Program
             secondClickedTile = null;
             return;
         }
-        
+
         /*Different tile selected ==> swap*/
         firstClickedTile.Selected = true;
         _tileMap.Swap(firstClickedTile, secondClickedTile);
         UndoBuffer.Add(firstClickedTile);
         UndoBuffer.Add(secondClickedTile);
         secondClickedTile.Selected = false;
-        
+
         if (_tileMap.MatchInAnyDirection(secondClickedTile!.Current, MatchesOf3))
         {
             UndoBuffer.Clear();
             //Console.WriteLine("FOUND A MATCH-3");
             int tileCounter = 0;
-            
+
             foreach (var match in MatchesOf3)
             {
-                if (GameTasks.TryGetQuest(match.TileShape, out int toCollect) &&
-                    !GameTasks.IsQuestDone(match.TileShape, tileCounter))
+                if (GameTasks.TryGetSubQuest(match.TileShape, out int toCollect))
                 {
                     if (++tileCounter == toCollect)
                     {
@@ -98,26 +127,26 @@ class Program
                         GameTasks.RemoveSubQuest(match.TileShape);
                         tileCounter = 0;
                     }
-                    //  Console.WriteLine($"You sill have to collect: {toCollect- tileCounter}");
+                    //Console.WriteLine($"You sill have to collect: {toCollect- tileCounter}");
+                    if (GameTasks.IsQuestDone())
+                    {
+                        isGameOver = true;
+                        return;
+                        //ShowResultAfterGame(isGameOver);
+                    }
                 }
 
                 UndoBuffer.Add(_tileMap[match.Current]);
-                _tileMap.Delete(match.Current);
-                //Console.WriteLine(match)
+                _tileMap.Delete(match.Current);               
             }
         }
+
         MatchesOf3.Clear();
-        secondClickedTile = null;        
+        secondClickedTile = null;
         firstClickedTile.Selected = false;
     }
 
-    private static void CleanUp()
-    {
-        Raylib.UnloadTexture(AssetManager.SpriteSheet);
-        Raylib.CloseWindow();
-    }
-    
-    private static void UndoAllOperations()
+    private static void UndoLastOperation()
     {
         bool keyDown = (Raylib.IsKeyDown(KeyboardKey.KEY_A));
 
@@ -142,7 +171,7 @@ class Program
                     //for delete we dont have a .IsDeleted, cause we onl NULL
                     //a tile at a certain coordinate, so we test for that
                     //if (_tileMap[storedItem.Current] is { } backupItem)
-                    var tmp = (_tileMap[storedItem.Current] = storedItem) as Tile;
+                    var tmp = (_tileMap[storedItem.Current] = storedItem);
                     tmp!.Selected = false;
                     tmp.ChangeTo(Color.WHITE);
                 }
@@ -150,9 +179,9 @@ class Program
                 if (!wasSwappedBack)
                 {
                     var trigger = Grid<Tile>.MatchXTrigger;
-                    
+
                     if (trigger is not null)
-                        _tileMap.Swap(_tileMap[trigger.CoordsB4Swap], 
+                        _tileMap.Swap(_tileMap[trigger.CoordsB4Swap],
                                        _tileMap[trigger.Current]);
 
                     wasSwappedBack = true;
@@ -161,6 +190,11 @@ class Program
             UndoBuffer.Clear();
         }
     }
+
+    private static void CleanUp()
+    {
+        Raylib.UnloadTexture(AssetManager.SpriteSheet);
+        Raylib.CloseWindow();
+    }
 }
 
-    

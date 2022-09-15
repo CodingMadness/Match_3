@@ -109,15 +109,17 @@ public enum ShapeKind : sbyte
     Length = 4
 }
 
-public interface ITile //: IEquatable<ITile>
+public interface ITile// : IEquatable<ITile>
 {
     public Int2 Current { get; set; }
     public Int2 CoordsB4Swap { get; set; }
     public int Size { get; }
     public  bool Selected { get; set; }
     public void Draw(Int2 position, float elapsedTime);
+    
     public static abstract ITile Create(Int2 position, float? noise);
-    public bool Equals(ITile? other);
+    
+    //public new bool Equals(ITile other);
 }
 
 public struct Shape : IEquatable<Shape>
@@ -216,6 +218,11 @@ public struct Shape : IEquatable<Shape>
 
     public override string ToString() =>
         $"TileShape: {Kind} with MainColor: {SrcColor}"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
+
+    public override bool Equals(object obj)
+    {
+        return obj is Shape && Equals((Shape)obj);
+    }
 }
 
 public sealed class Tile :  ITile
@@ -305,12 +312,7 @@ public sealed class Tile :  ITile
         _tileShape.FadeTint = _selected ? Color.BLUE : Color.WHITE;//_tileShape.FadeTint;
         _tileShape.FadeTint.ElapsedTime = elapsedTime;
         
-        if (_selected)
-            Console.WriteLine("dsdsd");
-        else
-        {
-            Console.WriteLine("dsjdjsdsd");
-        }
+     
         Raylib.DrawTextureRec(AssetManager.SpriteSheet,
             _tileShape.DestRect,
             position, 
