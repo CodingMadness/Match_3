@@ -44,25 +44,17 @@ public static class GameStateManager
 
     public static bool IsQuestDone() => ToCollect.Count == 0;
 
-    public static void SetNewLevl() 
+    public static void SetNewLevl(int? startTime) 
     {
-        static int roundRndValueToNearestOf3(Range r)
-        {
-            const float toRoundTo = 3.0f;
-            int value = rnd.Next(r.Start.Value, r.End.Value);
-            value = (int)(value % toRoundTo == 0 ? value : ((int)MathF.Round(value / toRoundTo)) * toRoundTo);
-            return value;
-        }
-
         State?.ToCollect.Clear();
         SetCollectQuest();
         LogQuest();
 
-        int startUpTime = roundRndValueToNearestOf3(15..60);
-        int gameOverTime = 3;
+        int startUpTime = startTime is null ? Utils.RoundValueToNearestOf3(rnd, 15..60) : startTime.Value;
+        int gameOverTime = 6;
 
-        int tileWidth = roundRndValueToNearestOf3(6..15);
-        int tileHeight = roundRndValueToNearestOf3(6..15);
+        int tileWidth = Utils.RoundValueToNearestOf3(rnd, 6..15);
+        int tileHeight = Utils.RoundValueToNearestOf3(rnd, 6..15);
         State = new(startUpTime, gameOverTime, tileWidth, tileHeight, ToCollect, Grid<Tile>.TileSize);
     }
 }
