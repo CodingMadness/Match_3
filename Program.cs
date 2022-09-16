@@ -2,6 +2,7 @@
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 //INITIALIZATION:................................
 
@@ -17,6 +18,8 @@ class Program
     private static bool? wasGameWonB4Timeout = null;
     private static bool toggleGame = false;
     private static int tileCounter;
+    private static int missedSwapTolerance = 0;
+
 
     private static void Main()
     {
@@ -27,7 +30,7 @@ class Program
 
     private static void Initialize()
     {
-        GameStateManager.SetNewLevl(2);
+        GameStateManager.SetNewLevl(null);
         state = GameStateManager.State;
 
         GameStateManager.SetCollectQuest();
@@ -38,6 +41,7 @@ class Program
         //Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         Raylib.InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Alex und Shpend");
         AssetManager.Init();
+        Console.Clear();
     }
 
     
@@ -54,20 +58,22 @@ class Program
             timer.ElapsedSeconds > 0f ? Raylib.RED : Raylib.BEIGE);
     }
     
-    private static void DrawScaledFont(in ScaledFont font)
+    private static void DrawScaledFont(in AdaptableFont font)
     {
         var scaled = font.CenterText();
-        Raylib.DrawTextEx(scaled.Src, scaled.Text, scaled.Begin, scaled.Size, 1f/*, scaled.Spacing*/, Raylib.RED);
+        Raylib.DrawTextEx(scaled.Src, scaled.Text, scaled.Begin, scaled.Size, 1f, font.Color);
     }
 
     private static bool ShowWelcomeScreenOnLoop(bool shallClearTxt)
     {
         string txt = "WELCOME";
-        ScaledFont welcomeFont = new(AssetManager.DebugFont, txt, new(state.Center.X,60), 10);
+        FadeableColor tmp = Raylib.RED;
+        tmp.CurrentAlpha = shallClearTxt ? 0f : 1f;
+        tmp.TargetAlpha = 1f;
+        AdaptableFont welcomeFont = new(AssetManager.DebugFont, txt, new(state.Center.X, 60), 10, tmp);
         DrawScaledFont(welcomeFont.ScaleText());        
         return shallClearTxt;
     }
-
 
     private static bool OnGameOver(bool? gameWon)
     {
@@ -82,7 +88,7 @@ class Program
         UpdateTimerOnScreen(ref gameOverScreenTimer);
         Raylib.ClearBackground(Raylib.WHITE);
         Int2 windowSize = new(state.WINDOW_WIDTH, state.WINDOW_HEIGHT);
-        ScaledFont gameOverFont = new(AssetManager.DebugFont, output, windowSize, 3f);
+        AdaptableFont gameOverFont = new(AssetManager.DebugFont, output, windowSize, 3f, Raylib.RED);
         DrawScaledFont(gameOverFont);
 
         return gameOverScreenTimer.Done();
@@ -109,30 +115,34 @@ class Program
                 ShowWelcomeScreenOnLoop(false);
 
             if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT) || toggleGame)
-            {
+            {                
                 bool isGameOver = globalTimer.Done();
 
                 if (isGameOver)
                 {
                     if (OnGameOver(false))
                     {
-
+                        //leave Gameloop and hence end the game
+                        return;
                     }
                 }
                 else if (wasGameWonB4Timeout == true)
                 {
                     if (OnGameOver(true))
                     {
+                        /*
                         ///TODO: prepare nextlevel
                         //1. New Map!
                         GameStateManager.SetNewLevl(null);
                         //2. New Quest
                         GameStateManager.SetCollectQuest();
                         break;
+                        */
                     }
                 }
                 else
                 {
+                    //Keep the game running!
                     UpdateTimerOnScreen(ref globalTimer);
                     ShowWelcomeScreenOnLoop(true);
                     _tileMap.Draw(globalTimer.ElapsedSeconds);
@@ -187,6 +197,7 @@ class Program
                     Console.WriteLine($"Good job, you got your {tileCounter} match3! by {secondClickedTile.TileShape.Kind}");
                     GameStateManager.RemoveSubQuest(secondClickedTile.TileShape);
                     tileCounter = 0;
+                    missedSwapTolerance = 0;
                 }
                 wasGameWonB4Timeout = GameStateManager.IsQuestDone();
             }
@@ -194,6 +205,15 @@ class Program
             DeleteMatchesForUndoBuffer(MatchesOf3);
         }
 
+        else
+        {
+            if (++missedSwapTolerance == state.MaxAllowedSwpas) 
+            {
+                Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
+                GameStateManager.ChangeSubQuest(secondClickedTile.TileShape, tileCounter+3);
+                missedSwapTolerance = 0;
+            }
+        }
         MatchesOf3.Clear();
         secondClickedTile = null;
         firstClickedTile.Selected = false;

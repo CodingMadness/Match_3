@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+
 using Raylib_CsLo;
 
 namespace Match_3;
@@ -109,19 +110,6 @@ public enum ShapeKind : sbyte
     Length = 4
 }
 
-public interface ITile// : IEquatable<ITile>
-{
-    public Int2 Current { get; set; }
-    public Int2 CoordsB4Swap { get; set; }
-    public int Size { get; }
-    public  bool Selected { get; set; }
-    public void Draw(Int2 position, float elapsedTime);
-    
-    public static abstract ITile Create(Int2 position, float? noise);
-    
-    //public new bool Equals(ITile other);
-}
-
 public struct Shape : IEquatable<Shape>
 {
     private readonly ShapeKind GetKindByRect()
@@ -204,7 +192,9 @@ public struct Shape : IEquatable<Shape>
     }
     
     public readonly ShapeKind Kind { get; }
+    
     public Rectangle DestRect { get; private set; }
+   
     public readonly FadeableColor SrcColor { get; }
     
     public FadeableColor FadeTint;
@@ -224,6 +214,29 @@ public struct Shape : IEquatable<Shape>
     {
         return obj is Shape && Equals((Shape)obj);
     }
+
+    public static bool operator ==(Shape left, Shape right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Shape left, Shape right)
+    {
+        return !(left == right);
+    }
+}
+
+public interface ITile// : IEquatable<ITile>
+{
+    public Int2 Current { get; set; }
+    public Int2 CoordsB4Swap { get; set; }
+    public int Size { get; }
+    public bool Selected { get; set; }
+    public void Draw(Int2 position, float elapsedTime);
+
+    public static abstract ITile Create(Int2 position, float? noise);
+
+    //public new bool Equals(ITile other);
 }
 
 public sealed class Tile :  ITile

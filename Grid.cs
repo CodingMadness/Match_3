@@ -1,5 +1,6 @@
 ﻿//using DotNext;
 
+using Match_3.GameTypes;
 using Raylib_cs;
 
 namespace Match_3
