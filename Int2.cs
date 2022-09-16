@@ -49,6 +49,17 @@ public struct Int2
         return new Int2(left.X * right, left.Y * right);
     }
 
+    /// <summary>
+    /// Lets see if this conversion gets the right value
+    /// </summary>
+    /// <param name="left"></param>
+    /// <param name="right"></param>
+    /// <returns></returns>
+    public static Int2 operator *(Int2 left, float right)
+    {
+        return new Int2(Convert.ToInt32(left.X * right), Convert.ToInt32(left.Y * right));
+    }
+
     public static Int2 operator /(Int2 left, int right)
     {
         return new Int2(left.X / right, left.Y / right);
