@@ -1,3 +1,5 @@
+using Match_3.GameTypes;
+
 namespace Match_3;
 
 public static class GameStateManager
@@ -11,7 +13,7 @@ public static class GameStateManager
 
     static GameStateManager()
     {
-        State = new(30, 3, 15, 10, ToCollect, 64);  
+        State = new(30, 3, 15, 10, ToCollect, 64, 3);  
     }
 
     private static void LogQuest()
@@ -42,6 +44,9 @@ public static class GameStateManager
     public static bool IsSubQuestDone(in Shape shape, int alreadyMatched) => 
         TryGetSubQuest(shape, out int result) && alreadyMatched >= result;
 
+    public static void ChangeSubQuest(in Shape shape, int toChangeWith) 
+        => State.ToCollect[shape.Kind] = toChangeWith;
+
     public static bool IsQuestDone() => ToCollect.Count == 0;
 
     public static void SetNewLevl(int? startTime) 
@@ -55,6 +60,6 @@ public static class GameStateManager
 
         int tileWidth = Utils.RoundValueToNearestOf3(rnd, 6..15);
         int tileHeight = Utils.RoundValueToNearestOf3(rnd, 6..15);
-        State = new(startUpTime, gameOverTime, tileWidth, tileHeight, ToCollect, Grid<Tile>.TileSize);
+        State = new(startUpTime, gameOverTime, tileWidth, tileHeight, ToCollect, Grid<Tile>.TileSize, 4);
     }
 }
