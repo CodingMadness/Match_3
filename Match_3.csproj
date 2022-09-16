@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>11</LangVersion>
   </PropertyGroup>
-<PropertyGroup> <EnablePreviewFeatures>true</EnablePreviewFeatures> </PropertyGroup>
+<PropertyGroup> <EnablePreviewFeatures>true</EnablePreviewFeatures> <AllowUnsafeBlocks>true</AllowUnsafeBlocks> </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' " />
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
