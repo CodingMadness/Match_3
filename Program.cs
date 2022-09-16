@@ -1,12 +1,7 @@
-﻿global using Optimized = Raylib_CsLo;
-
-using Match_3;
+﻿using Match_3;
 using Raylib_CsLo;
-using System.Collections.Generic;
 using System.Numerics;
- 
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
+using static System.Net.Mime.MediaTypeNames;
 
 //INITIALIZATION:................................
 
@@ -23,10 +18,8 @@ class Program
     private static bool toggleGame = false;
     private static int tileCounter;
 
-    private static void Main(string[] args)
-    {
-        //Now I wanna give the player the task to collect
-        //X-Reds, Y-Blues, Z-Greens
+    private static void Main()
+    {        
         Initialize();
         GameLoop();
         CleanUp();
@@ -34,8 +27,9 @@ class Program
 
     private static void Initialize()
     {
-        GameStateManager.SetNewLevl();
+        GameStateManager.SetNewLevl(5);
         state = GameStateManager.State;
+       
         GameStateManager.SetCollectQuest();
         globalTimer = GameTime.GetTimer(state!.GameStartAt);
         gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
@@ -45,10 +39,10 @@ class Program
         AssetManager.Init();
     }
 
-    private static float ScaleText(string txt, int initialFontSize)
+    private static float ScaleText(string txt, float initialFontSize)
     {
-        float fontSize = Raylib.MeasureText(txt, initialFontSize);
-        float scale = state.WINDOW_WIDTH / fontSize;
+        var fontSize = Raylib.MeasureTextEx(AssetManager.DebugFont, txt, initialFontSize, 1f);
+        float scale = state.WINDOW_WIDTH / fontSize.X;
         return scale * (initialFontSize);
     }
 
@@ -59,7 +53,7 @@ class Program
 
         Raylib.DrawTextEx(AssetManager.DebugFont,
             txt,
-            state.MIDDLE_TOP,
+            state.TopCenter,
             75f/*ScaleText(txt, 1)*/, //problem is here!...
             1f,
             timer.ElapsedSeconds > 0f ? Raylib.RED : Raylib.BEIGE);
@@ -82,10 +76,20 @@ class Program
         }
 
         var output = gameWon.Value ? "YOU WON!" : "YOU LOST";
+
+        Int2 AlignMid(float fSize)
+        {      
+            var fontSize = Raylib.MeasureText(output, (int)fSize);
+            Int2 diffToMoveLeft = state.Center - fontSize / 2;
+            return diffToMoveLeft;
+        }
+        
         //Console.WriteLine(output);
         UpdateTimerOnScreen(ref gameOverScreenTimer);
         Raylib.ClearBackground(Raylib.WHITE);
-        Raylib.DrawText(output, (state.WINDOW_WIDTH / 2) - (state.WINDOW_WIDTH/ 4), (state.WINDOW_HEIGHT/ 2) + 50, 80, Raylib.RED);
+        float fontSize = ScaleText(output, 10);
+        Int2 aligned = AlignMid(fontSize);
+        Raylib.DrawTextEx(AssetManager.WelcomeFont, output, aligned, fontSize, 1f, Raylib.RED);
         return gameOverScreenTimer.Done();
     }
 
@@ -124,10 +128,9 @@ class Program
                     {
                         ///TODO: prepare nextlevel
                         //1. New Map!
-                        GameStateManager.SetNewLevl();
+                        GameStateManager.SetNewLevl(null);
                         //2. New Quest
                         GameStateManager.SetCollectQuest();
-
                         break;
                     }
                 }
