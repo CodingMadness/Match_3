@@ -67,7 +67,7 @@ namespace Match_3
             //Do this Draw second per second OLNLY ONCE
             for (int x = 0; x < TileWidth; x++)
             {
-                for (int y = 0; y < TileHeight; y++ )
+                for (int y = 1; y < TileHeight; y++ )
                 {
                     var tile = _bitmap[x, y];
                     

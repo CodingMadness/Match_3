@@ -1,12 +1,11 @@
-using Raylib_cs;
-
 namespace Match_3;
+
 public static class GameStateManager
 {
     private static int MaxCapacity => (int)ShapeKind.Length * 5;
     public const int Max3PerKind = 3;
     private static readonly Dictionary<ShapeKind, int> ToCollect = new(MaxCapacity);
-    private static Random rnd = new Random(DateTime.UtcNow.Millisecond);
+    private static readonly Random rnd = new (DateTime.UtcNow.Millisecond);
    
     public static GameState State { get; private set; }
 
@@ -28,7 +27,7 @@ public static class GameStateManager
     {
         for (int i = 0; i < (int)ShapeKind.Length; i++)
         {
-            int count = rnd.Next(Max3PerKind-1, Max3PerKind + 3);
+            int count = rnd.Next(Max3PerKind-1, Max3PerKind + 2);
             State!.ToCollect.TryAdd((ShapeKind)i, (count ));
         }
     }

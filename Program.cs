@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Numerics;
  
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 //INITIALIZATION:................................
 
@@ -20,6 +21,7 @@ class Program
     private static readonly ISet<Tile> UndoBuffer = new HashSet<Tile>(5);
     private static bool? wasGameWonB4Timeout = null;
     private static bool toggleGame = false;
+    private static int tileCounter;
 
     private static void Main(string[] args)
     {
@@ -32,7 +34,9 @@ class Program
 
     private static void Initialize()
     {
+        GameStateManager.SetNewLevl();
         state = GameStateManager.State;
+        GameStateManager.SetCollectQuest();
         globalTimer = GameTime.GetTimer(state!.GameStartAt);
         gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
         _tileMap = new(state);
@@ -56,7 +60,7 @@ class Program
         Raylib.DrawTextEx(AssetManager.DebugFont,
             txt,
             state.MIDDLE_TOP,
-            ScaleText(txt, 1), //problem is here!...
+            75f/*ScaleText(txt, 1)*/, //problem is here!...
             1f,
             timer.ElapsedSeconds > 0f ? Raylib.RED : Raylib.BEIGE);
     }
@@ -66,7 +70,7 @@ class Program
         string txt = "WELCOME PLAYER - ARE YOU READY TO GET ATLEAST HERE A MATCH IF NOT ON TINDER?";
         Raylib.DrawTextEx(AssetManager.WelcomeFont, txt,
                                     Int2.Zero, ScaleText(txt, 25),
-                                    1.3f, Optimized.Raylib.ColorAlpha(Optimized.Raylib.BLUE, shallClearTxt ? 0f : 1f));
+                                    1.3f, Raylib.ColorAlpha(Raylib.BLUE, shallClearTxt ? 0f : 1f));
         return shallClearTxt;
     }
 
@@ -85,6 +89,15 @@ class Program
         return gameOverScreenTimer.Done();
     }
 
+    private static void DeleteMatchesForUndoBuffer(ISet<Tile> tiles) 
+    {
+        foreach (var match in tiles)
+        {
+            UndoBuffer.Add(_tileMap[match.Current]!);
+            _tileMap.Delete(match.Current);
+        }        
+    }
+
     private static void GameLoop()
     {
         while (!Raylib.WindowShouldClose())
@@ -95,9 +108,7 @@ class Program
             //render text on 60fps
             if (!toggleGame)
                 ShowWelcomeScreenOnLoop(false);
-
-            //UpdateTimerOnScreen(ref globalTimer);
-
+                      
             if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT) || toggleGame)
             {
                 bool isGameOver = globalTimer.Done();
@@ -166,26 +177,21 @@ class Program
         if (_tileMap.MatchInAnyDirection(secondClickedTile!.Current, MatchesOf3))
         {
             UndoBuffer.Clear();
-            //Console.WriteLine("FOUND A MATCH-3");
-            int tileCounter = 0;
 
-            foreach (var match in MatchesOf3)
+            if (GameStateManager.TryGetSubQuest(secondClickedTile.TileShape, out int toCollect))
             {
-                if (GameStateManager.TryGetSubQuest(match.TileShape, out int toCollect))
-                {
-                    if (++tileCounter == toCollect)
-                    {
-                        Console.WriteLine($"Good job, you got your {tileCounter} match3! by {match.TileShape.Kind}");
-                        GameStateManager.RemoveSubQuest(match.TileShape);
-                        tileCounter = 0;
-                    }
-                    //Console.WriteLine($"You sill have to collect: {toCollect- tileCounter}");
-                    wasGameWonB4Timeout = GameStateManager.IsQuestDone();
-                }
+                tileCounter += 3;
 
-                UndoBuffer.Add(_tileMap[match.Current]);
-                _tileMap.Delete(match.Current);
+                if (tileCounter >= toCollect)
+                {
+                    Console.WriteLine($"Good job, you got your {tileCounter} match3! by {secondClickedTile.TileShape.Kind}");
+                    GameStateManager.RemoveSubQuest(secondClickedTile.TileShape);
+                    tileCounter = 0;
+                }
+                wasGameWonB4Timeout = GameStateManager.IsQuestDone();
             }
+
+            DeleteMatchesForUndoBuffer(MatchesOf3);
         }
 
         MatchesOf3.Clear();
