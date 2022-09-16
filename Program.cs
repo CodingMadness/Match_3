@@ -1,7 +1,7 @@
 ﻿using Match_3;
+using Match_3.GameTypes;
 using Raylib_CsLo;
 using System.Numerics;
-using static System.Net.Mime.MediaTypeNames;
 
 //INITIALIZATION:................................
 
@@ -9,7 +9,7 @@ class Program
 {
     private static GameState state;
     private static GameTime globalTimer, gameOverScreenTimer;
-  
+
     private static Grid<Tile> _tileMap;
     private static readonly ISet<Tile> MatchesOf3 = new HashSet<Tile>(3);
     private static Tile? secondClickedTile;
@@ -19,7 +19,7 @@ class Program
     private static int tileCounter;
 
     private static void Main()
-    {        
+    {
         Initialize();
         GameLoop();
         CleanUp();
@@ -27,25 +27,20 @@ class Program
 
     private static void Initialize()
     {
-        GameStateManager.SetNewLevl(5);
+        GameStateManager.SetNewLevl(2);
         state = GameStateManager.State;
-       
+
         GameStateManager.SetCollectQuest();
         globalTimer = GameTime.GetTimer(state!.GameStartAt);
         gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
         _tileMap = new(state);
         Raylib.SetTargetFPS(60);
+        //Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         Raylib.InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Alex und Shpend");
         AssetManager.Init();
     }
 
-    private static float ScaleText(string txt, float initialFontSize)
-    {
-        var fontSize = Raylib.MeasureTextEx(AssetManager.DebugFont, txt, initialFontSize, 1f);
-        float scale = state.WINDOW_WIDTH / fontSize.X;
-        return scale * (initialFontSize);
-    }
-
+    
     public static void UpdateTimerOnScreen(ref GameTime timer)
     {
         timer.UpdateTimer();
@@ -58,15 +53,21 @@ class Program
             1f,
             timer.ElapsedSeconds > 0f ? Raylib.RED : Raylib.BEIGE);
     }
+    
+    private static void DrawScaledFont(in ScaledFont font)
+    {
+        var scaled = font.CenterText();
+        Raylib.DrawTextEx(scaled.Src, scaled.Text, scaled.Begin, scaled.Size, 1f/*, scaled.Spacing*/, Raylib.RED);
+    }
 
     private static bool ShowWelcomeScreenOnLoop(bool shallClearTxt)
     {
-        string txt = "WELCOME PLAYER - ARE YOU READY TO GET ATLEAST HERE A MATCH IF NOT ON TINDER?";
-        Raylib.DrawTextEx(AssetManager.WelcomeFont, txt,
-                                    Int2.Zero, ScaleText(txt, 25),
-                                    1.3f, Raylib.ColorAlpha(Raylib.BLUE, shallClearTxt ? 0f : 1f));
+        string txt = "WELCOME";
+        ScaledFont welcomeFont = new(AssetManager.DebugFont, txt, new(state.Center.X,60), 10);
+        DrawScaledFont(welcomeFont.ScaleText());        
         return shallClearTxt;
     }
+
 
     private static bool OnGameOver(bool? gameWon)
     {
@@ -76,30 +77,24 @@ class Program
         }
 
         var output = gameWon.Value ? "YOU WON!" : "YOU LOST";
-
-        Int2 AlignMid(float fSize)
-        {      
-            var fontSize = Raylib.MeasureText(output, (int)fSize);
-            Int2 diffToMoveLeft = state.Center - fontSize / 2;
-            return diffToMoveLeft;
-        }
         
         //Console.WriteLine(output);
         UpdateTimerOnScreen(ref gameOverScreenTimer);
         Raylib.ClearBackground(Raylib.WHITE);
-        float fontSize = ScaleText(output, 10);
-        Int2 aligned = AlignMid(fontSize);
-        Raylib.DrawTextEx(AssetManager.WelcomeFont, output, aligned, fontSize, 1f, Raylib.RED);
+        Int2 windowSize = new(state.WINDOW_WIDTH, state.WINDOW_HEIGHT);
+        ScaledFont gameOverFont = new(AssetManager.DebugFont, output, windowSize, 3f);
+        DrawScaledFont(gameOverFont);
+
         return gameOverScreenTimer.Done();
     }
 
-    private static void DeleteMatchesForUndoBuffer(ISet<Tile> tiles) 
+    private static void DeleteMatchesForUndoBuffer(ISet<Tile> tiles)
     {
         foreach (var match in tiles)
         {
             UndoBuffer.Add(_tileMap[match.Current]!);
             _tileMap.Delete(match.Current);
-        }        
+        }
     }
 
     private static void GameLoop()
@@ -112,7 +107,7 @@ class Program
             //render text on 60fps
             if (!toggleGame)
                 ShowWelcomeScreenOnLoop(false);
-                      
+
             if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT) || toggleGame)
             {
                 bool isGameOver = globalTimer.Done();
@@ -120,7 +115,9 @@ class Program
                 if (isGameOver)
                 {
                     if (OnGameOver(false))
-                        return;
+                    {
+
+                    }
                 }
                 else if (wasGameWonB4Timeout == true)
                 {
