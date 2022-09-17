@@ -49,17 +49,17 @@ public static class GameStateManager
 
     public static bool IsQuestDone() => ToCollect.Count == 0;
 
-    public static void SetNewLevl(int? startTime) 
+    public static void SetNewLevl() 
     {
         State?.ToCollect.Clear();
         SetCollectQuest();
         LogQuest();
 
-        int startUpTime = startTime is null ? Utils.RoundValueToNearestOf3(rnd, 15..60) : startTime.Value;
-        int gameOverTime = 6;
+        int startUpTime = Utils.Round(rnd, 15..60, 3);
+        int tileWidth = Utils.Round(rnd, 5..15, 3);
+        int tileHeight = Utils.Round(rnd, 5..15, 3);
+        int gameOverTime = 5;
 
-        int tileWidth = Utils.RoundValueToNearestOf3(rnd, 6..15);
-        int tileHeight = Utils.RoundValueToNearestOf3(rnd, 6..15);
         State = new(startUpTime, gameOverTime, tileWidth, tileHeight, ToCollect, Grid<Tile>.TileSize, 4);
     }
 }

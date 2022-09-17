@@ -30,7 +30,7 @@ class Program
 
     private static void Initialize()
     {
-        GameStateManager.SetNewLevl(null);
+        GameStateManager.SetNewLevl();
         state = GameStateManager.State;
 
         GameStateManager.SetCollectQuest();
@@ -38,7 +38,6 @@ class Program
         gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
         _tileMap = new(state);
         Raylib.SetTargetFPS(60);
-        //Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         Raylib.InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Alex und Shpend");
         AssetManager.Init();
         Console.Clear();
