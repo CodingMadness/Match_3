@@ -27,7 +27,7 @@ public static class GameStateManager
 
     public static void SetCollectQuest()
     {
-        for (int i = 0; i < (int)Balls.Length; i++)
+        for (int i = 0; i < (int)Balls.Length-1; i++)
         {
             int count = rnd.Next(Max3PerKind - 1, Max3PerKind + 2);
             State!.ToCollect.TryAdd((Balls)i, (count));
@@ -49,13 +49,13 @@ public static class GameStateManager
        
     public static bool IsQuestDone() => ToCollect.Count == 0;
 
-    public static void SetNewLevl() 
+    public static void LoadLevel() 
     {
         State?.ToCollect.Clear();
         SetCollectQuest();
         LogQuest();
 
-        int startUpTime = Utils.Round(rnd, 15..60, 3);
+        int startUpTime = Utils.Round(rnd, 20..60, 3);
         int tileWidth = Utils.Round(rnd, 18..7, 3);
         int tileHeight = Utils.Round(rnd, 10..10, 3);
         int gameOverTime = 5;

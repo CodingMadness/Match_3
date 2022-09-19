@@ -36,9 +36,9 @@ namespace Match_3
             noiseMaker.SetFractalType(FastNoiseLite.FractalType.PingPong);
             noiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
 
-            for (int x = 0; x < TileWidth; x++)
+            for (int x = 0; x < 1; x++)
             {
-                for (int y = 0; y < TileHeight; y++)
+                for (int y = 1; y < TileHeight; y++)
                 {
                     float noise = noiseMaker.GetNoise(x,y);
                     Vector2 current = new(x, y);
@@ -50,7 +50,7 @@ namespace Match_3
                         noise = noiseMaker.GetNoise(x, y);
 
                     _bitmap[x, y] = Backery.CreateTile_1(current, noise);
-                    Console.WriteLine("NOISE: " + noise);
+                    //onsole.WriteLine("NOISE: " + noise);
                 }
             }
         }
@@ -72,28 +72,7 @@ namespace Match_3
                 for (int y = 1; y < TileHeight; y++ )
                 {
                     var tile = _bitmap[x, y];
-                    
-                    if (!isDrawn)
-                    {
-                        _gridTimer.UpdateTimer();
-                        Console.WriteLine(_gridTimer.ElapsedSeconds);
-
-                        if (_gridTimer.Done())
-                        {
-                            //tile?.Draw(new(x,y));
-                            //Console.WriteLine(x + ":  " + "  " + y);
-                            _gridTimer.Reset(null);
-                        }
-                    }
-                    else
-                    {
-                        if ((x, y) == (0, 0))
-                            continue;
-                        
-                        tile?.Draw(new(x,y), elapsedTime);
-                        //Draw normally!
-                    }
-                    //Console.WriteLine(x + ":  " + "  " + y);
+                    tile?.Draw(elapsedTime);
                 }
             }
 
@@ -190,9 +169,9 @@ namespace Match_3
                 return false;
 
             var mouseVec2 = Raylib.GetMousePosition();
-            Vector2 position = new Vector2((int)mouseVec2.X, (int)mouseVec2.Y);
-            position /= ITile.Size;
-            tile = this[position];
+            Vector2 GridPos = new Vector2((int)mouseVec2.X, (int)mouseVec2.Y);
+            GridPos /= ITile.Size;
+            tile = this[GridPos];
             return tile is not null;
         }
 
@@ -201,12 +180,12 @@ namespace Match_3
             if (a is null || b is null)
                 return;
 
-            this[a.Current] = b;
-            this[b.Current] = a;
-            (a.Current, b.Current) = (b.Current, a.Current);
-            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.Current, a.Current);
+            this[a.GridPos] = b;
+            this[b.GridPos] = a;
+            (a.GridPos, b.GridPos) = (b.GridPos, a.GridPos);
+            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.GridPos, a.GridPos);
         }
 
-        public void Delete(Vector2 coord) => this[coord] = default;
+        public void Delete(Vector2 coord) => this[coord] = null!;
     }
 }

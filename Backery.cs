@@ -19,7 +19,7 @@ public static class Backery
 
         return noise switch
         {
-            <= 0.25f => Balls.Red,
+            <= 0.25f             => Balls.Red,
             > 0.25f and <= 0.35f => Balls.Orange,
             > 0.35f and <= 0.45f => Balls.Blue,
             > 0.45f and <= 0.55f => Balls.Green,
@@ -32,13 +32,14 @@ public static class Backery
 
     public static ITile CreateTile_1(Vector2 gridPos, float noise)
     {
-        return new Tile
+        var tile = new Tile
         {
-            Current = gridPos,
+            GridPos = gridPos,
             CoordsB4Swap = -Vector2.One,
             Selected = false,
             TileShape = new CandyShape(noise)
         };
+        return tile;
     }
 
     //public static ITile CreateTile(float noise)
@@ -119,7 +120,7 @@ public static class Backery
     //        }
     //        var mapTile = new Tile
     //        {
-    //            Current = start,
+    //            GridPos = start,
     //            CoordsB4Swap = -Vector2.One,
     //            Selected = false,
     //            TileShape = tmp,  

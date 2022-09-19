@@ -179,12 +179,6 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
 
         switch (Ball)
         {
-            case Balls.Red:
-                FrameLocation = new Vector2(0f, 1f) * ITile.Size;
-                break;
-            case Balls.Blue:
-                FrameLocation = new Vector2(1f, 1f) * ITile.Size;
-                break;
             case Balls.Green:
                 FrameLocation = new Vector2(0f, 0f) * ITile.Size;
                 break;
@@ -196,11 +190,18 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
                 break;
             case Balls.Yellow:
                 FrameLocation = new Vector2(3f, 0f) * ITile.Size;
-                break; 
+                break;
+            case Balls.Red:
+                FrameLocation = new Vector2(0f, 1f) * ITile.Size;
+                break;
+            case Balls.Blue:
+                FrameLocation = new Vector2(1f, 1f) * ITile.Size;
+                break;
             case Balls.Violet:
                 FrameLocation = new Vector2(3f, 1f) * ITile.Size;
                 break;
 
+                //DEFAULTS.......
             case Balls.Length:
                 FrameLocation = -Vector2.One;
                 break;
@@ -227,16 +228,11 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
     }
 
     public override string ToString() =>
-        $"TileShape: {Ball} with MainColor: {FadeTint}"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
+        $"Tiletype: <{Ball}> with Tint: <{FadeTint}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
 
     public override bool Equals(object obj)
     {
         return obj is CandyShape shape && Equals(shape);
-    }
-
-    public static CandyShape Create(Vector2 posWithinSpriteSheet)
-    {
-        throw new NotImplementedException();
     }
 
     public static bool operator ==(CandyShape left, CandyShape right)
@@ -256,16 +252,19 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
 
 public interface ITile
 {
-    public Vector2 Current { get; set; }
+    public Vector2 GridPos { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public static int Size => 64;
     public bool Selected { get; set; }
-    public void Draw(Vector2 position, float elapsedTime);
+    public void Draw(float elapsedTime);
 }
 
 public sealed class Tile : ITile
 {
-    public Vector2 Current { get; set; }
+    /// <summary>
+    /// Important always is: Match GridPos with the actual Drawing-Location of the window!
+    /// </summary>
+    public Vector2 GridPos { get; set; }
 
     public Vector2 CoordsB4Swap { get; set; }
 
@@ -303,14 +302,14 @@ public sealed class Tile : ITile
         TileShape = new CandyShape(0.25f);
     }
        
-    public override string ToString() => $"Current Position: {Current};  {TileShape}";
+    public override string ToString() => $"GridPos: {GridPos}; ---- {TileShape}";
 
     public void ChangeTo(FadeableColor color)
     {
         TileShape.FadeTint = color;
     }
 
-    public void Draw(Vector2 position, float elapsedTime)
+    public void Draw(float elapsedTime)
     {
         void DrawTextOnTop(in Vector2 worldPosition, bool selected)
         {
@@ -323,18 +322,18 @@ public sealed class Tile : ITile
             Raylib.DrawTextEx(AssetManager.DebugFont, worldPosition.ToString(), drawPos,
                 14f, 1f, selected ? Raylib.BLACK : drawColor);
         }
-        position *= ITile.Size;
+       
+        var pos = GridPos == Vector2.Zero ? GridPos + (Vector2.UnitY * ITile.Size) : GridPos * ITile.Size;
 
         TileShape.FadeTint = _selected ? Raylib.BLUE : Raylib.WHITE;//TileShape.FadeTint;
         _color.ElapsedTime = elapsedTime;
 
-
         Raylib.DrawTextureRec(AssetManager.SpriteSheet,
             new(TileShape.FrameLocation.X, TileShape.FrameLocation.Y, ITile.Size, ITile.Size),
-            position,
+            pos,
             TileShape.FadeTint);
 
-        DrawTextOnTop(position, _selected);
+        DrawTextOnTop(GridPos, _selected);
     }
 
     public bool Equals(ITile? other)
