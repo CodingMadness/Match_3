@@ -182,19 +182,24 @@ class Program
         UndoBuffer.Add(secondClickedTile);
         secondClickedTile.Selected = false;
 
+        var candy = secondClickedTile is not null ? secondClickedTile.TileShape as Candy : null;
+
+        if (candy is null)
+            return;
+
         if (_tileMap.MatchInAnyDirection(secondClickedTile!.Current, MatchesOf3))
         {
             UndoBuffer.Clear();
-            //GameStateManager.DoSomeChecks(secondClickedTile.TileShape);
+            //GameStateManager.DoSomeChecks(secondClickedTile.TileShape);          
 
-            if (GameStateManager.TryGetSubQuest(secondClickedTile.TileShape, out int toCollect))
+            if (GameStateManager.TryGetSubQuest(candy, out int toCollect))
             {
                 tileCounter += 3;
 
                 if (tileCounter >= toCollect)
                 {
-                    Console.WriteLine($"Good job, you got your {tileCounter} match3! by {secondClickedTile.TileShape.Sweet}");
-                    GameStateManager.RemoveSubQuest(secondClickedTile.TileShape);
+                    Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Sweet}");
+                    GameStateManager.RemoveSubQuest(candy);
                     tileCounter = 0;
                     missedSwapTolerance = 0;
                 }
@@ -209,7 +214,7 @@ class Program
             if (++missedSwapTolerance == state.MaxAllowedSwpas) 
             {
                 Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
-                GameStateManager.ChangeSubQuest(secondClickedTile.TileShape, tileCounter+3);
+                GameStateManager.ChangeSubQuest(candy, tileCounter+3);
                 missedSwapTolerance = 0;
             }
         }

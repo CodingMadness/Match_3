@@ -17,21 +17,15 @@ public static class Backery
         else if (noise <= 0.1)
             noise *= 10;
 
-        switch (noise)
+        return noise switch
         {
-            case <= 0.25f:
-                return Sweets.Donut;
-            case > 0.25f and <= 0.35f:
-                return Sweets.Cookie;
-            case > 0.35f and <= 0.45f:
-                return Sweets.Cupcake;
-            case > 0.45f and <= 0.65f:
-                return Sweets.Bonbon;
-            case > 0.65f and <= 1f:
-                return Sweets.Gummies;
-            default:
-                return Sweets.Empty;
-        }
+            <= 0.25f => Sweets.Donut,
+            > 0.25f and <= 0.35f => Sweets.Cookie,
+            > 0.35f and <= 0.45f => Sweets.Cupcake,
+            > 0.45f and <= 0.65f => Sweets.Bonbon,
+            > 0.65f and <= 1f => Sweets.Gummies,
+            _ => Sweets.Empty,
+        };
     }
 
     public static ITile CreateTile(Vector2 start, float noise)
@@ -39,9 +33,8 @@ public static class Backery
         var sweetType = Sweets.Donut; //GetSweetTypeByNoise(noise);
 
         if (sweetType == Sweets.Donut)
-        {
-            //boxing?
-            Donut tmp = new();
+        {        
+            Donut tmp = new(noise);
             noise = MathF.Round(noise, 2, MidpointRounding.ToPositiveInfinity);
 
             if (noise <= 0f)
@@ -53,7 +46,7 @@ public static class Backery
             switch (noise)
             {
                 case <= 0.15f:
-                    tmp = new Donut()
+                    tmp = new Donut(noise)
                     {
                         FrameLocation = new Vector2(0f, 1f) * Grid.TileSize,
                         Form = ShapeKind.Circle,
@@ -62,7 +55,7 @@ public static class Backery
 
                     break;
                 case > 0.15f and <= 0.2f:
-                    tmp = new Donut()
+                    tmp = new Donut(noise)
                     {
                         FrameLocation = new Vector2(0f, 2f) * Grid.TileSize,
                         Form = ShapeKind.Circle,
@@ -70,7 +63,7 @@ public static class Backery
                     };
                     break;
                 case > 0.2f and <= 0.25f:
-                    tmp = new Donut()
+                    tmp = new Donut(noise)
                     {
                         FrameLocation = new Vector2(0f, 3f) * Grid.TileSize,
                         Form = ShapeKind.Circle,
@@ -78,7 +71,7 @@ public static class Backery
                     };
                     break;
                 case > 0.25f and <= 0.35f:
-                    tmp = new Donut()
+                    tmp = new Donut(noise)
                     {
                         FrameLocation = new Vector2(0f, 4f) * Grid.TileSize,
                         Form = ShapeKind.Circle,
@@ -86,7 +79,7 @@ public static class Backery
                     };
                     break;
                 case > 0.35f and <= 0.45f:
-                    tmp = new Donut()
+                    tmp = new Donut(noise)
                     {
                         FrameLocation = new Vector2(0f, 5f) * Grid.TileSize,
                         Form = ShapeKind.Circle,
@@ -94,7 +87,7 @@ public static class Backery
                     };
                     break;
                 case > 0.45f and <= 0.65f:
-                    tmp = new Donut()
+                    tmp = new Donut(noise)
                     {
                         FrameLocation = new Vector2(0f, 6f) * Grid.TileSize,
                         Form = ShapeKind.Circle,
@@ -102,7 +95,7 @@ public static class Backery
                     };
                     break;
                 case > 0.65f and <= 1f:
-                    tmp = new Donut()
+                    tmp = new Donut(noise)
                     {
                         FrameLocation = new Vector2(0f, 7f) * Grid.TileSize,
                         Form = ShapeKind.Circle,
@@ -117,7 +110,7 @@ public static class Backery
                 Current = start,
                 CoordsB4Swap = -Vector2.One,
                 Selected = false,
-                TileShape = tmp, //this causes boxing!
+                TileShape = tmp,  
             };
             return mapTile;
         }

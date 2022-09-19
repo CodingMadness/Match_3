@@ -1,5 +1,4 @@
 using Match_3.GameTypes;
-using System.Reflection.Metadata;
 
 namespace Match_3;
 
@@ -35,24 +34,19 @@ public static class GameStateManager
         }
     }
 
-    public static bool TryGetSubQuest(IShape shape, out int number)
+    public static bool TryGetSubQuest(Candy shape, out int number)
     {
         return ToCollect.TryGetValue(shape.Sweet, out number);
     }
 
-    public static void RemoveSubQuest(IShape shape) => ToCollect.Remove(shape.Sweet);
+    public static void RemoveSubQuest(Candy shape) => ToCollect.Remove(shape.Sweet);
 
-    public static bool IsSubQuestDone(IShape shape, int alreadyMatched) =>
+    public static bool IsSubQuestDone(Candy shape, int alreadyMatched) =>
         TryGetSubQuest(shape, out int result) && alreadyMatched >= result;
 
-    public static void ChangeSubQuest(IShape shape, int toChangeWith)
+    public static void ChangeSubQuest(Candy shape, int toChangeWith)
         => State.ToCollect[shape.Sweet] = toChangeWith;
-
-    public static void DoSomeChecks<TShape>(TShape shape) where TShape : IShape
-    {
-        Console.WriteLine(shape.FrameLocation);
-    }
-
+       
     public static bool IsQuestDone() => ToCollect.Count == 0;
 
     public static void SetNewLevl() 
