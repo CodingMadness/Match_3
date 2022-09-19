@@ -25,10 +25,10 @@ namespace Match_3
         private const int MaxDestroyableTiles = 3;
         //private bool _stopDrawingSameStuff = false;
 
-        public static ITile MatchXTrigger { get; private set; }
+        public static ITile? MatchXTrigger { get; private set; }
         private GameTime _gridTimer;
 
-        private bool isDrawn = true;
+        private readonly bool isDrawn = true;
 
         private void CreateMap()
         {
@@ -44,14 +44,14 @@ namespace Match_3
                     float noise = noiseMaker.GetNoise(x,y);
 
                     if (noise < 0f)
-                        noise -= noise;
+                        noise = -noise;
 
                     else if (noise == 0f) ;
                     // Console.WriteLine(noise);
                     //    noise = noiseMaker.GetNoise(x, y);
 
                     //_bitmap[x, y] = (TTile)TTile.Create(new(x, y), noise);
-                    _bitmap[x, y] = ITile.Create(new(x, y), noise);
+                    _bitmap[x, y] = Backery.CreateTile(new(x, y), noise);
                 }
             }
         }
@@ -185,7 +185,7 @@ namespace Match_3
 
         public bool TryGetClickedTile(out ITile tile)
         {
-            tile = default;
+            tile = default!;
 
             if (!Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
                 return false;
