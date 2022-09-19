@@ -2,7 +2,6 @@
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 
 //INITIALIZATION:................................
 
@@ -11,10 +10,10 @@ class Program
     private static GameState state;
     private static GameTime globalTimer, gameOverScreenTimer;
 
-    private static Grid<Tile> _tileMap;
-    private static readonly ISet<Tile> MatchesOf3 = new HashSet<Tile>(3);
+    private static Grid _tileMap;
+    private static readonly ISet<ITile> MatchesOf3 = new HashSet<ITile>(3);
     private static Tile? secondClickedTile;
-    private static readonly ISet<Tile> UndoBuffer = new HashSet<Tile>(5);
+    private static readonly ISet<ITile> UndoBuffer = new HashSet<ITile>(5);
     private static bool? wasGameWonB4Timeout = null;
     private static bool toggleGame = false;
     private static int tileCounter;
@@ -86,7 +85,7 @@ class Program
         //Console.WriteLine(output);
         UpdateTimerOnScreen(ref gameOverScreenTimer);
         Raylib.ClearBackground(Raylib.WHITE);
-        Int2 windowSize = new(state.WINDOW_WIDTH, state.WINDOW_HEIGHT);
+        Vector2 windowSize = new(state.WINDOW_WIDTH, state.WINDOW_HEIGHT);
         AdaptableFont gameOverFont = new(AssetManager.DebugFont, output, windowSize, 3f, Raylib.RED);
         DrawScaledFont(gameOverFont);
 
@@ -97,7 +96,7 @@ class Program
     {
         foreach (var match in tiles)
         {
-            UndoBuffer.Add(_tileMap[match.Current]!);
+            UndoBuffer.Add((Tile)_tileMap[match.Current]!);
             _tileMap.Delete(match.Current);
         }
     }
@@ -163,7 +162,7 @@ class Program
         //No tile selected yet
         if (secondClickedTile is null)
         {
-            secondClickedTile = firstClickedTile;
+            secondClickedTile = (Tile)firstClickedTile;
             secondClickedTile.Selected = true;
             return;
         }
@@ -186,6 +185,7 @@ class Program
         if (_tileMap.MatchInAnyDirection(secondClickedTile!.Current, MatchesOf3))
         {
             UndoBuffer.Clear();
+            //GameStateManager.DoSomeChecks(secondClickedTile.TileShape);
 
             if (GameStateManager.TryGetSubQuest(secondClickedTile.TileShape, out int toCollect))
             {
@@ -193,7 +193,7 @@ class Program
 
                 if (tileCounter >= toCollect)
                 {
-                    Console.WriteLine($"Good job, you got your {tileCounter} match3! by {secondClickedTile.TileShape.Kind}");
+                    Console.WriteLine($"Good job, you got your {tileCounter} match3! by {secondClickedTile.TileShape.Sweet}");
                     GameStateManager.RemoveSubQuest(secondClickedTile.TileShape);
                     tileCounter = 0;
                     missedSwapTolerance = 0;
@@ -201,7 +201,7 @@ class Program
                 wasGameWonB4Timeout = GameStateManager.IsQuestDone();
             }
 
-            DeleteMatchesForUndoBuffer(MatchesOf3);
+            DeleteMatchesForUndoBuffer((ISet<Tile>)MatchesOf3);
         }
 
         else
@@ -243,14 +243,14 @@ class Program
                     //for delete we dont have a .IsDeleted, cause we onl NULL
                     //a tile at a certain coordinate, so we test for that
                     //if (_tileMap[storedItem.Current] is { } backupItem)
-                    var tmp = (_tileMap[storedItem.Current] = storedItem);
+                    var tmp = (_tileMap[storedItem.Current] = storedItem) as Tile;
                     tmp!.Selected = false;
                     tmp.ChangeTo(Raylib.WHITE);
                 }
 
                 if (!wasSwappedBack)
                 {
-                    var trigger = Grid<Tile>.MatchXTrigger;
+                    var trigger = Grid.MatchXTrigger;
 
                     if (trigger is not null)
                         _tileMap.Swap(_tileMap[trigger.CoordsB4Swap],

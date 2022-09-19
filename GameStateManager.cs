@@ -1,19 +1,20 @@
 using Match_3.GameTypes;
+using System.Reflection.Metadata;
 
 namespace Match_3;
 
 public static class GameStateManager
 {
-    private static int MaxCapacity => (int)ShapeKind.Length * 5;
+    private static int MaxCapacity => (int)Sweets.Length * 5;
     public const int Max3PerKind = 3;
-    private static readonly Dictionary<ShapeKind, int> ToCollect = new(MaxCapacity);
-    private static readonly Random rnd = new (DateTime.UtcNow.Millisecond);
-   
+    private static readonly Dictionary<Sweets, int> ToCollect = new(MaxCapacity);
+    private static readonly Random rnd = new(DateTime.UtcNow.Millisecond);
+
     public static GameState State { get; private set; }
 
     static GameStateManager()
     {
-        State = new(30, 3, 15, 10, ToCollect, 64, 3);  
+        State = new(30, 3, 15, 10, ToCollect, 64, 3);
     }
 
     private static void LogQuest()
@@ -27,25 +28,30 @@ public static class GameStateManager
 
     public static void SetCollectQuest()
     {
-        for (int i = 0; i < (int)ShapeKind.Length; i++)
+        for (int i = 0; i < (int)Sweets.Length; i++)
         {
-            int count = rnd.Next(Max3PerKind-1, Max3PerKind + 2);
-            State!.ToCollect.TryAdd((ShapeKind)i, (count ));
+            int count = rnd.Next(Max3PerKind - 1, Max3PerKind + 2);
+            State!.ToCollect.TryAdd((Sweets)i, (count));
         }
     }
 
-    public static bool TryGetSubQuest(in Shape shape, out int number)
+    public static bool TryGetSubQuest(IShape shape, out int number)
     {
-        return  ToCollect.TryGetValue(shape.Kind, out number);
+        return ToCollect.TryGetValue(shape.Sweet, out number);
     }
-     
-    public static void RemoveSubQuest(in Shape shape) => ToCollect.Remove(shape.Kind);
 
-    public static bool IsSubQuestDone(in Shape shape, int alreadyMatched) => 
+    public static void RemoveSubQuest(IShape shape) => ToCollect.Remove(shape.Sweet);
+
+    public static bool IsSubQuestDone(IShape shape, int alreadyMatched) =>
         TryGetSubQuest(shape, out int result) && alreadyMatched >= result;
 
-    public static void ChangeSubQuest(in Shape shape, int toChangeWith) 
-        => State.ToCollect[shape.Kind] = toChangeWith;
+    public static void ChangeSubQuest(IShape shape, int toChangeWith)
+        => State.ToCollect[shape.Sweet] = toChangeWith;
+
+    public static void DoSomeChecks<TShape>(TShape shape) where TShape : IShape
+    {
+        Console.WriteLine(shape.FrameLocation);
+    }
 
     public static bool IsQuestDone() => ToCollect.Count == 0;
 
@@ -60,6 +66,6 @@ public static class GameStateManager
         int tileHeight = Utils.Round(rnd, 5..15, 3);
         int gameOverTime = 5;
 
-        State = new(startUpTime, gameOverTime, tileWidth, tileHeight, ToCollect, Grid<Tile>.TileSize, 4);
+        State = new(startUpTime, gameOverTime, tileWidth, tileHeight, ToCollect, Grid.TileSize, 4);
     }
 }

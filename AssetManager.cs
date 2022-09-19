@@ -30,7 +30,8 @@ public static class AssetManager
         var assetFolder = GetAssetfolderName();
         DebugFont = Raylib.LoadFont(assetFolder + "font3.otf");
         WelcomeFont = Raylib.LoadFont(assetFolder + "font3.otf");
-        SpriteSheet = Raylib.LoadTexture(assetFolder + "shapes.png");
+        //SpriteSheet = Raylib.LoadTexture(assetFolder + "shapes.png");
+        SpriteSheet = Raylib.LoadTexture(assetFolder + "candies.png");
     }
      
 }
