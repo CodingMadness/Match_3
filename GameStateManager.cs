@@ -55,7 +55,7 @@ public static class GameStateManager
         SetCollectQuest();
         LogQuest();
 
-        int startUpTime = Utils.Round(rnd, 20..60, 3);
+        int startUpTime = Utils.Round(rnd, 40..60, 3);
         int tileWidth = Utils.Round(rnd, 18..7, 3);
         int tileHeight = Utils.Round(rnd, 10..10, 3);
         int gameOverTime = 5;

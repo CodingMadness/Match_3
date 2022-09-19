@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using Raylib_CsLo;
 
@@ -76,7 +77,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
     {
         int bytes_4_c1 = Unsafe.As<Color, int>(ref c1._toWrap);
         int bytes_4_c2 = Unsafe.As<Color, int>(ref c2._toWrap);
-        return bytes_4_c1 == bytes_4_c2 && Math.Abs(c1.CurrentAlpha - (c2.CurrentAlpha)) < 1e-3; ;
+        return bytes_4_c1 == bytes_4_c2;//&& Math.Abs(c1.CurrentAlpha - (c2.CurrentAlpha)) < 1e-3; ;
     }
 
     public bool Equals(FadeableColor other)
@@ -176,29 +177,37 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
     {
         FadeTint = Raylib.WHITE;
         Ball = Backery.GetTileTypeTypeByNoise(noise);
-
+        
         switch (Ball)
-        {
+        {            
             case Balls.Green:
                 FrameLocation = new Vector2(0f, 0f) * ITile.Size;
+                Form = ShapeKind.Circle;
+                Layer = Coat.A;
                 break;
             case Balls.Purple:
                 FrameLocation = new Vector2(1f, 0f) * ITile.Size;
+                Layer = Coat.B;
                 break;
             case Balls.Orange:
                 FrameLocation = new Vector2(2f, 0f) * ITile.Size;
+                Layer = Coat.C;
                 break;
             case Balls.Yellow:
                 FrameLocation = new Vector2(3f, 0f) * ITile.Size;
+                Layer = Coat.D;
                 break;
             case Balls.Red:
                 FrameLocation = new Vector2(0f, 1f) * ITile.Size;
+                Layer = Coat.E;
                 break;
             case Balls.Blue:
                 FrameLocation = new Vector2(1f, 1f) * ITile.Size;
+                Layer = Coat.F;
                 break;
             case Balls.Violet:
                 FrameLocation = new Vector2(3f, 1f) * ITile.Size;
+                Layer = Coat.G;
                 break;
 
                 //DEFAULTS.......
@@ -220,7 +229,7 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
     public Vector2 FrameLocation { get; init; }
 
     public bool Equals(CandyShape other) =>
-        Ball == other.Ball && FadeTint == other.FadeTint;
+        Ball == other.Ball && Layer == other.Layer;
 
     public override int GetHashCode()
     {
@@ -272,7 +281,7 @@ public sealed class Tile : ITile
 
     public IShape TileShape;
 
-    private FadeableColor _color;
+    private FadeableColor _color = Raylib.WHITE;
 
     public bool Selected
     {
@@ -325,19 +334,24 @@ public sealed class Tile : ITile
        
         var pos = GridPos == Vector2.Zero ? GridPos + (Vector2.UnitY * ITile.Size) : GridPos * ITile.Size;
 
-        TileShape.FadeTint = _selected ? Raylib.BLUE : Raylib.WHITE;//TileShape.FadeTint;
+        _color = _selected ? Raylib.BLUE : Raylib.WHITE;//TileShape.FadeTint;
         _color.ElapsedTime = elapsedTime;
+        TileShape.FadeTint = _color;
 
         Raylib.DrawTextureRec(AssetManager.SpriteSheet,
             new(TileShape.FrameLocation.X, TileShape.FrameLocation.Y, ITile.Size, ITile.Size),
-            pos,
-            TileShape.FadeTint);
+            pos, TileShape.FadeTint);
 
         DrawTextOnTop(GridPos, _selected);
     }
 
     public bool Equals(ITile? other)
     {
-        return other is Tile d && TileShape.Equals(d.TileShape);
+        if (this is Tile a && other is Tile b)
+            if (a.TileShape is CandyShape c && b.TileShape is CandyShape d)
+                if (c.Equals(d))
+                   return true;
+
+        return false;
     }
 }

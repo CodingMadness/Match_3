@@ -36,7 +36,7 @@ namespace Match_3
             noiseMaker.SetFractalType(FastNoiseLite.FractalType.PingPong);
             noiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
 
-            for (int x = 0; x < 1; x++)
+            for (int x = 0; x < TileWidth; x++)
             {
                 for (int y = 1; y < TileHeight; y++)
                 {
@@ -72,7 +72,7 @@ namespace Match_3
                 for (int y = 1; y < TileHeight; y++ )
                 {
                     var tile = _bitmap[x, y];
-                    tile?.Draw(elapsedTime);
+                    tile?.Draw(1f);
                 }
             }
 

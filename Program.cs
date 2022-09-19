@@ -89,7 +89,7 @@ class Program
         return gameOverScreenTimer.Done();
     }
 
-    private static void RememberDeletedMatches(ISet<Tile> tiles)
+    private static void RememberDeletedMatches(ISet<ITile> tiles)
     {
         foreach (var match in tiles)
         {
@@ -157,7 +157,7 @@ class Program
             return;
 
         Console.WriteLine($"{nameof(firstClickedTile)} {firstClickedTile}");
-        Console.WriteLine($"AT Mapposition: {firstClickedTile.GridPos}  we have:  {_tileMap[new(0f,0f)]}" + Environment.NewLine);
+        
         //No tile selected yet
         if (secondClickedTile is null)
         {
@@ -205,7 +205,7 @@ class Program
                 wasGameWonB4Timeout = GameStateManager.IsQuestDone();
             }
 
-            RememberDeletedMatches((ISet<Tile>)MatchesOf3);
+            RememberDeletedMatches(MatchesOf3 as HashSet<ITile>);
         }
 
         else

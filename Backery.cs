@@ -37,7 +37,16 @@ public static class Backery
             GridPos = gridPos,
             CoordsB4Swap = -Vector2.One,
             Selected = false,
-            TileShape = new CandyShape(noise)
+            TileShape = new CandyShape(noise) 
+            {                 
+                FadeTint = new()
+                {
+                    CurrentAlpha = 1f,
+                    AlphaSpeed = 3f,
+                    ElapsedTime = 0f,
+                    TargetAlpha = 1f,
+                }
+            }
         };
         return tile;
     }
