@@ -6,7 +6,7 @@ public record GameState(int GameStartAt,
                            int GameOverScreenTime,
                            int TilemapWidth,
                            int TilemapHeight,
-                           Dictionary<Sweets, int> ToCollect,
+                           Dictionary<Balls, int> ToCollect,
                            int TileSize, int MaxAllowedSwpas)
 {
     public int WINDOW_HEIGHT => TilemapHeight * TileSize;

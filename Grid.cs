@@ -21,7 +21,6 @@ namespace Match_3
         //public double Timer { get; private set; } = 10;
         public readonly int TileWidth;
         public readonly int TileHeight;
-        public const int TileSize = 64;
         private const int MaxDestroyableTiles = 3;
         //private bool _stopDrawingSameStuff = false;
 
@@ -42,16 +41,16 @@ namespace Match_3
                 for (int y = 0; y < TileHeight; y++)
                 {
                     float noise = noiseMaker.GetNoise(x,y);
+                    Vector2 current = new(x, y);
 
                     if (noise < 0f)
                         noise = -noise;
 
-                    else if (noise == 0f) ;
-                    // Console.WriteLine(noise);
-                    //    noise = noiseMaker.GetNoise(x, y);
+                    else if (noise == 0f) 
+                        noise = noiseMaker.GetNoise(x, y);
 
-                    //_bitmap[x, y] = (TTile)TTile.Create(new(x, y), noise);
-                    _bitmap[x, y] = Backery.CreateTile(new(x, y), noise);
+                    _bitmap[x, y] = Backery.CreateTile_1(current, noise);
+                    Console.WriteLine("NOISE: " + noise);
                 }
             }
         }
@@ -192,7 +191,7 @@ namespace Match_3
 
             var mouseVec2 = Raylib.GetMousePosition();
             Vector2 position = new Vector2((int)mouseVec2.X, (int)mouseVec2.Y);
-            position /= TileSize;
+            position /= ITile.Size;
             tile = this[position];
             return tile is not null;
         }

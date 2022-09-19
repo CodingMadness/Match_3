@@ -99,16 +99,23 @@ public struct FadeableColor : IEquatable<FadeableColor>
     public override string ToString() => ToReadableString();
 }
 
-public enum Sweets : sbyte
+//public enum Sweets : sbyte
+//{
+//    Donut = 0,
+//    Cupcake,
+//    Bonbon,
+//    Cookie,
+//    Gummies,
+//    Lolipops,
+//    Empty = -1,
+//    Length = 6
+//}
+
+
+public enum Balls
 {
-    Donut = 0,
-    Cupcake,
-    Bonbon,
-    Cookie,
-    Gummies,
-    Lolipops,
-    Empty = -1,
-    Length = 6
+    Red, Blue, Green, Purple, Orange, Yellow, Violet,
+    Length = Violet + 1, Empty = -1,
 }
 
 public enum ShapeKind
@@ -139,7 +146,7 @@ public interface IShape
     //    if (noise <= 0f)
     //    {
     //        noise += Random.Shared.NextSingle();
-    //        return GetSweetTypeByNoise(noise);
+    //        return GetTileTypeTypeByNoise(noise);
     //    }
 
     //    else if (noise <= 0.1)
@@ -148,62 +155,96 @@ public interface IShape
     //    switch (noise)
     //    {
     //        case <= 0.25f:
-    //            return Sweets.Donut;
+    //            return Balls.Donut;
     //        case > 0.25f and <= 0.35f:
-    //            return Sweets.Cookie;
+    //            return Balls.Cookie;
     //        case > 0.35f and <= 0.45f:
-    //            return Sweets.Cupcake;
+    //            return Balls.Cupcake;
     //        case > 0.45f and <= 0.65f:
-    //            return Sweets.Bonbon;
+    //            return Balls.Bonbon;
     //        case > 0.65f and <= 1f:
-    //            return Sweets.Gummies;
+    //            return Balls.Gummies;
     //        default:
-    //            return Sweets.Empty;
+    //            return Balls.Empty;
     //    }
     //}
 }
 
-public abstract class Candy : IShape, IEquatable<Candy>//, IShape<Candy>
+public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
 {   
-    protected Candy(float noise)
+    public CandyShape(float noise)
     {
         FadeTint = Raylib.WHITE;
-        Sweet = Backery.GetSweetTypeByNoise(noise);
+        Ball = Backery.GetTileTypeTypeByNoise(noise);
+
+        switch (Ball)
+        {
+            case Balls.Red:
+                FrameLocation = new Vector2(0f, 1f) * ITile.Size;
+                break;
+            case Balls.Blue:
+                FrameLocation = new Vector2(1f, 1f) * ITile.Size;
+                break;
+            case Balls.Green:
+                FrameLocation = new Vector2(0f, 0f) * ITile.Size;
+                break;
+            case Balls.Purple:
+                FrameLocation = new Vector2(1f, 0f) * ITile.Size;
+                break;
+            case Balls.Orange:
+                FrameLocation = new Vector2(2f, 0f) * ITile.Size;
+                break;
+            case Balls.Yellow:
+                FrameLocation = new Vector2(3f, 0f) * ITile.Size;
+                break; 
+            case Balls.Violet:
+                FrameLocation = new Vector2(3f, 1f) * ITile.Size;
+                break;
+
+            case Balls.Length:
+                FrameLocation = -Vector2.One;
+                break;
+            case Balls.Empty:
+                FrameLocation = -Vector2.One;
+                break;
+            default:
+                break;
+        }
     }
 
-    public virtual Sweets Sweet { get; }
+    public Balls Ball { get; init; }
     public Coat Layer { get; init; }
     public FadeableColor FadeTint { get; set; }
     public ShapeKind Form { get; init; }
     public Vector2 FrameLocation { get; init; }
 
-    public bool Equals(Candy other) =>
-        Sweet == other.Sweet && FadeTint == other.FadeTint;
+    public bool Equals(CandyShape other) =>
+        Ball == other.Ball && FadeTint == other.FadeTint;
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(FadeTint, Sweet);
+        return HashCode.Combine(FadeTint, Ball);
     }
 
     public override string ToString() =>
-        $"TileShape: {Sweet} with MainColor: {FadeTint}"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
+        $"TileShape: {Ball} with MainColor: {FadeTint}"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
 
     public override bool Equals(object obj)
     {
-        return obj is Candy shape && Equals(shape);
+        return obj is CandyShape shape && Equals(shape);
     }
 
-    public static Candy Create(Vector2 posWithinSpriteSheet)
+    public static CandyShape Create(Vector2 posWithinSpriteSheet)
     {
         throw new NotImplementedException();
     }
 
-    public static bool operator ==(Candy left, Candy right)
+    public static bool operator ==(CandyShape left, CandyShape right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(Candy left, Candy right)
+    public static bool operator !=(CandyShape left, CandyShape right)
     {
         return !(left == right);
     }
@@ -213,21 +254,11 @@ public abstract class Candy : IShape, IEquatable<Candy>//, IShape<Candy>
 /// A hardcoded type which is created from a look into the SpriteSheet!
 /// </summary>
 
-public class Donut : Candy
-{
-    public Donut(float noise) : base(noise)
-    {
-        
-    }
-
-    public override Sweets Sweet => Sweets.Donut;
-}
-
-public interface ITile// : IEquatable<ITile>
+public interface ITile
 {
     public Vector2 Current { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
-    public int Size { get; }
+    public static int Size => 64;
     public bool Selected { get; set; }
     public void Draw(Vector2 position, float elapsedTime);
 }
@@ -235,8 +266,6 @@ public interface ITile// : IEquatable<ITile>
 public sealed class Tile : ITile
 {
     public Vector2 Current { get; set; }
-
-    public int Size => Grid.TileSize;
 
     public Vector2 CoordsB4Swap { get; set; }
 
@@ -271,7 +300,7 @@ public sealed class Tile : ITile
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
         //overwrite the TileShape anyway with the Factorymethod "CreateNewTile(..)";
-        TileShape = new Donut(0.25f);
+        TileShape = new CandyShape(0.25f);
     }
        
     public override string ToString() => $"Current Position: {Current};  {TileShape}";
@@ -285,23 +314,23 @@ public sealed class Tile : ITile
     {
         void DrawTextOnTop(in Vector2 worldPosition, bool selected)
         {
-            float xCenter = worldPosition.X + Size / 4.3f;
-            float yCenter = worldPosition.Y < 128f ? worldPosition.Y + Size / 2.5f :
-                worldPosition.Y >= 128f ? (worldPosition.Y + Size / 2f) - 5f : 0f;
+            float xCenter = worldPosition.X + ITile.Size / 4.3f;
+            float yCenter = worldPosition.Y < 128f ? worldPosition.Y + ITile.Size / 2.5f :
+                worldPosition.Y >= 128f ? (worldPosition.Y + ITile.Size / 2f) - 5f : 0f;
 
             Vector2 drawPos = new(xCenter - 10f, yCenter);
             FadeableColor drawColor = selected ? Raylib.BLACK : Raylib.WHITE;
             Raylib.DrawTextEx(AssetManager.DebugFont, worldPosition.ToString(), drawPos,
                 14f, 1f, selected ? Raylib.BLACK : drawColor);
         }
-        position *= Size;
+        position *= ITile.Size;
 
         TileShape.FadeTint = _selected ? Raylib.BLUE : Raylib.WHITE;//TileShape.FadeTint;
         _color.ElapsedTime = elapsedTime;
 
 
         Raylib.DrawTextureRec(AssetManager.SpriteSheet,
-            new(TileShape.FrameLocation.X, TileShape.FrameLocation.Y, Size, Size),
+            new(TileShape.FrameLocation.X, TileShape.FrameLocation.Y, ITile.Size, ITile.Size),
             position,
             TileShape.FadeTint);
 

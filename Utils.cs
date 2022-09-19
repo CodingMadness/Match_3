@@ -11,6 +11,11 @@
         /// <returns></returns>
         public static int Round(Random rnd, Range r, int divisor)
         {
+            if (r.Start.Value > r.End.Value)
+            {
+                r = new(r.End, r.Start);
+            }
+
             int value = rnd.Next(r.Start.Value, r.End.Value);
             value = value % divisor == 0  ? value : ((int)MathF.Round(value / divisor)) * divisor;
             return value;

@@ -4,9 +4,9 @@ namespace Match_3;
 
 public static class GameStateManager
 {
-    private static int MaxCapacity => (int)Sweets.Length * 5;
+    private static int MaxCapacity => (int)Balls.Length * 5;
     public const int Max3PerKind = 3;
-    private static readonly Dictionary<Sweets, int> ToCollect = new(MaxCapacity);
+    private static readonly Dictionary<Balls, int> ToCollect = new(MaxCapacity);
     private static readonly Random rnd = new(DateTime.UtcNow.Millisecond);
 
     public static GameState State { get; private set; }
@@ -27,25 +27,25 @@ public static class GameStateManager
 
     public static void SetCollectQuest()
     {
-        for (int i = 0; i < (int)Sweets.Length; i++)
+        for (int i = 0; i < (int)Balls.Length; i++)
         {
             int count = rnd.Next(Max3PerKind - 1, Max3PerKind + 2);
-            State!.ToCollect.TryAdd((Sweets)i, (count));
+            State!.ToCollect.TryAdd((Balls)i, (count));
         }
     }
 
-    public static bool TryGetSubQuest(Candy shape, out int number)
+    public static bool TryGetSubQuest(CandyShape shape, out int number)
     {
-        return ToCollect.TryGetValue(shape.Sweet, out number);
+        return ToCollect.TryGetValue(shape.Ball, out number);
     }
 
-    public static void RemoveSubQuest(Candy shape) => ToCollect.Remove(shape.Sweet);
+    public static void RemoveSubQuest(CandyShape shape) => ToCollect.Remove(shape.Ball);
 
-    public static bool IsSubQuestDone(Candy shape, int alreadyMatched) =>
+    public static bool IsSubQuestDone(CandyShape shape, int alreadyMatched) =>
         TryGetSubQuest(shape, out int result) && alreadyMatched >= result;
 
-    public static void ChangeSubQuest(Candy shape, int toChangeWith)
-        => State.ToCollect[shape.Sweet] = toChangeWith;
+    public static void ChangeSubQuest(CandyShape shape, int toChangeWith)
+        => State.ToCollect[shape.Ball] = toChangeWith;
        
     public static bool IsQuestDone() => ToCollect.Count == 0;
 
@@ -56,10 +56,10 @@ public static class GameStateManager
         LogQuest();
 
         int startUpTime = Utils.Round(rnd, 15..60, 3);
-        int tileWidth = Utils.Round(rnd, 5..15, 3);
-        int tileHeight = Utils.Round(rnd, 5..15, 3);
+        int tileWidth = Utils.Round(rnd, 18..7, 3);
+        int tileHeight = Utils.Round(rnd, 10..10, 3);
         int gameOverTime = 5;
 
-        State = new(startUpTime, gameOverTime, tileWidth, tileHeight, ToCollect, Grid.TileSize, 4);
+        State = new(startUpTime, gameOverTime, tileWidth, tileHeight, ToCollect, ITile.Size, 4);
     }
 }

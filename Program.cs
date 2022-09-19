@@ -19,7 +19,6 @@ class Program
     private static int tileCounter;
     private static int missedSwapTolerance = 0;
 
-
     private static void Main()
     {
         Initialize();
@@ -39,7 +38,7 @@ class Program
         Raylib.SetTargetFPS(60);
         Raylib.InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Alex und Shpend");
         AssetManager.Init();
-        Console.Clear();
+        //Console.Clear();
     }
 
     
@@ -59,7 +58,7 @@ class Program
     private static void DrawScaledFont(in AdaptableFont font)
     {
         var scaled = font.CenterText();
-        Raylib.DrawTextEx(scaled.Src, scaled.Text, scaled.Begin, scaled.Size, 1f, font.Color);
+        Raylib.DrawTextEx(scaled.Src, scaled.Text, scaled.Begin, ITile.Size, 1f, font.Color);
     }
 
     private static bool ShowWelcomeScreenOnLoop(bool shallClearTxt)
@@ -92,7 +91,7 @@ class Program
         return gameOverScreenTimer.Done();
     }
 
-    private static void DeleteMatchesForUndoBuffer(ISet<Tile> tiles)
+    private static void RememberDeletedMatches(ISet<Tile> tiles)
     {
         foreach (var match in tiles)
         {
@@ -106,7 +105,7 @@ class Program
         while (!Raylib.WindowShouldClose())
         {
             Raylib.BeginDrawing();
-            Raylib.ClearBackground(Raylib.BEIGE);
+            Raylib.ClearBackground(Raylib.WHITE);
 
             //render text on 60fps
             if (!toggleGame)
@@ -182,7 +181,7 @@ class Program
         UndoBuffer.Add(secondClickedTile);
         secondClickedTile.Selected = false;
 
-        var candy = secondClickedTile is not null ? secondClickedTile.TileShape as Candy : null;
+        var candy = secondClickedTile is not null ? secondClickedTile.TileShape as CandyShape : null;
 
         if (candy is null)
             return;
@@ -198,7 +197,7 @@ class Program
 
                 if (tileCounter >= toCollect)
                 {
-                    Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Sweet}");
+                    Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
                     GameStateManager.RemoveSubQuest(candy);
                     tileCounter = 0;
                     missedSwapTolerance = 0;
@@ -206,7 +205,7 @@ class Program
                 wasGameWonB4Timeout = GameStateManager.IsQuestDone();
             }
 
-            DeleteMatchesForUndoBuffer((ISet<Tile>)MatchesOf3);
+            RememberDeletedMatches((ISet<Tile>)MatchesOf3);
         }
 
         else
