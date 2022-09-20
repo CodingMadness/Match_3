@@ -22,12 +22,11 @@ namespace Match_3
         public readonly int TileWidth;
         public readonly int TileHeight;
         private const int MaxDestroyableTiles = 3;
-        //private bool _stopDrawingSameStuff = false;
 
         public static ITile? MatchXTrigger { get; private set; }
         private GameTime _gridTimer;
-
         private readonly bool isDrawn = true;
+        private byte _match3FuncCounter = 0;
 
         private void CreateMap()
         {
@@ -40,13 +39,13 @@ namespace Match_3
             {
                 for (int y = 1; y < TileHeight; y++)
                 {
-                    float noise = noiseMaker.GetNoise(x,y);
+                    float noise = noiseMaker.GetNoise(x, y);
                     Vector2 current = new(x, y);
 
                     if (noise < 0f)
                         noise = -noise;
 
-                    else if (noise == 0f) 
+                    else if (noise == 0f)
                         noise = noiseMaker.GetNoise(x, y);
 
                     _bitmap[x, y] = Backery.CreateTile_1(current, noise);
@@ -60,7 +59,7 @@ namespace Match_3
             TileWidth = current.TilemapWidth;
             TileHeight = current.TilemapHeight;
             _bitmap = new ITile[TileWidth, TileHeight];
-            _gridTimer = GameTime.GetTimer(5*60);
+            _gridTimer = GameTime.GetTimer(5 * 60);
             CreateMap();
         }
 
@@ -69,10 +68,10 @@ namespace Match_3
             //Do this Draw second per second OLNLY ONCE
             for (int x = 0; x < TileWidth; x++)
             {
-                for (int y = 1; y < TileHeight; y++ )
+                for (int y = 1; y < TileHeight; y++)
                 {
                     var tile = _bitmap[x, y];
-                    tile?.Draw(1f);
+                    tile?.Draw(elapsedTime);
                 }
             }
 
@@ -84,8 +83,8 @@ namespace Match_3
         {
             get
             {
-                if (coord.X >= 0 && coord.X < TileWidth 
-                                 &&coord.Y >= 0 && coord.Y < TileHeight)
+                if (coord.X >= 0 && coord.X < TileWidth
+                                 && coord.Y >= 0 && coord.Y < TileHeight)
                 {
                     //its within bounds!
                     var tmp = _bitmap[(int)coord.X, (int)coord.Y];
@@ -103,7 +102,7 @@ namespace Match_3
             }
         }
 
-        public bool MatchInAnyDirection(Vector2 clickedCoord, ISet<ITile> matches)
+        public bool MatchInAnyDirection(ITile match3Trigger, ISet<ITile> matches)
         {
             static bool AddWhenEqual(ITile first, ITile next, ISet<ITile> matches)
             {
@@ -137,24 +136,29 @@ namespace Match_3
 
             const Direction lastDir = (Direction)4;
 
-            ITile first = this[clickedCoord];
-            MatchXTrigger = this[clickedCoord];
+            MatchXTrigger = match3Trigger;
 
-            for (Direction i = 0; (i < lastDir); i++)
+            var coordA = MatchXTrigger.GridCoords;
+            var coordB = MatchXTrigger.CoordsB4Swap;
+
+            for (Direction i = 0; i < lastDir; i++)
             {
-                /*
-                if (matches.Count == MAX_DESTROYABLE_TILES)
-                    return true;
-                */
-                Vector2 nextCoords = GetStepsFromDirection(clickedCoord, i);
+                Vector2 nextCoords = GetStepsFromDirection(MatchXTrigger.GridCoords, i);
                 ITile next = this[nextCoords];
 
-                while (AddWhenEqual(first, next, matches) /*&& matches.Count < MAX_DESTROYABLE_TILES*/)
+                while (AddWhenEqual(MatchXTrigger, next, matches))
                 {
                     //compute the proper (x,y) for next round!
                     nextCoords = GetStepsFromDirection(nextCoords, i);
                     next = this[nextCoords];
                 }
+            }
+            //it is kinda working, but depending on game logic, I would like to be able to
+            //potentially swap endlessly the same matching-tiles...
+            if (matches.Count < MaxDestroyableTiles && ++_match3FuncCounter <= 1)
+            {
+                matches.Clear();    
+                return MatchInAnyDirection(this[coordB], matches);
             }
 
             return matches.Count == MaxDestroyableTiles;
@@ -179,10 +183,10 @@ namespace Match_3
             if (a is null || b is null)
                 return;
 
-            this[a.GridPos] = b;
-            this[b.GridPos] = a;
-            (a.GridPos, b.GridPos) = (b.GridPos, a.GridPos);
-            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.GridPos, a.GridPos);
+            this[a.GridCoords] = b;
+            this[b.GridCoords] = a;
+            (a.GridCoords, b.GridCoords) = (b.GridCoords, a.GridCoords);
+            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.GridCoords, a.GridCoords);
         }
 
         public void Delete(Vector2 coord) => this[coord] = null!;

@@ -49,7 +49,7 @@
 
 using System.Runtime.CompilerServices;
 
-// Switch between using floats or doubles for input GridPos
+// Switch between using floats or doubles for input GridCoords
 using FNLfloat = System.Single;
 //using FNLfloat = System.Double;
 namespace Match_3;
@@ -269,7 +269,7 @@ public class FastNoiseLite
     public void SetCellularReturnType(CellularReturnType cellularReturnType) { mCellularReturnType = cellularReturnType; }
 
     /// <summary>
-    /// Sets the maximum distance a cellular point can move from it's grid GridPos
+    /// Sets the maximum distance a cellular point can move from it's grid GridCoords
     /// </summary>
     /// <remarks>
     /// Default: 1.0
@@ -292,7 +292,7 @@ public class FastNoiseLite
 
 
     /// <summary>
-    /// Sets the maximum warp distance from original GridPos when using DomainWarp(...)
+    /// Sets the maximum warp distance from original GridCoords when using DomainWarp(...)
     /// </summary>
     /// <remarks>
     /// Default: 1.0
@@ -301,7 +301,7 @@ public class FastNoiseLite
 
 
     /// <summary>
-    /// 2D noise at given GridPos using current settings
+    /// 2D noise at given GridCoords using current settings
     /// </summary>
     /// <returns>
     /// Noise output bounded between -1...1
@@ -325,7 +325,7 @@ public class FastNoiseLite
     }
 
     /// <summary>
-    /// 3D noise at given GridPos using current settings
+    /// 3D noise at given GridCoords using current settings
     /// </summary>
     /// <returns>
     /// Noise output bounded between -1...1
@@ -350,7 +350,7 @@ public class FastNoiseLite
 
 
     /// <summary>
-    /// 2D warps the input GridPos using current domain warp settings
+    /// 2D warps the input GridCoords using current domain warp settings
     /// </summary>
     /// <example>
     /// Example usage with GetNoise
@@ -375,7 +375,7 @@ public class FastNoiseLite
     }
 
     /// <summary>
-    /// 3D warps the input GridPos using current domain warp settings
+    /// 3D warps the input GridCoords using current domain warp settings
     /// </summary>
     /// <example>
     /// Example usage with GetNoise

@@ -261,7 +261,7 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
 
 public interface ITile : IEquatable<ITile>
 {
-    public Vector2 GridPos { get; set; }
+    public Vector2 GridCoords { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public static int Size => 64;
     public bool Selected { get; set; }
@@ -271,9 +271,9 @@ public interface ITile : IEquatable<ITile>
 public sealed class Tile : ITile
 {
     /// <summary>
-    /// Important always is: Match GridPos with the actual Drawing-Location of the window!
+    /// Important always is: Match GridCoords with the actual Drawing-Location of the window!
     /// </summary>
-    public Vector2 GridPos { get; set; }
+    public Vector2 GridCoords { get; set; }
 
     public Vector2 CoordsB4Swap { get; set; }
 
@@ -311,7 +311,7 @@ public sealed class Tile : ITile
         TileShape = new CandyShape(0.25f);
     }
 
-    public override string ToString() => $"GridPos: {GridPos}; ---- {TileShape}";
+    public override string ToString() => $"GridCoords: {GridCoords}; ---- {TileShape}";
 
     public void ChangeTo(FadeableColor color)
     {
@@ -328,11 +328,11 @@ public sealed class Tile : ITile
 
             Vector2 drawPos = new(xCenter - 10f, yCenter);
             FadeableColor drawColor = selected ? Raylib.BLACK : Raylib.WHITE;
-            Raylib.DrawTextEx(AssetManager.DebugFont, worldPosition.ToString(), drawPos,
-                14f, 1f, selected ? Raylib.BLACK : drawColor);
+            Raylib.DrawTextEx(AssetManager.DebugFont, (worldPosition/ ITile.Size).ToString(), drawPos,
+                20f, 1f, selected ? Raylib.BLACK : drawColor);
         }
 
-        var pos = GridPos == Vector2.Zero ? GridPos + (Vector2.UnitY * ITile.Size) : GridPos * ITile.Size;
+        var pos = GridCoords == Vector2.Zero ? GridCoords + (Vector2.UnitY * ITile.Size) : GridCoords * ITile.Size;
 
         _color = _selected ? Raylib.BLUE : Raylib.WHITE;//TileShape.FadeTint;
         _color.ElapsedTime = elapsedTime;
@@ -342,7 +342,7 @@ public sealed class Tile : ITile
             new(TileShape.FrameLocation.X, TileShape.FrameLocation.Y, ITile.Size, ITile.Size),
             pos, TileShape.FadeTint);
 
-        DrawTextOnTop(GridPos, _selected);
+        DrawTextOnTop(GridCoords * ITile.Size, _selected);
     }
 
     public bool Equals(Tile? other)

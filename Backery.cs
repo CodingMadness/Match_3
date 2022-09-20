@@ -34,7 +34,7 @@ public static class Backery
     {
         var tile = new Tile
         {
-            GridPos = gridPos,
+            GridCoords = gridPos,
             CoordsB4Swap = -Vector2.One,
             Selected = false,
             TileShape = new CandyShape(noise) 
@@ -129,7 +129,7 @@ public static class Backery
     //        }
     //        var mapTile = new Tile
     //        {
-    //            GridPos = start,
+    //            GridCoords = start,
     //            CoordsB4Swap = -Vector2.One,
     //            Selected = false,
     //            TileShape = tmp,  

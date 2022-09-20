@@ -42,8 +42,8 @@ class Program
     
     public static void UpdateTimerOnScreen(ref GameTime timer)
     {
-        if (timer.ElapsedSeconds <= timer.MAX_TIMER_VALUE / 2f)
-            timer.ElapsedSeconds -= Raylib.GetFrameTime() * 1.3f;
+        if (timer.ElapsedSeconds <= timer.MAX_TIMER_VALUE / 2f) ;
+           // timer.ElapsedSeconds -= Raylib.GetFrameTime() * 1.3f;
 
         timer.UpdateTimer();
         string txt = ((int)timer.ElapsedSeconds).ToString();
@@ -95,8 +95,11 @@ class Program
     {
         foreach (var match in tiles)
         {
-            UndoBuffer.Add((Tile)_tileMap[match.GridPos]!);
-            _tileMap.Delete(match.GridPos);
+            if (match is null)
+                continue;
+
+            UndoBuffer.Add((Tile)_tileMap[match.GridCoords]!);
+            _tileMap.Delete(match.GridCoords);
         }
     }
 
@@ -192,8 +195,8 @@ class Program
 
         if (candy is null)
             return;
-
-        if (_tileMap.MatchInAnyDirection(secondClickedTile!.GridPos, MatchesOf3))           
+        TryMatchWithFirstTile:
+        if (_tileMap.MatchInAnyDirection(secondClickedTile!, MatchesOf3))           
         {
             UndoBuffer.Clear();
 
@@ -215,14 +218,21 @@ class Program
         }
         else
         {
-            if (++missedSwapTolerance == state.MaxAllowedSwpas)
-            {
-                Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
-                GameStateManager.ChangeSubQuest(candy, tileCounter + 3);
-                missedSwapTolerance = 0;
-            }
+            //if (++missedSwapTolerance == state.MaxAllowedSwpas)
+            //{
+            //    Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
+            //    GameStateManager.ChangeSubQuest(candy, tileCounter + 3);
+            //    missedSwapTolerance = 0;
+            //}
+            //if (MatchesOf3.Count == 0)
+            //{
+            //    secondClickedTile = (Tile)firstClickedTile;
+            //    Console.WriteLine("calling GOTO in order to try it with the 1. tile");
+            //    MatchesOf3.Add(null!); //this line we just do, in order to interrupt the GOTO call again!
+            //    goto TryMatchWithFirstTile;
+            //}
         }
-
+        
         //Console.WriteLine(firstClickedTile);
         MatchesOf3.Clear();
         secondClickedTile = null;
@@ -241,9 +251,9 @@ class Program
             foreach (Tile storedItem in UndoBuffer)
             {
                 //check if they have been ONLY swapped without leading to a match3
-                if (!wasSwappedBack && _tileMap[storedItem.GridPos] is not null)
+                if (!wasSwappedBack && _tileMap[storedItem.GridCoords] is not null)
                 {
-                    var secondTile = _tileMap[storedItem.GridPos];
+                    var secondTile = _tileMap[storedItem.GridCoords];
                     var firstTie = _tileMap[storedItem.CoordsB4Swap];
                     _tileMap.Swap(secondTile, firstTie);
                     wasSwappedBack = true;
@@ -253,8 +263,8 @@ class Program
                     //their has been a match3 after swap!
                     //for delete we dont have a .IsDeleted, cause we onl NULL
                     //a tile at a certain coordinate, so we test for that
-                    //if (_tileMap[storedItem.GridPos] is { } backupItem)
-                    var tmp = (_tileMap[storedItem.GridPos] = storedItem) as Tile;
+                    //if (_tileMap[storedItem.GridCoords] is { } backupItem)
+                    var tmp = (_tileMap[storedItem.GridCoords] = storedItem) as Tile;
                     tmp!.Selected = false;
                     tmp.ChangeTo(Raylib.WHITE);
                 }
@@ -265,7 +275,7 @@ class Program
 
                     if (trigger is not null)
                         _tileMap.Swap(_tileMap[trigger.CoordsB4Swap],
-                                       _tileMap[trigger.GridPos]);
+                                       _tileMap[trigger.GridCoords]);
 
                     wasSwappedBack = true;
                 }
