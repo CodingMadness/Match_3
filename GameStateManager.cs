@@ -29,8 +29,8 @@ public static class GameStateManager
             else
             {
                 string txt = $"You have to collect {pair.Value} {pair.Key}-tiles!";
-                GameFont logFont = new(AssetManager.DebugFont, txt, State.Center, 10f, Raylib.RED);
-                Program.DrawScaledFont(logFont);
+                GameText logText = new(AssetManager.DebugFont, txt, new(State.Center.X, 3*ITile.Size), 5, Raylib.RED);
+                Program.DrawScaledFont(logText.ScaleText());
             }
         }
     }
@@ -40,7 +40,7 @@ public static class GameStateManager
         for (int i = 0; i < (int)Balls.Length-1; i++)
         {
             int count = rnd.Next(Max3PerKind - 1, Max3PerKind + 2);
-            State!.ToCollect.TryAdd((Balls)i, (count));
+            State!.ToCollect.TryAdd((Balls)i, count);
         }
     }
 
@@ -65,7 +65,7 @@ public static class GameStateManager
         SetCollectQuest();
         LogQuest(true);
 
-        int startUpTime = Utils.Round(rnd, 40..60, 3);
+        int startUpTime = Utils.Round(rnd, 40..20, 3);
         int tileWidth = Utils.Round(rnd, 10..15, 3);
         int tileHeight = Utils.Round(rnd, 10..15, 3);
         int gameOverTime = 5;

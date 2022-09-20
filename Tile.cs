@@ -135,7 +135,7 @@ public enum Coat
 public interface IShape
 {
     public ShapeKind Form { get; init; }
-    
+
     public Vector2 FrameLocation { get; init; }
 
     public FadeableColor FadeTint { get; set; }
@@ -172,14 +172,14 @@ public interface IShape
 }
 
 public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
-{   
+{
     public CandyShape(float noise)
     {
         FadeTint = Raylib.WHITE;
         Ball = Backery.GetTileTypeTypeByNoise(noise);
-        
+
         switch (Ball)
-        {            
+        {
             case Balls.Green:
                 FrameLocation = new Vector2(0f, 0f) * ITile.Size;
                 Form = ShapeKind.Circle;
@@ -210,7 +210,7 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
                 Layer = Coat.G;
                 break;
 
-                //DEFAULTS.......
+            //DEFAULTS.......
             case Balls.Length:
                 FrameLocation = -Vector2.One;
                 break;
@@ -259,7 +259,7 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
 /// A hardcoded type which is created from a look into the SpriteSheet!
 /// </summary>
 
-public interface ITile
+public interface ITile : IEquatable<ITile>
 {
     public Vector2 GridPos { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
@@ -303,14 +303,14 @@ public sealed class Tile : ITile
             TileShape.FadeTint = _color;
         }
     }
-
+ 
     public Tile()
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
         //overwrite the TileShape anyway with the Factorymethod "CreateNewTile(..)";
         TileShape = new CandyShape(0.25f);
     }
-       
+
     public override string ToString() => $"GridPos: {GridPos}; ---- {TileShape}";
 
     public void ChangeTo(FadeableColor color)
@@ -331,7 +331,7 @@ public sealed class Tile : ITile
             Raylib.DrawTextEx(AssetManager.DebugFont, worldPosition.ToString(), drawPos,
                 14f, 1f, selected ? Raylib.BLACK : drawColor);
         }
-       
+
         var pos = GridPos == Vector2.Zero ? GridPos + (Vector2.UnitY * ITile.Size) : GridPos * ITile.Size;
 
         _color = _selected ? Raylib.BLUE : Raylib.WHITE;//TileShape.FadeTint;
@@ -345,13 +345,17 @@ public sealed class Tile : ITile
         DrawTextOnTop(GridPos, _selected);
     }
 
-    public bool Equals(ITile? other)
+    public bool Equals(Tile? other)
     {
-        if (this is Tile a && other is Tile b)
-            if (a.TileShape is CandyShape c && b.TileShape is CandyShape d)
-                if (c.Equals(d))
-                   return true;
+        if (TileShape is CandyShape c && other is not null && other.TileShape is CandyShape d)
+            if (c.Equals(d))
+                return true;
 
         return false;
+    }
+
+    bool IEquatable<ITile>.Equals(ITile? other)
+    {
+        return Equals(other as Tile);
     }
 }

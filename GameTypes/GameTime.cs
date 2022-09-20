@@ -10,7 +10,7 @@ public struct GameTime
 
     }
 
-    public float ElapsedSeconds { get; private set; }
+    public float ElapsedSeconds { get; set; }
 
     public int MAX_TIMER_VALUE { get; init; }
 
@@ -27,7 +27,7 @@ public struct GameTime
     {
         // subtract this frame from the globalTimer if it's not allready expired
         if (ElapsedSeconds > 0.000f)
-            ElapsedSeconds -= (float)Raylib.GetFrameTime();
+            ElapsedSeconds -= MathF.Round(Raylib.GetFrameTime(), 2);
 
         //Console.WriteLine((int)ElapsedSeconds + "  time gone");
     }
