@@ -16,7 +16,7 @@ class Program
     private static readonly ISet<ITile> UndoBuffer = new HashSet<ITile>(5);
     private static bool? wasGameWonB4Timeout = null;
     private static bool toggleGame = false;
-    private static int tileCounter;
+    private static int tileCounter = 0;
     private static int missedSwapTolerance = 0;
 
     private static void Main()
@@ -37,12 +37,14 @@ class Program
         Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         Raylib.InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Alex und Shpend");
         AssetManager.Init();
-        Console.Clear();
-        GameStateManager.LogQuest(false);
+        Console.Clear();        
     }
     
     public static void UpdateTimerOnScreen(ref GameTime timer)
     {
+        if (timer.ElapsedSeconds <= timer.MAX_TIMER_VALUE / 2f)
+            timer.ElapsedSeconds -= Raylib.GetFrameTime() * 1.3f;
+
         timer.UpdateTimer();
         string txt = ((int)timer.ElapsedSeconds).ToString();
 
@@ -54,7 +56,7 @@ class Program
             timer.ElapsedSeconds > 0f ? Raylib.RED : Raylib.BEIGE);
     }
     
-    public static void DrawScaledFont(in GameFont font)
+    public static void DrawScaledFont(in GameText font)
     {       
         Raylib.DrawTextEx(font.Src, font.Text, font.Begin, font.Size, 1f, font.Color);
     }
@@ -65,10 +67,9 @@ class Program
         FadeableColor tmp = Raylib.RED;
         tmp.CurrentAlpha = shallClearTxt ? 0f : 1f;
         tmp.TargetAlpha = 1f;
-        Vector2 aThirdOfScreen = new(state.WINDOW_WIDTH/4.5f, 15);
-         
-        GameFont welcomeFont = new(AssetManager.DebugFont, txt, aThirdOfScreen, 5, tmp);
-        DrawScaledFont(welcomeFont.CenterText());        
+        Vector2 aThirdOfScreen = new(state.WINDOW_WIDTH/4.5f, 15);         
+        GameText welcomeFont = new(AssetManager.DebugFont, txt, aThirdOfScreen, 5, tmp);
+        DrawScaledFont(welcomeFont.AlignText());        
     }
 
     private static bool OnGameOver(bool? gameWon)
@@ -84,7 +85,7 @@ class Program
         UpdateTimerOnScreen(ref gameOverScreenTimer);
         Raylib.ClearBackground(Raylib.WHITE);
         Vector2 windowSize = new(state.WINDOW_WIDTH/2, state.WINDOW_HEIGHT);
-        GameFont gameOverFont = new(AssetManager.DebugFont, output, windowSize, 3f, Raylib.RED);
+        GameText gameOverFont = new(AssetManager.DebugFont, output, windowSize, 3f, Raylib.RED);
         DrawScaledFont(gameOverFont);
 
         return gameOverScreenTimer.Done();
@@ -108,8 +109,10 @@ class Program
 
             //render text on 60fps
             if (!toggleGame)
+            {
                 ShowWelcomeScreenOnLoop(false);
-
+                GameStateManager.LogQuest(false);
+            }
             if (Raylib.IsKeyDown(KeyboardKey.KEY_ENTER) || toggleGame)
             {                
                 bool isGameOver = globalTimer.Done();
@@ -168,6 +171,7 @@ class Program
         }
 
         //Same tile selected => deselect
+        //WRONG LOGIC IN EQUALS!
         if (firstClickedTile.Equals(secondClickedTile))
         {
             secondClickedTile.Selected = false;
@@ -182,21 +186,22 @@ class Program
         UndoBuffer.Add(secondClickedTile);
         secondClickedTile.Selected = false;
 
-        var candy = secondClickedTile is not null ? secondClickedTile.TileShape as CandyShape : null;
+        var candy = secondClickedTile is not null ? 
+                       secondClickedTile.TileShape as CandyShape : 
+                         null;
 
         if (candy is null)
             return;
 
-        if (_tileMap.MatchInAnyDirection(secondClickedTile!.GridPos, MatchesOf3))
+        if (_tileMap.MatchInAnyDirection(secondClickedTile!.GridPos, MatchesOf3))           
         {
             UndoBuffer.Clear();
-            //GameStateManager.DoSomeChecks(secondClickedTile.TileShape);          
 
             if (GameStateManager.TryGetSubQuest(candy, out int toCollect))
             {
-                tileCounter += 3;
+                tileCounter += 1;
 
-                if (tileCounter >= toCollect)
+                if (tileCounter == toCollect)
                 {
                     Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
                     GameStateManager.RemoveSubQuest(candy);
@@ -206,9 +211,8 @@ class Program
                 wasGameWonB4Timeout = GameStateManager.IsQuestDone();
             }
 
-            RememberDeletedMatches(MatchesOf3 as HashSet<ITile>);
+            RememberDeletedMatches(MatchesOf3);
         }
-
         else
         {
             if (++missedSwapTolerance == state.MaxAllowedSwpas)
