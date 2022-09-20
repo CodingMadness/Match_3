@@ -32,7 +32,6 @@ public static class AssetManager
 
         return $"{projectPath}{assetFolderName}"; 
     }
-
     
     public static void Init()
     { 

@@ -1,4 +1,5 @@
 using Match_3.GameTypes;
+using Raylib_CsLo;
 
 namespace Match_3;
 
@@ -16,12 +17,21 @@ public static class GameStateManager
         State = new(30, 3, 15, 10, ToCollect, 64, 3);
     }
 
-    private static void LogQuest()
+    public static void LogQuest(bool useConsole)
     {
         foreach (var pair in ToCollect)
         {
-            Console.WriteLine($"You have to collect {pair.Value} {pair.Key}-tiles!");
-            Console.WriteLine();
+            if (useConsole)
+            {
+                Console.WriteLine($"You have to collect {pair.Value} {pair.Key}-tiles!");
+                Console.WriteLine();
+            }
+            else
+            {
+                string txt = $"You have to collect {pair.Value} {pair.Key}-tiles!";
+                GameFont logFont = new(AssetManager.DebugFont, txt, State.Center, 10f, Raylib.RED);
+                Program.DrawScaledFont(logFont);
+            }
         }
     }
 
@@ -53,11 +63,11 @@ public static class GameStateManager
     {
         State?.ToCollect.Clear();
         SetCollectQuest();
-        LogQuest();
+        LogQuest(true);
 
         int startUpTime = Utils.Round(rnd, 40..60, 3);
-        int tileWidth = Utils.Round(rnd, 18..7, 3);
-        int tileHeight = Utils.Round(rnd, 10..10, 3);
+        int tileWidth = Utils.Round(rnd, 10..15, 3);
+        int tileHeight = Utils.Round(rnd, 10..15, 3);
         int gameOverTime = 5;
 
         State = new(startUpTime, gameOverTime, tileWidth, tileHeight, ToCollect, ITile.Size, 4);

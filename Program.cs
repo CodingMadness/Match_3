@@ -34,11 +34,12 @@ class Program
         gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
         _tileMap = new(state);
         Raylib.SetTargetFPS(60);
+        Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         Raylib.InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Alex und Shpend");
         AssetManager.Init();
         Console.Clear();
+        GameStateManager.LogQuest(false);
     }
-
     
     public static void UpdateTimerOnScreen(ref GameTime timer)
     {
@@ -53,21 +54,21 @@ class Program
             timer.ElapsedSeconds > 0f ? Raylib.RED : Raylib.BEIGE);
     }
     
-    private static void DrawScaledFont(in AdaptableFont font)
-    {
-        var scaled = font.CenterText();
-        Raylib.DrawTextEx(scaled.Src, scaled.Text, scaled.Begin, ITile.Size, 1f, font.Color);
+    public static void DrawScaledFont(in GameFont font)
+    {       
+        Raylib.DrawTextEx(font.Src, font.Text, font.Begin, font.Size, 1f, font.Color);
     }
 
-    private static bool ShowWelcomeScreenOnLoop(bool shallClearTxt)
+    private static void ShowWelcomeScreenOnLoop(bool shallClearTxt)
     {
-        string txt = "WELCOME";
+        string txt = "WELCOME YOUNG MATCH_3 ADDICT!";
         FadeableColor tmp = Raylib.RED;
         tmp.CurrentAlpha = shallClearTxt ? 0f : 1f;
         tmp.TargetAlpha = 1f;
-        AdaptableFont welcomeFont = new(AssetManager.DebugFont, txt, new(state.Center.X, 60), 10, tmp);
-        DrawScaledFont(welcomeFont.ScaleText());        
-        return shallClearTxt;
+        Vector2 aThirdOfScreen = new(state.WINDOW_WIDTH/4.5f, 15);
+         
+        GameFont welcomeFont = new(AssetManager.DebugFont, txt, aThirdOfScreen, 5, tmp);
+        DrawScaledFont(welcomeFont.CenterText());        
     }
 
     private static bool OnGameOver(bool? gameWon)
@@ -82,8 +83,8 @@ class Program
         //Console.WriteLine(output);
         UpdateTimerOnScreen(ref gameOverScreenTimer);
         Raylib.ClearBackground(Raylib.WHITE);
-        Vector2 windowSize = new(state.WINDOW_WIDTH, state.WINDOW_HEIGHT);
-        AdaptableFont gameOverFont = new(AssetManager.DebugFont, output, windowSize, 3f, Raylib.RED);
+        Vector2 windowSize = new(state.WINDOW_WIDTH/2, state.WINDOW_HEIGHT);
+        GameFont gameOverFont = new(AssetManager.DebugFont, output, windowSize, 3f, Raylib.RED);
         DrawScaledFont(gameOverFont);
 
         return gameOverScreenTimer.Done();
@@ -139,7 +140,7 @@ class Program
                 {
                     //Keep the game Drawing!
                     UpdateTimerOnScreen(ref globalTimer);
-                    ShowWelcomeScreenOnLoop(true);
+                    ShowWelcomeScreenOnLoop(false);
                     _tileMap.Draw(globalTimer.ElapsedSeconds);
                     ProcessSelectedTiles();
                     UndoLastOperation();
@@ -156,7 +157,7 @@ class Program
         if (!_tileMap.TryGetClickedTile(out var firstClickedTile))
             return;
 
-        Console.WriteLine($"{nameof(firstClickedTile)} {firstClickedTile}");
+       //Console.WriteLine($"{nameof(firstClickedTile)} {firstClickedTile}");
         
         //No tile selected yet
         if (secondClickedTile is null)
@@ -210,14 +211,12 @@ class Program
 
         else
         {
-            /*           
-            if (++missedSwapTolerance == state.MaxAllowedSwpas) 
+            if (++missedSwapTolerance == state.MaxAllowedSwpas)
             {
                 Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
-                GameStateManager.ChangeSubQuest(candy, tileCounter+3);
+                GameStateManager.ChangeSubQuest(candy, tileCounter + 3);
                 missedSwapTolerance = 0;
             }
-            */
         }
 
         //Console.WriteLine(firstClickedTile);

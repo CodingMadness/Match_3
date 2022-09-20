@@ -118,7 +118,6 @@ namespace Match_3
                     matches.Add(next);
                     return true;
                 }
-
                 return false;
             }
 
