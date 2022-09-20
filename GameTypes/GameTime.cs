@@ -32,10 +32,6 @@ public struct GameTime
         //Console.WriteLine((int)ElapsedSeconds + "  time gone");
     }
 
-
-    //public readonly TimeSpan Stop() => 
-    //    TimeSpan.FromMilliseconds(ElapsedSeconds - Raylib.GetFrameTime());
-
     public readonly bool Done()
     {
         bool done = ElapsedSeconds <= 0f;

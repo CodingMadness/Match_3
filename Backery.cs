@@ -4,6 +4,8 @@ namespace Match_3;
 
 public static class Backery
 {
+    private static readonly Dictionary<float, Balls> ballList = new((GameStateManager.State.TilemapHeight * GameStateManager.State.TilemapWidth) / 2);
+
     public static Balls GetTileTypeTypeByNoise(float noise)
     {
         noise = MathF.Round(noise, 2, MidpointRounding.ToPositiveInfinity);
@@ -17,17 +19,28 @@ public static class Backery
         else if (noise <= 0.1)
             noise *= 10;
 
-        return noise switch
+        (Balls, float) ballToNoise = (Balls.Empty, -1f);
+
+        var result = noise switch
         {
-            <= 0.25f             => Balls.Red,
-            > 0.25f and <= 0.35f => Balls.Orange,
-            > 0.35f and <= 0.45f => Balls.Blue,
-            > 0.45f and <= 0.55f => Balls.Green,
-            > 0.55f and <= 0.65f => Balls.Purple,
-            > 0.65f and <= 0.75f => Balls.Violet,
-            > 0.75f and <= 1f => Balls.Yellow,
-            _ => Balls.Empty,
+            <= 0.25f             => ballToNoise = (Balls.Red, noise),
+            > 0.25f and <= 0.35f => ballToNoise = (Balls.Orange, noise),
+            > 0.35f and <= 0.45f => ballToNoise = (Balls.Blue, noise),
+            > 0.45f and <= 0.55f => ballToNoise = (Balls.Green, noise),
+            > 0.55f and <= 0.65f => ballToNoise = (Balls.Purple, noise),
+            > 0.65f and <= 0.75f => ballToNoise = (Balls.Violet, noise),
+            > 0.75f and <= 1f => (Balls.Yellow, noise),
+            _ => (Balls.Empty, noise),
         };
+
+        if (ballList.TryAdd(result.Item2, result.Item1))
+        {
+            return ballToNoise.Item1;
+        }
+        else
+        {
+
+        }
     }
 
     public static ITile CreateTile_1(Vector2 gridPos, float noise)
