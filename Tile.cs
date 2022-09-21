@@ -115,7 +115,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
 
 public enum Balls
 {
-    Red, Blue, Green, Purple, Orange, Yellow, Violet,
+    Red, Blue, Green, Purple, Orange, Yellow, Brown, Violet,
     Length = Violet + 1, Empty = -1,
 }
 
@@ -173,10 +173,10 @@ public interface IShape
 
 public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
 {
-    public CandyShape(float noise)
+    public CandyShape(Vector2 coord, float noise)
     {
         FadeTint = Raylib.WHITE;
-        Ball = Backery.GetTileTypeTypeByNoise(noise);
+        Ball = Backery.GetTileTypeTypeByNoise(coord, noise);
 
         switch (Ball)
         {
@@ -204,6 +204,11 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
             case Balls.Blue:
                 FrameLocation = new Vector2(1f, 1f) * ITile.Size;
                 Layer = Coat.F;
+                break;
+            case Balls.Brown:
+                FrameLocation = new Vector2(2f, 1f) * ITile.Size;
+                Form = ShapeKind.Circle;
+                Layer = Coat.A;
                 break;
             case Balls.Violet:
                 FrameLocation = new Vector2(3f, 1f) * ITile.Size;
@@ -308,7 +313,7 @@ public sealed class Tile : ITile
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
         //overwrite the TileShape anyway with the Factorymethod "CreateNewTile(..)";
-        TileShape = new CandyShape(0.25f);
+        TileShape = new CandyShape(new(0f,0f),0.25f);
     }
 
     public override string ToString() => $"GridCoords: {GridCoords}; ---- {TileShape}";

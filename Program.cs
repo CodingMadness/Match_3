@@ -37,7 +37,7 @@ class Program
         Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         Raylib.InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Alex und Shpend");
         AssetManager.Init();
-        Console.Clear();        
+        //Console.Clear();        
     }
     
     public static void UpdateTimerOnScreen(ref GameTime timer)
