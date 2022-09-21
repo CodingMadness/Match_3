@@ -30,23 +30,18 @@ namespace Match_3
 
         private void CreateMap()
         {
-            FastNoiseLite noiseMaker = new(DateTime.UtcNow.GetHashCode());
-            noiseMaker.SetFrequency(10f);
-            noiseMaker.SetFractalType(FastNoiseLite.FractalType.PingPong);
-            noiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-
             for (int x = 0; x < TileWidth; x++)
             {
                 for (int y = 1; y < TileHeight; y++)
                 {
-                    float noise = noiseMaker.GetNoise(x, y);
+                    float noise = Utils.NoiseMaker.GetNoise(x, y);
                     Vector2 current = new(x, y);
 
                     if (noise < 0f)
                         noise = -noise;
 
                     else if (noise == 0f)
-                        noise = noiseMaker.GetNoise(x, y);
+                        noise = Utils.NoiseMaker.GetNoise(x, y);
 
                     _bitmap[x, y] = Backery.CreateTile_1(current, noise);
                     //onsole.WriteLine("NOISE: " + noise);
@@ -159,6 +154,10 @@ namespace Match_3
             {
                 matches.Clear();    
                 return MatchInAnyDirection(this[coordB], matches);
+            }
+            else if (_match3FuncCounter >= 1)
+            {
+                _match3FuncCounter = 0;
             }
 
             return matches.Count == MaxDestroyableTiles;
