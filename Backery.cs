@@ -4,43 +4,40 @@ namespace Match_3;
 
 public static class Backery
 {
-    private static readonly Dictionary<float, Balls> ballList = new((GameStateManager.State.TilemapHeight * GameStateManager.State.TilemapWidth) / 2);
+    private static Random rnd = new(DateTime.UtcNow.GetHashCode());
+    private const int MaxBallCount = 3;
+    
+    //private static List<Balls> balls = new List<Balls>(GameStateManager.State.TilemapHeight * GameStateManager.State.TilemapWidth / 2);
 
-    public static Balls GetTileTypeTypeByNoise(float noise)
+    public static Balls GetTileTypeTypeByNoise(Vector2 coord, float noise)
     {
-        noise = MathF.Round(noise, 2, MidpointRounding.ToPositiveInfinity);
+        Recursion:
+        noise = noise.Trunc(2);
 
-        if (noise <= 0f || noise >= 1.0f)
+        if (noise is <= 0f or >= 1.0f)
         {
-            noise = Random.Shared.NextSingle();
-            return GetTileTypeTypeByNoise(noise);
+            noise = rnd.NextSingle();
+            return GetTileTypeTypeByNoise(coord, noise);
         }
-   
-        else if (noise <= 0.1)
+
+        if (noise <= 0.1)
             noise *= 10;
 
         (Balls, float) ballToNoise = (Balls.Empty, -1f);
 
         var result = noise switch
         {
-            <= 0.25f             => ballToNoise = (Balls.Red, noise),
+            > 0.0f  and <= 0.15f => ballToNoise = (Balls.Brown, noise),
+            > 0.15f  and <= 0.25f => ballToNoise = (Balls.Red, noise),
             > 0.25f and <= 0.35f => ballToNoise = (Balls.Orange, noise),
             > 0.35f and <= 0.45f => ballToNoise = (Balls.Blue, noise),
             > 0.45f and <= 0.55f => ballToNoise = (Balls.Green, noise),
             > 0.55f and <= 0.65f => ballToNoise = (Balls.Purple, noise),
             > 0.65f and <= 0.75f => ballToNoise = (Balls.Violet, noise),
-            > 0.75f and <= 1f => (Balls.Yellow, noise),
-            _ => (Balls.Empty, noise),
+            > 0.75f and <= 1f => ballToNoise = (Balls.Yellow, noise),
+            _ => ballToNoise = (Balls.Empty, noise),
         };
-
-        if (ballList.TryAdd(result.Item2, result.Item1))
-        {
-            return ballToNoise.Item1;
-        }
-        else
-        {
-
-        }
+        return result.Item1;
     }
 
     public static ITile CreateTile_1(Vector2 gridPos, float noise)
@@ -50,7 +47,7 @@ public static class Backery
             GridCoords = gridPos,
             CoordsB4Swap = -Vector2.One,
             Selected = false,
-            TileShape = new CandyShape(noise) 
+            TileShape = new CandyShape(gridPos, noise) 
             {                 
                 FadeTint = new()
                 {
