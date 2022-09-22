@@ -3,7 +3,7 @@ using Raylib_CsLo;
 
 namespace Match_3;
 
-public static class GameStateManager
+public static class GameRuleManager
 {
     private static int MaxCapacity => (int)Balls.Length * 5;
     public const int Max3PerKind = 3;
@@ -12,7 +12,7 @@ public static class GameStateManager
 
     public static GameState State { get; private set; }
 
-    static GameStateManager()
+    static GameRuleManager()
     {
         State = new(30, 3, 15, 10, ToCollect, 64, 3);
     }
@@ -61,15 +61,14 @@ public static class GameStateManager
 
     public static void LoadLevel() 
     {
-        State?.ToCollect.Clear();
+        State.ToCollect.Clear();
         SetCollectQuest();
         LogQuest(true);
 
-        int startUpTime = Utils.Round(rnd, 100..8000, 3);
+        int startUpTime = Utils.Round(rnd, 5..5, 3);
         int tileWidth = Utils.Round(rnd, 10..8, 3);
         int tileHeight = Utils.Round(rnd, 10..9, 3);
-        int gameOverTime = 5;
-
+        int gameOverTime = 52;
         State = new(startUpTime, gameOverTime, tileWidth, tileHeight, ToCollect, ITile.Size, 4);
     }
 }

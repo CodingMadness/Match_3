@@ -7,7 +7,7 @@ public static class Backery
     private static Random rnd = new(DateTime.UtcNow.GetHashCode());
     private const int MaxBallCount = 3;
     
-    //private static List<Balls> balls = new List<Balls>(GameStateManager.State.TilemapHeight * GameStateManager.State.TilemapWidth / 2);
+    //private static List<Balls> balls = new List<Balls>(GameRuleManager.State.TilemapHeight * GameRuleManager.State.TilemapWidth / 2);
 
     public static Balls GetTileTypeTypeByNoise(Vector2 coord, float noise)
     {

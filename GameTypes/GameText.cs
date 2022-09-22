@@ -5,7 +5,7 @@ namespace Match_3.GameTypes
 {
     public readonly record struct GameText(Font Src, string Text, Vector2 Begin, float Size, FadeableColor Color)
     {
-        public readonly GameText ScaleText()
+        public GameText ScaleText()
         {
             float width = Raylib.MeasureTextEx(Src, Text, Size, 1f).X;
             Vector2 screen = new(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
@@ -13,7 +13,7 @@ namespace Match_3.GameTypes
             return new GameText(Src, Text, Begin, Size * scale, Color);
         }
 
-        public readonly GameText AlignText()
+        public GameText AlignText()
         {
             GameText scaledFont = ScaleText();
             Vector2 scaledSize = Raylib.MeasureTextEx(Src, Text, scaledFont.Size, 1f);

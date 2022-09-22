@@ -28,8 +28,8 @@ class Program
 
     private static void Initialize()
     {
-        GameStateManager.LoadLevel();
-        state = GameStateManager.State;
+        GameRuleManager.LoadLevel();
+        state = GameRuleManager.State;
         globalTimer = GameTime.GetTimer(state!.GameStartAt);
         gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
         _tileMap = new(state);
@@ -57,7 +57,7 @@ class Program
     }
     
     public static void DrawScaledFont(in GameText font)
-    {       
+    {
         Raylib.DrawTextEx(font.Src, font.Text, font.Begin, font.Size, 1f, font.Color);
     }
 
@@ -84,10 +84,9 @@ class Program
         //Console.WriteLine(output);
         UpdateTimerOnScreen(ref gameOverScreenTimer);
         Raylib.ClearBackground(Raylib.WHITE);
-        Vector2 windowSize = new(state.WINDOW_WIDTH/2, state.WINDOW_HEIGHT);
-        GameText gameOverFont = new(AssetManager.DebugFont, output, windowSize, 3f, Raylib.RED);
-        DrawScaledFont(gameOverFont);
-
+        Vector2 windowSize = new Vector2(state.WINDOW_WIDTH, state.WINDOW_HEIGHT) * 0.5f;
+        GameText gameOverText = new(AssetManager.DebugFont, output, windowSize, 3f, Raylib.RED);
+        DrawScaledFont(gameOverText.AlignText());
         return gameOverScreenTimer.Done();
     }
 
@@ -114,7 +113,7 @@ class Program
             if (!toggleGame)
             {
                 ShowWelcomeScreenOnLoop(false);
-                GameStateManager.LogQuest(false);
+                GameRuleManager.LogQuest(false);
             }
             if (Raylib.IsKeyDown(KeyboardKey.KEY_ENTER) || toggleGame)
             {                
@@ -135,9 +134,9 @@ class Program
                         /*
                         ///TODO: prepare nextlevel
                         //1. New Map!
-                        GameStateManager.LoadLevel(null);
+                        GameRuleManager.LoadLevel(null);
                         //2. New Quest
-                        GameStateManager.SetCollectQuest();
+                        GameRuleManager.SetCollectQuest();
                         break;
                         */
                     }
@@ -200,18 +199,18 @@ class Program
         {
             UndoBuffer.Clear();
 
-            if (GameStateManager.TryGetSubQuest(candy, out int toCollect))
+            if (GameRuleManager.TryGetSubQuest(candy, out int toCollect))
             {
                 tileCounter += 1;
 
                 if (tileCounter == toCollect)
                 {
                     Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
-                    GameStateManager.RemoveSubQuest(candy);
+                    GameRuleManager.RemoveSubQuest(candy);
                     tileCounter = 0;
                     missedSwapTolerance = 0;
                 }
-                wasGameWonB4Timeout = GameStateManager.IsQuestDone();
+                wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
             }
 
             RememberDeletedMatches(MatchesOf3);
@@ -221,7 +220,7 @@ class Program
             //if (++missedSwapTolerance == state.MaxAllowedSwpas)
             //{
             //    Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
-            //    GameStateManager.ChangeSubQuest(candy, tileCounter + 3);
+            //    GameRuleManager.ChangeSubQuest(candy, tileCounter + 3);
             //    missedSwapTolerance = 0;
             //}
             //if (MatchesOf3.Count == 0)
