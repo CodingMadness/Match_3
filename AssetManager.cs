@@ -9,10 +9,14 @@ public static class AssetManager
     
     public static string GetAssetfolderName(string? nextFolder)
     {
+        //this line has to be because when calling the .exe from the bin folder, 
+        //rider apperently sets the currentDirectory to /usr/shpend and not as I expect to the
+        //full location of the 
+        Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
         var net6Path = Environment.CurrentDirectory.AsSpan();
-       // Console.WriteLine(net6Path.ToString());
+        Console.WriteLine(net6Path.ToString());
 
-        const string projectName = "Match3";
+        const string projectName = "Match_3";
         int lastProjectNameOccurence = net6Path.LastIndexOf(projectName, StringComparison.Ordinal) + projectName.Length;
         var projectPath = net6Path[..lastProjectNameOccurence];
 

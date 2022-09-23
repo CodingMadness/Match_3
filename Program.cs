@@ -34,8 +34,8 @@ class Program
         gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
         _tileMap = new(state);
         SetTargetFPS(60);
-        SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
-        InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Alex und Shpend");
+        InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Shpend");
+        //InitWindow(1200, 1200, "Match3 By Alex und Shpend");
         AssetManager.Init();
         //Console.Clear();        
     }
