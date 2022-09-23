@@ -1,7 +1,8 @@
 ﻿//using DotNext;
-
-using Match_3.GameTypes;
+using System.Linq;
+using System.Buffers;
 using System.Numerics;
+using Match_3.GameTypes;
 using Raylib_CsLo;
 
 namespace Match_3
@@ -17,44 +18,46 @@ namespace Match_3
         }
 
         private readonly ITile[,] _bitmap;
-
+    
         //public double Timer { get; private set; } = 10;
         public readonly int TileWidth;
         public readonly int TileHeight;
+
+        public static event Action<int[]> NotifyOnGridCreationDone; 
+
         private const int MaxDestroyableTiles = 3;
 
         public static ITile? MatchXTrigger { get; private set; }
         private GameTime _gridTimer;
         private readonly bool isDrawn = true;
-        private byte _match3FuncCounter = 0;
+        private byte _match3FuncCounter;
 
         private void CreateMap()
         {
+            Span<int> counts = stackalloc int[(int)Balls.Length];
+
             for (int x = 0; x < TileWidth; x++)
             {
                 for (int y = 1; y < TileHeight; y++)
-                {
-                    float noise = Utils.NoiseMaker.GetNoise(x, y);
+                {                    
                     Vector2 current = new(x, y);
-
-                    if (noise < 0f)
-                        noise = -noise;
-
-                    else if (noise == 0f)
-                        noise = Utils.NoiseMaker.GetNoise(x, y);
-
+                    float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y*-0.5f);
                     _bitmap[x, y] = Backery.CreateTile_1(current, noise);
-                    //onsole.WriteLine("NOISE: " + noise);
+                    var kind = _bitmap[x, y] is Tile { Shape: CandyShape c } ? c.Ball : Balls.Empty;
+                    counts[(int)kind]++;
                 }
             }
+            int xyz = 100;
+            NotifyOnGridCreationDone(counts.ToArray());
         }
 
-        public Grid(GameState current)
+        public Grid(Level current)
         {
             TileWidth = current.TilemapWidth;
             TileHeight = current.TilemapHeight;
             _bitmap = new ITile[TileWidth, TileHeight];
             _gridTimer = GameTime.GetTimer(5 * 60);
+            NotifyOnGridCreationDone += GameRuleManager.DefineMatch3Quest;
             CreateMap();
         }
 
@@ -128,7 +131,7 @@ namespace Match_3
 
                 return tmp;
             }
-
+            
             const Direction lastDir = (Direction)4;
 
             MatchXTrigger = match3Trigger;
@@ -155,7 +158,8 @@ namespace Match_3
                 matches.Clear();    
                 return MatchInAnyDirection(this[coordB], matches);
             }
-            else if (_match3FuncCounter >= 1)
+
+            if (_match3FuncCounter >= 1)
             {
                 _match3FuncCounter = 0;
             }
