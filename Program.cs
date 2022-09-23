@@ -1,23 +1,23 @@
-﻿using Match_3;
+﻿using System.Numerics;
+using Match_3;
 using Match_3.GameTypes;
 using Raylib_CsLo;
-using System.Numerics;
-
+using static Raylib_CsLo.Raylib;
 //INITIALIZATION:................................
 
 class Program
 {
-    private static GameState state;
+    private static Level state;
     private static GameTime globalTimer, gameOverScreenTimer;
 
     private static Grid _tileMap;
     private static readonly ISet<ITile> MatchesOf3 = new HashSet<ITile>(3);
     private static Tile? secondClickedTile;
     private static readonly ISet<ITile> UndoBuffer = new HashSet<ITile>(5);
-    private static bool? wasGameWonB4Timeout = null;
-    private static bool toggleGame = false;
-    private static int tileCounter = 0;
-    private static int missedSwapTolerance = 0;
+    private static bool? wasGameWonB4Timeout;
+    private static bool toggleGame;
+    private static int tileCounter;
+    private static int missedSwapTolerance;
 
     private static void Main()
     {
@@ -25,17 +25,17 @@ class Program
         GameLoop();
         CleanUp();
     }
-
+    
     private static void Initialize()
     {
-        GameRuleManager.LoadLevel();
+        GameRuleManager.DefineNewLevel();
         state = GameRuleManager.State;
-        globalTimer = GameTime.GetTimer(state!.GameStartAt);
+        globalTimer = GameTime.GetTimer(state.GameStartAt);
         gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
         _tileMap = new(state);
-        Raylib.SetTargetFPS(60);
-        Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
-        Raylib.InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Alex und Shpend");
+        SetTargetFPS(60);
+        SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
+        InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Alex und Shpend");
         AssetManager.Init();
         //Console.Clear();        
     }
@@ -47,18 +47,18 @@ class Program
 
         timer.UpdateTimer();
         string txt = ((int)timer.ElapsedSeconds).ToString();
-
-        Raylib.DrawTextEx(AssetManager.DebugFont,
+        
+        DrawTextEx(AssetManager.DebugFont,
             txt,
             state.TopCenter,
-            75f/*ScaleText(txt, 1)*/, //problem is here!...
+            75f,
             1f,
             timer.ElapsedSeconds > 0f ? Raylib.RED : Raylib.BEIGE);
     }
     
     public static void DrawScaledFont(in GameText font)
     {
-        Raylib.DrawTextEx(font.Src, font.Text, font.Begin, font.Size, 1f, font.Color);
+        DrawTextEx(font.Src, font.Text, font.Begin, font.Size, 1f, font.Color);
     }
 
     private static void ShowWelcomeScreenOnLoop(bool shallClearTxt)
@@ -83,14 +83,14 @@ class Program
         
         //Console.WriteLine(output);
         UpdateTimerOnScreen(ref gameOverScreenTimer);
-        Raylib.ClearBackground(Raylib.WHITE);
+        ClearBackground(Raylib.WHITE);
         Vector2 windowSize = new Vector2(state.WINDOW_WIDTH, state.WINDOW_HEIGHT) * 0.5f;
         GameText gameOverText = new(AssetManager.DebugFont, output, windowSize, 3f, Raylib.RED);
         DrawScaledFont(gameOverText.AlignText());
         return gameOverScreenTimer.Done();
     }
 
-    private static void RememberDeletedMatches(ISet<ITile> tiles)
+    private static void SaveDeletedMatches(IEnumerable<ITile> tiles)
     {
         foreach (var match in tiles)
         {
@@ -104,10 +104,10 @@ class Program
 
     private static void GameLoop()
     {
-        while (!Raylib.WindowShouldClose())
+        while (!WindowShouldClose())
         {
-            Raylib.BeginDrawing();
-            Raylib.ClearBackground(Raylib.WHITE);
+            BeginDrawing();
+            ClearBackground(Raylib.WHITE);
 
             //render text on 60fps
             if (!toggleGame)
@@ -115,7 +115,7 @@ class Program
                 ShowWelcomeScreenOnLoop(false);
                 GameRuleManager.LogQuest(false);
             }
-            if (Raylib.IsKeyDown(KeyboardKey.KEY_ENTER) || toggleGame)
+            if (IsKeyDown(KeyboardKey.KEY_ENTER) || toggleGame)
             {                
                 bool isGameOver = globalTimer.Done();
 
@@ -131,29 +131,24 @@ class Program
                 {
                     if (OnGameOver(true))
                     {
-                        /*
                         ///TODO: prepare nextlevel
-                        //1. New Map!
-                        GameRuleManager.LoadLevel(null);
-                        //2. New Quest
-                        GameRuleManager.SetCollectQuest();
-                        break;
-                        */
+                        Initialize();
+                        wasGameWonB4Timeout = false;
+                        continue;
                     }
                 }
                 else
                 {
                     //Keep the game Drawing!
                     UpdateTimerOnScreen(ref globalTimer);
-                    ShowWelcomeScreenOnLoop(false);
+                    ShowWelcomeScreenOnLoop(true);
                     _tileMap.Draw(globalTimer.ElapsedSeconds);
                     ProcessSelectedTiles();
                     UndoLastOperation();
                 }
                 toggleGame = true;
             }
-
-            Raylib.EndDrawing();
+            EndDrawing();
         }
     }
 
@@ -189,12 +184,11 @@ class Program
         secondClickedTile.Selected = false;
 
         var candy = secondClickedTile is not null ? 
-                       secondClickedTile.TileShape as CandyShape : 
+                       secondClickedTile.Shape as CandyShape : 
                          null;
 
         if (candy is null)
             return;
-        TryMatchWithFirstTile:
         if (_tileMap.MatchInAnyDirection(secondClickedTile!, MatchesOf3))           
         {
             UndoBuffer.Clear();
@@ -202,7 +196,7 @@ class Program
             if (GameRuleManager.TryGetSubQuest(candy, out int toCollect))
             {
                 tileCounter += 1;
-
+                Console.WriteLine($"You already got {tileCounter} match of Balltype: {candy.Ball}");
                 if (tileCounter == toCollect)
                 {
                     Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
@@ -213,25 +207,22 @@ class Program
                 wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
             }
 
-            RememberDeletedMatches(MatchesOf3);
+            SaveDeletedMatches(MatchesOf3);
         }
-        else
-        {
-            //if (++missedSwapTolerance == state.MaxAllowedSwpas)
-            //{
-            //    Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
-            //    GameRuleManager.ChangeSubQuest(candy, tileCounter + 3);
-            //    missedSwapTolerance = 0;
-            //}
-            //if (MatchesOf3.Count == 0)
-            //{
-            //    secondClickedTile = (Tile)firstClickedTile;
-            //    Console.WriteLine("calling GOTO in order to try it with the 1. tile");
-            //    MatchesOf3.Add(null!); //this line we just do, in order to interrupt the GOTO call again!
-            //    goto TryMatchWithFirstTile;
-            //}
-        }
-        
+
+        //if (++missedSwapTolerance == state.MaxAllowedSpawns)
+        //{
+        //    Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
+        //    GameRuleManager.ChangeSubQuest(candy, tileCounter + 3);
+        //    missedSwapTolerance = 0;
+        //}
+        //if (MatchesOf3.Count == 0)
+        //{
+        //    secondClickedTile = (Tile)firstClickedTile;
+        //    Console.WriteLine("calling GOTO in order to try it with the 1. tile");
+        //    MatchesOf3.Add(null!); //this line we just do, in order to interrupt the GOTO call again!
+        //    goto TryMatchWithFirstTile;
+        //}
         //Console.WriteLine(firstClickedTile);
         MatchesOf3.Clear();
         secondClickedTile = null;
@@ -240,7 +231,7 @@ class Program
 
     private static void UndoLastOperation()
     {
-        bool keyDown = (Raylib.IsKeyDown(KeyboardKey.KEY_A));
+        bool keyDown = (IsKeyDown(KeyboardKey.KEY_A));
 
         //UNDO...!
         if (keyDown)
@@ -285,8 +276,8 @@ class Program
 
     private static void CleanUp()
     {
-        Raylib.UnloadTexture(AssetManager.SpriteSheet);
-        Raylib.CloseWindow();
+        UnloadTexture(AssetManager.SpriteSheet);
+        CloseWindow();
     }
 }
 

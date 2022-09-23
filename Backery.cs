@@ -11,7 +11,6 @@ public static class Backery
 
     public static Balls GetTileTypeTypeByNoise(Vector2 coord, float noise)
     {
-        Recursion:
         noise = noise.Trunc(2);
 
         if (noise is <= 0f or >= 1.0f)
@@ -44,10 +43,10 @@ public static class Backery
     {
         var tile = new Tile
         {
-            GridCoords = gridPos,
+            GridCoords = gridPos, //RANDOM POSITION BASED ON PERlIN-NOISE!
             CoordsB4Swap = -Vector2.One,
             Selected = false,
-            TileShape = new CandyShape(gridPos, noise) 
+            Shape = new CandyShape(gridPos, noise) 
             {                 
                 FadeTint = new()
                 {
@@ -142,7 +141,7 @@ public static class Backery
     //            GridCoords = start,
     //            CoordsB4Swap = -Vector2.One,
     //            Selected = false,
-    //            TileShape = tmp,  
+    //            Shape = tmp,  
     //        };
     //        return mapTile;
     //    }

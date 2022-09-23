@@ -1,18 +1,13 @@
-﻿using System.IO;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 using Raylib_CsLo;
-
-using Color = Raylib_CsLo.Color;
 
 namespace Match_3;
 
 public struct FadeableColor : IEquatable<FadeableColor>
 {
     private Color _toWrap;
-
     public float CurrentAlpha, TargetAlpha, AlphaSpeed, ElapsedTime;
-
     private FadeableColor(Color color)
     {
         _toWrap = color;
@@ -222,8 +217,6 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
             case Balls.Empty:
                 FrameLocation = -Vector2.One;
                 break;
-            default:
-                break;
         }
     }
 
@@ -284,7 +277,7 @@ public sealed class Tile : ITile
 
     private bool _selected;
 
-    public IShape TileShape;
+    public IShape Shape;
 
     private FadeableColor _color = Raylib.WHITE;
 
@@ -305,22 +298,22 @@ public sealed class Tile : ITile
             }
 
             _selected = value;
-            TileShape.FadeTint = _color;
+            Shape.FadeTint = _color;
         }
     }
  
     public Tile()
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
-        //overwrite the TileShape anyway with the Factorymethod "CreateNewTile(..)";
-        TileShape = new CandyShape(new(0f,0f),0.25f);
+        //overwrite the Shape anyway with the Factorymethod "CreateNewTile(..)";
+        Shape = new CandyShape(new(0f,0f),0.25f);
     }
 
-    public override string ToString() => $"GridCoords: {GridCoords}; ---- {TileShape}";
+    public override string ToString() => $"GridCoords: {GridCoords}; ---- {Shape}";
 
     public void ChangeTo(FadeableColor color)
     {
-        TileShape.FadeTint = color;
+        Shape.FadeTint = color;
     }
 
     public void Draw(float elapsedTime)
@@ -339,20 +332,20 @@ public sealed class Tile : ITile
 
         var pos = GridCoords == Vector2.Zero ? GridCoords + (Vector2.UnitY * ITile.Size) : GridCoords * ITile.Size;
 
-        _color = _selected ? Raylib.BLUE : Raylib.WHITE;//TileShape.FadeTint;
+        _color = _selected ? Raylib.BLUE : Raylib.WHITE;//Shape.FadeTint;
         _color.ElapsedTime = elapsedTime;
-        TileShape.FadeTint = _color;
+        Shape.FadeTint = _color;
 
         Raylib.DrawTextureRec(AssetManager.SpriteSheet,
-            new(TileShape.FrameLocation.X, TileShape.FrameLocation.Y, ITile.Size, ITile.Size),
-            pos, TileShape.FadeTint);
+            new(Shape.FrameLocation.X, Shape.FrameLocation.Y, ITile.Size, ITile.Size),
+            pos, Shape.FadeTint);
 
         DrawTextOnTop(GridCoords * ITile.Size, _selected);
     }
 
     public bool Equals(Tile? other)
     {
-        if (TileShape is CandyShape c && other is not null && other.TileShape is CandyShape d)
+        if (Shape is CandyShape c && other is not null && other.Shape is CandyShape d)
             if (c.Equals(d))
                 return true;
 
