@@ -1,47 +1,43 @@
 ﻿using System.Numerics;
 using Raylib_CsLo;
+using static Raylib_CsLo.Raylib;
 
 namespace Match_3.GameTypes
 {
-    public record struct GameText(Font Src, string Text, Vector2 Begin, float Size, FadeableColor Color)
+    public record struct GameText(Font Src, string Text, float InitSize)
     {
-        internal float scaleDiffInX;
-
-        private float ComputeDiffInX(Vector2 screen)
-        {
-            if (scaleDiffInX == 0)
-                scaleDiffInX = screen.X;
-            else
-            {
-                if (screen.X >= scaleDiffInX)
-                    scaleDiffInX = screen.X - scaleDiffInX;
-                else
-                    scaleDiffInX -= screen.X ;
-            }
-
-            return scaleDiffInX;
-        }
+        private static bool wasResized;
+        private static float ScaledSize;
+        public Vector2 ToDrawAT { get; private set; }
         
         public void ScaleText()
         {
-            var pos = Raylib.MeasureTextEx(Src, Text, Size, 1f);
-            Vector2 screen = new(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
-            scaleDiffInX = ComputeDiffInX(screen);
-            //Console.WriteLine(scaleDiffInX);
-            float scaleX = MathF.Round(screen.X / pos.X);
-            float scaleY = MathF.Round(screen.Y / pos.Y);
-            //Vector2 scaled = new(scaleX, scaleY);
-            Size = (Size * scaleX) / (Size * scaleY);
-            //return this with { Size = (Size * scaleX) / (Size * scaleY) };
+            if (!IsWindowResized())
+                return;
+            
+            var pos = MeasureTextEx(Src, Text, InitSize, 1f);
+            float scaleX = MathF.Round(Utils.GetScreenCoord().X / pos.X);
+            ScaledSize = (InitSize * scaleX);
+            wasResized = true;
         }
 
         public void AlignText()
         {
-            ScaleText();
-            //if WINDOW_WIDTH is getting smaller, we want to move the entire textPosition
-            //to the LEFT (smaller in X)
-            Vector2 newPos = new(Begin.X - scaleDiffInX, Begin.Y);
-            Begin = newPos;
-        }        
+            if (!wasResized)
+                return;
+    
+            Vector2 size = MeasureTextEx(Src, Text, ScaledSize, ScaledSize / InitSize);
+            Vector2 begin = Utils.GetScreenCoord();
+            begin.X = 0f;
+            ToDrawAT = new (begin.X - size.X,  begin.Y - size.Y);
+            wasResized = false;
+        }
+        
+        public void Draw(FadeableColor c)
+        {
+            ScaledSize = ScaledSize == 0 ? InitSize : ScaledSize;
+            DrawTextEx(Src, Text, ToDrawAT, ScaledSize, ScaledSize / InitSize, c);
+            ToDrawAT = new(MathF.Round(0f), MathF.Round(GetScreenHeight() / 2));
+        }
     }
 }

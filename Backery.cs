@@ -79,7 +79,7 @@ public static class Backery
     //            case <= 0.15f:
     //                tmp = new CandyShape(noise)
     //                {
-    //                    FrameLocation = new Vector2(0f, 1f) * ITile.Size,
+    //                    FrameLocation = new Vector2(0f, 1f) * ITile.ScaledSize,
     //                    Form = ShapeKind.Circle,
     //                    Layer = Coat.A
     //                };
@@ -88,7 +88,7 @@ public static class Backery
     //            case > 0.15f and <= 0.2f:
     //                tmp = new CandyShape(noise)
     //                {
-    //                    FrameLocation = new Vector2(0f, 2f) * ITile.Size,
+    //                    FrameLocation = new Vector2(0f, 2f) * ITile.ScaledSize,
     //                    Form = ShapeKind.Circle,
     //                    Layer = Coat.B
     //                };
@@ -96,7 +96,7 @@ public static class Backery
     //            case > 0.2f and <= 0.25f:
     //                tmp = new CandyShape(noise)
     //                {
-    //                    FrameLocation = new Vector2(4f, 3f) * ITile.Size,
+    //                    FrameLocation = new Vector2(4f, 3f) * ITile.ScaledSize,
     //                    Form = ShapeKind.Circle,
     //                    Layer = Coat.C
     //                };
@@ -104,7 +104,7 @@ public static class Backery
     //            case > 0.25f and <= 0.35f:
     //                tmp = new CandyShape(noise)
     //                {
-    //                    FrameLocation = new Vector2(0f, 4f) * ITile.Size,
+    //                    FrameLocation = new Vector2(0f, 4f) * ITile.ScaledSize,
     //                    Form = ShapeKind.Circle,
     //                    Layer = Coat.D
     //                };
@@ -112,7 +112,7 @@ public static class Backery
     //            case > 0.35f and <= 0.45f:
     //                tmp = new CandyShape(noise)
     //                {
-    //                    FrameLocation = new Vector2(0f, 5f) * ITile.Size,
+    //                    FrameLocation = new Vector2(0f, 5f) * ITile.ScaledSize,
     //                    Form = ShapeKind.Circle,
     //                    Layer = Coat.E
     //                };
@@ -120,7 +120,7 @@ public static class Backery
     //            case > 0.45f and <= 0.65f:
     //                tmp = new CandyShape(noise)
     //                {
-    //                    FrameLocation = new Vector2(4f, 6f) * ITile.Size,
+    //                    FrameLocation = new Vector2(4f, 6f) * ITile.ScaledSize,
     //                    Form = ShapeKind.Heart,
     //                    Layer = Coat.F
     //                };
@@ -128,7 +128,7 @@ public static class Backery
     //            case > 0.65f and <= 1f:
     //                tmp = new CandyShape(noise)
     //                {
-    //                    FrameLocation = new Vector2(0f, 7f) * ITile.Size,
+    //                    FrameLocation = new Vector2(0f, 7f) * ITile.ScaledSize,
     //                    Form = ShapeKind.Heart,
     //                    Layer = Coat.G
     //                };

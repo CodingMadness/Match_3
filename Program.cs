@@ -19,7 +19,8 @@ class Program
     private static bool enterGame;
     private static int tileCounter;
     private static int missedSwapTolerance;
-
+    private static GameText welcomeText;
+    
     private static void Main()
     {
         Initialize();
@@ -37,7 +38,9 @@ class Program
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Shpendicus");
-        AssetManager.Init();
+        Vector2 pos = new(state.Center.X * 0.25f, state.Center.Y);
+        AssetManager.Init(pos);
+        welcomeText = new(AssetManager.WelcomeFont, "Welcome young man!!", 10f);
         //Console.Clear();        
     }
     
@@ -50,7 +53,7 @@ class Program
         timer.UpdateTimer();
         string txt = ((int)timer.ElapsedSeconds).ToString();
         
-        DrawTextEx(AssetManager.DebugFont,
+        DrawTextEx(AssetManager.WelcomeFont,
             txt,
             state.TopCenter,
             75f,
@@ -58,24 +61,15 @@ class Program
             timer.ElapsedSeconds > 0f ? Raylib.RED : Raylib.BEIGE);
     }
     
-    public static void DrawScaledFont(in GameText font)
-    {
-        //this function right now returns a SIGSEGV; !
-        //DrawTextEx(font.Src, font.Text, font.Begin, font.Size, 1f, font.Color);
-        DrawText(font.Text, font.Begin.X, font.Begin.Y, font.Size, font.Color);
-    }
-
     private static void ShowWelcomeScreenOnLoop(bool shallClearTxt)
     {
-        string txt = "WELCOME YOUNG MATCH_3 ADDICT!";
         FadeableColor tmp = Raylib.RED;
         tmp.CurrentAlpha = shallClearTxt ? 0f : 1f;
         tmp.TargetAlpha = 1f;
-        Vector2 topCenter = state.Center with { Y = 0f };
-        topCenter.X *= 0.6f;
-        GameText welcomeFont = new(AssetManager.DebugFont, txt, topCenter, 15, tmp);
-        welcomeFont.AlignText();
-        DrawScaledFont(welcomeFont);        
+        
+        welcomeText.ScaleText();
+        welcomeText.AlignText();
+        welcomeText.Draw(tmp);
     }
 
     private static bool OnGameOver(bool? gameWon)
@@ -91,9 +85,9 @@ class Program
         UpdateTimerOnScreen(ref gameOverScreenTimer);
         ClearBackground(Raylib.WHITE);
         Vector2 windowSize = new Vector2(state.WINDOW_WIDTH, state.WINDOW_HEIGHT) * 0.5f;
-        GameText gameOverText = new(AssetManager.DebugFont, output, windowSize, 3f, Raylib.RED);
-        gameOverText.AlignText();
-        DrawScaledFont(gameOverText);
+        //GameText gameOverText = new(AssetManager.WelcomeFont, output, windowSize, 3f, Raylib.RED);
+        //gameOverText.AlignText();
+        //gameOverText.Draw();
         return gameOverScreenTimer.Done();
     }
 
@@ -120,8 +114,8 @@ class Program
             {
                 ShowWelcomeScreenOnLoop(false);
                 GameRuleManager.LogQuest(false);
-                //Console.WriteLine("Quest was logged!" + Raylib.GetFrameTime());
             }
+            
             if (IsKeyDown(KeyboardKey.KEY_ENTER) || enterGame)
             {                
                 bool isGameOver = globalTimer.Done();

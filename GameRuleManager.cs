@@ -31,10 +31,10 @@ public static class GameRuleManager
             {
                 /*
                 string txt = $"You have to collect {pair.Value} {pair.Key}-tiles!";
-                Vector2 pos = State.Center with {X = State.Center.X * 1.5f, Y = 4 * ITile.Size };
-                GameText logText = new(AssetManager.DebugFont, txt, pos, 20f, Raylib.RED);
-                //Raylib.DrawText(string.Empty, pos.X, pos.Y *= 1.2f, logText.Size, Raylib.RED);
-                Program.DrawScaledFont(logText.AlignText());
+                Vector2 pos = State.Center with {X = State.Center.X * 1.5f, Y = 4 * ITile.ScaledSize };
+                GameText logText = new(AssetManager.WelcomeFont, txt, pos, 20f, Raylib.RED);
+                //Raylib.DrawText(string.Empty, pos.X, pos.Y *= 1.2f, logText.ScaledSize, Raylib.RED);
+                Program.Draw(logText.AlignText());
                 */
                 break;
             }

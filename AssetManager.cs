@@ -1,12 +1,15 @@
+using System.Numerics;
 using JetBrains.Annotations;
+using Match_3.GameTypes;
 using Raylib_CsLo;
+using static Raylib_CsLo.Raylib;
 
 namespace Match_3;
 
 public static class AssetManager
 {
     public static Texture SpriteSheet { get; private set; }
-    public static Font DebugFont { get; private set; }
+    public static Font WelcomeFont;
     
     public static string GetAssetfolderName(string? nextFolder)
     {
@@ -32,9 +35,10 @@ public static class AssetManager
         return $"{projectPath}{assetFolderName}"; 
     }
     
-    public static void Init()
+    public static void Init(Vector2 initPosOfWelcomeFont)
     {
-        DebugFont = Raylib.GetFontDefault();//Raylib.LoadFont(GetAssetfolderName("fonts") + "font2.otf");
-        SpriteSheet = Raylib.LoadTexture(GetAssetfolderName("spritesheets") + "set1.png");
+        WelcomeFont = GetFontDefault();
+        WelcomeFont.baseSize = 64;
+        SpriteSheet = LoadTexture(GetAssetfolderName("spritesheets") + "set1.png");
     }
 }
