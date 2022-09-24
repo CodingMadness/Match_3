@@ -1,4 +1,5 @@
 using System.Diagnostics.SymbolStore;
+using System.Numerics;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 
@@ -28,10 +29,11 @@ public static class GameRuleManager
             }
             else
             {
-                //string txt = $"You have to collect {pair.Value} {pair.Key}-tiles!";
-                string txt = "blabla";
-                GameText logText = new(AssetManager.DebugFont, txt, new(State.Center.X, 3*ITile.Size), 5, Raylib.RED);
+                string txt = $"You have to collect {pair.Value} {pair.Key}-tiles!";
+                Vector2 pos = State.Center with { Y = 3 * ITile.Size };
+                GameText logText = new(AssetManager.DebugFont, txt, pos, 10, Raylib.RED);
                 Program.DrawScaledFont(logText.AlignText());
+                Raylib.DrawText(string.Empty, pos.X, pos.Y *= 1.2f, logText.Size, Raylib.RED);
             }
         }
     } 
@@ -78,14 +80,14 @@ public static class GameRuleManager
             }
         }
         SetCollectQuest(countsPerBall);
-        LogQuest(true);
+        LogQuest(false);
     }
     public static void DefineNewLevel() 
     {
         State.SetNextLevel();
-        State.TilemapWidth += 4;
+        State.TilemapWidth += 2;
         State.TilemapHeight += 2;
-        State.GameStartAt -= 5;
+        State.GameStartAt += 10;
         const int gameOverTime = 4;
     }
 }
