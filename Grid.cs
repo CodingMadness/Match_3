@@ -1,6 +1,4 @@
 ﻿//using DotNext;
-using System.Linq;
-using System.Buffers;
 using System.Numerics;
 using Match_3.GameTypes;
 using Raylib_CsLo;
@@ -17,7 +15,7 @@ namespace Match_3
             NegativeY = 3,
         }
 
-        private readonly ITile[,] _bitmap;
+        private readonly ITile?[,] _bitmap;
     
         //public double Timer { get; private set; } = 10;
         public readonly int TileWidth;
@@ -47,7 +45,6 @@ namespace Match_3
                     counts[(int)kind]++;
                 }
             }
-            int xyz = 100;
             NotifyOnGridCreationDone(counts.ToArray());
         }
 
@@ -55,7 +52,7 @@ namespace Match_3
         {
             TileWidth = current.TilemapWidth;
             TileHeight = current.TilemapHeight;
-            _bitmap = new ITile[TileWidth, TileHeight];
+            _bitmap = new ITile?[TileWidth, TileHeight];
             _gridTimer = GameTime.GetTimer(5 * 60);
             NotifyOnGridCreationDone += GameRuleManager.DefineMatch3Quest;
             CreateMap();
@@ -77,7 +74,7 @@ namespace Match_3
             //Console.WriteLine("ITERATION OVER FOR THIS DRAW-CALL!");
         }
 
-        public ITile this[Vector2 coord]
+        public ITile? this[Vector2 coord]
         {
             get
             {
@@ -100,9 +97,9 @@ namespace Match_3
             }
         }
 
-        public bool MatchInAnyDirection(ITile match3Trigger, ISet<ITile> matches)
+        public bool MatchInAnyDirection(ITile? match3Trigger, ISet<ITile?> matches)
         {
-            static bool AddWhenEqual(ITile first, ITile next, ISet<ITile> matches)
+            static bool AddWhenEqual(ITile? first, ITile? next, ISet<ITile?> matches)
             {
                 if (first is Tile f &&
                     next is Tile n &&
@@ -136,27 +133,30 @@ namespace Match_3
 
             MatchXTrigger = match3Trigger;
 
-            var coordA = MatchXTrigger.GridCoords;
-            var coordB = MatchXTrigger.CoordsB4Swap;
-
-            for (Direction i = 0; i < lastDir; i++)
+            if (MatchXTrigger is not null)
             {
-                Vector2 nextCoords = GetStepsFromDirection(MatchXTrigger.GridCoords, i);
-                ITile next = this[nextCoords];
+                var coordA = MatchXTrigger.GridCoords;
+                var coordB = MatchXTrigger.CoordsB4Swap;
 
-                while (AddWhenEqual(MatchXTrigger, next, matches))
+                for (Direction i = 0; i < lastDir; i++)
                 {
-                    //compute the proper (x,y) for next round!
-                    nextCoords = GetStepsFromDirection(nextCoords, i);
-                    next = this[nextCoords];
+                    Vector2 nextCoords = GetStepsFromDirection(coordA, i);
+                    var next = this[nextCoords];
+
+                    while (AddWhenEqual(MatchXTrigger, next, matches))
+                    {
+                        //compute the proper (x,y) for next round!
+                        nextCoords = GetStepsFromDirection(nextCoords, i);
+                        next = this[nextCoords];
+                    }
                 }
-            }
-            //it is kinda working, but depending on game logic, I would like to be able to
-            //potentially swap endlessly the same matching-tiles...
-            if (matches.Count < MaxDestroyableTiles && ++_match3FuncCounter <= 1)
-            {
-                matches.Clear();    
-                return MatchInAnyDirection(this[coordB], matches);
+                //it is kinda working, but depending on game logic, I would like to be able to
+                //potentially swap endlessly the same matching-tiles...
+                if (matches.Count < MaxDestroyableTiles && ++_match3FuncCounter <= 1)
+                {
+                    matches.Clear();    
+                    return MatchInAnyDirection(this[coordB], matches);
+                }
             }
 
             if (_match3FuncCounter >= 1)
@@ -167,7 +167,7 @@ namespace Match_3
             return matches.Count == MaxDestroyableTiles;
         }
 
-        public bool TryGetClickedTile(out ITile tile)
+        public bool TryGetClickedTile(out ITile? tile)
         {
             tile = default!;
 
@@ -175,13 +175,13 @@ namespace Match_3
                 return false;
 
             var mouseVec2 = Raylib.GetMousePosition();
-            Vector2 GridPos = new Vector2((int)mouseVec2.X, (int)mouseVec2.Y);
-            GridPos /= ITile.Size;
-            tile = this[GridPos];
+            Vector2 gridPos = new Vector2((int)mouseVec2.X, (int)mouseVec2.Y);
+            gridPos /= ITile.Size;
+            tile = this[gridPos];
             return tile is not null;
         }
 
-        public void Swap(ITile a, ITile b)
+        public void Swap(ITile? a, ITile? b)
         {
             if (a is null || b is null)
                 return;
@@ -192,6 +192,6 @@ namespace Match_3
             (a.CoordsB4Swap, b.CoordsB4Swap) = (b.GridCoords, a.GridCoords);
         }
 
-        public void Delete(Vector2 coord) => this[coord] = null!;
+        public void Delete(Vector2 coord) => this[coord] = null;
     }
 }

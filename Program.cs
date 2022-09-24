@@ -1,9 +1,10 @@
 ﻿using System.Numerics;
-using Match_3;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
 //INITIALIZATION:................................
+
+namespace Match_3;
 
 class Program
 {
@@ -11,9 +12,9 @@ class Program
     private static GameTime globalTimer, gameOverScreenTimer;
 
     private static Grid _tileMap;
-    private static readonly ISet<ITile> MatchesOf3 = new HashSet<ITile>(3);
-    private static Tile? secondClickedTile;
-    private static readonly ISet<ITile> UndoBuffer = new HashSet<ITile>(5);
+    private static readonly ISet<ITile?> MatchesOf3 = new HashSet<ITile?>(3);
+    private static ITile? secondClickedTile;
+    private static readonly ISet<ITile?> UndoBuffer = new HashSet<ITile?>(5);
     private static bool? wasGameWonB4Timeout;
     private static bool enterGame;
     private static int tileCounter;
@@ -34,16 +35,18 @@ class Program
         gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
         _tileMap = new(state);
         SetTargetFPS(60);
-        InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Shpend");
+        SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
+        InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Shpendicus");
         AssetManager.Init();
         //Console.Clear();        
     }
     
     public static void UpdateTimerOnScreen(ref GameTime timer)
     {
-        if (timer.ElapsedSeconds <= timer.MAX_TIMER_VALUE / 2f) ;
-           // timer.ElapsedSeconds -= Raylib.GetFrameTime() * 1.3f;
-
+        if (timer.ElapsedSeconds <= timer.MAX_TIMER_VALUE / 2f)
+        {
+            // timer.ElapsedSeconds -= Raylib.GetFrameTime() * 1.3f;
+        }
         timer.UpdateTimer();
         string txt = ((int)timer.ElapsedSeconds).ToString();
         
@@ -57,7 +60,9 @@ class Program
     
     public static void DrawScaledFont(in GameText font)
     {
-        DrawTextEx(font.Src, font.Text, font.Begin, font.Size, 1f, font.Color);
+        //this function right now returns a SIGSEGV; !
+        //DrawTextEx(font.Src, font.Text, font.Begin, font.Size, 1f, font.Color);
+        DrawText(font.Text, font.Begin.X, font.Begin.Y, font.Size, font.Color);
     }
 
     private static void ShowWelcomeScreenOnLoop(bool shallClearTxt)
@@ -66,9 +71,11 @@ class Program
         FadeableColor tmp = Raylib.RED;
         tmp.CurrentAlpha = shallClearTxt ? 0f : 1f;
         tmp.TargetAlpha = 1f;
-        Vector2 aThirdOfScreen = new(state.WINDOW_WIDTH/4.5f, 15);         
-        GameText welcomeFont = new(AssetManager.DebugFont, txt, aThirdOfScreen, 5, tmp);
-        DrawScaledFont(welcomeFont.AlignText());        
+        Vector2 topCenter = state.Center with { Y = 0f };
+        topCenter.X *= 0.6f;
+        GameText welcomeFont = new(AssetManager.DebugFont, txt, topCenter, 15, tmp);
+        welcomeFont.AlignText();
+        DrawScaledFont(welcomeFont);        
     }
 
     private static bool OnGameOver(bool? gameWon)
@@ -85,19 +92,20 @@ class Program
         ClearBackground(Raylib.WHITE);
         Vector2 windowSize = new Vector2(state.WINDOW_WIDTH, state.WINDOW_HEIGHT) * 0.5f;
         GameText gameOverText = new(AssetManager.DebugFont, output, windowSize, 3f, Raylib.RED);
-        DrawScaledFont(gameOverText.AlignText());
+        gameOverText.AlignText();
+        DrawScaledFont(gameOverText);
         return gameOverScreenTimer.Done();
     }
 
-    private static void SaveDeletedMatches(IEnumerable<ITile> tiles)
+    private static void SaveDeletedMatches(IEnumerable<ITile?> tiles)
     {
-        foreach (var match in tiles)
+        foreach (ITile? match in tiles)
         {
-            if (match is null)
-                continue;
-
-            UndoBuffer.Add((Tile)_tileMap[match.GridCoords]!);
-            _tileMap.Delete(match.GridCoords);
+            if (match is not null)
+            {
+                UndoBuffer.Add(_tileMap[match.GridCoords]);
+                _tileMap.Delete(match.GridCoords);
+            }
         }
     }
 
@@ -112,6 +120,7 @@ class Program
             {
                 ShowWelcomeScreenOnLoop(false);
                 GameRuleManager.LogQuest(false);
+                //Console.WriteLine("Quest was logged!" + Raylib.GetFrameTime());
             }
             if (IsKeyDown(KeyboardKey.KEY_ENTER) || enterGame)
             {                
@@ -129,7 +138,7 @@ class Program
                 {
                     if (OnGameOver(true))
                     {
-                        ///TODO: prepare nextlevel
+                        //TODO: prepare nextlevel
                         Initialize();
                         wasGameWonB4Timeout = false;
                         continue;
@@ -137,7 +146,7 @@ class Program
                 }
                 else
                 {
-                    //Keep the game Drawing!
+                    //Keep the main loop going 
                     UpdateTimerOnScreen(ref globalTimer);
                     ShowWelcomeScreenOnLoop(true);
                     _tileMap.Draw(globalTimer.ElapsedSeconds);
@@ -146,48 +155,53 @@ class Program
                 }
                 enterGame = true;
             }
+            
             EndDrawing();
         }
     }
 
     private static void ProcessSelectedTiles()
     {
-        if (!_tileMap.TryGetClickedTile(out var firstClickedTile))
+        if (!_tileMap.TryGetClickedTile(out ITile? firstClickedTile) || firstClickedTile is null)
             return;
 
-       //Console.WriteLine($"{nameof(firstClickedTile)} {firstClickedTile}");
+        //Console.WriteLine($"{nameof(firstClickedTile)} {firstClickedTile}");
         
         //No tile selected yet
         if (secondClickedTile is null)
         {
-            secondClickedTile = (Tile)firstClickedTile;
-            secondClickedTile.Selected = true;
+            secondClickedTile = firstClickedTile;
+            secondClickedTile!.Selected = true;
             return;
         }
 
         //Same tile selected => deselect
         //WRONG LOGIC IN EQUALS!
-        if (firstClickedTile.Equals(secondClickedTile))
+        //if (firstClickedTile is not null)
         {
-            secondClickedTile.Selected = false;
-            secondClickedTile = null;
-            return;
+            if (firstClickedTile.Equals(secondClickedTile))
+            {
+                secondClickedTile.Selected = false;
+                secondClickedTile = null;
+                return;
+            }
+            else
+            {
+                /*Different tile selected ==> swap*/
+                firstClickedTile.Selected = true;
+                _tileMap.Swap(firstClickedTile, secondClickedTile);
+                UndoBuffer.Add(firstClickedTile);
+                UndoBuffer.Add(secondClickedTile);
+                secondClickedTile.Selected = false;
+            }
         }
 
-        /*Different tile selected ==> swap*/
-        firstClickedTile.Selected = true;
-        _tileMap.Swap(firstClickedTile, secondClickedTile);
-        UndoBuffer.Add(firstClickedTile);
-        UndoBuffer.Add(secondClickedTile);
-        secondClickedTile.Selected = false;
-
-        var candy = secondClickedTile is not null ? 
-                       secondClickedTile.Shape as CandyShape : 
-                         null;
+        var candy = secondClickedTile is Tile d ? d.Shape as CandyShape : null;
 
         if (candy is null)
             return;
-        if (_tileMap.MatchInAnyDirection(secondClickedTile!, MatchesOf3))           
+        
+        if (_tileMap.MatchInAnyDirection(secondClickedTile, MatchesOf3))           
         {
             UndoBuffer.Clear();
 
@@ -195,9 +209,10 @@ class Program
             {
                 tileCounter += 1;
                 Console.WriteLine($"You already got {tileCounter} match of Balltype: {candy.Ball}");
+              
                 if (tileCounter == toCollect)
                 {
-                    Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
+                    // Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
                     GameRuleManager.RemoveSubQuest(candy);
                     tileCounter = 0;
                     missedSwapTolerance = 0;
@@ -236,25 +251,29 @@ class Program
         {
             bool wasSwappedBack = false;
 
-            foreach (Tile storedItem in UndoBuffer)
+            foreach (var storedItem in UndoBuffer)
             {
                 //check if they have been ONLY swapped without leading to a match3
-                if (!wasSwappedBack && _tileMap[storedItem.GridCoords] is not null)
+                if (storedItem is not null)
                 {
-                    var secondTile = _tileMap[storedItem.GridCoords];
-                    var firstTie = _tileMap[storedItem.CoordsB4Swap];
-                    _tileMap.Swap(secondTile, firstTie);
-                    wasSwappedBack = true;
-                }
-                else
-                {
-                    //their has been a match3 after swap!
-                    //for delete we dont have a .IsDeleted, cause we onl NULL
-                    //a tile at a certain coordinate, so we test for that
-                    //if (_tileMap[storedItem.GridCoords] is { } backupItem)
-                    var tmp = (_tileMap[storedItem.GridCoords] = storedItem) as Tile;
-                    tmp!.Selected = false;
-                    tmp.ChangeTo(Raylib.WHITE);
+                    _tileMap[storedItem.GridCoords] = null!;
+                    if (!wasSwappedBack && _tileMap[storedItem.GridCoords] is not null)
+                    {
+                        var secondTile = _tileMap[storedItem.GridCoords];
+                        var firstTie = _tileMap[storedItem.CoordsB4Swap];
+                        _tileMap.Swap(secondTile, firstTie);
+                        wasSwappedBack = true;
+                    }
+                    else
+                    {
+                        //their has been a match3 after swap!
+                        //for delete we dont have a .IsDeleted, cause we onl NULL
+                        //a tile at a certain coordinate, so we test for that
+                        //if (_tileMap[storedItem.GridCoords] is { } backupItem)
+                        var tmp = (_tileMap[storedItem.GridCoords] = storedItem) as Tile;
+                        tmp!.Selected = false;
+                        tmp.ChangeTo(Raylib.WHITE);
+                    }
                 }
 
                 if (!wasSwappedBack)
@@ -263,7 +282,7 @@ class Program
 
                     if (trigger is not null)
                         _tileMap.Swap(_tileMap[trigger.CoordsB4Swap],
-                                       _tileMap[trigger.GridCoords]);
+                            _tileMap[trigger.GridCoords]);
 
                     wasSwappedBack = true;
                 }
@@ -278,4 +297,3 @@ class Program
         CloseWindow();
     }
 }
-

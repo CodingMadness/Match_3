@@ -24,16 +24,19 @@ public static class GameRuleManager
         {
             if (useConsole)
             {
-                Console.WriteLine($"You have to collect {pair.Value} {pair.Key}-tiles!");
-                Console.WriteLine();
+               // Console.WriteLine($"You have to collect {pair.Value} {pair.Key}-tiles!");
+                //Console.WriteLine();
             }
             else
             {
+                /*
                 string txt = $"You have to collect {pair.Value} {pair.Key}-tiles!";
-                Vector2 pos = State.Center with { Y = 3 * ITile.Size };
-                GameText logText = new(AssetManager.DebugFont, txt, pos, 10, Raylib.RED);
+                Vector2 pos = State.Center with {X = State.Center.X * 1.5f, Y = 4 * ITile.Size };
+                GameText logText = new(AssetManager.DebugFont, txt, pos, 20f, Raylib.RED);
+                //Raylib.DrawText(string.Empty, pos.X, pos.Y *= 1.2f, logText.Size, Raylib.RED);
                 Program.DrawScaledFont(logText.AlignText());
-                Raylib.DrawText(string.Empty, pos.X, pos.Y *= 1.2f, logText.Size, Raylib.RED);
+                */
+                break;
             }
         }
     } 
