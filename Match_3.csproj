@@ -7,7 +7,17 @@
     <Nullable>enable</Nullable>
     <LangVersion>11</LangVersion>
   </PropertyGroup>
-<PropertyGroup> <EnablePreviewFeatures>true</EnablePreviewFeatures> <AllowUnsafeBlocks>False</AllowUnsafeBlocks> </PropertyGroup>
+  <PropertyGroup>
+    <PublishTrimmed>true</PublishTrimmed>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishSelfContained>true</PublishSelfContained>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+  </PropertyGroup>
+<PropertyGroup> 
+  <EnablePreviewFeatures>true</EnablePreviewFeatures>
+  <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
+</PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' " />
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -27,5 +37,37 @@
     <Compile Remove="Extension.cs" />
     <Compile Remove="ProbabilityPool.cs" />
     <Compile Remove="FadeableColour.cs" />
+    <None Remove="Assets\fonts\font.otf" />
+    <EmbeddedResource Include="Assets\fonts\font.otf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\fonts\font2.otf" />
+    <EmbeddedResource Include="Assets\fonts\font2.otf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\fonts\font3.ttf" />
+    <EmbeddedResource Include="Assets\fonts\font3.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\fonts\font4.otf" />
+    <EmbeddedResource Include="Assets\fonts\font4.otf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\fonts\font5.otf" />
+    <EmbeddedResource Include="Assets\fonts\font5.otf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\spritesheets\set1.png" />
+    <EmbeddedResource Include="Assets\spritesheets\set1.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\spritesheets\set2.png" />
+    <EmbeddedResource Include="Assets\spritesheets\set2.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\spritesheets\shapes.png" />
+    <EmbeddedResource Include="Assets\spritesheets\shapes.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

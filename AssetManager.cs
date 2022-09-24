@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using Raylib_CsLo;
 
 namespace Match_3;
@@ -32,8 +33,8 @@ public static class AssetManager
     }
     
     public static void Init()
-    { 
-        DebugFont = Raylib.LoadFont(GetAssetfolderName("fonts") + "font5.otf");
+    {
+        DebugFont = Raylib.GetFontDefault();//Raylib.LoadFont(GetAssetfolderName("fonts") + "font2.otf");
         SpriteSheet = Raylib.LoadTexture(GetAssetfolderName("spritesheets") + "set1.png");
     }
 }

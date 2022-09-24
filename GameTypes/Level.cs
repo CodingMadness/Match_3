@@ -32,7 +32,7 @@ public class Level
 
     public int WINDOW_WIDTH => TilemapWidth * TileSize;
     public Vector2 TopCenter => new Vector2(WINDOW_WIDTH / 2, 0) - Vector2.UnitX * 25;
-    public Vector2 Center => new(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+    public Vector2 Center => new(((int)WINDOW_WIDTH / 2), (int)WINDOW_HEIGHT / 2);
     public int GameOverScreenTime { get; }
     public int GameStartAt { get; set; }
     public int TilemapWidth { get; set; }

@@ -15,7 +15,7 @@ class Program
     private static Tile? secondClickedTile;
     private static readonly ISet<ITile> UndoBuffer = new HashSet<ITile>(5);
     private static bool? wasGameWonB4Timeout;
-    private static bool toggleGame;
+    private static bool enterGame;
     private static int tileCounter;
     private static int missedSwapTolerance;
 
@@ -35,7 +35,6 @@ class Program
         _tileMap = new(state);
         SetTargetFPS(60);
         InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Shpend");
-        //InitWindow(1200, 1200, "Match3 By Alex und Shpend");
         AssetManager.Init();
         //Console.Clear();        
     }
@@ -109,13 +108,12 @@ class Program
             BeginDrawing();
             ClearBackground(Raylib.WHITE);
 
-            //render text on 60fps
-            if (!toggleGame)
+            if (!enterGame)
             {
                 ShowWelcomeScreenOnLoop(false);
                 GameRuleManager.LogQuest(false);
             }
-            if (IsKeyDown(KeyboardKey.KEY_ENTER) || toggleGame)
+            if (IsKeyDown(KeyboardKey.KEY_ENTER) || enterGame)
             {                
                 bool isGameOver = globalTimer.Done();
 
@@ -146,7 +144,7 @@ class Program
                     ProcessSelectedTiles();
                     UndoLastOperation();
                 }
-                toggleGame = true;
+                enterGame = true;
             }
             EndDrawing();
         }
