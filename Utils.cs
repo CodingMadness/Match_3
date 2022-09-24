@@ -1,4 +1,7 @@
-﻿namespace Match_3;
+﻿using System.Numerics;
+using Raylib_CsLo;
+
+namespace Match_3;
 
 public static class Utils
 {
@@ -39,4 +42,6 @@ public static class Utils
         return result < 0 ? -result : result;
         ;
     }
+
+    public static Vector2 GetScreenCoord() => new(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
 }
