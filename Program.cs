@@ -203,7 +203,7 @@ class Program
             if (GameRuleManager.TryGetSubQuest(candy, out int toCollect))
             {
                 tileCounter += 1;
-                Console.WriteLine($"You already got {tileCounter} match of Balltype: {candy.Ball}");
+                //Console.WriteLine($"You already got {tileCounter} match of Balltype: {candy.Ball}");
               
                 if (tileCounter == toCollect)
                 {

@@ -326,8 +326,8 @@ public sealed class Tile : ITile
         void DrawTextOnTop(in Vector2 worldPosition, bool selected)
         {
             Font copy = AssetManager.WelcomeFont with{baseSize = (int)(64/1.6f)};
-            Vector2 drawAt = (this as ITile).ChangeTileSize(0.15f, 0.65f);
-            
+            Vector2 drawAt = worldPosition + Vector2.One * 15f - (Vector2.UnitX *6f) + (Vector2.UnitY * 6f);//(this as ITile).TileSize;
+           // Console.WriteLine((this as ITile).TileSize);
             GameText coordText = new(copy, (worldPosition / ITile.Size).ToString(), 10f) 
             {
                 Begin = drawAt,
