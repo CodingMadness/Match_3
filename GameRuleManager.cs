@@ -15,7 +15,7 @@ public static class GameRuleManager
 
     static GameRuleManager()
     {
-        State = new(30, 3, 6, 5, (-1, new Dictionary<Balls, int>((int)Balls.Length)), 64);
+        State = new(100, 3, 6, 5, (-1, new Dictionary<Balls, int>((int)Balls.Length)), 64);
     }
     public static bool ShallMakeRndQuests { get; set; }
     public static void LogQuest(bool useConsole)

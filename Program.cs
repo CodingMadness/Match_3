@@ -43,7 +43,7 @@ class Program
         AssetManager.WelcomeFont.baseSize = 32;
         welcomeText = new(AssetManager.WelcomeFont, "Welcome young man!!", 7f);
         Font copy = AssetManager.WelcomeFont;
-        copy.baseSize = 70;
+        copy.baseSize = 64;
         timerText = new(copy, "", 1f);
         //Console.Clear();        
     }

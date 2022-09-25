@@ -1,6 +1,8 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+using Match_3.GameTypes;
 using Raylib_CsLo;
+using static Raylib_CsLo.Raylib;
 
 namespace Match_3;
 
@@ -23,25 +25,25 @@ public struct FadeableColor : IEquatable<FadeableColor>
 
     private static readonly Dictionary<Color, string> Strings = new()
     {
-        {Raylib.BLACK, "Black"},
-        {Raylib.BLUE, "Blue"},
-        {Raylib.BROWN, "Brown"},
-        {Raylib.DARKGRAY, "DarkGray"},
-        {Raylib.GOLD, "Gold"},
-        {Raylib.GRAY, "Gray"},
-        {Raylib.GREEN, "Green"},
-        {Raylib.LIGHTGRAY, "LightGray"},
-        {Raylib.MAGENTA, "Magenta"},
-        {Raylib.MAROON, "Maroon"},
-        {Raylib.ORANGE, "Orange"},
-        {Raylib.PINK, "Pink"},
-        {Raylib.PURPLE, "Purple"},
-        {Raylib.RAYWHITE, "RayWhite"},
-        {Raylib.RED, "Red"},
-        {Raylib.SKYBLUE, "SkyBlue"},
-        {Raylib.VIOLET, "Violet"},
-        {Raylib.WHITE, "White"},
-        {Raylib.YELLOW, "Yellow"}
+        {BLACK, "Black"},
+        {BLUE, "Blue"},
+        {BROWN, "Brown"},
+        {DARKGRAY, "DarkGray"},
+        {GOLD, "Gold"},
+        {GRAY, "Gray"},
+        {GREEN, "Green"},
+        {LIGHTGRAY, "LightGray"},
+        {MAGENTA, "Magenta"},
+        {MAROON, "Maroon"},
+        {ORANGE, "Orange"},
+        {PINK, "Pink"},
+        {PURPLE, "Purple"},
+        {RAYWHITE, "RayWhite"},
+        {RED, "Red"},
+        {SKYBLUE, "SkyBlue"},
+        {VIOLET, "Violet"},
+        {WHITE, "White"},
+        {YELLOW, "Yellow"}
     };
 
     public string ToReadableString()
@@ -53,7 +55,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
 
     private Color Lerp()
     {
-        _toWrap = Raylib.ColorAlpha(_toWrap, CurrentAlpha);
+        _toWrap = ColorAlpha(_toWrap, CurrentAlpha);
         CurrentAlpha = _lerp(CurrentAlpha, TargetAlpha, AlphaSpeed * ElapsedTime);
         return _toWrap;
     }
@@ -170,7 +172,7 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
 {
     public CandyShape(Vector2 coord, float noise)
     {
-        FadeTint = Raylib.WHITE;
+        FadeTint = WHITE;
         Ball = Backery.GetTileTypeTypeByNoise(coord, noise);
 
         switch (Ball)
@@ -262,6 +264,9 @@ public interface ITile : IEquatable<ITile>
     public Vector2 GridCoords { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public static int Size => 64;
+    public Vector2 TileSize => (GridCoords * Size) + (Vector2.One * Size);
+    public Vector2 ChangeTileSize(float xFactor, float yFactor) =>
+        TileSize with { X = TileSize.X * xFactor, Y = TileSize.Y * yFactor };
     public bool Selected { get; set; }
     public void Draw(float elapsedTime);
 }
@@ -279,7 +284,7 @@ public sealed class Tile : ITile
 
     public IShape Shape;
 
-    private FadeableColor _color = Raylib.WHITE;
+    private FadeableColor _color = WHITE;
 
     public bool Selected
     {
@@ -320,23 +325,25 @@ public sealed class Tile : ITile
     {
         void DrawTextOnTop(in Vector2 worldPosition, bool selected)
         {
-            float xCenter = worldPosition.X + ITile.Size / 4.3f;
-            float yCenter = worldPosition.Y < 128f ? worldPosition.Y + ITile.Size / 2.5f :
-                worldPosition.Y >= 128f ? (worldPosition.Y + ITile.Size / 2f) - 5f : 0f;
-
-            Vector2 drawPos = new(xCenter - 10f, yCenter);
-            FadeableColor drawColor = selected ? Raylib.BLACK : Raylib.WHITE;
-            Raylib.DrawTextEx(AssetManager.WelcomeFont, (worldPosition/ ITile.Size).ToString(), drawPos,
-                20f, 1f, selected ? Raylib.BLACK : drawColor);
+            Font copy = AssetManager.WelcomeFont with{baseSize = (int)(64/1.6f)};
+            Vector2 drawAt = (this as ITile).ChangeTileSize(0.15f, 0.65f);
+            
+            GameText coordText = new(copy, (worldPosition / ITile.Size).ToString(), 10f) 
+            {
+                Begin = drawAt,
+                Color = selected ? BLACK : RED,
+            };
+            coordText.Draw(0.5f);
         }
 
+        //we draw 1*Tilesize because our game-timer occupies an entire row so we begin 1 further down in Y 
         var pos = GridCoords == Vector2.Zero ? GridCoords + (Vector2.UnitY * ITile.Size) : GridCoords * ITile.Size;
 
-        _color = _selected ? Raylib.BLUE : Raylib.WHITE;//Shape.FadeTint;
+        _color = _selected ? BLUE : WHITE;//Shape.FadeTint;
         _color.ElapsedTime = elapsedTime;
         Shape.FadeTint = _color;
 
-        Raylib.DrawTextureRec(AssetManager.SpriteSheet,
+        DrawTextureRec(AssetManager.SpriteSheet,
             new(Shape.FrameLocation.X, Shape.FrameLocation.Y, ITile.Size, ITile.Size),
             pos, Shape.FadeTint);
 
