@@ -12,7 +12,7 @@ public static class GameRuleManager
 
     static GameRuleManager()
     {
-        State = new(30, 3, 6, 5, (-1, new Dictionary<Balls, int>((int)Balls.Length)), 64);
+        State = new(10, 3*3, 6, 5, (-1, new Dictionary<Balls, int>((int)Balls.Length)), 64);
     }
     public static bool ShallMakeRndQuests { get; set; }
     public static void LogQuest(bool useConsole)
@@ -88,6 +88,6 @@ public static class GameRuleManager
         State.TilemapWidth += 2;
         State.TilemapHeight += 2;
         State.GameStartAt *= 1;
-        State.GameOverScreenTime = 4;
+        State.GameOverScreenTime = 6;
     }
 }

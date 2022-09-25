@@ -6,8 +6,7 @@ namespace Match_3.GameTypes
 {
     public class GameText
     {
-        private static bool wasResized;
-        private static float scaledSize;
+        private float _scaledSize;
         
         public GameText(Font src, string text, float initSize)
         {
@@ -16,23 +15,40 @@ namespace Match_3.GameTypes
             InitSize = initSize;
         }
 
-        public FadeableColor Color { get; set; }
-        public Font Src { get; }
+        public FadeableColor Color;
+        public Font Src;
+        
         public string Text { get; set; }
+        
         public float InitSize { get; set; }
+        
         public Vector2 Begin { get; set; }
-
+        
         public void ScaleText()
         {
             var pos = MeasureTextEx(Src, Text, InitSize, 1f);
-            float scaleX = MathF.Round(Utils.GetScreenCoord().X / pos.X);
-            scaledSize = InitSize * scaleX;
+            float scaleX = MathF.Round(GetScreenWidth() / pos.X);
+            _scaledSize = InitSize * scaleX;
         }
         
         public void Draw(float? spacing)
         {
-            scaledSize = scaledSize == 0 ? InitSize : scaledSize;
-            DrawTextEx(Src, Text, Begin, scaledSize, spacing ?? scaledSize / InitSize, Color);
+            if (Text.Length == 1)
+            {
+                Src.baseSize = 10;
+                Begin = Begin with { X = Begin.X * 1f };
+                _scaledSize = 80f;
+                DrawTextEx(Src, Text, Begin, _scaledSize, spacing ?? _scaledSize / InitSize, Color);
+                return;
+            }
+
+            if (spacing is not null)
+            {
+                var width = MeasureTextEx(Src, Text, InitSize, InitSize / spacing.Value).X;
+                Begin = Begin with { X = Begin.X - width };
+            }
+
+            DrawTextEx(Src, Text, Begin, _scaledSize, spacing ?? _scaledSize / InitSize, Color.Apply());
         }
     }
 }

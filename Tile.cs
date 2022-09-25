@@ -58,7 +58,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
         return Strings.TryGetValue(compare, out var value) ? value : _toWrap.ToString();
     }
 
-    public FadeableColor Lerp()
+    public FadeableColor Apply()
     {
         _Lerp();
         return this with { _toWrap = ColorAlpha(_toWrap, CurrentAlpha) };
@@ -334,8 +334,9 @@ public sealed class Tile : ITile
         //because our game-timer occupies an entire row so we begin 1 further down in Y 
         var pos = GridCoords == Vector2.Zero ? GridCoords + Vector2.UnitY * ITile.Size : GridCoords * ITile.Size;
         _color.ElapsedTime = elapsedTime; 
-        DrawTextureRec(AssetManager.SpriteSheet, DestRect, pos, _color.Lerp());
+        DrawTextureRec(AssetManager.SpriteSheet, DestRect, pos, _color.Apply());
         DrawTextOnTop(GridCoords * ITile.Size, _selected);
+        ChangeTo(_color);
     }
 
     public bool Equals(Tile? other)

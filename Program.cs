@@ -38,13 +38,13 @@ class Program
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Shpendicus");
-        Vector2 pos = new(state.Center.X * 0.25f, state.Center.Y);
+        Vector2 pos = state.Center with { X = state.Center.X * 0.25f };
         AssetManager.Init(pos);
         AssetManager.WelcomeFont.baseSize = 32;
         welcomeText = new(AssetManager.WelcomeFont, "Welcome young man!!", 7f);
-        Font copy = AssetManager.WelcomeFont;
-        copy.baseSize = 64;
-        timerText = new(copy, "", 1f);
+        gameOverText = new(AssetManager.WelcomeFont, "", 7f);
+        Font copy = AssetManager.WelcomeFont with {baseSize = 512*2};
+        timerText = new(copy, "", 20f);
         //Console.Clear();        
     }
     
@@ -56,10 +56,11 @@ class Program
         }
         timer.UpdateTimer();
         timerText.Text = ((int)timer.ElapsedSeconds).ToString();
-        timerText.Color = timer.ElapsedSeconds > 0f ? RED : WHITE;
-        timerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 10f };
+        FadeableColor color = timer.ElapsedSeconds > 0f ? BLUE : WHITE;
+        timerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f};
+        timerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 0f };
         timerText.ScaleText();
-        timerText.Draw(2f);
+        timerText.Draw(0.5f);
     }
     
     private static void ShowWelcomeScreenOnLoop(bool shallClearTxt)
@@ -67,6 +68,7 @@ class Program
         FadeableColor tmp = RED;
         tmp.CurrentAlpha = shallClearTxt ? 0f : 1f;
         tmp.TargetAlpha = 1f;
+        
         welcomeText.Color = tmp;
         welcomeText.ScaleText();
         welcomeText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
@@ -80,15 +82,13 @@ class Program
             return false;
         }
 
-        var output = gameWon.Value ? "YOU WON!" : "YOU LOST";
-        
-        //Console.WriteLine(output);
-        UpdateTimerOnScreen(ref gameOverScreenTimer);
+        UpdateTimerOnScreen(ref gameOverScreenTimer); 
         ClearBackground(WHITE);
-        Vector2 windowSize = new Vector2(state.WINDOW_WIDTH, state.WINDOW_HEIGHT) * 0.5f;
-        //GameText gameOverText = new(AssetManager.WelcomeFont, output, windowSize, 3f, Raylib.RED);
-        //gameOverText.AlignText();
-        //gameOverText.Draw();
+        gameOverText.Src.baseSize = 2;
+        gameOverText.Begin = (Utils.GetScreenCoord() * 0.5f) with{X = 0f};
+        gameOverText.Text = gameWon.Value ? "YOU WON!" : "YOU LOST";
+        gameOverText.ScaleText();
+        gameOverText.Draw(null);
         return gameOverScreenTimer.Done();
     }
 
@@ -148,6 +148,7 @@ class Program
                     ProcessSelectedTiles();
                     UndoLastOperation();
                 }
+                
                 enterGame = true;
             }
             
