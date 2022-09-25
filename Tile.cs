@@ -9,20 +9,19 @@ namespace Match_3;
 public struct FadeableColor : IEquatable<FadeableColor>
 {
     private Color _toWrap;
-    public float CurrentAlpha, TargetAlpha, AlphaSpeed, ElapsedTime;
+    public float CurrentAlpha, TargetAlpha, ElapsedTime;
+    /// <summary>
+    /// The greater this Value, the faster it fades!
+    /// </summary>
+    public float AlphaSpeed;
     private FadeableColor(Color color)
     {
         _toWrap = color;
-        CurrentAlpha = 1f;
-        TargetAlpha = 1f;
         AlphaSpeed = 3f;
+        CurrentAlpha = 1f;
+        TargetAlpha = 0f;
     }
-
-    private static float _lerp(float? firstFloat, float secondFloat, float? by)
-    {
-        return firstFloat ?? (float)(firstFloat * (1 - by) + secondFloat * by);
-    }
-
+    
     private static readonly Dictionary<Color, string> Strings = new()
     {
         {BLACK, "Black"},
@@ -45,6 +44,12 @@ public struct FadeableColor : IEquatable<FadeableColor>
         {WHITE, "White"},
         {YELLOW, "Yellow"}
     };
+    
+    private void _Lerp()
+    {
+        if (CurrentAlpha > TargetAlpha)
+            CurrentAlpha -= AlphaSpeed * (1f / ElapsedTime);
+    }
 
     public string ToReadableString()
     {
@@ -53,21 +58,20 @@ public struct FadeableColor : IEquatable<FadeableColor>
         return Strings.TryGetValue(compare, out var value) ? value : _toWrap.ToString();
     }
 
-    private Color Lerp()
+    public FadeableColor Lerp()
     {
-        _toWrap = ColorAlpha(_toWrap, CurrentAlpha);
-        CurrentAlpha = _lerp(CurrentAlpha, TargetAlpha, AlphaSpeed * ElapsedTime);
-        return _toWrap;
+        _Lerp();
+        return this with { _toWrap = ColorAlpha(_toWrap, CurrentAlpha) };
     }
 
     public static implicit operator FadeableColor(Color color)
     {
         return new FadeableColor(color);
     }
-
+    
     public static implicit operator Color(FadeableColor color)
     {
-        return color.Lerp();
+        return color._toWrap;
     }
 
     public static bool operator ==(FadeableColor c1, FadeableColor c2)
@@ -96,19 +100,6 @@ public struct FadeableColor : IEquatable<FadeableColor>
 
     public override string ToString() => ToReadableString();
 }
-
-//public enum Sweets : sbyte
-//{
-//    Donut = 0,
-//    Cupcake,
-//    Bonbon,
-//    Cookie,
-//    Gummies,
-//    Lolipops,
-//    Empty = -1,
-//    Length = 6
-//}
-
 
 public enum Balls
 {
@@ -282,28 +273,28 @@ public sealed class Tile : ITile
 
     private bool _selected;
 
-    public IShape Shape;
+    public IShape Shape { get; set; }
 
     private FadeableColor _color = WHITE;
-
+    private Rectangle DestRect => new(Shape.FrameLocation.X, Shape.FrameLocation.Y, ITile.Size, ITile.Size);
+    
     public bool Selected
     {
         get => _selected;
 
         set
         {
-            if (!value)
+            if (value)
             {
-                _color.AlphaSpeed = 1.5f;
-                _color.TargetAlpha = 1f;
+                _color.CurrentAlpha = 1f;
+                _color.TargetAlpha = 0;
             }
             else
             {
-                _color.TargetAlpha = _color.CurrentAlpha = 0f;
+                _color.TargetAlpha = _color.CurrentAlpha = 1f;
             }
 
             _selected = value;
-            Shape.FadeTint = _color;
         }
     }
  
@@ -311,6 +302,8 @@ public sealed class Tile : ITile
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
         //overwrite the Shape anyway with the Factorymethod "CreateNewTile(..)";
+
+        _color.AlphaSpeed = 0.15f;
         Shape = new CandyShape(new(0f,0f),0.25f);
     }
 
@@ -326,8 +319,9 @@ public sealed class Tile : ITile
         void DrawTextOnTop(in Vector2 worldPosition, bool selected)
         {
             Font copy = AssetManager.WelcomeFont with{baseSize = (int)(64/1.6f)};
-            Vector2 drawAt = worldPosition + Vector2.One * 15f - (Vector2.UnitX *6f) + (Vector2.UnitY * 6f);//(this as ITile).TileSize;
-           // Console.WriteLine((this as ITile).TileSize);
+            Vector2 drawAt = worldPosition + Vector2.One *
+                             15f - (Vector2.UnitX *6f) + 
+                             (Vector2.UnitY * 6f);
             GameText coordText = new(copy, (worldPosition / ITile.Size).ToString(), 10f) 
             {
                 Begin = drawAt,
@@ -336,17 +330,11 @@ public sealed class Tile : ITile
             coordText.Draw(0.5f);
         }
 
-        //we draw 1*Tilesize because our game-timer occupies an entire row so we begin 1 further down in Y 
-        var pos = GridCoords == Vector2.Zero ? GridCoords + (Vector2.UnitY * ITile.Size) : GridCoords * ITile.Size;
-
-        _color = _selected ? BLUE : WHITE;//Shape.FadeTint;
-        _color.ElapsedTime = elapsedTime;
-        Shape.FadeTint = _color;
-
-        DrawTextureRec(AssetManager.SpriteSheet,
-            new(Shape.FrameLocation.X, Shape.FrameLocation.Y, ITile.Size, ITile.Size),
-            pos, Shape.FadeTint);
-
+        //we draw 1*Tilesize in Y-Axis,
+        //because our game-timer occupies an entire row so we begin 1 further down in Y 
+        var pos = GridCoords == Vector2.Zero ? GridCoords + Vector2.UnitY * ITile.Size : GridCoords * ITile.Size;
+        _color.ElapsedTime = elapsedTime; 
+        DrawTextureRec(AssetManager.SpriteSheet, DestRect, pos, _color.Lerp());
         DrawTextOnTop(GridCoords * ITile.Size, _selected);
     }
 

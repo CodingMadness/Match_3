@@ -1,6 +1,4 @@
 using System.Numerics;
-using JetBrains.Annotations;
-using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
 

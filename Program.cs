@@ -30,7 +30,7 @@ class Program
     
     private static void Initialize()
     {
-        GameRuleManager.DefineNewLevel();
+        GameRuleManager.InitNewLevel();
         state = GameRuleManager.State;
         globalTimer = GameTime.GetTimer(state.GameStartAt);
         gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
@@ -64,7 +64,7 @@ class Program
     
     private static void ShowWelcomeScreenOnLoop(bool shallClearTxt)
     {
-        FadeableColor tmp = Raylib.RED;
+        FadeableColor tmp = RED;
         tmp.CurrentAlpha = shallClearTxt ? 0f : 1f;
         tmp.TargetAlpha = 1f;
         welcomeText.Color = tmp;
@@ -84,7 +84,7 @@ class Program
         
         //Console.WriteLine(output);
         UpdateTimerOnScreen(ref gameOverScreenTimer);
-        ClearBackground(Raylib.WHITE);
+        ClearBackground(WHITE);
         Vector2 windowSize = new Vector2(state.WINDOW_WIDTH, state.WINDOW_HEIGHT) * 0.5f;
         //GameText gameOverText = new(AssetManager.WelcomeFont, output, windowSize, 3f, Raylib.RED);
         //gameOverText.AlignText();
@@ -109,7 +109,7 @@ class Program
         while (!WindowShouldClose())
         {
             BeginDrawing();
-            ClearBackground(Raylib.WHITE);
+            ClearBackground(WHITE);
 
             if (!enterGame)
             {
@@ -160,35 +160,32 @@ class Program
         if (!_tileMap.TryGetClickedTile(out ITile? firstClickedTile) || firstClickedTile is null)
             return;
 
-        //Console.WriteLine($"{nameof(firstClickedTile)} {firstClickedTile}");
+        //_tileMap[firstClickedTile.GridCoords].Selected = true;
+        firstClickedTile.Selected = true;
         
-        //No tile selected yet
+        /*No tile selected yet*/
         if (secondClickedTile is null)
         {
             secondClickedTile = firstClickedTile;
-            secondClickedTile!.Selected = true;
+            secondClickedTile.Selected = true;
             return;
         }
 
-        //Same tile selected => deselect
-        //WRONG LOGIC IN EQUALS!
-        //if (firstClickedTile is not null)
+        /*Same tile selected => deselect*/
+        if (firstClickedTile.Equals(secondClickedTile))
         {
-            if (firstClickedTile.Equals(secondClickedTile))
-            {
-                secondClickedTile.Selected = false;
-                secondClickedTile = null;
-                return;
-            }
-            else
-            {
-                /*Different tile selected ==> swap*/
-                firstClickedTile.Selected = true;
-                _tileMap.Swap(firstClickedTile, secondClickedTile);
-                UndoBuffer.Add(firstClickedTile);
-                UndoBuffer.Add(secondClickedTile);
-                secondClickedTile.Selected = false;
-            }
+            secondClickedTile.Selected = false;
+            secondClickedTile = null;
+            return;
+        }
+        /*Different tile selected ==> swap*/
+        else
+        {
+            firstClickedTile.Selected = true;
+            _tileMap.Swap(firstClickedTile, secondClickedTile);
+            UndoBuffer.Add(firstClickedTile);
+            UndoBuffer.Add(secondClickedTile);
+            secondClickedTile.Selected = false;
         }
 
         var candy = secondClickedTile is Tile d ? d.Shape as CandyShape : null;
@@ -267,7 +264,7 @@ class Program
                         //if (_tileMap[storedItem.GridCoords] is { } backupItem)
                         var tmp = (_tileMap[storedItem.GridCoords] = storedItem) as Tile;
                         tmp!.Selected = false;
-                        tmp.ChangeTo(Raylib.WHITE);
+                        tmp.ChangeTo(WHITE);
                     }
                 }
 

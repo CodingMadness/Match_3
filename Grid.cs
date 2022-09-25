@@ -1,4 +1,5 @@
 ﻿//using DotNext;
+
 using System.Numerics;
 using Match_3.GameTypes;
 using Raylib_CsLo;
@@ -60,7 +61,7 @@ namespace Match_3
 
         public void Draw(float elapsedTime)
         {
-            //Do this Draw second per second OLNLY ONCE
+            //Do this Draw second per second ONLY ONCE
             for (int x = 0; x < TileWidth; x++)
             {
                 for (int y = 1; y < TileHeight; y++)

@@ -1,7 +1,4 @@
-using System.Diagnostics.SymbolStore;
-using System.Numerics;
 using Match_3.GameTypes;
-using Raylib_CsLo;
 
 namespace Match_3;
 
@@ -15,7 +12,7 @@ public static class GameRuleManager
 
     static GameRuleManager()
     {
-        State = new(100, 3, 6, 5, (-1, new Dictionary<Balls, int>((int)Balls.Length)), 64);
+        State = new(30, 3, 6, 5, (-1, new Dictionary<Balls, int>((int)Balls.Length)), 64);
     }
     public static bool ShallMakeRndQuests { get; set; }
     public static void LogQuest(bool useConsole)
@@ -85,12 +82,12 @@ public static class GameRuleManager
         SetCollectQuest(countsPerBall);
         LogQuest(false);
     }
-    public static void DefineNewLevel() 
+    public static void InitNewLevel() 
     {
         State.SetNextLevel();
         State.TilemapWidth += 2;
         State.TilemapHeight += 2;
-        State.GameStartAt += 10;
-        const int gameOverTime = 4;
+        State.GameStartAt *= 1;
+        State.GameOverScreenTime = 4;
     }
 }
