@@ -19,7 +19,7 @@ class Program
     private static bool enterGame;
     private static int tileCounter;
     private static int missedSwapTolerance;
-    private static GameText welcomeText;
+    private static GameText welcomeText, timerText, gameOverText;
     
     private static void Main()
     {
@@ -40,7 +40,8 @@ class Program
         InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Shpendicus");
         Vector2 pos = new(state.Center.X * 0.25f, state.Center.Y);
         AssetManager.Init(pos);
-        welcomeText = new(AssetManager.WelcomeFont, "Welcome young man!!", 10f);
+        welcomeText = new(AssetManager.WelcomeFont, "Welcome young man!!", 7f, false);
+        timerText = new(AssetManager.WelcomeFont, "", 1f, true);
         //Console.Clear();        
     }
     
@@ -51,14 +52,11 @@ class Program
             // timer.ElapsedSeconds -= Raylib.GetFrameTime() * 1.3f;
         }
         timer.UpdateTimer();
-        string txt = ((int)timer.ElapsedSeconds).ToString();
-        
-        DrawTextEx(AssetManager.WelcomeFont,
-            txt,
-            state.TopCenter,
-            75f,
-            1f,
-            timer.ElapsedSeconds > 0f ? Raylib.RED : Raylib.BEIGE);
+        timerText.Text = ((int)timer.ElapsedSeconds).ToString();
+        timerText.Color = timer.ElapsedSeconds > 0f ? RED : WHITE;
+        timerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 10f };
+        timerText.ScaleText();
+        timerText.Draw();
     }
     
     private static void ShowWelcomeScreenOnLoop(bool shallClearTxt)
@@ -66,10 +64,10 @@ class Program
         FadeableColor tmp = Raylib.RED;
         tmp.CurrentAlpha = shallClearTxt ? 0f : 1f;
         tmp.TargetAlpha = 1f;
-        
+        welcomeText.Color = tmp;
         welcomeText.ScaleText();
-        welcomeText.AlignText();
-        welcomeText.Draw(tmp);
+        welcomeText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
+        welcomeText.Draw();
     }
 
     private static bool OnGameOver(bool? gameWon)

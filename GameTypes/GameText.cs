@@ -4,40 +4,37 @@ using static Raylib_CsLo.Raylib;
 
 namespace Match_3.GameTypes
 {
-    public record struct GameText(Font Src, string Text, float InitSize)
+    public class GameText
     {
         private static bool wasResized;
-        private static float ScaledSize;
-        public Vector2 ToDrawAT { get; private set; }
+        private static float scaledSize;
+        private readonly bool _ignoreSpacing;
         
-        public void ScaleText()
+        public GameText(Font src, string text, float initSize, bool ignoreSpacing)
         {
-            if (!IsWindowResized())
-                return;
-            
-            var pos = MeasureTextEx(Src, Text, InitSize, 1f);
-            float scaleX = MathF.Round(Utils.GetScreenCoord().X / pos.X);
-            ScaledSize = (InitSize * scaleX);
-            wasResized = true;
+            Src = src;
+            Text = text;
+            InitSize = initSize;
+            _ignoreSpacing = ignoreSpacing;
         }
 
-        public void AlignText()
+        public FadeableColor Color { get; set; }
+        public Font Src { get; }
+        public string Text { get; set; }
+        public float InitSize { get; set; }
+        public Vector2 Begin { get; set; }
+
+        public void ScaleText()
         {
-            if (!wasResized)
-                return;
-    
-            Vector2 size = MeasureTextEx(Src, Text, ScaledSize, ScaledSize / InitSize);
-            Vector2 begin = Utils.GetScreenCoord();
-            begin.X = 0f;
-            ToDrawAT = new (begin.X - size.X,  begin.Y - size.Y);
-            wasResized = false;
+            var pos = MeasureTextEx(Src, Text, InitSize, 1f);
+            float scaleX = MathF.Round(Utils.GetScreenCoord().X / pos.X);
+            scaledSize = InitSize * scaleX;
         }
         
-        public void Draw(FadeableColor c)
+        public void Draw()
         {
-            ScaledSize = ScaledSize == 0 ? InitSize : ScaledSize;
-            DrawTextEx(Src, Text, ToDrawAT, ScaledSize, ScaledSize / InitSize, c);
-            ToDrawAT = new(MathF.Round(0f), MathF.Round(GetScreenHeight() / 2));
+            scaledSize = scaledSize == 0 ? InitSize : scaledSize;
+            DrawTextEx(Src, Text, Begin, scaledSize, scaledSize / (_ignoreSpacing ? 1: InitSize), Color);
         }
     }
 }
