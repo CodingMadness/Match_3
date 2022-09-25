@@ -38,7 +38,7 @@ public static class AssetManager
     public static void Init(Vector2 initPosOfWelcomeFont)
     {
         WelcomeFont = GetFontDefault();
-        WelcomeFont.baseSize = 64;
+        //WelcomeFont.baseSize = 64;
         SpriteSheet = LoadTexture(GetAssetfolderName("spritesheets") + "set1.png");
     }
 }

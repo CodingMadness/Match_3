@@ -40,8 +40,11 @@ class Program
         InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Shpendicus");
         Vector2 pos = new(state.Center.X * 0.25f, state.Center.Y);
         AssetManager.Init(pos);
-        welcomeText = new(AssetManager.WelcomeFont, "Welcome young man!!", 7f, false);
-        timerText = new(AssetManager.WelcomeFont, "", 1f, true);
+        AssetManager.WelcomeFont.baseSize = 32;
+        welcomeText = new(AssetManager.WelcomeFont, "Welcome young man!!", 7f);
+        Font copy = AssetManager.WelcomeFont;
+        copy.baseSize = 70;
+        timerText = new(copy, "", 1f);
         //Console.Clear();        
     }
     
@@ -56,7 +59,7 @@ class Program
         timerText.Color = timer.ElapsedSeconds > 0f ? RED : WHITE;
         timerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 10f };
         timerText.ScaleText();
-        timerText.Draw();
+        timerText.Draw(2f);
     }
     
     private static void ShowWelcomeScreenOnLoop(bool shallClearTxt)
@@ -67,7 +70,7 @@ class Program
         welcomeText.Color = tmp;
         welcomeText.ScaleText();
         welcomeText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
-        welcomeText.Draw();
+        welcomeText.Draw(null);
     }
 
     private static bool OnGameOver(bool? gameWon)

@@ -8,14 +8,12 @@ namespace Match_3.GameTypes
     {
         private static bool wasResized;
         private static float scaledSize;
-        private readonly bool _ignoreSpacing;
         
-        public GameText(Font src, string text, float initSize, bool ignoreSpacing)
+        public GameText(Font src, string text, float initSize)
         {
             Src = src;
             Text = text;
             InitSize = initSize;
-            _ignoreSpacing = ignoreSpacing;
         }
 
         public FadeableColor Color { get; set; }
@@ -31,10 +29,10 @@ namespace Match_3.GameTypes
             scaledSize = InitSize * scaleX;
         }
         
-        public void Draw()
+        public void Draw(float? spacing)
         {
             scaledSize = scaledSize == 0 ? InitSize : scaledSize;
-            DrawTextEx(Src, Text, Begin, scaledSize, scaledSize / (_ignoreSpacing ? 1: InitSize), Color);
+            DrawTextEx(Src, Text, Begin, scaledSize, spacing ?? scaledSize / InitSize, Color);
         }
     }
 }
