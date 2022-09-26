@@ -9,17 +9,19 @@ namespace Match_3;
 public struct FadeableColor : IEquatable<FadeableColor>
 {
     private Color _toWrap;
+    private bool _dontFade = true;
     public float CurrentAlpha, TargetAlpha, ElapsedTime;
     /// <summary>
     /// The greater this Value, the faster it fades!
     /// </summary>
     public float AlphaSpeed;
+
     private FadeableColor(Color color)
     {
         _toWrap = color;
         AlphaSpeed = 3f;
-        CurrentAlpha = 1f;
-        TargetAlpha = 0f;
+        CurrentAlpha = 1.0f;
+        TargetAlpha = 0.0f;
     }
     
     private static readonly Dictionary<Color, string> Strings = new()
@@ -44,14 +46,27 @@ public struct FadeableColor : IEquatable<FadeableColor>
         {WHITE, "White"},
         {YELLOW, "Yellow"}
     };
-    
+
+    public bool DontFade
+    {
+        get => _dontFade;
+        set
+        {
+            if (value)
+            {
+                CurrentAlpha = 1f;
+                TargetAlpha = 1f;
+            }
+        }
+    }
+
     private void _Lerp()
     {
         if (CurrentAlpha > TargetAlpha)
             CurrentAlpha -= AlphaSpeed * (1f / ElapsedTime);
     }
 
-    public string ToReadableString()
+    public string? ToReadableString()
     {
         Color compare = _toWrap;
         compare.a = byte.MaxValue;
@@ -76,9 +91,9 @@ public struct FadeableColor : IEquatable<FadeableColor>
 
     public static bool operator ==(FadeableColor c1, FadeableColor c2)
     {
-        int bytes_4_c1 = Unsafe.As<Color, int>(ref c1._toWrap);
-        int bytes_4_c2 = Unsafe.As<Color, int>(ref c2._toWrap);
-        return bytes_4_c1 == bytes_4_c2;//&& Math.Abs(c1.CurrentAlpha - (c2.CurrentAlpha)) < 1e-3; ;
+        int bytes4C1 = Unsafe.As<Color, int>(ref c1._toWrap);
+        int bytes4C2 = Unsafe.As<Color, int>(ref c2._toWrap);
+        return bytes4C1 == bytes4C2;//&& Math.Abs(c1.CurrentAlpha - (c2.CurrentAlpha)) < 1e-3; ;
     }
 
     public bool Equals(FadeableColor other)
@@ -101,6 +116,9 @@ public struct FadeableColor : IEquatable<FadeableColor>
     public override string ToString() => ToReadableString();
 }
 
+/// <summary>
+/// A hardcoded type which is created from a look into the AngryBallsTexture!
+/// </summary>
 public enum Balls
 {
     Red, Blue, Green, Purple, Orange, Yellow, Brown, Violet,
@@ -111,8 +129,9 @@ public enum ShapeKind
 {
     Circle,
     Quader,
-    rectangle,
+    Rectangle,
     Heart,
+    Trapez
 }
 
 public enum Coat
@@ -122,113 +141,33 @@ public enum Coat
 
 public interface IShape
 {
-    public ShapeKind Form { get; init; }
+    public ShapeKind Form { get; set; }
 
     public Vector2 FrameLocation { get; init; }
 
     public FadeableColor FadeTint { get; set; }
-
-    //protected TShape DetectShapeBySweets(Sweets sweet, float noise)
-    //{
-    //    noise = MathF.Round(noise, 2, MidpointRounding.ToPositiveInfinity);
-
-    //    if (noise <= 0f)
-    //    {
-    //        noise += Random.Shared.NextSingle();
-    //        return GetTileTypeTypeByNoise(noise);
-    //    }
-
-    //    else if (noise <= 0.1)
-    //        noise *= 10;
-
-    //    switch (noise)
-    //    {
-    //        case <= 0.25f:
-    //            return Balls.Donut;
-    //        case > 0.25f and <= 0.35f:
-    //            return Balls.Cookie;
-    //        case > 0.35f and <= 0.45f:
-    //            return Balls.Cupcake;
-    //        case > 0.45f and <= 0.65f:
-    //            return Balls.Bonbon;
-    //        case > 0.65f and <= 1f:
-    //            return Balls.Gummies;
-    //        default:
-    //            return Balls.Empty;
-    //    }
-    //}
 }
 
 public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
 {
-    public CandyShape(Vector2 coord, float noise)
+    public CandyShape()
     {
         FadeTint = WHITE;
-        Ball = Backery.GetTileTypeTypeByNoise(coord, noise);
-
-        switch (Ball)
-        {
-            case Balls.Green:
-                FrameLocation = new Vector2(0f, 0f) * ITile.Size;
-                Form = ShapeKind.Circle;
-                Layer = Coat.A;
-                break;
-            case Balls.Purple:
-                FrameLocation = new Vector2(1f, 0f) * ITile.Size;
-                Layer = Coat.B;
-                break;
-            case Balls.Orange:
-                FrameLocation = new Vector2(2f, 0f) * ITile.Size;
-                Layer = Coat.C;
-                break;
-            case Balls.Yellow:
-                FrameLocation = new Vector2(3f, 0f) * ITile.Size;
-                Layer = Coat.D;
-                break;
-            case Balls.Red:
-                FrameLocation = new Vector2(0f, 1f) * ITile.Size;
-                Layer = Coat.E;
-                break;
-            case Balls.Blue:
-                FrameLocation = new Vector2(1f, 1f) * ITile.Size;
-                Layer = Coat.F;
-                break;
-            case Balls.Brown:
-                FrameLocation = new Vector2(2f, 1f) * ITile.Size;
-                Form = ShapeKind.Circle;
-                Layer = Coat.A;
-                break;
-            case Balls.Violet:
-                FrameLocation = new Vector2(3f, 1f) * ITile.Size;
-                Layer = Coat.G;
-                break;
-
-            //DEFAULTS.......
-            case Balls.Length:
-                FrameLocation = -Vector2.One;
-                break;
-            case Balls.Empty:
-                FrameLocation = -Vector2.One;
-                break;
-        }
     }
-
     public Balls Ball { get; init; }
     public Coat Layer { get; init; }
     public FadeableColor FadeTint { get; set; }
-    public ShapeKind Form { get; init; }
+    public ShapeKind Form { get; set; }
     public Vector2 FrameLocation { get; init; }
-
     public bool Equals(CandyShape other) =>
         Ball == other.Ball && Layer == other.Layer;
-
     public override int GetHashCode()
     {
         return HashCode.Combine(FadeTint, Ball);
     }
 
     public override string ToString() =>
-        $"Tiletype: <{Ball}> with Tint: <{FadeTint}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
+        $"Tile type: <{Ball}> with Tint: <{FadeTint}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
 
     public override bool Equals(object obj)
     {
@@ -246,34 +185,45 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
     }
 }
 
-/// <summary>
-/// A hardcoded type which is created from a look into the SpriteSheet!
-/// </summary>
+[Flags]
+public enum TileState
+{
+    UnDestroyable,
+    UnMovable,
+    UnShapeable
+}
 
 public interface ITile : IEquatable<ITile>
 {
-    public Vector2 GridCoords { get; set; }
+    public bool IsDeleted { get; set; }
+    public TileState State { get; set; }
+    public static Texture Atlas { get; set; }
+    public Vector2 CurrentCoords { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public static int Size => 64;
-    public Vector2 TileSize => (GridCoords * Size) + (Vector2.One * Size);
+    public Vector2 TileSize => (CurrentCoords * Size) + (Vector2.One * Size);
     public Vector2 ChangeTileSize(float xFactor, float yFactor) =>
         TileSize with { X = TileSize.X * xFactor, Y = TileSize.Y * yFactor };
     public bool Selected { get; set; }
     public void Draw(float elapsedTime);
 }
 
-public sealed class Tile : ITile
+public class Tile : ITile
 {
+    public virtual bool IsDeleted { get; set; }
+    
+    public virtual TileState State { get; set; }
+
     /// <summary>
-    /// Important always is: Match GridCoords with the actual Drawing-Location of the window!
+    /// Important always is: Match CurrentCoords with the actual Drawing-Location of the window!
     /// </summary>
-    public Vector2 GridCoords { get; set; }
+    public Vector2 CurrentCoords { get; set; }
 
     public Vector2 CoordsB4Swap { get; set; }
 
     private bool _selected;
 
-    public IShape Shape { get; set; }
+    public virtual IShape Shape { get; init; }
 
     private FadeableColor _color = WHITE;
     private Rectangle DestRect => new(Shape.FrameLocation.X, Shape.FrameLocation.Y, ITile.Size, ITile.Size);
@@ -302,19 +252,25 @@ public sealed class Tile : ITile
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
         //overwrite the Shape anyway with the Factorymethod "CreateNewTile(..)";
-
         _color.AlphaSpeed = 0.15f;
-        Shape = new CandyShape(new(0f,0f),0.25f);
+        Shape = new CandyShape();
     }
 
-    public override string ToString() => $"GridCoords: {GridCoords}; ---- {Shape}";
+    public override string ToString() => $"CurrentCoords: {CurrentCoords}; ---- {Shape}";
 
     public void ChangeTo(FadeableColor color)
     {
         Shape.FadeTint = color;
     }
 
-    public void Draw(float elapsedTime)
+    /// <summary>
+    /// Transforms this tile into a matchblocker-tile
+    /// </summary>
+    /// <param name="map">the Grid from which it calculates the neighbor tiles,
+    /// which shall not be moved for as long as that tile lives!</param>
+    /// <returns></returns>
+   
+    public virtual void Draw(float elapsedTime)
     {
         void DrawTextOnTop(in Vector2 worldPosition, bool selected)
         {
@@ -332,10 +288,10 @@ public sealed class Tile : ITile
 
         //we draw 1*Tilesize in Y-Axis,
         //because our game-timer occupies an entire row so we begin 1 further down in Y 
-        var pos = GridCoords == Vector2.Zero ? GridCoords + Vector2.UnitY * ITile.Size : GridCoords * ITile.Size;
+        var pos = CurrentCoords == Vector2.Zero ? CurrentCoords + Vector2.UnitY * ITile.Size : CurrentCoords * ITile.Size;
         _color.ElapsedTime = elapsedTime; 
-        DrawTextureRec(AssetManager.SpriteSheet, DestRect, pos, _color.Apply());
-        DrawTextOnTop(GridCoords * ITile.Size, _selected);
+        DrawTextureRec(ITile.Atlas, DestRect, pos, _color.Apply());
+        DrawTextOnTop(CurrentCoords * ITile.Size, _selected);
         ChangeTo(_color);
     }
 
@@ -351,5 +307,57 @@ public sealed class Tile : ITile
     bool IEquatable<ITile>.Equals(ITile? other)
     {
         return Equals(other as Tile);
+    }
+}
+
+public class MatchBlockTile : Tile
+{
+    public override TileState State => TileState.UnMovable;
+    
+    /// <summary>
+    /// While a matchblocking tile is "IsBlocking" you dont get a match3 and hence
+    /// no points
+    /// </summary>
+    public bool IsBlocking { get; set; }
+
+    public readonly Tile[] BlockedNeighbors;
+    
+    public MatchBlockTile(Grid map) : base()
+    {
+        BlockedNeighbors = new Tile[4];
+        
+        static Vector2 GetStepsFromDirection(Vector2 input, Grid.Direction direction)
+        {
+            var tmp = direction switch
+            {
+                Grid.Direction.NegativeX => new Vector2(input.X - 1, input.Y),
+                Grid.Direction.PositiveX => new Vector2(input.X + 1, input.Y),
+                Grid.Direction.NegativeY => new Vector2(input.X, input.Y - 1),
+                Grid.Direction.PositiveY => new Vector2(input.X, input.Y + 1),
+                _ => Vector2.Zero
+            };
+
+            return tmp;
+        }
+            
+        const Grid.Direction lastDir = (Grid.Direction)4;
+
+        if (map[CurrentCoords] is not null)
+        {
+            Vector2 coordA = map[CurrentCoords]!.CurrentCoords;
+
+            for (Grid.Direction i = 0; i < lastDir; i++)
+            {
+                Vector2 nextCoords = GetStepsFromDirection(coordA, i);
+                map[nextCoords]!.State = TileState.UnMovable;
+                BlockedNeighbors[(int)i] = (Tile)map[nextCoords]!;
+                var color = BlockedNeighbors[(int)i].Shape.FadeTint;
+                color.CurrentAlpha = 1f;
+                color.AlphaSpeed = 0.75f;
+                color.TargetAlpha = 0.33f;
+                BlockedNeighbors[(int)i].Shape.FadeTint = (color);
+                coordA = GetStepsFromDirection(nextCoords, i);
+            }
+        }
     }
 }
