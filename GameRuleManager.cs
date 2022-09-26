@@ -87,7 +87,7 @@ public static class GameRuleManager
         State.SetNextLevel();
         State.TilemapWidth += 2;
         State.TilemapHeight += 2;
-        State.GameStartAt *= 1;
+        State.GameStartAt *= 50;
         State.GameOverScreenTime = 6;
     }
 }

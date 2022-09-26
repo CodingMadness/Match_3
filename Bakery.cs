@@ -1,11 +1,10 @@
 ﻿using System.Numerics;
-using Raylib_CsLo;
 
 namespace Match_3;
 
-public static class Backery
+public static class Bakery
 {
-    private static readonly Random rnd = new(DateTime.UtcNow.GetHashCode());
+    private static readonly Random rnd = new(DateTime.UtcNow.Ticks.GetHashCode());
     
     public static Balls GetTileTypeTypeByNoise(float noise)
     {
@@ -101,11 +100,13 @@ public static class Backery
         };
     }
     
-    public static ITile CreateTile_1(Vector2 gridPos, float noise)
+    public static ITile CreateTile(Vector2 gridPos, float noise)
     {
-        var tile = new Tile
+        ITile.Atlas = AssetManager.ColorBallsTexture;
+
+        var tile = new Tile()
         {
-            GridCoords = gridPos, //RANDOM POSITION BASED ON PERlIN-NOISE!
+            CurrentCoords = gridPos, //RANDOM POSITION BASED ON PERlIN-NOISE!
             CoordsB4Swap = -Vector2.One,
             Selected = false,
             Shape = DefineFrame(noise),
@@ -113,10 +114,27 @@ public static class Backery
         tile.Shape.FadeTint = new()
         {
             CurrentAlpha = 1f,
-            AlphaSpeed = 3f,
-            ElapsedTime = 0f,
-            TargetAlpha = 1f,
+            AlphaSpeed = 0.5f,
+            ElapsedTime = 1000f,
+            TargetAlpha = 0f,
         };
         return tile;
     }
+
+    public static MatchBlockTile Transform(Tile other, Grid map)
+    {
+        ITile.Atlas = AssetManager.MatchBlockAtlas;
+
+        MatchBlockTile blockTile = new(map)
+        {
+            CurrentCoords = other.CurrentCoords,
+            CoordsB4Swap = other.CoordsB4Swap,
+            Selected = other.Selected,
+            IsDeleted = true,
+            State = other.State,
+        };
+        blockTile.Shape.Form = ShapeKind.Trapez;
+        return blockTile;
+    }
+
 }

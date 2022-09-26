@@ -16,7 +16,7 @@
   </PropertyGroup>
 <PropertyGroup> 
   <EnablePreviewFeatures>true</EnablePreviewFeatures>
-  <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
+  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' " />
@@ -28,46 +28,39 @@
     <None Remove="raylib" />
     <None Remove="Raylib-cs" />
     <None Remove="Microsoft.Extensions.Logging.Abstractions" />
+    <None Remove="Assets\SpriteSheets\Easter_UI\**" />
+    <None Remove="Assets\SpriteSheets\Super_Match3_Bundle\**" />
+    <None Remove="Assets\Atlas\set1.png" />
+    <None Remove="Assets\Fonts\font1.otf" />
+    <None Remove="Assets\Fonts\font2.otf" />
+    <None Remove="Assets\Fonts\font3.otf" />
+    <None Remove="Assets\Fonts\font4.otf" />
+    <None Remove="Assets\Atlas\set1.png" />
+    <None Remove="Assets\Atlas\set2.png" />
+    <None Remove="Assets\Atlas\set3.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" />
     <PackageReference Include="Raylib-CsLo" Version="4.2.0.3" />
+    <PackageReference Include="System.Drawing.Common" Version="6.0.2-mauipre.1.22102.15" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Extension.cs" />
     <Compile Remove="ProbabilityPool.cs" />
     <Compile Remove="FadeableColour.cs" />
-    <None Remove="Assets\fonts\font.otf" />
-    <EmbeddedResource Include="Assets\fonts\font.otf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Assets\fonts\font2.otf" />
-    <EmbeddedResource Include="Assets\fonts\font2.otf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Assets\fonts\font3.ttf" />
-    <EmbeddedResource Include="Assets\fonts\font3.ttf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Assets\fonts\font4.otf" />
-    <EmbeddedResource Include="Assets\fonts\font4.otf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Assets\fonts\font5.otf" />
-    <EmbeddedResource Include="Assets\fonts\font5.otf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Assets\spritesheets\set1.png" />
-    <EmbeddedResource Include="Assets\spritesheets\set1.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Assets\spritesheets\set2.png" />
-    <EmbeddedResource Include="Assets\spritesheets\set2.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
     <None Remove="Assets\spritesheets\shapes.png" />
-    <EmbeddedResource Include="Assets\spritesheets\shapes.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
+    <Compile Remove="Assets\SpriteSheets\Easter_UI\**" />
+    <EmbeddedResource Remove="Assets\SpriteSheets\Easter_UI\**" />
+    <Compile Remove="Assets\SpriteSheets\Super_Match3_Bundle\**" />
+    <EmbeddedResource Remove="Assets\SpriteSheets\Super_Match3_Bundle\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\Fonts\font1.otf" />
+    <EmbeddedResource Include="Assets\Fonts\font2.otf" />
+    <EmbeddedResource Include="Assets\Fonts\font3.otf" />
+    <EmbeddedResource Include="Assets\Fonts\font4.otf" />
+    <EmbeddedResource Include="Assets\Atlas\set1.png" />
+    <EmbeddedResource Include="Assets\Atlas\set2.png" />
+    <EmbeddedResource Include="Assets\Atlas\set3.png" />
   </ItemGroup>
 </Project>

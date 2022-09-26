@@ -23,12 +23,12 @@ class Program
     
     private static void Main()
     {
-        Initialize();
+        InitGame();
         GameLoop();
         CleanUp();
     }
     
-    private static void Initialize()
+    private static void InitGame()
     {
         GameRuleManager.InitNewLevel();
         state = GameRuleManager.State;
@@ -38,8 +38,8 @@ class Program
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Shpendicus");
+        AssetManager.Init();
         Vector2 pos = state.Center with { X = state.Center.X * 0.25f };
-        AssetManager.Init(pos);
         AssetManager.WelcomeFont.baseSize = 32;
         welcomeText = new(AssetManager.WelcomeFont, "Welcome young man!!", 7f);
         gameOverText = new(AssetManager.WelcomeFont, "", 7f);
@@ -96,72 +96,23 @@ class Program
     {
         foreach (ITile? match in tiles)
         {
-            if (match is not null)
+            if (match is not null && _tileMap[match.CurrentCoords] is not null)
             {
-                UndoBuffer.Add(_tileMap[match.GridCoords]);
-                _tileMap.Delete(match.GridCoords);
+                Tile? current = _tileMap[match.CurrentCoords] as Tile;
+                UndoBuffer.Add(current);
+                MatchBlockTile madBall = Bakery.Transform(current!, _tileMap);
+                _tileMap.Delete(match.CurrentCoords);
+                //_tileMap[match.CurrentCoords] = madBall;
             }
         }
     }
-
-    private static void GameLoop()
-    {
-        while (!WindowShouldClose())
-        {
-            BeginDrawing();
-            ClearBackground(WHITE);
-
-            if (!enterGame)
-            {
-                ShowWelcomeScreenOnLoop(false);
-                GameRuleManager.LogQuest(false);
-            }
-            
-            if (IsKeyDown(KeyboardKey.KEY_ENTER) || enterGame)
-            {                
-                bool isGameOver = globalTimer.Done();
-
-                if (isGameOver)
-                {
-                    if (OnGameOver(false))
-                    {
-                        //leave Gameloop and hence end the game
-                        return;
-                    }
-                }
-                else if (wasGameWonB4Timeout == true)
-                {
-                    if (OnGameOver(true))
-                    {
-                        //TODO: prepare nextlevel
-                        Initialize();
-                        wasGameWonB4Timeout = false;
-                        continue;
-                    }
-                }
-                else
-                {
-                    //Keep the main loop going 
-                    UpdateTimerOnScreen(ref globalTimer);
-                    ShowWelcomeScreenOnLoop(true);
-                    _tileMap.Draw(globalTimer.ElapsedSeconds);
-                    ProcessSelectedTiles();
-                    UndoLastOperation();
-                }
-                
-                enterGame = true;
-            }
-            
-            EndDrawing();
-        }
-    }
-
+    
     private static void ProcessSelectedTiles()
     {
         if (!_tileMap.TryGetClickedTile(out ITile? firstClickedTile) || firstClickedTile is null)
             return;
 
-        //_tileMap[firstClickedTile.GridCoords].Selected = true;
+        //_tileMap[firstClickedTile.CurrentCoords].Selected = true;
         firstClickedTile.Selected = true;
         
         /*No tile selected yet*/
@@ -202,7 +153,7 @@ class Program
             {
                 tileCounter += 1;
                 //Console.WriteLine($"You already got {tileCounter} match of Balltype: {candy.Ball}");
-              
+                
                 if (tileCounter == toCollect)
                 {
                     // Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
@@ -213,9 +164,11 @@ class Program
                 wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
             }
 
+            ITile.Atlas = AssetManager.MatchBlockAtlas;
+            
             SaveDeletedMatches(MatchesOf3);
         }
-
+       
         //if (++missedSwapTolerance == state.MaxAllowedSpawns)
         //{
         //    Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
@@ -243,16 +196,18 @@ class Program
         if (keyDown)
         {
             bool wasSwappedBack = false;
-
+            ITile.Atlas = AssetManager.ColorBallsTexture;
+            
             foreach (var storedItem in UndoBuffer)
             {
                 //check if they have been ONLY swapped without leading to a match3
                 if (storedItem is not null)
                 {
-                    _tileMap[storedItem.GridCoords] = null!;
-                    if (!wasSwappedBack && _tileMap[storedItem.GridCoords] is not null)
+                    _tileMap[storedItem.CurrentCoords] = null!;
+                  
+                    if (!wasSwappedBack && _tileMap[storedItem.CurrentCoords] is not null)
                     {
-                        var secondTile = _tileMap[storedItem.GridCoords];
+                        var secondTile = _tileMap[storedItem.CurrentCoords];
                         var firstTie = _tileMap[storedItem.CoordsB4Swap];
                         _tileMap.Swap(secondTile, firstTie);
                         wasSwappedBack = true;
@@ -262,20 +217,19 @@ class Program
                         //their has been a match3 after swap!
                         //for delete we dont have a .IsDeleted, cause we onl NULL
                         //a tile at a certain coordinate, so we test for that
-                        //if (_tileMap[storedItem.GridCoords] is { } backupItem)
-                        var tmp = (_tileMap[storedItem.GridCoords] = storedItem) as Tile;
+                        //if (_tileMap[storedItem.CurrentCoords] is { } backupItem)
+                        var tmp = (_tileMap[storedItem.CurrentCoords] = storedItem) as Tile;
                         tmp!.Selected = false;
                         tmp.ChangeTo(WHITE);
                     }
                 }
-
                 if (!wasSwappedBack)
                 {
-                    var trigger = Grid.MatchXTrigger;
+                    var trigger = Grid.LastMatchTrigger;
 
                     if (trigger is not null)
                         _tileMap.Swap(_tileMap[trigger.CoordsB4Swap],
-                            _tileMap[trigger.GridCoords]);
+                            _tileMap[trigger.CurrentCoords]);
 
                     wasSwappedBack = true;
                 }
@@ -283,10 +237,63 @@ class Program
             UndoBuffer.Clear();
         }
     }
-
+    
     private static void CleanUp()
     {
-        UnloadTexture(AssetManager.SpriteSheet);
+        UnloadTexture(AssetManager.ColorBallsTexture);
         CloseWindow();
     }
+    
+    private static void GameLoop()
+    {
+        while (!WindowShouldClose())
+        {
+            BeginDrawing();
+            ClearBackground(WHITE);
+
+            if (!enterGame)
+            {
+                ShowWelcomeScreenOnLoop(false);
+                GameRuleManager.LogQuest(false);
+            }
+            
+            if (IsKeyDown(KeyboardKey.KEY_ENTER) || enterGame)
+            {                
+                bool isGameOver = globalTimer.Done();
+
+                if (isGameOver)
+                {
+                    if (OnGameOver(false))
+                    {
+                        //leave Gameloop and hence end the game
+                        return;
+                    }
+                }
+                else if (wasGameWonB4Timeout == true)
+                {
+                    if (OnGameOver(true))
+                    {
+                        //TODO: prepare nextlevel
+                        InitGame();
+                        wasGameWonB4Timeout = false;
+                        continue;
+                    }
+                }
+                else
+                {
+                    //Keep the main loop going 
+                    UpdateTimerOnScreen(ref globalTimer);
+                    ShowWelcomeScreenOnLoop(true);
+                    _tileMap.Draw(globalTimer.ElapsedSeconds);
+                    ProcessSelectedTiles();
+                    UndoLastOperation();
+                }
+                
+                enterGame = true;
+            }
+            
+            EndDrawing();
+        }
+    }
+
 }
