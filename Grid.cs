@@ -8,7 +8,7 @@ namespace Match_3
 {
     public sealed class Grid
     {
-        enum Direction
+        public enum Direction
         {
             PositiveX = 0,
             NegativeX = 1,
@@ -17,16 +17,16 @@ namespace Match_3
         }
 
         private readonly ITile?[,] _bitmap;
-    
+
         //public double Timer { get; private set; } = 10;
         public readonly int TileWidth;
         public readonly int TileHeight;
 
-        public static event Action<int[]> NotifyOnGridCreationDone; 
+        public static event Action<int[]> NotifyOnGridCreationDone;
 
         private const int MaxDestroyableTiles = 3;
 
-        public static ITile? MatchXTrigger { get; private set; }
+        public static ITile? LastMatchTrigger { get; private set; }
         private GameTime _gridTimer;
         private readonly bool isDrawn = true;
         private byte _match3FuncCounter;
@@ -38,10 +38,10 @@ namespace Match_3
             for (int x = 0; x < TileWidth; x++)
             {
                 for (int y = 1; y < TileHeight; y++)
-                {                    
+                {
                     Vector2 current = new(x, y);
-                    float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y*-0.5f);
-                    _bitmap[x, y] = Backery.CreateTile_1(current, noise);
+                    float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
+                    _bitmap[x, y] = Bakery.CreateTile(current, noise);
                     var kind = _bitmap[x, y] is Tile { Shape: CandyShape c } ? c.Ball : Balls.Empty;
                     counts[(int)kind]++;
                 }
@@ -66,8 +66,12 @@ namespace Match_3
             {
                 for (int y = 1; y < TileHeight; y++)
                 {
-                    var tile = _bitmap[x, y];
-                    tile?.Draw(elapsedTime);
+                    ITile? basicTile = _bitmap[x, y];
+
+                    if (basicTile is not null)
+                    {
+                        basicTile.Draw(elapsedTime);
+                    }
                 }
             }
 
@@ -129,22 +133,22 @@ namespace Match_3
 
                 return tmp;
             }
-            
+
             const Direction lastDir = (Direction)4;
 
-            MatchXTrigger = match3Trigger;
+            LastMatchTrigger = match3Trigger;
 
-            if (MatchXTrigger is not null)
+            if (LastMatchTrigger is not null)
             {
-                var coordA = MatchXTrigger.GridCoords;
-                var coordB = MatchXTrigger.CoordsB4Swap;
+                var coordA = LastMatchTrigger.CurrentCoords;
+                var coordB = LastMatchTrigger.CoordsB4Swap;
 
                 for (Direction i = 0; i < lastDir; i++)
                 {
                     Vector2 nextCoords = GetStepsFromDirection(coordA, i);
                     var next = this[nextCoords];
 
-                    while (AddWhenEqual(MatchXTrigger, next, matches))
+                    while (AddWhenEqual(LastMatchTrigger, next, matches))
                     {
                         //compute the proper (x,y) for next round!
                         nextCoords = GetStepsFromDirection(nextCoords, i);
@@ -155,7 +159,7 @@ namespace Match_3
                 //potentially swap endlessly the same matching-tiles...
                 if (matches.Count < MaxDestroyableTiles && ++_match3FuncCounter <= 1)
                 {
-                    matches.Clear();    
+                    matches.Clear();
                     return MatchInAnyDirection(this[coordB], matches);
                 }
             }
@@ -185,14 +189,34 @@ namespace Match_3
         public void Swap(ITile? a, ITile? b)
         {
             if (a is null || b is null)
-                return;
+            {
+                if (a is MatchBlockTile a0 && a0.State == TileState.UnMovable ||
+                    b is MatchBlockTile b0 && b0.State == TileState.UnMovable)
+                    return;
 
-            this[a.GridCoords] = b;
-            this[b.GridCoords] = a;
-            (a.GridCoords, b.GridCoords) = (b.GridCoords, a.GridCoords);
-            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.GridCoords, a.GridCoords);
+                return;
+            }
+            this[a.CurrentCoords] = b;
+            this[b.CurrentCoords] = a;
+            (a.CurrentCoords, b.CurrentCoords) = (b.CurrentCoords, a.CurrentCoords);
+            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.CurrentCoords, a.CurrentCoords);
         }
 
-        public void Delete(Vector2 coord) => this[coord] = null;
+        public void Delete(Vector2 coord)
+        {
+            var tile = this[coord];
+
+            if (tile is Tile mapTile)
+            {
+                //we mark the tile as kind of "deleted"
+                //by making it invisible and disallowing any
+                //movement to be happening
+                mapTile.IsDeleted = true;
+                mapTile.State = TileState.UnMovable | TileState.UnShapeable;
+                FadeableColor fc = Raylib.WHITE;
+                fc.CurrentAlpha = 0f;
+                mapTile.Shape.FadeTint = fc.Apply();
+            }
+        }
     }
 }
