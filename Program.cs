@@ -103,6 +103,7 @@ class Program
                 MatchBlockTile madBall = Bakery.Transform(current!, _tileMap);          
                 _tileMap.Delete(match.CurrentCoords);
                 _tileMap[match.CurrentCoords] = madBall;
+                madBall.DisableSwapForNeighbors(_tileMap);
             }
         }
     }

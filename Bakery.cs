@@ -109,18 +109,12 @@ public static class Bakery
     
     public static ITile CreateTile(Vector2 gridPos, float noise)
     {
-        var shape = DefineFrame(noise);
-        
         var tile = new Tile
         {
             CurrentCoords = gridPos, 
             CoordsB4Swap = -Vector2.One,
-            Selected = false,
             Shape = DefineFrame(noise),
-        };
-        tile.Shape.FadeTint = new()
-        {
-            ElapsedTime = 1000f,
+            Selected = false
         };
         return tile;
     }
@@ -131,7 +125,6 @@ public static class Bakery
         {
             CurrentCoords = other.CurrentCoords,
             CoordsB4Swap = other.CoordsB4Swap,
-            Selected = false,
             IsDeleted = false,
             State = other.State,
             
@@ -140,13 +133,12 @@ public static class Bakery
                 Form = ShapeKind.Trapez,
                 FrameLocation = other.Shape.FrameLocation,
                 Ball = other.Shape is CandyShape c0 ? c0.Ball : Balls.Empty,
-                FadeTint = new () { AlphaSpeed = 0f },
                 Layer = other.Shape is CandyShape c1 ? c1.Layer : (Coat)(-1)
-            }
+            },
+            Selected = false,
         };
-        
-        blockTile.DisableSwapForNeighbors(map);
-        //Console.WriteLine(blockTile.Shape.FrameLocation);
+
+        blockTile.Shape.Current().AlphaSpeed = 0f;
         return blockTile;
     }
 }

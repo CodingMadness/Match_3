@@ -128,42 +128,49 @@ public enum Coat
     A, B, C, D, E, F, G, H
 }
 
-public interface IShape
+public abstract class Shape
 {
-    public ShapeKind Form { get; set; }
+    public virtual ShapeKind Form { get; set; }
+    public virtual Vector2 FrameLocation { get; init; }
 
-    public Vector2 FrameLocation { get; init; }
+    private FadeableColor _f;
+    //public FadeableColor FadeTint => _f;
 
-    public FadeableColor FadeTint { get; set; }
+    public ref FadeableColor Current() => ref _f;
+    public void ChangeColor(Color c, float alphaSpeed, float targetAlpha)
+    {
+        _f = c;
+        _f.AlphaSpeed = alphaSpeed;
+        _f.TargetAlpha = targetAlpha;
+    }
 }
 
-public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
+public class CandyShape : Shape, IEquatable<CandyShape>//, IShape<CandyShape>
 {
     public CandyShape()
     {
-        FadeTint = WHITE;
+       ChangeColor(WHITE,0f, 1f);
     }
     public Balls Ball { get; init; }
     public Coat Layer { get; init; }
-    public FadeableColor FadeTint { get; set; }
-    public ShapeKind Form { get; set; }
-    public Vector2 FrameLocation { get; init; }
-    public bool Equals(CandyShape other) =>
-        Ball == other.Ball && Layer == other.Layer;
+    public override ShapeKind Form { get; set; }
+    public override Vector2 FrameLocation { get; init; }
+    public bool Equals(CandyShape? other) =>
+        other is not null && Ball == other.Ball && Layer == other.Layer;
     public override int GetHashCode()
     {
-        return HashCode.Combine(FadeTint, Ball);
+        return HashCode.Combine(Current(), Ball);
     }
 
     public override string ToString() =>
-        $"Tile type: <{Ball}> with Tint: <{FadeTint}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
+        $"Tile type: <{Ball}> with Tint: <{Current()}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
 
     public override bool Equals(object obj)
     {
         return obj is CandyShape shape && Equals(shape);
     }
 
-    public static bool operator ==(CandyShape left, CandyShape right)
+    public static bool operator ==(CandyShape left, CandyShape? right)
     {
         return left.Equals(right);
     }
@@ -220,9 +227,7 @@ public class Tile : ITile
 
     private bool _selected;
 
-    public IShape Shape { get; init; }
-
-    private FadeableColor _color = WHITE;
+    public Shape Shape { get; init; }
     
     private Rectangle DestRect => new(Shape.FrameLocation.X, Shape.FrameLocation.Y, ITile.Size, ITile.Size);
     
@@ -234,13 +239,13 @@ public class Tile : ITile
         {
             if (value)
             {
-                _color.CurrentAlpha = 1f;
-                _color.TargetAlpha = 0;
-                _color.AlphaSpeed = 0.5f;
+                Shape.Current().CurrentAlpha = 1f;
+                Shape.Current().TargetAlpha = 0;
+                Shape.Current().AlphaSpeed = 0.5f;
             }
             else
             {
-                _color.AlphaSpeed = 0f;
+                Shape.Current().AlphaSpeed = 0f;
             }
 
             _selected = value;
@@ -286,10 +291,9 @@ public class Tile : ITile
         //we draw 1*Tilesize in Y-Axis,
         //because our game-timer occupies an entire row so we begin 1 further down in Y 
         //var pos = CurrentCoords == Vector2.Zero ? CurrentCoords + Vector2.UnitY * ITile.Size : CurrentCoords * ITile.Size;
-        _color.ElapsedTime = elapsedTime; 
-        DrawTextureRec(ITile.GetAtlas(), DestRect, CurrentCoords * ITile.Size, _color.Apply());
+        Shape.Current().ElapsedTime = elapsedTime;
+        DrawTextureRec(ITile.GetAtlas(), DestRect, CurrentCoords * ITile.Size, Shape.Current().Apply());
         DrawTextOnTop(CurrentCoords * ITile.Size, _selected);
-        Shape.FadeTint = _color;
     }
 
     public bool Equals(Tile? other)
@@ -336,6 +340,9 @@ public class MatchBlockTile : Tile
 
     public void DisableSwapForNeighbors(Grid map)
     {
+        static bool IsOnlyDefaultTile(ITile? current) => 
+            current is Tile and not MatchBlockTile;
+        
         static Vector2 GetStepsFromDirection(Vector2 input, Grid.Direction direction)
         {
             var tmp = direction switch
@@ -358,14 +365,14 @@ public class MatchBlockTile : Tile
 
             for (Grid.Direction i = 0; i < lastDir; i++)
             {
-                coordA = GetStepsFromDirection(coordA, i);
-    
-                if (map[coordA] is Tile t)
+                if (IsOnlyDefaultTile(map[coordA]))
                 {
-                    t.Shape.FadeTint = BLACK;
+                    var t = map[coordA] as Tile;
+                    t!.Shape.ChangeColor(BLACK, 0f, 1f);
                     t.State = TileState.UnMovable;
                     Console.WriteLine($"{t}  IS BLOCKED NOW!");
                 }
+                coordA = GetStepsFromDirection(coordA, i);
             }
         }
     }
