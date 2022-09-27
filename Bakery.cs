@@ -47,64 +47,74 @@ public static class Bakery
         {
             Balls.Green => new()
             {
+                Ball = Balls.Green,
                 FrameLocation = new Vector2(0f, 0f) * ITile.Size, 
                 Form = ShapeKind.Circle, 
                 Layer = Coat.A
             },
             Balls.Purple => new()
             {
+                Ball = Balls.Purple,
                 FrameLocation = new Vector2(1f, 0f) * ITile.Size,
                 Form = ShapeKind.Circle,
                 Layer = Coat.B
             },
             Balls.Orange => new()
             {
+                Ball = Balls.Orange,
                 FrameLocation = new Vector2(2f, 0f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.C
             },
             Balls.Yellow => new()
             {
+                Ball = Balls.Yellow,
                 FrameLocation = new Vector2(3f, 0f) * ITile.Size,
-                Form = ShapeKind.Circle, 
-                Layer = Coat.C
-            },
-            Balls.Red => new()
-            {
-                FrameLocation = new Vector2(0f, 1f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.D
             },
-            Balls.Blue => new()
+            Balls.Red => new()
             {
-                FrameLocation = new Vector2(1f, 1f) * ITile.Size,
+                Ball = Balls.Red,
+                FrameLocation = new Vector2(0f, 1f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.E
             },
-            Balls.Brown => new()
+            Balls.Blue => new()
             {
-                FrameLocation = new Vector2(2f, 1f) * ITile.Size,
+                Ball = Balls.Blue,
+                FrameLocation = new Vector2(1f, 1f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.F
             },
-            Balls.Violet => new()
+            Balls.Brown => new()
             {
-                FrameLocation = new Vector2(3f, 1f) * ITile.Size, 
+                Ball = Balls.Brown,
+                FrameLocation = new Vector2(2f, 1f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.G
             },
+            Balls.Violet => new()
+            {
+                Ball = Balls.Violet,
+                FrameLocation = new Vector2(3f, 1f) * ITile.Size, 
+                Form = ShapeKind.Circle, 
+                Layer = Coat.H
+            },
+         
             //DEFAULTS.......
             Balls.Length => new() { FrameLocation = -Vector2.One },
             Balls.Empty => new() { FrameLocation = -Vector2.One },
-            _ => tmp
         };
     }
     
     public static ITile CreateTile(Vector2 gridPos, float noise)
     {
+        var shape = DefineFrame(noise);
+        
         var tile = new Tile
         {
-            CurrentCoords = gridPos, //RANDOM POSITION BASED ON PERlIN-NOISE!
+            CurrentCoords = gridPos, 
             CoordsB4Swap = -Vector2.One,
             Selected = false,
             Shape = DefineFrame(noise),
@@ -126,7 +136,7 @@ public static class Bakery
             CurrentCoords = other.CurrentCoords,
             CoordsB4Swap = other.CoordsB4Swap,
             Selected = other.Selected,
-            IsDeleted = true,
+            IsDeleted = false,
             State = other.State,
             
             Shape = new CandyShape

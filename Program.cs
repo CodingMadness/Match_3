@@ -101,9 +101,9 @@ class Program
             {
                 Tile? current = _tileMap[match.CurrentCoords] as Tile;
                 UndoBuffer.Add(_tileMap[match.CurrentCoords]);
-                MatchBlockTile madBall = Bakery.Transform(current!, _tileMap);
-                //_tileMap.Delete(match.CurrentCoords);
-                _tileMap[match.CurrentCoords] = madBall;
+                //MatchBlockTile madBall = Bakery.Transform(current!, _tileMap);
+                _tileMap.Delete(match.CurrentCoords);
+                //_tileMap[match.CurrentCoords] = madBall;
             }
         }
     }
@@ -115,6 +115,7 @@ class Program
 
         //_tileMap[firstClickedTile.CurrentCoords].Selected = true;
         firstClickedTile.Selected = true;
+        Console.WriteLine(firstClickedTile);
         
         /*No tile selected yet*/
         if (secondClickedTile is null)
@@ -282,5 +283,4 @@ class Program
             EndDrawing();
         }
     }
-
 }

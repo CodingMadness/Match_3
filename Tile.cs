@@ -123,7 +123,7 @@ public enum ShapeKind
 
 public enum Coat
 {
-    A, B, C, D, E, F, G,
+    A, B, C, D, E, F, G, H
 }
 
 public interface IShape
@@ -218,7 +218,7 @@ public class Tile : ITile
 
     private bool _selected;
 
-    public IShape Shape { get; init; } = new CandyShape();
+    public IShape Shape { get; init; }
 
     private FadeableColor _color = WHITE;
     
@@ -249,6 +249,7 @@ public class Tile : ITile
         //we just init the variable with a dummy value to have the error gone, since we will 
         //overwrite the Shape anyway with the Factorymethod "CreateNewTile(..)";
         _color.AlphaSpeed = 0.65f;
+        Shape = null!;
     }
 
     public override string ToString() => $"CurrentCoords: {CurrentCoords}; ---- {Shape}";
