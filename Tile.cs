@@ -9,7 +9,7 @@ namespace Match_3;
 public struct FadeableColor : IEquatable<FadeableColor>
 {
     private Color _toWrap;
-    private bool _dontFade = true;
+    private bool _allowFading = true;
     public float CurrentAlpha, TargetAlpha, ElapsedTime;
     /// <summary>
     /// The greater this Value, the faster it fades!
@@ -19,7 +19,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
     private FadeableColor(Color color)
     {
         _toWrap = color;
-        AlphaSpeed = 3f;
+        AlphaSpeed = 0.0f; //this basically states that we cannot fade!
         CurrentAlpha = 1.0f;
         TargetAlpha = 0.0f;
     }
@@ -46,20 +46,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
         {WHITE, "White"},
         {YELLOW, "Yellow"}
     };
-
-    public bool DontFade
-    {
-        get => _dontFade;
-        set
-        {
-            if (value)
-            {
-                CurrentAlpha = 1f;
-                TargetAlpha = 1f;
-            }
-        }
-    }
-
+    
     private void _Lerp()
     {
         if (CurrentAlpha > TargetAlpha)
@@ -188,9 +175,13 @@ public class CandyShape : IShape, IEquatable<CandyShape>//, IShape<CandyShape>
 [Flags]
 public enum TileState
 {
-    UnDestroyable,
-    UnMovable,
-    UnShapeable
+    UnDestroyable = 0,
+    UnMovable = 1,
+    UnShapeable = 2,
+    
+    Destroyable = 4,
+    Movable = 8,
+    Shapeable = 16
 }
 
 public interface ITile : IEquatable<ITile>
@@ -227,9 +218,10 @@ public class Tile : ITile
 
     private bool _selected;
 
-    public virtual IShape Shape { get; init; }
+    public IShape Shape { get; init; } = new CandyShape();
 
     private FadeableColor _color = WHITE;
+    
     private Rectangle DestRect => new(Shape.FrameLocation.X, Shape.FrameLocation.Y, ITile.Size, ITile.Size);
     
     public bool Selected
@@ -256,8 +248,7 @@ public class Tile : ITile
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
         //overwrite the Shape anyway with the Factorymethod "CreateNewTile(..)";
-        _color.AlphaSpeed = 0.15f;
-        Shape = new CandyShape();
+        _color.AlphaSpeed = 0.65f;
     }
 
     public override string ToString() => $"CurrentCoords: {CurrentCoords}; ---- {Shape}";
@@ -266,14 +257,7 @@ public class Tile : ITile
     {
         Shape.FadeTint = color;
     }
-
-    /// <summary>
-    /// Transforms this tile into a matchblocker-tile
-    /// </summary>
-    /// <param name="map">the Grid from which it calculates the neighbor tiles,
-    /// which shall not be moved for as long as that tile lives!</param>
-    /// <returns></returns>
-   
+    
     public virtual void Draw(float elapsedTime)
     {
         void DrawTextOnTop(in Vector2 worldPosition, bool selected)
@@ -301,11 +285,23 @@ public class Tile : ITile
 
     public bool Equals(Tile? other)
     {
-        if (Shape is CandyShape c && other is not null && other.Shape is CandyShape d)
-            if (c.Equals(d))
-                return true;
+        return Shape switch
+        {
+            CandyShape c when other?.Shape is CandyShape d && 
+                                                !IsDeleted && 
+                                                c.Equals(d) => true,
+            _ => false
+        };
+    }
 
-        return false;
+    public static bool operator ==(Tile? a, Tile? b)
+    {
+        return a?.Equals(b) ?? false;
+    }
+
+    public static bool operator !=(Tile? a, Tile? b)
+    {
+        return !(a == b);
     }
 
     bool IEquatable<ITile>.Equals(ITile? other)
@@ -322,14 +318,15 @@ public class MatchBlockTile : Tile
     /// While a matchblocking tile is "IsBlocking" you dont get a match3 and hence
     /// no points
     /// </summary>
-    public bool IsBlocking { get; set; }
-
-    public readonly Tile[] BlockedNeighbors;
+    private readonly Tile[] BlockedNeighbors;
     
-    public MatchBlockTile(Grid map) : base()
+    public MatchBlockTile() : base()
     {
         BlockedNeighbors = new Tile[4];
-        
+    }
+
+    public void DisableMoveForNeighbors(Grid map)
+    {
         static Vector2 GetStepsFromDirection(Vector2 input, Grid.Direction direction)
         {
             var tmp = direction switch

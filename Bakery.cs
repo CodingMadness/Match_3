@@ -1,6 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using Raylib_CsLo;
 
 namespace Match_3;
 
@@ -104,8 +102,6 @@ public static class Bakery
     
     public static ITile CreateTile(Vector2 gridPos, float noise)
     {
-        //ITile.SetAtlas(ref AssetManager.Default);
-        
         var tile = new Tile
         {
             CurrentCoords = gridPos, //RANDOM POSITION BASED ON PERlIN-NOISE!
@@ -125,7 +121,7 @@ public static class Bakery
 
     public static MatchBlockTile Transform(Tile other, Grid map)
     {
-        MatchBlockTile blockTile = new(map)
+        MatchBlockTile blockTile = new()
         {
             CurrentCoords = other.CurrentCoords,
             CoordsB4Swap = other.CoordsB4Swap,
@@ -142,8 +138,8 @@ public static class Bakery
                 Layer = other.Shape is CandyShape c1 ? c1.Layer : (Coat)(-1)
             }
         };
-        Console.WriteLine(blockTile.Shape.FrameLocation);
+        //blockTile.DisableMoveForNeighbors(map);
+        //Console.WriteLine(blockTile.Shape.FrameLocation);
         return blockTile;
     }
-
 }
