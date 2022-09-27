@@ -68,16 +68,14 @@ namespace Match_3
                 for (int y = 1; y < TileHeight; y++)
                 {
                     ITile? basicTile = _bitmap[x, y];
-                    
-                    var matchBlockAtlas = (basicTile.State == TileState.UnMovable
-                        ? AssetManager.MatchBlockAtlas
-                        : AssetManager.Default);
 
-                     ITile.GetAtlas() = matchBlockAtlas;
-                    
-                    if (basicTile is not null)
+                    if (basicTile is not null && !basicTile.IsDeleted)
                     {
-                        
+                        var matchBlockAtlas = (basicTile is MatchBlockTile)
+                            ? AssetManager.MatchBlockAtlas
+                            : AssetManager.Default;
+
+                        ITile.GetAtlas() = matchBlockAtlas;
                         basicTile.Draw(elapsedTime);
                     }
                 }
@@ -194,20 +192,21 @@ namespace Match_3
             return tile is not null;
         }
 
-        public void Swap(ITile? a, ITile? b)
+        public bool Swap(ITile? a, ITile? b)
         {
-            if (a is null || b is null)
+            if (a is null || b is null || a.IsDeleted || b.IsDeleted)
             {
-                if (a is MatchBlockTile a0 && a0.State == TileState.UnMovable ||
-                    b is MatchBlockTile b0 && b0.State == TileState.UnMovable)
-                    return;
-
-                return;
+                return false;
             }
+            if (a is MatchBlockTile { State: TileState.UnMovable } ||
+                b is MatchBlockTile { State: TileState.UnMovable } )
+                return false;
+            
             this[a.CurrentCoords] = b;
             this[b.CurrentCoords] = a;
             (a.CurrentCoords, b.CurrentCoords) = (b.CurrentCoords, a.CurrentCoords);
             (a.CoordsB4Swap, b.CoordsB4Swap) = (b.CurrentCoords, a.CurrentCoords);
+            return true;
         }
 
         public void Delete(Vector2 coord)
@@ -221,9 +220,6 @@ namespace Match_3
                 //movement to be happening
                 mapTile.IsDeleted = true;
                 mapTile.State = TileState.UnMovable | TileState.UnShapeable;
-                FadeableColor fc = Raylib.WHITE;
-                fc.CurrentAlpha = 0f;
-                mapTile.Shape.FadeTint = fc.Apply();
             }
         }
     }
