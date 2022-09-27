@@ -100,9 +100,9 @@ class Program
             if (match is not null && _tileMap[match.CurrentCoords] is not null)
             {
                 Tile? current = _tileMap[match.CurrentCoords] as Tile;
-                UndoBuffer.Add(current);
+                UndoBuffer.Add(_tileMap[match.CurrentCoords]);
                 MatchBlockTile madBall = Bakery.Transform(current!, _tileMap);
-                _tileMap.Delete(match.CurrentCoords);
+                //_tileMap.Delete(match.CurrentCoords);
                 _tileMap[match.CurrentCoords] = madBall;
             }
         }
@@ -125,7 +125,7 @@ class Program
         }
 
         /*Same tile selected => deselect*/
-        if (firstClickedTile.Equals(secondClickedTile))
+        if (firstClickedTile == secondClickedTile)
         {
             secondClickedTile.Selected = false;
             secondClickedTile = null;
@@ -134,6 +134,9 @@ class Program
         /*Different tile selected ==> swap*/
         else
         {
+            if (firstClickedTile.IsDeleted || secondClickedTile.IsDeleted)
+                return;
+            
             firstClickedTile.Selected = true;
             _tileMap.Swap(firstClickedTile, secondClickedTile);
             UndoBuffer.Add(firstClickedTile);
@@ -194,21 +197,17 @@ class Program
         if (keyDown)
         {
             bool wasSwappedBack = false;
-            //ITile.SetAtlas(ref AssetManager.Default);
             
             foreach (var storedItem in UndoBuffer)
             {
                 //check if they have been ONLY swapped without leading to a match3
                 if (storedItem is not null)
                 {
-                    _tileMap[storedItem.CurrentCoords] = null!;
-                  
-                    if (!wasSwappedBack && _tileMap[storedItem.CurrentCoords] is not null)
+                    if (!wasSwappedBack && !_tileMap[storedItem.CurrentCoords]!.IsDeleted)
                     {
                         var secondTile = _tileMap[storedItem.CurrentCoords];
                         var firstTie = _tileMap[storedItem.CoordsB4Swap];
-                        _tileMap.Swap(secondTile, firstTie);
-                        wasSwappedBack = true;
+                        wasSwappedBack = _tileMap.Swap(secondTile, firstTie);
                     }
                     else
                     {
@@ -216,20 +215,10 @@ class Program
                         //for delete we dont have a .IsDeleted, cause we onl NULL
                         //a tile at a certain coordinate, so we test for that
                         //if (_tileMap[storedItem.CurrentCoords] is { } backupItem)
-                        var tmp = (_tileMap[storedItem.CurrentCoords] = storedItem) as Tile;
-                        tmp!.Selected = false;
-                        tmp.ChangeTo(WHITE);
+                        storedItem.Selected = false;
+                        storedItem.IsDeleted = false;
+                        storedItem.State = TileState.Movable | TileState.Shapeable;
                     }
-                }
-                if (!wasSwappedBack)
-                {
-                    var trigger = Grid.LastMatchTrigger;
-
-                    if (trigger is not null)
-                        _tileMap.Swap(_tileMap[trigger.CoordsB4Swap],
-                            _tileMap[trigger.CurrentCoords]);
-
-                    wasSwappedBack = true;
                 }
             }
             UndoBuffer.Clear();
