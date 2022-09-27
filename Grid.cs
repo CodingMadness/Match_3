@@ -126,7 +126,7 @@ namespace Match_3
                 return false;
             }
 
-            static Vector2 GetStepsFromDirection(Vector2 input, Direction direction)
+            static Vector2 NextFrom(Vector2 input, Direction direction)
             {
                 var tmp = direction switch
                 {
@@ -146,18 +146,17 @@ namespace Match_3
 
             if (LastMatchTrigger is not null)
             {
-                var coordA = LastMatchTrigger.CurrentCoords;
-                var coordB = LastMatchTrigger.CoordsB4Swap;
-
                 for (Direction i = 0; i < lastDir; i++)
                 {
-                    Vector2 nextCoords = GetStepsFromDirection(coordA, i);
+                    Vector2 nextCoords = NextFrom(LastMatchTrigger.CurrentCoords, i);
                     var next = this[nextCoords];
 
                     while (AddWhenEqual(LastMatchTrigger, next, matches))
                     {
-                        //compute the proper (x,y) for next round!
-                        nextCoords = GetStepsFromDirection(nextCoords, i);
+                        //compute the proper (x,y) for next round, because
+                        //we found a match between a -> b, now we check
+                        //a -> c and so on
+                        nextCoords = NextFrom(nextCoords, i);
                         next = this[nextCoords];
                     }
                 }
@@ -166,7 +165,7 @@ namespace Match_3
                 if (matches.Count < MaxDestroyableTiles && ++_match3FuncCounter <= 1)
                 {
                     matches.Clear();
-                    return MatchInAnyDirection(this[coordB], matches);
+                    return MatchInAnyDirection(this[LastMatchTrigger.CoordsB4Swap], matches);
                 }
             }
 
@@ -198,8 +197,8 @@ namespace Match_3
             {
                 return false;
             }
-            if (a is MatchBlockTile { State: TileState.UnMovable } ||
-                b is MatchBlockTile { State: TileState.UnMovable } )
+            if (a is { State: TileState.UnMovable } ||
+                b is { State: TileState.UnMovable } )
                 return false;
             
             this[a.CurrentCoords] = b;

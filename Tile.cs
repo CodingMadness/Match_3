@@ -285,7 +285,7 @@ public class Tile : ITile
             //DrawLine((int)coordText.Begin.X, (int)coordText.Begin.Y, 512, 0, RED);
             //DrawCircle((int)begin.X, (int)begin.Y, 3.5f, BLACK);
             coordText.Draw(2f);
-            Console.WriteLine(begin);
+            //Console.WriteLine(begin);
         }
 
         //we draw 1*Tilesize in Y-Axis,
@@ -343,7 +343,7 @@ public class MatchBlockTile : Tile
         static bool IsOnlyDefaultTile(ITile? current) => 
             current is Tile and not MatchBlockTile;
         
-        static Vector2 GetStepsFromDirection(Vector2 input, Grid.Direction direction)
+        static Vector2 NextFrom(Vector2 input, Grid.Direction direction)
         {
             var tmp = direction switch
             {
@@ -361,18 +361,16 @@ public class MatchBlockTile : Tile
 
         if (map[CurrentCoords] is not null)
         {
-            Vector2 coordA = CurrentCoords;
-
             for (Grid.Direction i = 0; i < lastDir; i++)
             {
-                if (IsOnlyDefaultTile(map[coordA]))
+                Vector2 nextCoords = NextFrom(CurrentCoords, i);
+                
+                if (IsOnlyDefaultTile(map[nextCoords]))
                 {
-                    var t = map[coordA] as Tile;
+                    var t = map[nextCoords] as Tile;
                     t!.Shape.ChangeColor(BLACK, 0f, 1f);
                     t.State = TileState.UnMovable;
-                    Console.WriteLine($"{t}  IS BLOCKED NOW!");
                 }
-                coordA = GetStepsFromDirection(coordA, i);
             }
         }
     }
