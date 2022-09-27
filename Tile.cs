@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
@@ -9,7 +10,6 @@ namespace Match_3;
 public struct FadeableColor : IEquatable<FadeableColor>
 {
     private Color _toWrap;
-    private bool _allowFading = true;
     public float CurrentAlpha, TargetAlpha, ElapsedTime;
     /// <summary>
     /// The greater this Value, the faster it fades!
@@ -19,9 +19,10 @@ public struct FadeableColor : IEquatable<FadeableColor>
     private FadeableColor(Color color)
     {
         _toWrap = color;
-        AlphaSpeed = 0.0f; //this basically states that we cannot fade!
+        AlphaSpeed = 0.5f; //this basically states that we cannot fade!
         CurrentAlpha = 1.0f;
         TargetAlpha = 0.0f;
+        ElapsedTime = 1f;
     }
     
     private static readonly Dictionary<Color, string> Strings = new()
@@ -49,7 +50,8 @@ public struct FadeableColor : IEquatable<FadeableColor>
     
     private void _Lerp()
     {
-        if (CurrentAlpha > TargetAlpha)
+        //if u wana maybe stop fading at 0.5f so we explicitly check if currALpha > targetalpha
+        if (CurrentAlpha > TargetAlpha)  
             CurrentAlpha -= AlphaSpeed * (1f / ElapsedTime);
     }
 
@@ -196,9 +198,9 @@ public interface ITile : IEquatable<ITile>
     public Vector2 CurrentCoords { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public static int Size => 64;
-    public Vector2 TileSize => (CurrentCoords * Size) + (Vector2.One * Size);
+    public Vector2 WorldPosition => (CurrentCoords * Size) + (Vector2.One * Size);
     public Vector2 ChangeTileSize(float xFactor, float yFactor) =>
-        TileSize with { X = TileSize.X * xFactor, Y = TileSize.Y * yFactor };
+        WorldPosition with { X = WorldPosition.X * xFactor, Y = WorldPosition.Y * yFactor };
     public bool Selected { get; set; }
     public void Draw(float elapsedTime);
 }
@@ -234,10 +236,11 @@ public class Tile : ITile
             {
                 _color.CurrentAlpha = 1f;
                 _color.TargetAlpha = 0;
+                _color.AlphaSpeed = 0.5f;
             }
             else
             {
-                _color.TargetAlpha = _color.CurrentAlpha = 1f;
+                _color.AlphaSpeed = 0f;
             }
 
             _selected = value;
@@ -248,48 +251,53 @@ public class Tile : ITile
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
         //overwrite the Shape anyway with the Factorymethod "CreateNewTile(..)";
-        _color.AlphaSpeed = 0.65f;
         Shape = null!;
     }
 
-    public override string ToString() => $"CurrentCoords: {CurrentCoords}; ---- {Shape}";
-
-    public void ChangeTo(FadeableColor color)
-    {
-        Shape.FadeTint = color;
-    }
+    public override string ToString() => 
+            $"CurrentCoords: {CurrentCoords}; ---- {Shape}";
     
     public virtual void Draw(float elapsedTime)
     {
         void DrawTextOnTop(in Vector2 worldPosition, bool selected)
         {
-            Font copy = AssetManager.WelcomeFont with{baseSize = (int)(64/1.6f)};
-            Vector2 drawAt = worldPosition + Vector2.One *
+            Font copy = AssetManager.WelcomeFont with{ baseSize = 1024 };
+            /*Vector2 drawAt = worldPosition + Vector2.One *
                              15f - (Vector2.UnitX *6f) + 
-                             (Vector2.UnitY * 6f);
-            GameText coordText = new(copy, (worldPosition / ITile.Size).ToString(), 10f) 
+                             (Vector2.UnitY * 6f);*/
+            var begin = (this as ITile).WorldPosition;
+            float halfSize = ITile.Size * 0.5f;
+            begin = begin with { X = begin.X - halfSize - halfSize * 0.3f, Y = (begin.Y - halfSize - halfSize * 0.3f) };
+
+            GameText coordText = new(copy, (worldPosition / ITile.Size).ToString(), 8.5f) 
             {
-                Begin = drawAt,
-                Color = selected ? BLACK : RED,
+                Begin = begin,
+                Color = selected ? RED : BLACK,
             };
-            coordText.Draw(0.5f);
+            
+            coordText.Color.AlphaSpeed = 0f;
+            coordText.ScaleText();
+            //DrawLine((int)coordText.Begin.X, (int)coordText.Begin.Y, 512, 0, RED);
+            //DrawCircle((int)begin.X, (int)begin.Y, 3.5f, BLACK);
+            coordText.Draw(2f);
+            Console.WriteLine(begin);
         }
 
         //we draw 1*Tilesize in Y-Axis,
         //because our game-timer occupies an entire row so we begin 1 further down in Y 
-        var pos = CurrentCoords == Vector2.Zero ? CurrentCoords + Vector2.UnitY * ITile.Size : CurrentCoords * ITile.Size;
+        //var pos = CurrentCoords == Vector2.Zero ? CurrentCoords + Vector2.UnitY * ITile.Size : CurrentCoords * ITile.Size;
         _color.ElapsedTime = elapsedTime; 
-        DrawTextureRec(ITile.GetAtlas(), DestRect, pos, _color.Apply());
+        DrawTextureRec(ITile.GetAtlas(), DestRect, CurrentCoords * ITile.Size, _color.Apply());
         DrawTextOnTop(CurrentCoords * ITile.Size, _selected);
-        ChangeTo(_color);
+        Shape.FadeTint = _color;
     }
 
     public bool Equals(Tile? other)
     {
         return Shape switch
         {
-            CandyShape c when other?.Shape is CandyShape d && 
-                                                !IsDeleted && 
+            CandyShape c when other?.Shape is CandyShape d   && 
+                                                !IsDeleted   && 
                                                 c.Equals(d) => true,
             _ => false
         };
@@ -326,7 +334,7 @@ public class MatchBlockTile : Tile
         BlockedNeighbors = new Tile[4];
     }
 
-    public void DisableMoveForNeighbors(Grid map)
+    public void DisableSwapForNeighbors(Grid map)
     {
         static Vector2 GetStepsFromDirection(Vector2 input, Grid.Direction direction)
         {
@@ -346,20 +354,25 @@ public class MatchBlockTile : Tile
 
         if (map[CurrentCoords] is not null)
         {
-            Vector2 coordA = map[CurrentCoords]!.CurrentCoords;
+            Vector2 coordA = CurrentCoords;
 
             for (Grid.Direction i = 0; i < lastDir; i++)
             {
-                Vector2 nextCoords = GetStepsFromDirection(coordA, i);
-                map[nextCoords]!.State = TileState.UnMovable;
-                BlockedNeighbors[(int)i] = (Tile)map[nextCoords]!;
-                var color = BlockedNeighbors[(int)i].Shape.FadeTint;
-                color.CurrentAlpha = 1f;
-                color.AlphaSpeed = 0.75f;
-                color.TargetAlpha = 0.33f;
-                BlockedNeighbors[(int)i].Shape.FadeTint = (color);
-                coordA = GetStepsFromDirection(nextCoords, i);
+                coordA = GetStepsFromDirection(coordA, i);
+    
+                if (map[coordA] is Tile t)
+                {
+                    t.Shape.FadeTint = BLACK;
+                    t.State = TileState.UnMovable;
+                    Console.WriteLine($"{t}  IS BLOCKED NOW!");
+                }
             }
         }
+    }
+
+    public override void Draw(float elapsedTime)
+    {
+        Selected = false;
+        base.Draw(elapsedTime);
     }
 }

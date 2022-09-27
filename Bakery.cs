@@ -4,15 +4,13 @@ namespace Match_3;
 
 public static class Bakery
 {
-    private static readonly Random rnd = new(DateTime.UtcNow.Ticks.GetHashCode());
-    
-    public static Balls GetTileTypeTypeByNoise(float noise)
+    private static Balls GetTileTypeTypeByNoise(float noise)
     {
         noise = noise.Trunc(2);
 
         if (noise is <= 0f or >= 1.0f)
         {
-            noise = rnd.NextSingle();
+            noise = Utils.Randomizer.NextSingle();
             return GetTileTypeTypeByNoise(noise);
         }
 
@@ -105,6 +103,7 @@ public static class Bakery
             //DEFAULTS.......
             Balls.Length => new() { FrameLocation = -Vector2.One },
             Balls.Empty => new() { FrameLocation = -Vector2.One },
+            _ => throw new ArgumentOutOfRangeException()
         };
     }
     
@@ -121,10 +120,7 @@ public static class Bakery
         };
         tile.Shape.FadeTint = new()
         {
-            CurrentAlpha = 1f,
-            AlphaSpeed = 0.5f,
             ElapsedTime = 1000f,
-            TargetAlpha = 0f,
         };
         return tile;
     }
@@ -135,7 +131,7 @@ public static class Bakery
         {
             CurrentCoords = other.CurrentCoords,
             CoordsB4Swap = other.CoordsB4Swap,
-            Selected = other.Selected,
+            Selected = false,
             IsDeleted = false,
             State = other.State,
             
@@ -144,11 +140,12 @@ public static class Bakery
                 Form = ShapeKind.Trapez,
                 FrameLocation = other.Shape.FrameLocation,
                 Ball = other.Shape is CandyShape c0 ? c0.Ball : Balls.Empty,
-                FadeTint = other.Shape.FadeTint,
+                FadeTint = new () { AlphaSpeed = 0f },
                 Layer = other.Shape is CandyShape c1 ? c1.Layer : (Coat)(-1)
             }
         };
-        //blockTile.DisableMoveForNeighbors(map);
+        
+        blockTile.DisableSwapForNeighbors(map);
         //Console.WriteLine(blockTile.Shape.FrameLocation);
         return blockTile;
     }

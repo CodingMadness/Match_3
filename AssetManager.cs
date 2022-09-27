@@ -59,7 +59,7 @@ public static unsafe class AssetManager
 
     public static void Init()
     {
-        var buffer = GetEmbeddedResource("Fonts.font2.otf");
+        var buffer = GetEmbeddedResource("Fonts.font3.otf");
         byte* first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         WelcomeFont = LoadFontFromMemory(".otf", first, buffer.Length, 20, null, 0);
 

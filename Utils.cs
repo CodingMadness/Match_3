@@ -24,7 +24,8 @@ public static class Utils
         return value;
     }
 
-    private static readonly FastNoiseLite noiseMaker = new(DateTime.UtcNow.GetHashCode());
+    public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
+    private static readonly FastNoiseLite noiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
 
     static Utils()
     {
