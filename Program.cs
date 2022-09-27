@@ -62,11 +62,10 @@ class Program
         timerText.Draw(0.5f);
     }
     
-    private static void ShowWelcomeScreenOnLoop(bool shallClearTxt)
+    private static void ShowWelcomeScreenOnLoop(bool hideWelcome)
     {
         FadeableColor tmp = RED;
-        tmp.CurrentAlpha = shallClearTxt ? 0f : 1f;
-        tmp.TargetAlpha = 1f;
+        tmp.AlphaSpeed = hideWelcome ? 1f : 0f;
         
         welcomeText.Color = tmp;
         welcomeText.ScaleText();
@@ -101,9 +100,9 @@ class Program
             {
                 Tile? current = _tileMap[match.CurrentCoords] as Tile;
                 UndoBuffer.Add(_tileMap[match.CurrentCoords]);
-                //MatchBlockTile madBall = Bakery.Transform(current!, _tileMap);
+                MatchBlockTile madBall = Bakery.Transform(current!, _tileMap);          
                 _tileMap.Delete(match.CurrentCoords);
-                //_tileMap[match.CurrentCoords] = madBall;
+                _tileMap[match.CurrentCoords] = madBall;
             }
         }
     }
@@ -115,7 +114,6 @@ class Program
 
         //_tileMap[firstClickedTile.CurrentCoords].Selected = true;
         firstClickedTile.Selected = true;
-        Console.WriteLine(firstClickedTile);
         
         /*No tile selected yet*/
         if (secondClickedTile is null)
@@ -261,7 +259,6 @@ class Program
                 {
                     if (OnGameOver(true))
                     {
-                        //TODO: prepare nextlevel
                         InitGame();
                         wasGameWonB4Timeout = false;
                         continue;
