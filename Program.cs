@@ -34,12 +34,11 @@ class Program
         state = GameRuleManager.State;
         globalTimer = GameTime.GetTimer(state.GameStartAt);
         gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
-        _tileMap = new(state);
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Shpendicus");
         AssetManager.Init();
-        Vector2 pos = state.Center with { X = state.Center.X * 0.25f };
+        _tileMap = new(state);
         AssetManager.WelcomeFont.baseSize = 32;
         welcomeText = new(AssetManager.WelcomeFont, "Welcome young man!!", 7f);
         gameOverText = new(AssetManager.WelcomeFont, "", 7f);
@@ -94,6 +93,8 @@ class Program
 
     private static void SaveDeletedMatches(IEnumerable<ITile?> tiles)
     {
+        //ITile.GetAtlas() = AssetManager.MatchBlockAtlas;
+        
         foreach (ITile? match in tiles)
         {
             if (match is not null && _tileMap[match.CurrentCoords] is not null)
@@ -102,7 +103,7 @@ class Program
                 UndoBuffer.Add(current);
                 MatchBlockTile madBall = Bakery.Transform(current!, _tileMap);
                 _tileMap.Delete(match.CurrentCoords);
-                //_tileMap[match.CurrentCoords] = madBall;
+                _tileMap[match.CurrentCoords] = madBall;
             }
         }
     }
@@ -163,9 +164,6 @@ class Program
                 }
                 wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
             }
-
-            ITile.Atlas = AssetManager.MatchBlockAtlas;
-            
             SaveDeletedMatches(MatchesOf3);
         }
        
@@ -196,7 +194,7 @@ class Program
         if (keyDown)
         {
             bool wasSwappedBack = false;
-            ITile.Atlas = AssetManager.ColorBallsTexture;
+            //ITile.SetAtlas(ref AssetManager.Default);
             
             foreach (var storedItem in UndoBuffer)
             {
@@ -240,7 +238,7 @@ class Program
     
     private static void CleanUp()
     {
-        UnloadTexture(AssetManager.ColorBallsTexture);
+        UnloadTexture(AssetManager.Default);
         CloseWindow();
     }
     

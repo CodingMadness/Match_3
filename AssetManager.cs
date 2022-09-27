@@ -8,9 +8,8 @@ namespace Match_3;
 
 public static unsafe class AssetManager
 {
-    public static Texture ColorBallsTexture { get; private set; }
-    public static Texture MatchBlockAtlas { get; private set; }
-
+    public static Texture Default;
+    public static Texture MatchBlockAtlas;
     public static Font WelcomeFont;
 
     public static string GetAssetFolderName(string? nextFolder)
@@ -67,9 +66,8 @@ public static unsafe class AssetManager
         buffer = GetEmbeddedResource("Atlas.set1.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         Image ballImg = LoadImageFromMemory(".png", first, buffer.Length);
-        ColorBallsTexture = LoadTextureFromImage(ballImg);
-
-
+        Default = LoadTextureFromImage(ballImg);
+        
         buffer = GetEmbeddedResource("Atlas.set2.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         ballImg = LoadImageFromMemory(".png", first, buffer.Length);

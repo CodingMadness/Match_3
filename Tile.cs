@@ -197,7 +197,11 @@ public interface ITile : IEquatable<ITile>
 {
     public bool IsDeleted { get; set; }
     public TileState State { get; set; }
-    public static Texture Atlas { get; set; }
+    
+    private static Texture Atlas;
+
+    //public static void SetAtlas(ref Texture tex) => Atlas = tex;
+    public static ref Texture GetAtlas() => ref Atlas;
     public Vector2 CurrentCoords { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public static int Size => 64;
@@ -290,7 +294,7 @@ public class Tile : ITile
         //because our game-timer occupies an entire row so we begin 1 further down in Y 
         var pos = CurrentCoords == Vector2.Zero ? CurrentCoords + Vector2.UnitY * ITile.Size : CurrentCoords * ITile.Size;
         _color.ElapsedTime = elapsedTime; 
-        DrawTextureRec(ITile.Atlas, DestRect, pos, _color.Apply());
+        DrawTextureRec(ITile.GetAtlas(), DestRect, pos, _color.Apply());
         DrawTextOnTop(CurrentCoords * ITile.Size, _selected);
         ChangeTo(_color);
     }
