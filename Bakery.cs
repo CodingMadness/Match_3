@@ -1,4 +1,6 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
+using Raylib_CsLo;
 
 namespace Match_3;
 
@@ -102,9 +104,9 @@ public static class Bakery
     
     public static ITile CreateTile(Vector2 gridPos, float noise)
     {
-        ITile.Atlas = AssetManager.ColorBallsTexture;
-
-        var tile = new Tile()
+        //ITile.SetAtlas(ref AssetManager.Default);
+        
+        var tile = new Tile
         {
             CurrentCoords = gridPos, //RANDOM POSITION BASED ON PERlIN-NOISE!
             CoordsB4Swap = -Vector2.One,
@@ -123,8 +125,6 @@ public static class Bakery
 
     public static MatchBlockTile Transform(Tile other, Grid map)
     {
-        ITile.Atlas = AssetManager.MatchBlockAtlas;
-
         MatchBlockTile blockTile = new(map)
         {
             CurrentCoords = other.CurrentCoords,
@@ -132,8 +132,17 @@ public static class Bakery
             Selected = other.Selected,
             IsDeleted = true,
             State = other.State,
+            
+            Shape = new CandyShape
+            {
+                Form = ShapeKind.Trapez,
+                FrameLocation = other.Shape.FrameLocation,
+                Ball = other.Shape is CandyShape c0 ? c0.Ball : Balls.Empty,
+                FadeTint = other.Shape.FadeTint,
+                Layer = other.Shape is CandyShape c1 ? c1.Layer : (Coat)(-1)
+            }
         };
-        blockTile.Shape.Form = ShapeKind.Trapez;
+        Console.WriteLine(blockTile.Shape.FrameLocation);
         return blockTile;
     }
 
