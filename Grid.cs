@@ -34,6 +34,7 @@ namespace Match_3
         private void CreateMap()
         {
             Span<int> counts = stackalloc int[(int)Balls.Length];
+            ITile.GetAtlas() = AssetManager.Default;
 
             for (int x = 0; x < TileWidth; x++)
             {
@@ -67,9 +68,16 @@ namespace Match_3
                 for (int y = 1; y < TileHeight; y++)
                 {
                     ITile? basicTile = _bitmap[x, y];
+                    
+                    var matchBlockAtlas = (basicTile.State == TileState.UnMovable
+                        ? AssetManager.MatchBlockAtlas
+                        : AssetManager.Default);
 
+                     ITile.GetAtlas() = matchBlockAtlas;
+                    
                     if (basicTile is not null)
                     {
+                        
                         basicTile.Draw(elapsedTime);
                     }
                 }
