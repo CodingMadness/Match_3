@@ -1,5 +1,6 @@
 ﻿//using DotNext;
 
+using System.Drawing;
 using System.Numerics;
 using Match_3.GameTypes;
 using Raylib_CsLo;
@@ -44,20 +45,34 @@ namespace Match_3
                     float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
                     _bitmap[x, y] = Bakery.CreateTile(current, noise);
                     var kind = _bitmap[x, y] is Tile { Shape: CandyShape c } ? c.Ball : Balls.Empty;
-                                                        
                     counts[(int)kind]++;
                 }
             }
+            
+            
             NotifyOnGridCreationDone(counts.ToArray());
         }
 
+        public (int start, int end) MakePlaceForTimer()
+        {
+            float beginX = (TileWidth - 1) / 2f;
+            this[new(beginX-1, 0)] = null;
+            this[new(beginX-0, 0)] = null;
+            this[new(beginX+1, 0)] = null;
+            this[new(beginX+2, 0)] = null;
+            
+            int start = (int)(beginX-1) * ITile.Size;
+            int end = (int)(beginX+3) * ITile.Size;
+            return (start, end);
+        }
+        
         public Grid(Level current)
         {
             TileWidth = current.TilemapWidth;
             TileHeight = current.TilemapHeight;
             _bitmap = new ITile?[TileWidth, TileHeight];
             _gridTimer = GameTime.GetTimer(5 * 60);
-            NotifyOnGridCreationDone += GameRuleManager.DefineMatch3Quest;
+            NotifyOnGridCreationDone += GameRuleManager.SetCountPerBall;
             CreateMap();
         }
 
@@ -108,7 +123,7 @@ namespace Match_3
             }
         }
 
-        public bool MatchInAnyDirection(ITile? match3Trigger, ISet<ITile?> matches)
+        public bool WasAMatchInAnyDirection(ITile? match3Trigger, ISet<ITile?> matches)
         {
             static bool AddWhenEqual(ITile? first, ITile? next, ISet<ITile?> matches)
             {
@@ -165,7 +180,7 @@ namespace Match_3
                 if (matches.Count < MaxDestroyableTiles && ++_match3FuncCounter <= 1)
                 {
                     matches.Clear();
-                    return MatchInAnyDirection(this[LastMatchTrigger.CoordsB4Swap], matches);
+                    return WasAMatchInAnyDirection(this[LastMatchTrigger.CoordsB4Swap], matches);
                 }
             }
 
@@ -197,7 +212,8 @@ namespace Match_3
             {
                 return false;
             }
-            if (a.State.HasFlag(TileState.UnMovable) || b.State.HasFlag( TileState.UnMovable))
+            if ((a.State & TileState.UnMovable) == TileState.UnMovable ||
+                (b.State & TileState.UnMovable) == TileState.UnMovable)
                 return false;
             
             this[a.GridPos] = b;

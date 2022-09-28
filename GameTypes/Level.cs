@@ -4,23 +4,25 @@ namespace Match_3.GameTypes;
 
 public class Level
 {
-    public Level(int GameStartAt, int GameOverScreenTime,
-        int TilemapWidth, int TilemapHeight,
-        (int level, Dictionary<Balls, int> Quest) QuestPerLevel,
-        int TileSize)
+    public Level(int gameStartAt, int gameOverScreenTime,
+        int tilemapWidth, int tilemapHeight,
+        (int level, Dictionary<Balls, int> Quest) questPerLevel,
+        int tileSize/*, int clickCountPerEnemy*/)
     {
-        this.GameStartAt = GameStartAt;
-        this.GameOverScreenTime = GameOverScreenTime;
-        this.TilemapWidth = TilemapWidth;
-        this.TilemapHeight = TilemapHeight;
-        this.TileSize = TileSize;
-        this.QuestPerLevel = QuestPerLevel;
+        GameStartAt = gameStartAt;
+        GameOverScreenTime = gameOverScreenTime;
+        TilemapWidth = tilemapWidth;
+        TilemapHeight = tilemapHeight;
+        TileSize = tileSize;
+        QuestPerLevel = questPerLevel;
+        //ClickCountPerEnemy = clickCountPerEnemy;
     }
 
     public bool ShallMakeRandomQuest { get; set; }
-    public int WINDOW_HEIGHT => TilemapHeight * TileSize;
+    public int WindowHeight => TilemapHeight * TileSize;
     public (int level, Dictionary<Balls, int> Quest) QuestPerLevel { get; private set; }
-
+        
+    public int ClickCountPerEnemy { get; }
     public void SetNextLevel()
     {
         var tmp = QuestPerLevel;
@@ -30,9 +32,9 @@ public class Level
     }
     //public (int level, Dictionary<Balls, int> Quest) QuestPerLevel { get; private set; };
 
-    public int WINDOW_WIDTH => TilemapWidth * TileSize;
-    public Vector2 TopCenter => new Vector2(WINDOW_WIDTH / 2, 0) - Vector2.UnitX * 25;
-    public Vector2 Center => new((WINDOW_WIDTH / 2), WINDOW_HEIGHT / 2);
+    public int WindowWidth => TilemapWidth * TileSize;
+    public Vector2 TopCenter => new Vector2(WindowWidth / 2, 0) - Vector2.UnitX * 25;
+    public Vector2 Center => new((WindowWidth / 2), WindowHeight / 2);
     public int GameOverScreenTime { get; set; }
     public int GameStartAt { get; set; }
     public int TilemapWidth { get; set; }

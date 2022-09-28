@@ -119,21 +119,21 @@ public static class Bakery
         return tile;
     }
 
-    public static EnemyTile Transform(Tile other, Grid map)
+    public static EnemyTile Transform(Tile matchTile)
     {
         EnemyTile blockTile = new()
         {
-            GridPos = other.GridPos,
-            CoordsB4Swap = other.CoordsB4Swap,
+            GridPos = matchTile.GridPos,
+            CoordsB4Swap = matchTile.CoordsB4Swap,
             IsDeleted = false,
-            State = other.State,
+            State = matchTile.State,
             
             Shape = new CandyShape
             {
                 Form = ShapeKind.Trapez,
-                FrameLocation = other.Shape.FrameLocation,
-                Ball = other.Shape is CandyShape c0 ? c0.Ball : Balls.Empty,
-                Layer = other.Shape is CandyShape c1 ? c1.Layer : (Coat)(-1)
+                FrameLocation = matchTile.Shape.FrameLocation,
+                Ball = matchTile.Shape is CandyShape c0 ? c0.Ball : Balls.Empty,
+                Layer = matchTile.Shape is CandyShape c1 ? c1.Layer : (Coat)(-1)
             },
             Selected = false,
         };

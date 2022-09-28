@@ -51,5 +51,4 @@ public static class Utils
     {
         return (nint) Unsafe.AsPointer(ref Unsafe.As<StrongBox<byte>>(Object).Value);
     }
-
 }

@@ -333,7 +333,7 @@ public class EnemyTile : Tile
 {
     public override TileState State => TileState.UnMovable;
 
-    public void ToggleMovementForNeighbors(Grid map, bool disable)
+    public void ToggleAbilitiesForNeighbors(Grid map, bool disable)
     {
         static Vector2 NextFrom(Vector2 input, Grid.Direction direction)
         {
@@ -360,10 +360,11 @@ public class EnemyTile : Tile
                 if (ITile.IsOnlyDefaultTile(map[nextCoords]))
                 {
                     var t = map[nextCoords] as Tile;
+                    
                     if (disable)
-                        t.Disable();
+                        t!.Disable();
                     else
-                        t.Enable();
+                        t!.Enable();
                 }
             }
         }

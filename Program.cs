@@ -56,7 +56,11 @@ class Program
         {
             // timer.ElapsedSeconds -= Raylib.GetFrameTime() * 1.3f;
         }
+        
         timer.UpdateTimer();
+        
+        (int start, int end) = _tileMap.MakePlaceForTimer();
+        DrawRectangle(start, 0, end-start, ITile.Size, RED);
         timerText.Text = ((int)timer.ElapsedSeconds).ToString();
         FadeableColor color = timer.ElapsedSeconds > 0f ? BLUE : WHITE;
         timerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f};
@@ -109,20 +113,16 @@ class Program
                 if (clicksNeeded == ++clickCount && !e.IsDeleted)
                 {
                     e.IsDeleted = true;
-                    MatchesOf3.Remove(e);
                     clickCount = 0;
                     
-                    if (MatchesOf3.Count == 0 && !backToNormal)
+                    if (!backToNormal)
                     {
                         e.ToggleAbilitiesForNeighbors(_tileMap, backToNormal);
                         backToNormal = true;
-                        //  UndoLastOperation();
                     }
-                    //Console.WriteLine("Here we would have actually changed the Enemy tile to a friendly Tie");
                 }
             }
         }
-
         //_tileMap[firstClickedTile.GridPos].Selected = true;
         firstClickedTile.Selected = true;
         
@@ -171,7 +171,6 @@ class Program
                 if (++tileCounter == toCollect)
                 {
                     Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
-                    //GameRuleManager.RemoveSubQuest(candy);
                     tileCounter = 0;
                     missedSwapTolerance = 0;
                 }
