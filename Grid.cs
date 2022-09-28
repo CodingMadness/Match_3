@@ -197,8 +197,7 @@ namespace Match_3
             {
                 return false;
             }
-            if (a is { State: TileState.UnMovable } ||
-                b is { State: TileState.UnMovable } )
+            if (a.State.HasFlag(TileState.UnMovable) || b.State.HasFlag( TileState.UnMovable))
                 return false;
             
             this[a.GridPos] = b;
