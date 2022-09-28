@@ -197,7 +197,10 @@ public interface ITile : IEquatable<ITile>
 {
     public bool IsDeleted { get; set; }
     public TileState State { get; set; }
-    
+
+    public static bool IsOnlyDefaultTile(ITile? current) =>
+        current is Tile and not MatchBlockTile; 
+        
     private static Texture Atlas;
 
     //public static void SetAtlas(ref Texture tex) => Atlas = tex;
@@ -296,6 +299,16 @@ public class Tile : ITile
         DrawTextOnTop(CurrentCoords * ITile.Size, _selected);
     }
 
+    public void Disable()
+    {
+        Shape.ChangeColor(BLACK, 0f, 1f);
+        State = TileState.UnMovable | TileState.UnShapeable;
+    }
+    public void Enable()
+    {
+        Shape.ChangeColor(WHITE, 0f, 1f);
+        State = TileState.Movable | TileState.Shapeable;   
+    }
     public bool Equals(Tile? other)
     {
         return Shape switch
@@ -326,23 +339,13 @@ public class Tile : ITile
 public class MatchBlockTile : Tile
 {
     public override TileState State => TileState.UnMovable;
-    
-    /// <summary>
-    /// While a matchblocking tile is "IsBlocking" you dont get a match3 and hence
-    /// no points
-    /// </summary>
-    private readonly Tile[] BlockedNeighbors;
-    
-    public MatchBlockTile() : base()
+
+    public MatchBlockTile()
     {
-        BlockedNeighbors = new Tile[4];
     }
 
-    public void DisableSwapForNeighbors(Grid map)
+    public void ToggleMovementForNeighbors(Grid map, bool disable)
     {
-        static bool IsOnlyDefaultTile(ITile? current) => 
-            current is Tile and not MatchBlockTile;
-        
         static Vector2 NextFrom(Vector2 input, Grid.Direction direction)
         {
             var tmp = direction switch
@@ -365,11 +368,13 @@ public class MatchBlockTile : Tile
             {
                 Vector2 nextCoords = NextFrom(CurrentCoords, i);
                 
-                if (IsOnlyDefaultTile(map[nextCoords]))
+                if (ITile.IsOnlyDefaultTile(map[nextCoords]))
                 {
                     var t = map[nextCoords] as Tile;
-                    t!.Shape.ChangeColor(BLACK, 0f, 1f);
-                    t.State = TileState.UnMovable;
+                    if (disable)
+                        t.Disable();
+                    else
+                        t.Enable();
                 }
             }
         }

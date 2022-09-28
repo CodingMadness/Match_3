@@ -92,18 +92,17 @@ class Program
 
     private static void SaveDeletedMatches(IEnumerable<ITile?> tiles)
     {
-        //ITile.GetAtlas() = AssetManager.MatchBlockAtlas;
-        
         foreach (ITile? match in tiles)
         {
             if (match is not null && _tileMap[match.CurrentCoords] is not null)
             {
-                Tile? current = _tileMap[match.CurrentCoords] as Tile;
                 UndoBuffer.Add(_tileMap[match.CurrentCoords]);
-                MatchBlockTile madBall = Bakery.Transform(current!, _tileMap);          
                 _tileMap.Delete(match.CurrentCoords);
+                
+                Tile? current = _tileMap[match.CurrentCoords] as Tile;
+                MatchBlockTile madBall = Bakery.Transform(current!, _tileMap);
                 _tileMap[match.CurrentCoords] = madBall;
-                madBall.DisableSwapForNeighbors(_tileMap);
+                madBall.ToggleMovementForNeighbors(_tileMap);
             }
         }
     }
@@ -243,7 +242,6 @@ class Program
                 ShowWelcomeScreenOnLoop(false);
                 GameRuleManager.LogQuest(false);
             }
-            
             if (IsKeyDown(KeyboardKey.KEY_ENTER) || enterGame)
             {                
                 bool isGameOver = globalTimer.Done();
