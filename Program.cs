@@ -21,7 +21,9 @@ class Program
     private static int tileCounter;
     private static int missedSwapTolerance;
     private static GameText welcomeText, timerText, gameOverText;
-    
+    private static int clickCount;
+    private static bool backToNormal;
+
     private static void Main()
     {
         InitGame();
@@ -37,7 +39,7 @@ class Program
         gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
-        InitWindow(state.WINDOW_WIDTH, state.WINDOW_HEIGHT, "Match3 By Shpendicus");
+        InitWindow(state.WindowWidth, state.WindowHeight, "Match3 By Shpendicus");
         AssetManager.Init();
         _tileMap = new(state);
         AssetManager.WelcomeFont.baseSize = 32;
@@ -90,28 +92,36 @@ class Program
         gameOverText.Draw(null);
         return gameOverScreenTimer.Done();
     }
-
-    private static void SaveDeletedMatches(IEnumerable<ITile?> tiles)
-    {
-        foreach (ITile? match in tiles)
-        {
-            if (match is not null && _tileMap[match.GridPos] is not null)
-            {
-                UndoBuffer.Add(_tileMap[match.GridPos]);
-                _tileMap.Delete(match.GridPos);
-                
-                Tile? current = _tileMap[match.GridPos] as Tile;
-                EnemyTile madBall = Bakery.Transform(current!, _tileMap);
-                _tileMap[match.GridPos] = madBall;
-                madBall.ToggleMovementForNeighbors(_tileMap, true);
-            }
-        }
-    }
     
     private static void ProcessSelectedTiles()
     {
-        if (!_tileMap.TryGetClickedTile(out ITile? firstClickedTile) || firstClickedTile is null)
+        ITile? firstClickedTile;
+        backToNormal = false;
+        
+        //Here we check mouseinput AND if the clickedTile is actually an enemy, then the clicks correlates to the 
+        if (!_tileMap.TryGetClickedTile(out firstClickedTile) || firstClickedTile is null)
             return;
+
+        if (firstClickedTile is EnemyTile e)
+        {
+            if (GameRuleManager.TryGetEnemyQuest(e.Shape as CandyShape, out int clicksNeeded))
+            {
+                if (clicksNeeded == ++clickCount && !e.IsDeleted)
+                {
+                    e.IsDeleted = true;
+                    MatchesOf3.Remove(e);
+                    clickCount = 0;
+                    
+                    if (MatchesOf3.Count == 0 && !backToNormal)
+                    {
+                        e.ToggleAbilitiesForNeighbors(_tileMap, backToNormal);
+                        backToNormal = true;
+                        //  UndoLastOperation();
+                    }
+                    //Console.WriteLine("Here we would have actually changed the Enemy tile to a friendly Tie");
+                }
+            }
+        }
 
         //_tileMap[firstClickedTile.GridPos].Selected = true;
         firstClickedTile.Selected = true;
@@ -149,27 +159,39 @@ class Program
         if (candy is null)
             return;
         
-        if (_tileMap.MatchInAnyDirection(secondClickedTile, MatchesOf3))           
+        if (_tileMap.WasAMatchInAnyDirection(secondClickedTile, MatchesOf3))           
         {
             UndoBuffer.Clear();
 
-            if (GameRuleManager.TryGetSubQuest(candy, out int toCollect))
+            if (GameRuleManager.TryGetMatch3Quest(candy, out int toCollect))
             {
-                tileCounter += 1;
+                //tileCounter += 1;
                 //Console.WriteLine($"You already got {tileCounter} match of Balltype: {candy.Ball}");
                 
-                if (tileCounter == toCollect)
+                if (++tileCounter == toCollect)
                 {
-                    // Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
-                    GameRuleManager.RemoveSubQuest(candy);
+                    Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
+                    //GameRuleManager.RemoveSubQuest(candy);
                     tileCounter = 0;
                     missedSwapTolerance = 0;
                 }
                 wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
             }
-            SaveDeletedMatches(MatchesOf3);
+            
+            //here begins the entire swapping from default tile to enemy tile
+            //and its affects to other surrounding tiles
+            foreach (ITile? match in MatchesOf3)
+            {
+                if (match is not null && _tileMap[match.GridPos] is not null)
+                {
+                    UndoBuffer.Add(_tileMap[match.GridPos]);
+                    _tileMap.Delete(match.GridPos);
+                    var enemy = Bakery.Transform(match as Tile);
+                    _tileMap[match.GridPos] = enemy;
+                    enemy.ToggleAbilitiesForNeighbors(_tileMap, true);
+                }
+            }
         }
-       
         //if (++missedSwapTolerance == state.MaxAllowedSpawns)
         //{
         //    Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
@@ -191,10 +213,7 @@ class Program
 
     private static void UndoLastOperation()
     {
-        bool keyDown = (IsKeyDown(KeyboardKey.KEY_A));
-
         //UNDO...!
-        if (keyDown)
         {
             bool triggeredMatch = false;
             
@@ -202,16 +221,11 @@ class Program
             {
                 if (deletedTile is Tile standard)
                 {
-                    //Console.WriteLine(deletedTile.GetAddrOfObject());
                     //check if they have been ONLY swapped without leading to a match3
                     ITile? basic = _tileMap[deletedTile.GridPos];
-
-                    //Console.WriteLine(basic.GetAddrOfObject());
                     
                     if (!standard.IsDeleted)
                     {
-                        //Console.WriteLine(basic.GetAddrOfObject());
-                        
                         var firstTile = _tileMap[standard.CoordsB4Swap];
                         //Console.WriteLine(firstTile.GetAddrOfObject());
                         _tileMap.Swap(basic, firstTile);
@@ -228,8 +242,8 @@ class Program
                          //tiles which were prev. disabled
                          if (basic is EnemyTile e)
                          {
-                             Console.WriteLine(e.GetAddrOfObject());
-                             e.ToggleMovementForNeighbors(_tileMap, false);
+                             //Console.WriteLine(e.GetAddrOfObject());
+                             e.ToggleAbilitiesForNeighbors(_tileMap, false);
                              _tileMap[e.GridPos] = standard;
                              standard.Enable();
                              standard.IsDeleted = false;
@@ -287,7 +301,9 @@ class Program
                     ShowWelcomeScreenOnLoop(true);
                     _tileMap.Draw(globalTimer.ElapsedSeconds);
                     ProcessSelectedTiles();
-                    UndoLastOperation();
+                    
+                    if (IsKeyDown(KeyboardKey.KEY_A))
+                        UndoLastOperation();
                 }
                 
                 enterGame = true;
