@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
@@ -94,15 +95,15 @@ class Program
     {
         foreach (ITile? match in tiles)
         {
-            if (match is not null && _tileMap[match.CurrentCoords] is not null)
+            if (match is not null && _tileMap[match.GridPos] is not null)
             {
-                UndoBuffer.Add(_tileMap[match.CurrentCoords]);
-                _tileMap.Delete(match.CurrentCoords);
+                UndoBuffer.Add(_tileMap[match.GridPos]);
+                _tileMap.Delete(match.GridPos);
                 
-                Tile? current = _tileMap[match.CurrentCoords] as Tile;
-                MatchBlockTile madBall = Bakery.Transform(current!, _tileMap);
-                _tileMap[match.CurrentCoords] = madBall;
-                madBall.ToggleMovementForNeighbors(_tileMap);
+                Tile? current = _tileMap[match.GridPos] as Tile;
+                EnemyTile madBall = Bakery.Transform(current!, _tileMap);
+                _tileMap[match.GridPos] = madBall;
+                madBall.ToggleMovementForNeighbors(_tileMap, true);
             }
         }
     }
@@ -112,7 +113,7 @@ class Program
         if (!_tileMap.TryGetClickedTile(out ITile? firstClickedTile) || firstClickedTile is null)
             return;
 
-        //_tileMap[firstClickedTile.CurrentCoords].Selected = true;
+        //_tileMap[firstClickedTile.GridPos].Selected = true;
         firstClickedTile.Selected = true;
         
         /*No tile selected yet*/
@@ -195,28 +196,44 @@ class Program
         //UNDO...!
         if (keyDown)
         {
-            bool wasSwappedBack = false;
+            bool triggeredMatch = false;
             
-            foreach (var storedItem in UndoBuffer)
+            foreach (var deletedTile in UndoBuffer)
             {
-                //check if they have been ONLY swapped without leading to a match3
-                if (storedItem is not null)
+                if (deletedTile is Tile standard)
                 {
-                    if (!wasSwappedBack && !_tileMap[storedItem.CurrentCoords]!.IsDeleted)
+                    //Console.WriteLine(deletedTile.GetAddrOfObject());
+                    //check if they have been ONLY swapped without leading to a match3
+                    ITile? basic = _tileMap[deletedTile.GridPos];
+
+                    //Console.WriteLine(basic.GetAddrOfObject());
+                    
+                    if (!standard.IsDeleted)
                     {
-                        var secondTile = _tileMap[storedItem.CurrentCoords];
-                        var firstTie = _tileMap[storedItem.CoordsB4Swap];
-                        wasSwappedBack = _tileMap.Swap(secondTile, firstTie);
+                        //Console.WriteLine(basic.GetAddrOfObject());
+                        
+                        var firstTile = _tileMap[standard.CoordsB4Swap];
+                        //Console.WriteLine(firstTile.GetAddrOfObject());
+                        _tileMap.Swap(basic, firstTile);
                     }
                     else
                     {
                         //their has been a match3 after swap!
-                        //for delete we dont have a .IsDeleted, cause we onl NULL
-                        //a tile at a certain coordinate, so we test for that
-                        //if (_tileMap[storedItem.CurrentCoords] is { } backupItem)
-                        storedItem.Selected = false;
-                        storedItem.IsDeleted = false;
-                        storedItem.State = TileState.Movable | TileState.Shapeable;
+                         //Case-1: they have been "Disabled", so "Enable" them again
+                         if (standard.IsDeleted && basic is not EnemyTile)
+                         {
+                             standard.Enable();
+                         }
+                         //Case-2: they have been "transformed" to enemytiles, so we have to "Enable()" all surrounding
+                         //tiles which were prev. disabled
+                         if (basic is EnemyTile e)
+                         {
+                             Console.WriteLine(e.GetAddrOfObject());
+                             e.ToggleMovementForNeighbors(_tileMap, false);
+                             _tileMap[e.GridPos] = standard;
+                             standard.Enable();
+                             standard.IsDeleted = false;
+                         }
                     }
                 }
             }

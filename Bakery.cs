@@ -111,7 +111,7 @@ public static class Bakery
     {
         var tile = new Tile
         {
-            CurrentCoords = gridPos, 
+            GridPos = gridPos, 
             CoordsB4Swap = -Vector2.One,
             Shape = DefineFrame(noise),
             Selected = false
@@ -119,11 +119,11 @@ public static class Bakery
         return tile;
     }
 
-    public static MatchBlockTile Transform(Tile other, Grid map)
+    public static EnemyTile Transform(Tile other, Grid map)
     {
-        MatchBlockTile blockTile = new()
+        EnemyTile blockTile = new()
         {
-            CurrentCoords = other.CurrentCoords,
+            GridPos = other.GridPos,
             CoordsB4Swap = other.CoordsB4Swap,
             IsDeleted = false,
             State = other.State,

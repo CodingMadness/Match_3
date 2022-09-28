@@ -199,16 +199,16 @@ public interface ITile : IEquatable<ITile>
     public TileState State { get; set; }
 
     public static bool IsOnlyDefaultTile(ITile? current) =>
-        current is Tile and not MatchBlockTile; 
+        current is Tile and not EnemyTile; 
         
     private static Texture Atlas;
 
     //public static void SetAtlas(ref Texture tex) => Atlas = tex;
     public static ref Texture GetAtlas() => ref Atlas;
-    public Vector2 CurrentCoords { get; set; }
+    public Vector2 GridPos { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public static int Size => 64;
-    public Vector2 WorldPosition => (CurrentCoords * Size) + (Vector2.One * Size);
+    public Vector2 WorldPosition => (GridPos * Size) + (Vector2.One * Size);
     public Vector2 ChangeTileSize(float xFactor, float yFactor) =>
         WorldPosition with { X = WorldPosition.X * xFactor, Y = WorldPosition.Y * yFactor };
     public bool Selected { get; set; }
@@ -222,18 +222,12 @@ public class Tile : ITile
     public virtual TileState State { get; set; }
 
     /// <summary>
-    /// Important always is: Match CurrentCoords with the actual Drawing-Location of the window!
+    /// Important always is: Match GridPos with the actual Drawing-Location of the window!
     /// </summary>
-    public Vector2 CurrentCoords { get; set; }
+    public Vector2 GridPos { get; set; }
 
     public Vector2 CoordsB4Swap { get; set; }
-
-    private bool _selected;
-
     public Shape Shape { get; init; }
-    
-    private Rectangle DestRect => new(Shape.FrameLocation.X, Shape.FrameLocation.Y, ITile.Size, ITile.Size);
-    
     public bool Selected
     {
         get => _selected;
@@ -250,11 +244,14 @@ public class Tile : ITile
             {
                 Shape.Current().AlphaSpeed = 0f;
             }
-
             _selected = value;
         }
     }
- 
+
+    private bool _selected;
+    private Rectangle DestRect => new(Shape.FrameLocation.X, Shape.FrameLocation.Y, ITile.Size, ITile.Size);
+    //private unsafe Texture* _atlas;
+    
     public Tile()
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
@@ -262,8 +259,7 @@ public class Tile : ITile
         Shape = null!;
     }
 
-    public override string ToString() => 
-            $"CurrentCoords: {CurrentCoords}; ---- {Shape}";
+    public override string ToString() => $"GridPos: {GridPos}; ---- {Shape}";
     
     public virtual void Draw(float elapsedTime)
     {
@@ -293,12 +289,11 @@ public class Tile : ITile
 
         //we draw 1*Tilesize in Y-Axis,
         //because our game-timer occupies an entire row so we begin 1 further down in Y 
-        //var pos = CurrentCoords == Vector2.Zero ? CurrentCoords + Vector2.UnitY * ITile.Size : CurrentCoords * ITile.Size;
+        //var pos = GridPos == Vector2.Zero ? GridPos + Vector2.UnitY * ITile.Size : GridPos * ITile.Size;
         Shape.Current().ElapsedTime = elapsedTime;
-        DrawTextureRec(ITile.GetAtlas(), DestRect, CurrentCoords * ITile.Size, Shape.Current().Apply());
-        DrawTextOnTop(CurrentCoords * ITile.Size, _selected);
+        DrawTextureRec(ITile.GetAtlas(), DestRect, GridPos * ITile.Size, Shape.Current().Apply());
+        DrawTextOnTop(GridPos * ITile.Size, _selected);
     }
-
     public void Disable()
     {
         Shape.ChangeColor(BLACK, 0f, 1f);
@@ -306,6 +301,7 @@ public class Tile : ITile
     }
     public void Enable()
     {
+        //draw from whatever was the 1. sprite-atlas 
         Shape.ChangeColor(WHITE, 0f, 1f);
         State = TileState.Movable | TileState.Shapeable;   
     }
@@ -319,30 +315,23 @@ public class Tile : ITile
             _ => false
         };
     }
-
     public static bool operator ==(Tile? a, Tile? b)
     {
         return a?.Equals(b) ?? false;
     }
-
     public static bool operator !=(Tile? a, Tile? b)
     {
         return !(a == b);
     }
-
     bool IEquatable<ITile>.Equals(ITile? other)
     {
         return Equals(other as Tile);
     }
 }
 
-public class MatchBlockTile : Tile
+public class EnemyTile : Tile
 {
     public override TileState State => TileState.UnMovable;
-
-    public MatchBlockTile()
-    {
-    }
 
     public void ToggleMovementForNeighbors(Grid map, bool disable)
     {
@@ -362,11 +351,11 @@ public class MatchBlockTile : Tile
             
         const Grid.Direction lastDir = (Grid.Direction)4;
 
-        if (map[CurrentCoords] is not null)
+        if (map[GridPos] is not null)
         {
             for (Grid.Direction i = 0; i < lastDir; i++)
             {
-                Vector2 nextCoords = NextFrom(CurrentCoords, i);
+                Vector2 nextCoords = NextFrom(GridPos, i);
                 
                 if (ITile.IsOnlyDefaultTile(map[nextCoords]))
                 {

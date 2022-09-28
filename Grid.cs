@@ -72,7 +72,7 @@ namespace Match_3
 
                     if (basicTile is not null && !basicTile.IsDeleted)
                     {
-                        ITile.GetAtlas() = (basicTile is MatchBlockTile)
+                        ITile.GetAtlas() = (basicTile is EnemyTile)
                             ? AssetManager.MatchBlockAtlas
                             : AssetManager.Default;
 
@@ -148,7 +148,7 @@ namespace Match_3
             {
                 for (Direction i = 0; i < lastDir; i++)
                 {
-                    Vector2 nextCoords = NextFrom(LastMatchTrigger.CurrentCoords, i);
+                    Vector2 nextCoords = NextFrom(LastMatchTrigger.GridPos, i);
                     var next = this[nextCoords];
 
                     while (AddWhenEqual(LastMatchTrigger, next, matches))
@@ -201,10 +201,10 @@ namespace Match_3
                 b is { State: TileState.UnMovable } )
                 return false;
             
-            this[a.CurrentCoords] = b;
-            this[b.CurrentCoords] = a;
-            (a.CurrentCoords, b.CurrentCoords) = (b.CurrentCoords, a.CurrentCoords);
-            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.CurrentCoords, a.CurrentCoords);
+            this[a.GridPos] = b;
+            this[b.GridPos] = a;
+            (a.GridPos, b.GridPos) = (b.GridPos, a.GridPos);
+            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.GridPos, a.GridPos);
             return true;
         }
 
@@ -218,7 +218,7 @@ namespace Match_3
                 //by making it invisible and disallowing any
                 //movement to be happening
                 mapTile.IsDeleted = true;
-                mapTile.State = TileState.UnMovable | TileState.UnShapeable;
+                mapTile.Disable();
             }
         }
     }

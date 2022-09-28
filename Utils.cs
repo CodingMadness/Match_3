@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using Raylib_CsLo;
 
 namespace Match_3;
@@ -45,4 +46,10 @@ public static class Utils
     }
 
     public static Vector2 GetScreenCoord() => new(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+    
+    public static unsafe nint GetAddrOfObject<ObjectT>(this ObjectT Object) where ObjectT: class
+    {
+        return (nint) Unsafe.AsPointer(ref Unsafe.As<StrongBox<byte>>(Object).Value);
+    }
+
 }
