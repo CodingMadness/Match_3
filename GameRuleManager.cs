@@ -4,11 +4,9 @@ namespace Match_3;
 
 public static class GameRuleManager
 {
-    private static int MaxCapacity => (int)Balls.Length * 5;
-    public const int Max3PerKind = 3;
     private static readonly Random rnd = new(DateTime.UtcNow.Millisecond);
-    public static int Level { get; private set; }
-    public static Level State { get; private set; }
+
+    public static Level State { get; }
 
     static GameRuleManager()
     {
@@ -37,17 +35,13 @@ public static class GameRuleManager
             }
         }
     } 
-    public static bool TryGetSubQuest(CandyShape shape, out int number)
+    public static bool TryGetMatch3Quest(CandyShape shape, out int number)
     {
         return State.QuestPerLevel.Quest.TryGetValue(shape.Ball, out number);
     }
     public static void RemoveSubQuest(CandyShape shape) => State.QuestPerLevel.Quest.Remove(shape.Ball);
-    public static bool IsSubQuestDone(CandyShape shape, int alreadyMatched) =>
-        TryGetSubQuest(shape, out int result) && alreadyMatched >= result;
-    public static void ChangeSubQuest(CandyShape shape, int toChangeWith)
-        => State.QuestPerLevel.Quest[shape.Ball] = toChangeWith;
     public static bool IsQuestDone() => State.QuestPerLevel.Quest.Count == 0;
-    public static void DefineMatch3Quest(int[] countsPerBall)
+    public static void SetCountPerBall(int[] totalCountPerBall)
     {
         static void SetCollectQuest(int[] countsPerBall)
         {
@@ -67,21 +61,34 @@ public static class GameRuleManager
                     {
                         BallCount += 2;
                     }
-                    for (int i = 0; i < BallCount; i++)
-                    {
-                        int match3Count = rnd.Next(1, 2);
-
-                        if (match3Count < countsPerBall[i])
-                            State.QuestPerLevel.Quest.TryAdd((Balls)i, match3Count);
-                        else
-                            State.QuestPerLevel.Quest.TryAdd((Balls)i, countsPerBall[i] - match3Count);
-                    }
                 }
             }
+            
+            for (int currentBall = 0; currentBall < BallCount; currentBall++)
+            {
+                int match3Count = rnd.Next(1, 2);
+
+                if (match3Count < countsPerBall[currentBall])
+                    State.QuestPerLevel.Quest.TryAdd((Balls)currentBall, match3Count);
+                else
+                    State.QuestPerLevel.Quest.TryAdd((Balls)currentBall, countsPerBall[currentBall] - match3Count);
+            }
         }
-        SetCollectQuest(countsPerBall);
+        SetCollectQuest(totalCountPerBall);
         LogQuest(false);
     }
+
+    public static bool TryGetEnemyQuest(CandyShape shape, out int clickCountPerEnemy)
+    {
+        //We just say: Take the matxh3Quest and reinterpret it
+        //also as a ClickQuest, so same data will be used to store
+        //the amount of Clicks the player has to do, in order to remove 
+        //a certain enemy tile!
+        bool success = TryGetMatch3Quest(shape, out clickCountPerEnemy);
+        clickCountPerEnemy *= Utils.Randomizer.Next(2, 3);
+        return success;
+    }
+    
     public static void InitNewLevel() 
     {
         State.SetNextLevel();
