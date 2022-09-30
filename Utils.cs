@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 using Raylib_CsLo;
+using static Raylib_CsLo.Raylib;
 
 namespace Match_3;
 
@@ -45,7 +46,7 @@ public static class Utils
         ;
     }
 
-    public static Vector2 GetScreenCoord() => new(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+    public static Vector2 GetScreenCoord() => new(GetScreenWidth(), GetScreenHeight());
     
     public static unsafe nint GetAddrOfObject<ObjectT>(this ObjectT Object) where ObjectT: class
     {
@@ -57,6 +58,11 @@ public static class Utils
         return new((int)begin.X, (int)begin.Y, width, height);
     }
 
+    public static void SetMousePos(Vector2 position)
+    {
+        SetMousePosition((int)position.X * ITile.Size, (int)position.Y* ITile.Size);
+    }
+    
     public static bool IsRowBased<T>(this ISet<T?> items) where T: ITile
     {
         T? cmpr = items.ElementAt(0);
