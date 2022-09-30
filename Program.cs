@@ -7,7 +7,7 @@ using static Raylib_CsLo.Raylib;
 
 namespace Match_3;
 
-class Program
+internal static class Program
 {
     private static Level state;
     private static GameTime globalTimer, gameOverScreenTimer;
@@ -23,8 +23,8 @@ class Program
     private static GameText welcomeText, timerText, gameOverText;
     private static int clickCount;
     private static bool backToNormal;
-    
-    private static Vector2? beginOfMatch3Rect;
+
+    private static (bool shallReset, Vector2? beginOfMatch3Rect) pair =(false, null);
     
     private static void Main() 
     {
@@ -53,6 +53,7 @@ class Program
         timerText = new(copy, "", 20f); 
         //Console.Clear();        
     }
+   
     public static void UpdateTimer(ref GameTime timer)
     {
         if (timer.ElapsedSeconds <= timer.MAX_TIMER_VALUE / 2f)
@@ -101,12 +102,10 @@ class Program
 
     private static void UpdateEnemyTiles()
     {
-        if (beginOfMatch3Rect is null)
-            return;
-        
-        //var match3Rect = EnemyTile.DrawRectAroundMatch3(_grid, beginOfMatch3Rect.Value);
-        Console.WriteLine(beginOfMatch3Rect.Value);
-        //DrawRectangleRec(match3Rect, RED);
+        //foreach new match3, the internal "find" method always gets all new match3s 
+        //which we dont want, we only need the current match3!
+        var match3Rect = EnemyTile.DrawRectAroundMatch3(_grid);
+        DrawRectangleRec(match3Rect, RED);
     }
     
     private static void ProcessSelectedTiles()
@@ -192,7 +191,6 @@ class Program
                 if (++tileCounter == toCollect)
                 {
                     Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
-                    
                     tileCounter = 0;
                     missedSwapTolerance = 0;
                 }
@@ -200,7 +198,6 @@ class Program
             }
             
             GameTime toggleTimer = GameTime.GetTimer(500900);
-
             //here begins the entire swapping from default tile to enemy tile
             //and its affects to other surrounding tiles
             bool colorOnlyThe1One = true;
@@ -209,15 +206,15 @@ class Program
             {
                 if (match is not null && _grid[match.Cell] is not null)
                 {
-                    UndoBuffer.Add(_grid[match.Cell]);
-                    //_grid.Delete(match.Cell);
+                    UndoBuffer.Add(match);
+                    _grid.Delete(match.Cell);
                     var enemy = Bakery.Transform(match as Tile);
                     _grid[match.Cell] = enemy;
-                    //enemy.BlockSurroundingTiles(_grid, true);
-                    beginOfMatch3Rect = enemy.ComputeBeginOfMatch3Rect(_grid);
+                    enemy.BlockSurroundingTiles(_grid, true);
+                    //Console.WriteLine(beginOfMatch3Rect);
                 }
             }
-            var ds = 10;
+            pair.shallReset = true;
         }
         //if (++missedSwapTolerance == state.MaxAllowedSpawns)
         //{

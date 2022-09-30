@@ -350,9 +350,9 @@ public class Tile : ITile
 
 public class EnemyTile : Tile
 {
+    private static IEnumerable<EnemyTile> allEnemies;
     private Vector2 TileUnitX => (this as ITile).TileUnitX;
     public override TileState State => TileState.UnMovable;
-    public static Rectangle DangerZone { get; private set; }
     
     public void BlockSurroundingTiles(Grid map, bool disable)
     {
@@ -411,30 +411,27 @@ public class EnemyTile : Tile
             }
         }
     }
-
-    public Vector2? ComputeBeginOfMatch3Rect(Grid map)
-    {
-        Vector2 nextLeft = Cell - Vector2.UnitX;
-        //take the DiagonalNegativeX-Vector2 ffrom the enemy who 
-        //has only a default tile as neighbor
-        if (map[nextLeft] is Tile tile)
-        {
-            tile.Cell = tile.Cell with { Y = tile.Cell.Y - 1 };
-            return tile.Cell;
-        }
-        return null;
-    }    
     
-    public static Rectangle DrawRectAroundMatch3(Grid map, Vector2 beginRect)
+    public static Rectangle DrawRectAroundMatch3(Grid map)
     {
-        var allEnemies = map.FindAllEnemies();
+        allEnemies = map.FindAllEnemies();
+
+        var enemyTiles = allEnemies as EnemyTile[] ?? allEnemies.ToArray();
+        
+        if (!enemyTiles.Any())
+            return default;
+            
         allEnemies.TryGetNonEnumeratedCount(out int match3Count);
 
-        var axis  = allEnemies
+        var axis  = enemyTiles
             .GroupBy(item => item.Cell)
             .OrderBy(gr=>gr.Key.Y)
             .Count();
 
+        var first = enemyTiles.ElementAt(0);
+        var begin = first.Cell - Vector2.One;
+        allEnemies = Enumerable.Empty<EnemyTile>();
+        
         if (axis == match3Count)
         {
             //its row based rectangle
@@ -443,7 +440,7 @@ public class EnemyTile : Tile
             //-----------------|
             var match3RectWidth = match3Count + 2;
             var match3RectHeight = match3Count;
-            return Utils.GetMatch3Rect(beginRect * ITile.Size, 
+            return Utils.GetMatch3Rect(begin * ITile.Size, 
                                         match3RectWidth * ITile.Size, match3RectHeight * ITile.Size);
         }
         else
@@ -457,7 +454,7 @@ public class EnemyTile : Tile
             //----------|
             var match3RectWidth = match3Count;
             var match3RectHeight = match3Count+2;
-            return Utils.GetMatch3Rect(beginRect * ITile.Size, 
+            return Utils.GetMatch3Rect(begin * ITile.Size, 
                 match3RectWidth * ITile.Size, match3RectHeight * ITile.Size);
         }
     }
