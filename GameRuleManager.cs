@@ -8,7 +8,13 @@ public static class GameRuleManager
 
     static GameRuleManager()
     {
-        State = new(10, 3*3, 6, 5, (-1, new Dictionary<Balls, int>((int)Balls.Length)), 64);
+        State = new(10,
+            3*3,
+            6,
+            5,
+            (-1, new Dictionary<Balls, int>((int)Balls.Length)),
+            64,
+            3);
     }
   
     public static bool ShallMakeRndQuests { get; set; }
