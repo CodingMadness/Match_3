@@ -14,7 +14,7 @@ internal static class Program
 
     private static Grid _grid;
     private static readonly ISet<ITile?> MatchesOf3 = new HashSet<ITile?>(3);
-    private static ITile? secondClickedTile;
+    private static readonly ISet<ITile?> EnemiessPerMatch = new HashSet<ITile?>(3);
     private static readonly ISet<ITile?> UndoBuffer = new HashSet<ITile?>(5);
     private static bool? wasGameWonB4Timeout;
     private static bool enterGame;
@@ -23,9 +23,9 @@ internal static class Program
     private static GameText welcomeText, timerText, gameOverText;
     private static int clickCount;
     private static bool backToNormal;
+    private static ITile? secondClickedTile;
+    private static Rectangle match3Rect;
 
-    private static (bool shallReset, Vector2? beginOfMatch3Rect) pair =(false, null);
-    
     private static void Main() 
     {
         InitGame();
@@ -104,8 +104,17 @@ internal static class Program
     {
         //foreach new match3, the internal "find" method always gets all new match3s 
         //which we dont want, we only need the current match3!
-        var match3Rect = EnemyTile.DrawRectAroundMatch3(_grid);
-        DrawRectangleRec(match3Rect, RED);
+        var tmp = EnemyTile.GetRectAroundMatch3(EnemiessPerMatch);
+        
+        if (tmp.x == 0f && tmp.y == 0f)
+            DrawRectangleRec(match3Rect, RED);
+        else
+        {
+            match3Rect = tmp;
+            DrawRectangleRec(tmp, RED);
+        }
+
+        EnemiessPerMatch.Clear();
     }
     
     private static void ProcessSelectedTiles()
@@ -211,10 +220,9 @@ internal static class Program
                     var enemy = Bakery.Transform(match as Tile);
                     _grid[match.Cell] = enemy;
                     enemy.BlockSurroundingTiles(_grid, true);
-                    //Console.WriteLine(beginOfMatch3Rect);
+                    EnemiessPerMatch.Add(enemy);
                 }
             }
-            pair.shallReset = true;
         }
         //if (++missedSwapTolerance == state.MaxAllowedSpawns)
         //{

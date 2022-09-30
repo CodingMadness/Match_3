@@ -277,37 +277,25 @@ public class Tile : ITile
     
     public virtual void Draw(float elapsedTime)
     {
-        void DrawTextOnTop(in Vector2 worldPosition, bool selected)
+        void DrawCoordOnTop(in Vector2 worldPosition, bool selected)
         {
             Font copy = GetFontDefault() with { baseSize = 1024 };
-            /*Vector2 drawAt = worldPosition + Vector2.One *
-                             15f - (Vector2.UnitX *6f) + 
-                             (Vector2.UnitY * 6f);*/
             var begin = (this as ITile).WorldPosition;
             float halfSize = ITile.Size * 0.5f;
             begin = begin with { X = begin.X - halfSize - 0, Y = begin.Y - halfSize - ( halfSize * 0.3f)};
-
             GameText coordText = new(copy, (worldPosition / ITile.Size).ToString(), 11.5f) 
             {
                 Begin = begin,
                 Color = selected ? RED : BLACK,
             };
-            
             coordText.Color.AlphaSpeed = 0f;
             coordText.ScaleText();
-            //Console.WriteLine(coordText.Begin / ITile.Size);
-            //DrawLine((int)coordText.Begin.X, (int)coordText.Begin.Y, 512, 0, RED);
-            //DrawCircle((int)begin.X, (int)begin.Y, 3.5f, BLACK);
             coordText.Draw(2f);
-            //Console.WriteLine(begin);
         }
-
-        //we draw 1*Tilesize in Y-Axis,
-        //because our game-timer occupies an entire row so we begin 1 further down in Y 
-        //var pos = Cell == Vector2.Zero ? Cell + Vector2.UnitY * ITile.Size : Cell * ITile.Size;
+        
         Body.Color.ElapsedTime = elapsedTime;
         DrawTextureRec(ITile.GetAtlas(), DestRect, Cell * ITile.Size, Body.Color.Apply());
-        DrawTextOnTop(Cell * ITile.Size, _selected);
+        DrawCoordOnTop(Cell * ITile.Size, _selected);
     }
     public void Disable()
     {
@@ -350,24 +338,31 @@ public class Tile : ITile
 
 public class EnemyTile : Tile
 {
-    private static IEnumerable<EnemyTile> allEnemies;
-    private Vector2 TileUnitX => (this as ITile).TileUnitX;
+    //private Vector2 TileUnitX => (this as ITile).TileUnitX;
     public override TileState State => TileState.UnMovable;
     
     public void BlockSurroundingTiles(Grid map, bool disable)
     {
         bool goDiagonal = false;
         
-        static Vector2 NextFrom(Vector2 input, Grid.Direction direction, bool goDiagonal)
+        Vector2 NextCell(Grid.Direction direction)
         {
             if (!goDiagonal)
             {
                 return direction switch
                 {
-                    Grid.Direction.NegativeX => input with { X = input.X - 1 },
-                    Grid.Direction.PositiveX => input with { X = input.X + 1 },
-                    Grid.Direction.NegativeY => input with { Y = input.Y - 1 },
-                    Grid.Direction.PositiveY => input with { Y = input.Y + 1 },
+                    /* direction inside screen:
+                     *    -X => <-----
+                     *    +X => ----->
+                     *
+                     *    -Y => UP
+                     *    +Y => DOWN
+                     * 
+                     */
+                    Grid.Direction.NegativeX => Cell with { X = Cell.X - 1 },
+                    Grid.Direction.PositiveX => Cell with { X = Cell.X + 1 },
+                    Grid.Direction.NegativeY => Cell with { Y = Cell.Y - 1 },
+                    Grid.Direction.PositiveY => Cell with { Y = Cell.Y + 1 },
                     _ => Vector2.Zero
                 };
             }
@@ -375,10 +370,10 @@ public class EnemyTile : Tile
             {
                 return direction switch
                 {
-                    Grid.Direction.NegativeX => input - Vector2.One,
-                    Grid.Direction.PositiveX => input + Vector2.One,
-                    Grid.Direction.NegativeY => input with { X = input.X + 1, Y = input.Y - 1},
-                    Grid.Direction.PositiveY => input with { X = input.X - 1, Y = input.Y + 1},
+                    Grid.Direction.NegativeX => Cell - Vector2.One,
+                    Grid.Direction.PositiveX => Cell + Vector2.One,
+                    Grid.Direction.NegativeY => Cell with { X = Cell.X + 1, Y = Cell.Y - 1},
+                    Grid.Direction.PositiveY => Cell with { X = Cell.X - 1, Y = Cell.Y + 1},
                     _ => Vector2.Zero
                 };
             }
@@ -396,7 +391,7 @@ public class EnemyTile : Tile
                     i = 0;
                 }
                 
-                Vector2 nextCoords = NextFrom(Cell, i, goDiagonal);
+                Vector2 nextCoords = NextCell(i);
 
                 if (ITile.IsOnlyDefaultTile(map[nextCoords]))
                 {
@@ -412,36 +407,23 @@ public class EnemyTile : Tile
         }
     }
     
-    public static Rectangle DrawRectAroundMatch3(Grid map)
+    public static Rectangle GetRectAroundMatch3(ISet<ITile?> match3Set)
     {
-        allEnemies = map.FindAllEnemies();
-
-        var enemyTiles = allEnemies as EnemyTile[] ?? allEnemies.ToArray();
-        
-        if (!enemyTiles.Any())
+        if (match3Set.Count == 0)
             return default;
-            
-        allEnemies.TryGetNonEnumeratedCount(out int match3Count);
-
-        var axis  = enemyTiles
-            .GroupBy(item => item.Cell)
-            .OrderBy(gr=>gr.Key.Y)
-            .Count();
-
-        var first = enemyTiles.ElementAt(0);
-        var begin = first.Cell - Vector2.One;
-        allEnemies = Enumerable.Empty<EnemyTile>();
         
-        if (axis == match3Count)
+        if (match3Set.IsRowBased())
         {
             //its row based rectangle
             //-----------------|
             // X     Y      Z  |
             //-----------------|
-            var match3RectWidth = match3Count + 2;
-            var match3RectHeight = match3Count;
+            var first = match3Set.OrderBy(x => x.Cell.X).ElementAt(0);
+            var begin = first.Cell - Vector2.One;
+            var match3RectWidth = match3Set.Count + 2;
+            var match3RectHeight = match3Set.Count;
             return Utils.GetMatch3Rect(begin * ITile.Size, 
-                                        match3RectWidth * ITile.Size, match3RectHeight * ITile.Size);
+                match3RectWidth * ITile.Size, match3RectHeight * ITile.Size);
         }
         else
         {
@@ -452,8 +434,10 @@ public class EnemyTile : Tile
             // *  Z  *  |
             // *  *  *  |
             //----------|
-            var match3RectWidth = match3Count;
-            var match3RectHeight = match3Count+2;
+            var first = match3Set.OrderBy(x => x.Cell.Y).ElementAt(0);
+            var begin = first.Cell - Vector2.One;
+            var match3RectWidth = match3Set.Count;
+            var match3RectHeight = match3Set.Count+2;
             return Utils.GetMatch3Rect(begin * ITile.Size, 
                 match3RectWidth * ITile.Size, match3RectHeight * ITile.Size);
         }
