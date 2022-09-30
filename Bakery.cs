@@ -111,10 +111,13 @@ public static class Bakery
     {
         var tile = new Tile
         {
-            GridPos = gridPos, 
+            IsDisabled = false,
+            IsDeleted = false,
+            Cell = gridPos, 
             CoordsB4Swap = -Vector2.One,
-            Shape = DefineFrame(noise),
-            Selected = false
+            Body = DefineFrame(noise),
+            Selected = false,
+            State = TileState.Movable | TileState.Shapeable |  TileState.Destroyable
         };
         return tile;
     }
@@ -123,22 +126,22 @@ public static class Bakery
     {
         EnemyTile blockTile = new()
         {
-            GridPos = matchTile.GridPos,
+            Cell = matchTile.Cell,
             CoordsB4Swap = matchTile.CoordsB4Swap,
             IsDeleted = false,
-            State = matchTile.State,
+            State = TileState.UnMovable | TileState.UnShapeable,
             
-            Shape = new CandyShape
+            Body = new CandyShape
             {
                 Form = ShapeKind.Trapez,
-                FrameLocation = matchTile.Shape.FrameLocation,
-                Ball = matchTile.Shape is CandyShape c0 ? c0.Ball : Balls.Empty,
-                Layer = matchTile.Shape is CandyShape c1 ? c1.Layer : (Coat)(-1)
+                FrameLocation = matchTile.Body.FrameLocation,
+                Ball = matchTile.Body is CandyShape c0 ? c0.Ball : Balls.Empty,
+                Layer = matchTile.Body is CandyShape c1 ? c1.Layer : (Coat)(-1)
             },
             Selected = false,
         };
 
-        blockTile.Shape.Current().AlphaSpeed = 0f;
+        blockTile.Body.Color.AlphaSpeed = 0f;
         return blockTile;
     }
 }
