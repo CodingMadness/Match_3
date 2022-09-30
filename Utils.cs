@@ -51,4 +51,9 @@ public static class Utils
     {
         return (nint) Unsafe.AsPointer(ref Unsafe.As<StrongBox<byte>>(Object).Value);
     }
+
+    public static Rectangle GetMatch3Rect(Vector2 begin, int width, int height)
+    {
+        return new((int)begin.X, (int)begin.Y, width, height);
+    }
 }

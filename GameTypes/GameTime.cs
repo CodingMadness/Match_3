@@ -22,7 +22,7 @@ public struct GameTime
         };
     }
 
-    public void UpdateTimer()
+    public void Run()
     {
         // subtract this frame from the globalTimer if it's not allready expired
         if (ElapsedSeconds > 0.000f)

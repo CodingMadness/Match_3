@@ -49,6 +49,10 @@
     <EmbeddedResource Remove="Assets\SpriteSheets\Easter_UI\**" />
     <Compile Remove="Assets\SpriteSheets\Super_Match3_Bundle\**" />
     <EmbeddedResource Remove="Assets\SpriteSheets\Super_Match3_Bundle\**" />
+    <None Remove="Assets\Atlas\bg.png" />
+    <EmbeddedResource Include="Assets\Atlas\bg.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\Fonts\font1.otf">

@@ -154,7 +154,7 @@ public class FastNoiseLite
     /// Sets seed used for all noise types
     /// </summary>
     /// <remarks>
-    /// Default: 1337
+    /// DefaultTileAtlas: 1337
     /// </remarks>
     public void SetSeed(int seed) { mSeed = seed; }
 
@@ -162,7 +162,7 @@ public class FastNoiseLite
     /// Sets frequency for all noise types
     /// </summary>
     /// <remarks>
-    /// Default: 0.01
+    /// DefaultTileAtlas: 0.01
     /// </remarks>
     public void SetFrequency(float frequency) { mFrequency = frequency; }
 
@@ -170,7 +170,7 @@ public class FastNoiseLite
     /// Sets noise algorithm used for GetNoise(...)
     /// </summary>
     /// <remarks>
-    /// Default: OpenSimplex2
+    /// DefaultTileAtlas: OpenSimplex2
     /// </remarks>
     public void SetNoiseType(NoiseType noiseType)
     {
@@ -183,7 +183,7 @@ public class FastNoiseLite
     /// Can aid in reducing directional artifacts when sampling a 2D plane in 3D
     /// </summary>
     /// <remarks>
-    /// Default: None
+    /// DefaultTileAtlas: None
     /// </remarks>
     public void SetRotationType3D(RotationType3D rotationType3D)
     {
@@ -196,7 +196,7 @@ public class FastNoiseLite
     /// Sets method for combining octaves in all fractal noise types
     /// </summary>
     /// <remarks>
-    /// Default: None
+    /// DefaultTileAtlas: None
     /// Note: FractalType.DomainWarp... only affects DomainWarp(...)
     /// </remarks>
     public void SetFractalType(FractalType fractalType) { mFractalType = fractalType; }
@@ -205,7 +205,7 @@ public class FastNoiseLite
     /// Sets octave count for all fractal noise types 
     /// </summary>
     /// <remarks>
-    /// Default: 3
+    /// DefaultTileAtlas: 3
     /// </remarks>
     public void SetFractalOctaves(int octaves)
     {
@@ -217,7 +217,7 @@ public class FastNoiseLite
     /// Sets octave lacunarity for all fractal noise types
     /// </summary>
     /// <remarks>
-    /// Default: 2.0
+    /// DefaultTileAtlas: 2.0
     /// </remarks>
     public void SetFractalLacunarity(float lacunarity) { mLacunarity = lacunarity; }
 
@@ -225,7 +225,7 @@ public class FastNoiseLite
     /// Sets octave gain for all fractal noise types
     /// </summary>
     /// <remarks>
-    /// Default: 0.5
+    /// DefaultTileAtlas: 0.5
     /// </remarks>
     public void SetFractalGain(float gain)
     {
@@ -237,7 +237,7 @@ public class FastNoiseLite
     /// Sets octave weighting for all none DomainWarp fratal types
     /// </summary>
     /// <remarks>
-    /// Default: 0.0
+    /// DefaultTileAtlas: 0.0
     /// Note: Keep between 0...1 to maintain -1...1 output bounding
     /// </remarks>
     public void SetFractalWeightedStrength(float weightedStrength) { mWeightedStrength = weightedStrength; }
@@ -246,7 +246,7 @@ public class FastNoiseLite
     /// Sets strength of the fractal ping pong effect
     /// </summary>
     /// <remarks>
-    /// Default: 2.0
+    /// DefaultTileAtlas: 2.0
     /// </remarks>
     public void SetFractalPingPongStrength(float pingPongStrength) { mPingPongStrength = pingPongStrength; }
 
@@ -255,7 +255,7 @@ public class FastNoiseLite
     /// Sets distance function used in cellular noise calculations
     /// </summary>
     /// <remarks>
-    /// Default: Distance
+    /// DefaultTileAtlas: Distance
     /// </remarks>
     public void SetCellularDistanceFunction(CellularDistanceFunction cellularDistanceFunction) { mCellularDistanceFunction = cellularDistanceFunction; }
 
@@ -263,7 +263,7 @@ public class FastNoiseLite
     /// Sets return type from cellular noise calculations
     /// </summary>
     /// <remarks>
-    /// Default: EuclideanSq
+    /// DefaultTileAtlas: EuclideanSq
     /// </remarks>
     public void SetCellularReturnType(CellularReturnType cellularReturnType) { mCellularReturnType = cellularReturnType; }
 
@@ -271,7 +271,7 @@ public class FastNoiseLite
     /// Sets the maximum distance a cellular point can move from it's grid GridCoords
     /// </summary>
     /// <remarks>
-    /// Default: 1.0
+    /// DefaultTileAtlas: 1.0
     /// Note: Setting this higher than 1 will cause artifacts
     /// </remarks> 
     public void SetCellularJitter(float cellularJitter) { mCellularJitterModifier = cellularJitter; }
@@ -281,7 +281,7 @@ public class FastNoiseLite
     /// Sets the warp algorithm when using DomainWarp(...)
     /// </summary>
     /// <remarks>
-    /// Default: OpenSimplex2
+    /// DefaultTileAtlas: OpenSimplex2
     /// </remarks>
     public void SetDomainWarpType(DomainWarpType domainWarpType)
     {
@@ -294,7 +294,7 @@ public class FastNoiseLite
     /// Sets the maximum warp distance from original GridCoords when using DomainWarp(...)
     /// </summary>
     /// <remarks>
-    /// Default: 1.0
+    /// DefaultTileAtlas: 1.0
     /// </remarks>
     public void SetDomainWarpAmp(float domainWarpAmp) { mDomainWarpAmp = domainWarpAmp; }
 

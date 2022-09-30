@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
@@ -136,7 +135,7 @@ public abstract class Shape
     private FadeableColor _f;
     //public FadeableColor FadeTint => _f;
 
-    public ref FadeableColor Current() => ref _f;
+    public ref FadeableColor Color => ref _f;
     public void ChangeColor(Color c, float alphaSpeed, float targetAlpha)
     {
         _f = c;
@@ -159,11 +158,11 @@ public class CandyShape : Shape, IEquatable<CandyShape>//, IShape<CandyShape>
         other is not null && Ball == other.Ball && Layer == other.Layer;
     public override int GetHashCode()
     {
-        return HashCode.Combine(Current(), Ball);
+        return HashCode.Combine(Color, Ball);
     }
 
     public override string ToString() =>
-        $"Tile type: <{Ball}> with Tint: <{Current()}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
+        $"Tile type: <{Ball}> with Tint: <{Color}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
 
     public override bool Equals(object obj)
     {
@@ -197,18 +196,28 @@ public interface ITile : IEquatable<ITile>
 {
     public bool IsDeleted { get; set; }
     public TileState State { get; set; }
-
+    public bool IsDisabled { get; protected internal set; }
+    public Rectangle DrawRectAround()
+    {
+        DrawRectangle((int)Cell.X * Size, 
+            (int)Cell.Y* Size,
+            Size, Size, 
+            ColorAlpha(RED, 1f));
+        
+        return new(Cell.X * Size, Cell.Y * Size, Size, Size);
+    }
+    public Vector2 TileUnitX => Vector2.UnitX * Size;
+    public Vector2 TileUnitY => Vector2.UnitY * Size;
     public static bool IsOnlyDefaultTile(ITile? current) =>
         current is Tile and not EnemyTile; 
         
-    private static Texture Atlas;
+    private static Texture atlas;
 
-    //public static void SetAtlas(ref Texture tex) => Atlas = tex;
-    public static ref Texture GetAtlas() => ref Atlas;
-    public Vector2 GridPos { get; set; }
+    public static ref Texture GetAtlas() => ref atlas;
+    public Vector2 Cell { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public static int Size => 64;
-    public Vector2 WorldPosition => (GridPos * Size) + (Vector2.One * Size);
+    public Vector2 WorldPosition => (Cell * Size) + (Vector2.One * Size);
     public Vector2 ChangeTileSize(float xFactor, float yFactor) =>
         WorldPosition with { X = WorldPosition.X * xFactor, Y = WorldPosition.Y * yFactor };
     public bool Selected { get; set; }
@@ -217,17 +226,25 @@ public interface ITile : IEquatable<ITile>
 
 public class Tile : ITile
 {
+    private bool _selected;
     public virtual bool IsDeleted { get; set; }
     
     public virtual TileState State { get; set; }
 
-    /// <summary>
-    /// Important always is: Match GridPos with the actual Drawing-Location of the window!
-    /// </summary>
-    public Vector2 GridPos { get; set; }
+    protected internal bool IsDisabled { get; set; }
 
+    bool ITile.IsDisabled
+    {
+        get => IsDisabled;
+        set => IsDisabled = value;
+    }
+
+    /// <summary>
+    /// Important always is: Match Cell with the actual Drawing-Location of the window!
+    /// </summary>
+    public Vector2 Cell { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
-    public Shape Shape { get; init; }
+    public Shape Body { get; init; }
     public bool Selected
     {
         get => _selected;
@@ -236,44 +253,41 @@ public class Tile : ITile
         {
             if (value)
             {
-                Shape.Current().CurrentAlpha = 1f;
-                Shape.Current().TargetAlpha = 0;
-                Shape.Current().AlphaSpeed = 0.5f;
+                Body.Color.CurrentAlpha = 1f;
+                Body.Color.TargetAlpha = 0.35f;
+                Body.Color.AlphaSpeed = 0.35f;
             }
             else
             {
-                Shape.Current().AlphaSpeed = 0f;
+                Body.Color.AlphaSpeed = 0f;
             }
             _selected = value;
         }
     }
-
-    private bool _selected;
-    private Rectangle DestRect => new(Shape.FrameLocation.X, Shape.FrameLocation.Y, ITile.Size, ITile.Size);
-    //private unsafe Texture* _atlas;
+    private Rectangle DestRect => new(Body.FrameLocation.X, Body.FrameLocation.Y, ITile.Size, ITile.Size);
     
     public Tile()
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
-        //overwrite the Shape anyway with the Factorymethod "CreateNewTile(..)";
-        Shape = null!;
+        //overwrite the Body anyway with the Factorymethod "CreateNewTile(..)";
+        Body = null!;
     }
 
-    public override string ToString() => $"GridPos: {GridPos}; ---- {Shape}";
+    public override string ToString() => $"Cell: {Cell}; ---- {Body}";
     
     public virtual void Draw(float elapsedTime)
     {
         void DrawTextOnTop(in Vector2 worldPosition, bool selected)
         {
-            Font copy = AssetManager.WelcomeFont with{ baseSize = 1024 };
+            Font copy = GetFontDefault() with { baseSize = 1024 };
             /*Vector2 drawAt = worldPosition + Vector2.One *
                              15f - (Vector2.UnitX *6f) + 
                              (Vector2.UnitY * 6f);*/
             var begin = (this as ITile).WorldPosition;
             float halfSize = ITile.Size * 0.5f;
-            begin = begin with { X = begin.X - halfSize - halfSize * 0.3f, Y = (begin.Y - halfSize - halfSize * 0.3f) };
+            begin = begin with { X = begin.X - halfSize - 0, Y = begin.Y - halfSize - ( halfSize * 0.3f)};
 
-            GameText coordText = new(copy, (worldPosition / ITile.Size).ToString(), 8.5f) 
+            GameText coordText = new(copy, (worldPosition / ITile.Size).ToString(), 11.5f) 
             {
                 Begin = begin,
                 Color = selected ? RED : BLACK,
@@ -281,6 +295,7 @@ public class Tile : ITile
             
             coordText.Color.AlphaSpeed = 0f;
             coordText.ScaleText();
+            //Console.WriteLine(coordText.Begin / ITile.Size);
             //DrawLine((int)coordText.Begin.X, (int)coordText.Begin.Y, 512, 0, RED);
             //DrawCircle((int)begin.X, (int)begin.Y, 3.5f, BLACK);
             coordText.Draw(2f);
@@ -289,27 +304,31 @@ public class Tile : ITile
 
         //we draw 1*Tilesize in Y-Axis,
         //because our game-timer occupies an entire row so we begin 1 further down in Y 
-        //var pos = GridPos == Vector2.Zero ? GridPos + Vector2.UnitY * ITile.Size : GridPos * ITile.Size;
-        Shape.Current().ElapsedTime = elapsedTime;
-        DrawTextureRec(ITile.GetAtlas(), DestRect, GridPos * ITile.Size, Shape.Current().Apply());
-        DrawTextOnTop(GridPos * ITile.Size, _selected);
+        //var pos = Cell == Vector2.Zero ? Cell + Vector2.UnitY * ITile.Size : Cell * ITile.Size;
+        Body.Color.ElapsedTime = elapsedTime;
+        DrawTextureRec(ITile.GetAtlas(), DestRect, Cell * ITile.Size, Body.Color.Apply());
+        DrawTextOnTop(Cell * ITile.Size, _selected);
     }
     public void Disable()
     {
-        Shape.ChangeColor(BLACK, 0f, 1f);
+        Body.ChangeColor(BLACK, 0f, 1f);
         State = TileState.UnMovable | TileState.UnShapeable;
+        IsDisabled = true;
     }
+    
     public void Enable()
     {
         //draw from whatever was the 1. sprite-atlas 
-        Shape.ChangeColor(WHITE, 0f, 1f);
-        State = TileState.Movable | TileState.Shapeable;   
+        Body.ChangeColor(WHITE, 0f, 1f);
+        State = TileState.Movable | TileState.Shapeable;
+        IsDisabled = false;
     }
+    
     public bool Equals(Tile? other)
     {
-        return Shape switch
+        return Body switch
         {
-            CandyShape c when other?.Shape is CandyShape d   && 
+            CandyShape c when other?.Body is CandyShape d   && 
                                                 !IsDeleted   && 
                                                 c.Equals(d) => true,
             _ => false
@@ -331,42 +350,115 @@ public class Tile : ITile
 
 public class EnemyTile : Tile
 {
+    private Vector2 TileUnitX => (this as ITile).TileUnitX;
     public override TileState State => TileState.UnMovable;
-
-    public void ToggleAbilitiesForNeighbors(Grid map, bool disable)
+    public static Rectangle DangerZone { get; private set; }
+    
+    public void BlockSurroundingTiles(Grid map, bool disable)
     {
-        static Vector2 NextFrom(Vector2 input, Grid.Direction direction)
+        bool goDiagonal = false;
+        
+        static Vector2 NextFrom(Vector2 input, Grid.Direction direction, bool goDiagonal)
         {
-            var tmp = direction switch
+            if (!goDiagonal)
             {
-                Grid.Direction.NegativeX => new Vector2(input.X - 1, input.Y),
-                Grid.Direction.PositiveX => new Vector2(input.X + 1, input.Y),
-                Grid.Direction.NegativeY => new Vector2(input.X, input.Y - 1),
-                Grid.Direction.PositiveY => new Vector2(input.X, input.Y + 1),
-                _ => Vector2.Zero
-            };
-
-            return tmp;
+                return direction switch
+                {
+                    Grid.Direction.NegativeX => input with { X = input.X - 1 },
+                    Grid.Direction.PositiveX => input with { X = input.X + 1 },
+                    Grid.Direction.NegativeY => input with { Y = input.Y - 1 },
+                    Grid.Direction.PositiveY => input with { Y = input.Y + 1 },
+                    _ => Vector2.Zero
+                };
+            }
+            else
+            {
+                return direction switch
+                {
+                    Grid.Direction.NegativeX => input - Vector2.One,
+                    Grid.Direction.PositiveX => input + Vector2.One,
+                    Grid.Direction.NegativeY => input with { X = input.X + 1, Y = input.Y - 1},
+                    Grid.Direction.PositiveY => input with { X = input.X - 1, Y = input.Y + 1},
+                    _ => Vector2.Zero
+                };
+            }
         }
             
         const Grid.Direction lastDir = (Grid.Direction)4;
 
-        if (map[GridPos] is not null)
+        if (map[Cell] is not null)
         {
             for (Grid.Direction i = 0; i < lastDir; i++)
             {
-                Vector2 nextCoords = NextFrom(GridPos, i);
+                if (i == lastDir - 1 && goDiagonal == false)
+                {
+                    goDiagonal = true;
+                    i = 0;
+                }
                 
+                Vector2 nextCoords = NextFrom(Cell, i, goDiagonal);
+
                 if (ITile.IsOnlyDefaultTile(map[nextCoords]))
                 {
                     var t = map[nextCoords] as Tile;
-                    
+
                     if (disable)
                         t!.Disable();
+                    
                     else
                         t!.Enable();
                 }
             }
+        }
+    }
+
+    public Vector2? ComputeBeginOfMatch3Rect(Grid map)
+    {
+        Vector2 nextLeft = Cell - Vector2.UnitX;
+        //take the DiagonalNegativeX-Vector2 ffrom the enemy who 
+        //has only a default tile as neighbor
+        if (map[nextLeft] is Tile tile)
+        {
+            tile.Cell = tile.Cell with { Y = tile.Cell.Y - 1 };
+            return tile.Cell;
+        }
+        return null;
+    }    
+    
+    public static Rectangle DrawRectAroundMatch3(Grid map, Vector2 beginRect)
+    {
+        var allEnemies = map.FindAllEnemies();
+        allEnemies.TryGetNonEnumeratedCount(out int match3Count);
+
+        var axis  = allEnemies
+            .GroupBy(item => item.Cell)
+            .OrderBy(gr=>gr.Key.Y)
+            .Count();
+
+        if (axis == match3Count)
+        {
+            //its row based rectangle
+            //-----------------|
+            // X     Y      Z  |
+            //-----------------|
+            var match3RectWidth = match3Count + 2;
+            var match3RectHeight = match3Count;
+            return Utils.GetMatch3Rect(beginRect * ITile.Size, 
+                                        match3RectWidth * ITile.Size, match3RectHeight * ITile.Size);
+        }
+        else
+        {
+            //its column based rectangle
+            //-*--*--*--|
+            // *  X  *  |
+            // *  Y  *  |
+            // *  Z  *  |
+            // *  *  *  |
+            //----------|
+            var match3RectWidth = match3Count;
+            var match3RectHeight = match3Count+2;
+            return Utils.GetMatch3Rect(beginRect * ITile.Size, 
+                match3RectWidth * ITile.Size, match3RectHeight * ITile.Size);
         }
     }
 
