@@ -141,13 +141,13 @@ internal static class Program
                 //move freely!
             }
         }
-
+      
         backToNormal = false; 
         
-        //Here we check mouseinput AND if the clickedTile is actually an enemy, then the clicks correlates to the 
-        if (!_grid.TryGetClickedTile(out var firstClickedTile) || firstClickedTile is null)
+        //Here we check mouse input AND if the clickedTile is actually an enemy, then the clicks correlates to the 
+        if (_grid.NothingClicked(out var firstClickedTile))
             return;
-        
+
         firstClickedTile.Selected = (firstClickedTile.State & TileState.Movable)
                                     == TileState.Movable;
         
@@ -172,7 +172,7 @@ internal static class Program
                 enemiesStillThere = matchXCounter <= Level.MatchConstraint;
             }
         }
-
+        
         /*No tile selected yet*/
         if (secondClickedTile is null)
         {

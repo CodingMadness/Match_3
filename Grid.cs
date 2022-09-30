@@ -101,6 +101,11 @@ namespace Match_3
             //Console.WriteLine("ITERATION OVER FOR THIS DRAW-CALL!");
         }
 
+        public bool NothingClicked(out ITile? tile)
+        {
+            return !TryGetClickedTile(out tile) || tile is null;
+        }
+        
         public ITile? this[Vector2 coord]
         {
             get
