@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using Match_3.GameTypes;
 using Raylib_CsLo;
+using static Match_3.Utils;
 using static Raylib_CsLo.Raylib;
 //INITIALIZATION:................................
 
@@ -26,6 +27,8 @@ internal static class Program
     private static ITile? secondClickedTile;
     private static Rectangle match3Rect;
 
+    private static Vector2 enemyCellPos;
+    
     private static void Main() 
     {
         InitGame();
@@ -68,7 +71,7 @@ internal static class Program
         timerText.Text = ((int)timer.ElapsedSeconds).ToString();
         FadeableColor color = timer.ElapsedSeconds > 0f ? BLUE : WHITE;
         timerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f};
-        timerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 0f };
+        timerText.Begin = (GetScreenCoord() * 0.5f) with { Y = 0f };
         timerText.ScaleText();
         //timerText.Draw(0.5f);
     }
@@ -79,7 +82,7 @@ internal static class Program
         tmp.AlphaSpeed = hideWelcome ? 1f : 0f;
         welcomeText.Color = tmp;
         welcomeText.ScaleText();
-        welcomeText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
+        welcomeText.Begin = (GetScreenCoord() * 0.5f) with { X = 0f };
         welcomeText.Draw(null);
     }
 
@@ -93,7 +96,7 @@ internal static class Program
         UpdateTimer(ref gameOverScreenTimer); 
         ClearBackground(WHITE);
         gameOverText.Src.baseSize = 2;
-        gameOverText.Begin = (Utils.GetScreenCoord() * 0.5f) with{X = 0f};
+        gameOverText.Begin = (GetScreenCoord() * 0.5f) with{X = 0f};
         gameOverText.Text = gameWon.Value ? "YOU WON!" : "YOU LOST";
         gameOverText.ScaleText();
         gameOverText.Draw(null);
@@ -121,9 +124,21 @@ internal static class Program
     {
         //we only fix the mouse point,
         //WHEN the cursor exceeds at a certain bounding box
-        /*if (enemyCellPos != -Vector2.One)
-            SetMousePosition((int)enemyCellPos.X, (int)enemyCellPos.Y);*/
-            
+        if (enemyCellPos != Vector2.Zero)
+        {
+            bool insideRect = CheckCollisionPointRec(GetMousePosition(), match3Rect);
+            if (!insideRect)
+            {
+                /*the player has to get these enemies out of the way b4 he can pass!*/
+                SetMousePos(enemyCellPos);
+            }
+            else
+            {
+                //Console.WriteLine("I am inside rect!");
+                //move freely
+            }
+        }
+
         ITile? firstClickedTile;
         backToNormal = false;
         
@@ -206,7 +221,7 @@ internal static class Program
                 wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
             }
             
-            GameTime toggleTimer = GameTime.GetTimer(500900);
+            //GameTime toggleTimer = GameTime.GetTimer(500900);
             //here begins the entire swapping from default tile to enemy tile
             //and its affects to other surrounding tiles
             bool colorOnlyThe1One = true;
@@ -221,6 +236,7 @@ internal static class Program
                     _grid[match.Cell] = enemy;
                     enemy.BlockSurroundingTiles(_grid, true);
                     EnemiessPerMatch.Add(enemy);
+                    enemyCellPos = enemy.Cell;
                 }
             }
         }

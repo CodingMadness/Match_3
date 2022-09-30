@@ -13,12 +13,12 @@ public struct GameTime
 
     public int MAX_TIMER_VALUE { get; init; }
 
-    public static GameTime GetTimer(int lifetime)
+    public static GameTime GetTimer(int seconds)
     {
         return new GameTime
         {
-            MAX_TIMER_VALUE = lifetime,
-            ElapsedSeconds = lifetime
+            MAX_TIMER_VALUE = seconds,
+            ElapsedSeconds = /*Raylib.GetFPS() **/ seconds
         };
     }
 
@@ -39,5 +39,5 @@ public struct GameTime
     }
 
     public void Reset(float? newStart) =>
-        ElapsedSeconds = newStart is not null ? newStart.Value : MAX_TIMER_VALUE;
+        ElapsedSeconds = newStart ?? MAX_TIMER_VALUE;
 }
