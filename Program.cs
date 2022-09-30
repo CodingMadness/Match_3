@@ -12,7 +12,7 @@ class Program
     private static Level state;
     private static GameTime globalTimer, gameOverScreenTimer;
 
-    private static Grid _tileMap;
+    private static Grid _grid;
     private static readonly ISet<ITile?> MatchesOf3 = new HashSet<ITile?>(3);
     private static ITile? secondClickedTile;
     private static readonly ISet<ITile?> UndoBuffer = new HashSet<ITile?>(5);
@@ -23,8 +23,10 @@ class Program
     private static GameText welcomeText, timerText, gameOverText;
     private static int clickCount;
     private static bool backToNormal;
-
-    private static void Main()
+    
+    private static Vector2? beginOfMatch3Rect;
+    
+    private static void Main() 
     {
         InitGame();
         GameLoop();
@@ -41,39 +43,39 @@ class Program
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(state.WindowWidth, state.WindowHeight, "Match3 By Shpendicus");
         AssetManager.Init();
-        _tileMap = new(state);
-        AssetManager.WelcomeFont.baseSize = 32;
+        //SetMouseCursor(MouseCursor.MOUSE_CURSOR_RESIZE_NS);
+        _grid = new(state);
+        //AssetManager.WelcomeFont.baseSize = 32;
+        //USE A TEXTURE FOR LOSE AND WIN ASWELL AS FOR WELCOME TO AVOID HIGH VIDEO/G-RAM USAGE!
         welcomeText = new(AssetManager.WelcomeFont, "Welcome young man!!", 7f);
         gameOverText = new(AssetManager.WelcomeFont, "", 7f);
-        Font copy = AssetManager.WelcomeFont with {baseSize = 512*2};
-        timerText = new(copy, "", 20f);
+        Font copy = GetFontDefault() with {baseSize = 512*2};
+        timerText = new(copy, "", 20f); 
         //Console.Clear();        
     }
-    
-    public static void UpdateTimerOnScreen(ref GameTime timer)
+    public static void UpdateTimer(ref GameTime timer)
     {
         if (timer.ElapsedSeconds <= timer.MAX_TIMER_VALUE / 2f)
         {
             // timer.ElapsedSeconds -= Raylib.GetFrameTime() * 1.3f;
         }
         
-        timer.UpdateTimer();
+        timer.Run();
         
-        (int start, int end) = _tileMap.MakePlaceForTimer();
-        DrawRectangle(start, 0, end-start, ITile.Size, RED);
+        //(int start, int end) = _grid.MakePlaceForTimer();
+        //GetMatch3Rect(start, 0, end-start, ITile.Size, RED);
         timerText.Text = ((int)timer.ElapsedSeconds).ToString();
         FadeableColor color = timer.ElapsedSeconds > 0f ? BLUE : WHITE;
         timerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f};
         timerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 0f };
         timerText.ScaleText();
-        timerText.Draw(0.5f);
+        //timerText.Draw(0.5f);
     }
     
-    private static void ShowWelcomeScreenOnLoop(bool hideWelcome)
+    private static void ShowWelcomeScreen(bool hideWelcome)
     {
         FadeableColor tmp = RED;
         tmp.AlphaSpeed = hideWelcome ? 1f : 0f;
-        
         welcomeText.Color = tmp;
         welcomeText.ScaleText();
         welcomeText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
@@ -87,7 +89,7 @@ class Program
             return false;
         }
 
-        UpdateTimerOnScreen(ref gameOverScreenTimer); 
+        UpdateTimer(ref gameOverScreenTimer); 
         ClearBackground(WHITE);
         gameOverText.Src.baseSize = 2;
         gameOverText.Begin = (Utils.GetScreenCoord() * 0.5f) with{X = 0f};
@@ -96,19 +98,39 @@ class Program
         gameOverText.Draw(null);
         return gameOverScreenTimer.Done();
     }
+
+    private static void UpdateEnemyTiles()
+    {
+        if (beginOfMatch3Rect is null)
+            return;
+        
+        //var match3Rect = EnemyTile.DrawRectAroundMatch3(_grid, beginOfMatch3Rect.Value);
+        Console.WriteLine(beginOfMatch3Rect.Value);
+        //DrawRectangleRec(match3Rect, RED);
+    }
     
     private static void ProcessSelectedTiles()
     {
+        //we only fix the mouse point,
+        //WHEN the cursor exceeds at a certain bounding box
+        /*if (enemyCellPos != -Vector2.One)
+            SetMousePosition((int)enemyCellPos.X, (int)enemyCellPos.Y);*/
+            
         ITile? firstClickedTile;
         backToNormal = false;
         
         //Here we check mouseinput AND if the clickedTile is actually an enemy, then the clicks correlates to the 
-        if (!_tileMap.TryGetClickedTile(out firstClickedTile) || firstClickedTile is null)
+        if (!_grid.TryGetClickedTile(out firstClickedTile) || firstClickedTile is null)
             return;
-
+        
+        firstClickedTile.Selected = (firstClickedTile.State & TileState.Movable)
+                                    == TileState.Movable;
+        
+        /*
         if (firstClickedTile is EnemyTile e)
         {
-            if (GameRuleManager.TryGetEnemyQuest(e.Shape as CandyShape, out int clicksNeeded))
+            //IF it is an enemy, YOU HAVE TO delete them before u can continue
+            if (GameRuleManager.TryGetEnemyQuest(e.Body as CandyShape, out int clicksNeeded))
             {
                 if (clicksNeeded == ++clickCount && !e.IsDeleted)
                 {
@@ -117,49 +139,48 @@ class Program
                     
                     if (!backToNormal)
                     {
-                        e.ToggleAbilitiesForNeighbors(_tileMap, backToNormal);
+                        e.BlockSurroundingTiles(_grid, backToNormal);
                         backToNormal = true;
                     }
                 }
             }
         }
-        //_tileMap[firstClickedTile.GridPos].Selected = true;
-        firstClickedTile.Selected = true;
+        */
         
         /*No tile selected yet*/
         if (secondClickedTile is null)
         {
             secondClickedTile = firstClickedTile;
-            secondClickedTile.Selected = true;
             return;
         }
 
         /*Same tile selected => deselect*/
         if (firstClickedTile == secondClickedTile)
         {
+            firstClickedTile.Selected = false;
             secondClickedTile.Selected = false;
             secondClickedTile = null;
             return;
         }
+       
         /*Different tile selected ==> swap*/
         else
         {
             if (firstClickedTile.IsDeleted || secondClickedTile.IsDeleted)
                 return;
             
-            firstClickedTile.Selected = true;
-            _tileMap.Swap(firstClickedTile, secondClickedTile);
+            _grid.Swap(firstClickedTile, secondClickedTile);
             UndoBuffer.Add(firstClickedTile);
             UndoBuffer.Add(secondClickedTile);
             secondClickedTile.Selected = false;
         }
 
-        var candy = secondClickedTile is Tile d ? d.Shape as CandyShape : null;
+        var candy = secondClickedTile is Tile d ? d.Body as CandyShape : null;
 
         if (candy is null)
             return;
         
-        if (_tileMap.WasAMatchInAnyDirection(secondClickedTile, MatchesOf3))           
+        if (_grid.WasAMatchInAnyDirection(secondClickedTile, MatchesOf3))
         {
             UndoBuffer.Clear();
 
@@ -171,25 +192,32 @@ class Program
                 if (++tileCounter == toCollect)
                 {
                     Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
+                    
                     tileCounter = 0;
                     missedSwapTolerance = 0;
                 }
                 wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
             }
             
+            GameTime toggleTimer = GameTime.GetTimer(500900);
+
             //here begins the entire swapping from default tile to enemy tile
             //and its affects to other surrounding tiles
+            bool colorOnlyThe1One = true;
+            
             foreach (ITile? match in MatchesOf3)
             {
-                if (match is not null && _tileMap[match.GridPos] is not null)
+                if (match is not null && _grid[match.Cell] is not null)
                 {
-                    UndoBuffer.Add(_tileMap[match.GridPos]);
-                    _tileMap.Delete(match.GridPos);
+                    UndoBuffer.Add(_grid[match.Cell]);
+                    //_grid.Delete(match.Cell);
                     var enemy = Bakery.Transform(match as Tile);
-                    _tileMap[match.GridPos] = enemy;
-                    enemy.ToggleAbilitiesForNeighbors(_tileMap, true);
+                    _grid[match.Cell] = enemy;
+                    //enemy.BlockSurroundingTiles(_grid, true);
+                    beginOfMatch3Rect = enemy.ComputeBeginOfMatch3Rect(_grid);
                 }
             }
+            var ds = 10;
         }
         //if (++missedSwapTolerance == state.MaxAllowedSpawns)
         //{
@@ -221,13 +249,13 @@ class Program
                 if (deletedTile is Tile standard)
                 {
                     //check if they have been ONLY swapped without leading to a match3
-                    ITile? basic = _tileMap[deletedTile.GridPos];
+                    ITile? basic = _grid[deletedTile.Cell];
                     
                     if (!standard.IsDeleted)
                     {
-                        var firstTile = _tileMap[standard.CoordsB4Swap];
+                        var firstTile = _grid[standard.CoordsB4Swap];
                         //Console.WriteLine(firstTile.GetAddrOfObject());
-                        _tileMap.Swap(basic, firstTile);
+                        _grid.Swap(basic, firstTile);
                     }
                     else
                     {
@@ -242,8 +270,8 @@ class Program
                          if (basic is EnemyTile e)
                          {
                              //Console.WriteLine(e.GetAddrOfObject());
-                             e.ToggleAbilitiesForNeighbors(_tileMap, false);
-                             _tileMap[e.GridPos] = standard;
+                             e.BlockSurroundingTiles(_grid, false);
+                             _grid[e.Cell] = standard;
                              standard.Enable();
                              standard.IsDeleted = false;
                          }
@@ -256,8 +284,13 @@ class Program
     
     private static void CleanUp()
     {
-        UnloadTexture(AssetManager.Default);
+        UnloadTexture(AssetManager.DefaultTileAtlas);
         CloseWindow();
+    }
+
+    private static void DrawGrid()
+    {
+        _grid.Draw(globalTimer.ElapsedSeconds);
     }
     
     private static void GameLoop()
@@ -266,10 +299,11 @@ class Program
         {
             BeginDrawing();
             ClearBackground(WHITE);
+            DrawTexture(AssetManager.BGAtlas,0,0, WHITE);
 
             if (!enterGame)
             {
-                ShowWelcomeScreenOnLoop(false);
+                ShowWelcomeScreen(false);
                 GameRuleManager.LogQuest(false);
             }
             if (IsKeyDown(KeyboardKey.KEY_ENTER) || enterGame)
@@ -281,7 +315,7 @@ class Program
                     if (OnGameOver(false))
                     {
                         //leave Gameloop and hence end the game
-                        return;
+                        //return;
                     }
                 }
                 else if (wasGameWonB4Timeout == true)
@@ -295,19 +329,18 @@ class Program
                 }
                 else
                 {
-                    //Keep the main loop going 
-                    UpdateTimerOnScreen(ref globalTimer);
-                    ShowWelcomeScreenOnLoop(true);
-                    _tileMap.Draw(globalTimer.ElapsedSeconds);
+                    //DRAW-CALLS! 
+                    UpdateTimer(ref globalTimer);
+                    ShowWelcomeScreen(true);
                     ProcessSelectedTiles();
-                    
+                    UpdateEnemyTiles();
+                    DrawGrid();
+                    /*
                     if (IsKeyDown(KeyboardKey.KEY_A))
-                        UndoLastOperation();
+                        UndoLastOperation();*/
                 }
-                
                 enterGame = true;
             }
-            
             EndDrawing();
         }
     }
