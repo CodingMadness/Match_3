@@ -10,7 +10,7 @@ namespace Match_3;
 
 internal static class Program
 {
-    private static Level state;
+    private static Level Level;
     private static GameTime globalTimer, gameOverScreenTimer;
 
     private static Grid _grid;
@@ -28,7 +28,9 @@ internal static class Program
     private static Rectangle match3Rect;
 
     private static Vector2 enemyCellPos;
-    
+    private static int matchXCounter = 1;
+    private static bool enemiesStillThere = true;
+
     private static void Main() 
     {
         InitGame();
@@ -39,15 +41,15 @@ internal static class Program
     private static void InitGame()
     {
         GameRuleManager.InitNewLevel();
-        state = GameRuleManager.State;
-        globalTimer = GameTime.GetTimer(state.GameStartAt);
-        gameOverScreenTimer = GameTime.GetTimer(state.GameOverScreenTime);
+        Level = GameRuleManager.State;
+        globalTimer = GameTime.GetTimer(Level.GameStartAt);
+        gameOverScreenTimer = GameTime.GetTimer(Level.GameOverScreenTime);
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
-        InitWindow(state.WindowWidth, state.WindowHeight, "Match3 By Shpendicus");
+        InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
         AssetManager.Init();
         //SetMouseCursor(MouseCursor.MOUSE_CURSOR_RESIZE_NS);
-        _grid = new(state);
+        _grid = new(Level);
         //AssetManager.WelcomeFont.baseSize = 32;
         //USE A TEXTURE FOR LOSE AND WIN ASWELL AS FOR WELCOME TO AVOID HIGH VIDEO/G-RAM USAGE!
         welcomeText = new(AssetManager.WelcomeFont, "Welcome young man!!", 7f);
@@ -103,20 +105,20 @@ internal static class Program
         return gameOverScreenTimer.Done();
     }
 
-    private static void UpdateEnemyTiles()
+    private static void DrawRectAroundEnemyTiles()
     {
         //foreach new match3, the internal "find" method always gets all new match3s 
         //which we dont want, we only need the current match3!
         var tmp = EnemyTile.GetRectAroundMatch3(EnemiessPerMatch);
         
         if (tmp.x == 0f && tmp.y == 0f)
-            DrawRectangleRec(match3Rect, RED);
+            DrawRectangleRec(match3Rect, ColorAlpha(RED, 1f)); //invisible
         else
         {
             match3Rect = tmp;
-            DrawRectangleRec(tmp, RED);
+            DrawRectangleRec(tmp, ColorAlpha(RED, 1f)); //invisible
         }
-
+        //Console.WriteLine(EnemiessPerMatch.Count);
         EnemiessPerMatch.Clear();
     }
     
@@ -126,8 +128,9 @@ internal static class Program
         //WHEN the cursor exceeds at a certain bounding box
         if (enemyCellPos != Vector2.Zero)
         {
-            bool insideRect = CheckCollisionPointRec(GetMousePosition(), match3Rect);
-            if (!insideRect)
+            bool outsideOfRect = !CheckCollisionPointRec(GetMousePosition(), match3Rect);
+            
+            if (outsideOfRect && enemiesStillThere)
             {
                 /*the player has to get these enemies out of the way b4 he can pass!*/
                 SetMousePos(enemyCellPos);
@@ -135,21 +138,19 @@ internal static class Program
             else
             {
                 //Console.WriteLine("I am inside rect!");
-                //move freely
+                //move freely!
             }
         }
 
-        ITile? firstClickedTile;
-        backToNormal = false;
+        backToNormal = false; 
         
         //Here we check mouseinput AND if the clickedTile is actually an enemy, then the clicks correlates to the 
-        if (!_grid.TryGetClickedTile(out firstClickedTile) || firstClickedTile is null)
+        if (!_grid.TryGetClickedTile(out var firstClickedTile) || firstClickedTile is null)
             return;
         
         firstClickedTile.Selected = (firstClickedTile.State & TileState.Movable)
                                     == TileState.Movable;
         
-        /*
         if (firstClickedTile is EnemyTile e)
         {
             //IF it is an enemy, YOU HAVE TO delete them before u can continue
@@ -159,17 +160,19 @@ internal static class Program
                 {
                     e.IsDeleted = true;
                     clickCount = 0;
-                    
+
                     if (!backToNormal)
                     {
                         e.BlockSurroundingTiles(_grid, backToNormal);
                         backToNormal = true;
                     }
+                    Console.WriteLine(matchXCounter++);
                 }
+
+                enemiesStillThere = matchXCounter <= Level.MatchConstraint;
             }
         }
-        */
-        
+
         /*No tile selected yet*/
         if (secondClickedTile is null)
         {
@@ -240,7 +243,7 @@ internal static class Program
                 }
             }
         }
-        //if (++missedSwapTolerance == state.MaxAllowedSpawns)
+        //if (++missedSwapTolerance == Level.MaxAllowedSpawns)
         //{
         //    Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
         //    GameRuleManager.ChangeSubQuest(candy, tileCounter + 3);
@@ -354,7 +357,7 @@ internal static class Program
                     UpdateTimer(ref globalTimer);
                     ShowWelcomeScreen(true);
                     ProcessSelectedTiles();
-                    UpdateEnemyTiles();
+                    DrawRectAroundEnemyTiles();
                     DrawGrid();
                     /*
                     if (IsKeyDown(KeyboardKey.KEY_A))
