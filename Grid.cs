@@ -191,29 +191,6 @@ namespace Match_3
             return matches.Count == MaxDestroyableTiles;
         }
 
-        public IEnumerable<EnemyTile> FindAllEnemies()
-        {
-            int y = 0;
-            List<EnemyTile> enemies = new((TileWidth * TileHeight) / 3);
-
-            for (int i = 0; i < TileHeight; i++)
-            {
-                for (int j = 0; j < TileWidth; j++)
-                {
-                    var current = this[new(i, j)];
-                    
-                    if (current is not null && !current.IsDeleted)
-                    {
-                        if (current is EnemyTile tile)
-                            enemies.Add(tile);
-                    }
-                    /*if (current is EnemyTile enemyTile)
-                        enemies.Add(enemyTile);*/
-                }
-            }
-            return enemies;
-        }
-
         public bool TryGetClickedTile(out ITile? tile)
         {
             tile = default!;
