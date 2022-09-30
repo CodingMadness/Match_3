@@ -56,4 +56,12 @@ public static class Utils
     {
         return new((int)begin.X, (int)begin.Y, width, height);
     }
+
+    public static bool IsRowBased<T>(this ISet<T?> items) where T: ITile
+    {
+        T? cmpr = items.ElementAt(0);
+
+        var isColumnBased = items.Count(x => x.Cell.Y == cmpr.Cell.Y) == items.Count;
+        return isColumnBased;
+    }
 }
