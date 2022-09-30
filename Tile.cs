@@ -344,7 +344,8 @@ public class EnemyTile : Tile
     public void BlockSurroundingTiles(Grid map, bool disable)
     {
         bool goDiagonal = false;
-        
+        const Grid.Direction lastDir = (Grid.Direction)4;
+
         Vector2 NextCell(Grid.Direction direction)
         {
             if (!goDiagonal)
@@ -378,18 +379,24 @@ public class EnemyTile : Tile
                 };
             }
         }
-            
-        const Grid.Direction lastDir = (Grid.Direction)4;
 
+        void RepeatLoop(ref Grid.Direction i, bool shallDoRepeat)
+        {
+            if (!shallDoRepeat)
+                return;
+                
+            if (i == lastDir - 1) //&& goDiagonal == false)
+            {
+                goDiagonal = true; //set this back to true!
+                i = 0;
+            }
+        }
+        
         if (map[Cell] is not null)
         {
             for (Grid.Direction i = 0; i < lastDir; i++)
             {
-                if (i == lastDir - 1 && goDiagonal == false)
-                {
-                    goDiagonal = true;
-                    i = 0;
-                }
+                RepeatLoop(ref i, false);
                 
                 Vector2 nextCoords = NextCell(i);
 
