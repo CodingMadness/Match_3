@@ -8,8 +8,9 @@ namespace Match_3;
 
 public static unsafe class AssetManager
 {
-    public static Texture Default;
-    public static Texture MatchBlockAtlas;
+    public static Texture BGAtlas;
+    public static Texture DefaultTileAtlas;
+    public static Texture EnemyAtlas;
     public static Font WelcomeFont;
 
     public static string GetAssetFolderName(string? nextFolder)
@@ -59,18 +60,23 @@ public static unsafe class AssetManager
 
     public static void Init()
     {
-        var buffer = GetEmbeddedResource("Fonts.font3.otf");
+        var buffer = GetEmbeddedResource("Fonts.font4.otf");
         byte* first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         WelcomeFont = LoadFontFromMemory(".otf", first, buffer.Length, 20, null, 0);
 
+        buffer = GetEmbeddedResource("Atlas.bg.png");
+        first = (byte*)Unsafe.AsPointer(ref buffer[0]);
+        Image bg = LoadImageFromMemory(".png", first, buffer.Length);
+        BGAtlas = LoadTextureFromImage(bg);
+        
         buffer = GetEmbeddedResource("Atlas.set1.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         Image ballImg = LoadImageFromMemory(".png", first, buffer.Length);
-        Default = LoadTextureFromImage(ballImg);
+        DefaultTileAtlas = LoadTextureFromImage(ballImg);
         
         buffer = GetEmbeddedResource("Atlas.set2.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         ballImg = LoadImageFromMemory(".png", first, buffer.Length);
-        MatchBlockAtlas = LoadTextureFromImage(ballImg);
+        EnemyAtlas = LoadTextureFromImage(ballImg);
     }
 }
