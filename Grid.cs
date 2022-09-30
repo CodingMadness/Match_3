@@ -3,20 +3,21 @@
 using System.Drawing;
 using System.Numerics;
 using Match_3.GameTypes;
+using Microsoft.Toolkit.HighPerformance;
 using Raylib_CsLo;
 
 namespace Match_3
 {
     public sealed class Grid
     {
-        public enum Direction
+        public enum Direction : byte
         {
             PositiveX = 0,
             NegativeX = 1,
             PositiveY = 2,
             NegativeY = 3,
         }
-
+      
         private readonly ITile?[,] _bitmap;
 
         //public double Timer { get; private set; } = 10;
@@ -35,7 +36,7 @@ namespace Match_3
         private void CreateMap()
         {
             Span<int> counts = stackalloc int[(int)Balls.Length];
-            ITile.GetAtlas() = AssetManager.Default;
+            ITile.GetAtlas() = AssetManager.DefaultTileAtlas;
 
             for (int x = 0; x < TileWidth; x++)
             {
@@ -44,7 +45,7 @@ namespace Match_3
                     Vector2 current = new(x, y);
                     float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
                     _bitmap[x, y] = Bakery.CreateTile(current, noise);
-                    var kind = _bitmap[x, y] is Tile { Shape: CandyShape c } ? c.Ball : Balls.Empty;
+                    var kind = _bitmap[x, y] is Tile { Body: CandyShape c } ? c.Ball : Balls.Empty;
                     counts[(int)kind]++;
                 }
             }
@@ -88,8 +89,8 @@ namespace Match_3
                     if (basicTile is not null && !basicTile.IsDeleted)
                     {
                         ITile.GetAtlas() = (basicTile is EnemyTile)
-                            ? AssetManager.MatchBlockAtlas
-                            : AssetManager.Default;
+                            ? AssetManager.EnemyAtlas
+                            : AssetManager.DefaultTileAtlas;
 
                         basicTile.Draw(elapsedTime);
                     }
@@ -145,10 +146,10 @@ namespace Match_3
             {
                 var tmp = direction switch
                 {
-                    Direction.NegativeX => new Vector2(input.X - 1, input.Y),
-                    Direction.PositiveX => new Vector2(input.X + 1, input.Y),
-                    Direction.NegativeY => new Vector2(input.X, input.Y - 1),
-                    Direction.PositiveY => new Vector2(input.X, input.Y + 1),
+                    Direction.NegativeX => input with { X = input.X - 1 },
+                    Direction.PositiveX => input with { X = input.X + 1 },
+                    Direction.NegativeY => input with { Y = input.Y - 1 },
+                    Direction.PositiveY => input with { Y = input.Y + 1 },
                     _ => Vector2.Zero
                 };
 
@@ -163,7 +164,7 @@ namespace Match_3
             {
                 for (Direction i = 0; i < lastDir; i++)
                 {
-                    Vector2 nextCoords = NextFrom(LastMatchTrigger.GridPos, i);
+                    Vector2 nextCoords = NextFrom(LastMatchTrigger.Cell, i);
                     var next = this[nextCoords];
 
                     while (AddWhenEqual(LastMatchTrigger, next, matches))
@@ -183,13 +184,34 @@ namespace Match_3
                     return WasAMatchInAnyDirection(this[LastMatchTrigger.CoordsB4Swap], matches);
                 }
             }
-
             if (_match3FuncCounter >= 1)
             {
                 _match3FuncCounter = 0;
             }
-
             return matches.Count == MaxDestroyableTiles;
+        }
+
+        public IEnumerable<EnemyTile> FindAllEnemies()
+        {
+            int y = 0;
+            List<EnemyTile> enemies = new((TileWidth * TileHeight) / 3);
+
+            for (int i = 0; i < TileHeight; i++)
+            {
+                for (int j = 0; j < TileWidth; j++)
+                {
+                    var current = this[new(i, j)];
+                    
+                    if (current is not null && !current.IsDeleted)
+                    {
+                        if (current is EnemyTile tile)
+                            enemies.Add(tile);
+                    }
+                    /*if (current is EnemyTile enemyTile)
+                        enemies.Add(enemyTile);*/
+                }
+            }
+            return enemies;
         }
 
         public bool TryGetClickedTile(out ITile? tile)
@@ -216,10 +238,10 @@ namespace Match_3
                 (b.State & TileState.UnMovable) == TileState.UnMovable)
                 return false;
             
-            this[a.GridPos] = b;
-            this[b.GridPos] = a;
-            (a.GridPos, b.GridPos) = (b.GridPos, a.GridPos);
-            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.GridPos, a.GridPos);
+            this[a.Cell] = b;
+            this[b.Cell] = a;
+            (a.Cell, b.Cell) = (b.Cell, a.Cell);
+            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.Cell, a.Cell);
             return true;
         }
 
