@@ -31,11 +31,12 @@ internal static class Program
     private static int matchXCounter = 1;
     private static bool enemiesStillThere = true;
     private static bool wasSwapped;
+    private static float match3RectAlpha = 1f;
     
     private static void Main() 
     {
         InitGame();
-        GameLoop();
+        MainGameLoop();
         CleanUp();
     }
     
@@ -60,19 +61,19 @@ internal static class Program
         //Console.Clear();        
     }
    
-    public static void UpdateTimer(ref GameTime timer)
+    public static void UpdateTimer()
     {
-        if (timer.ElapsedSeconds <= timer.MAX_TIMER_VALUE / 2f)
+        if (globalTimer.ElapsedSeconds <= globalTimer.MAX_TIMER_VALUE / 2f)
         {
             // timer.ElapsedSeconds -= Raylib.GetFrameTime() * 1.3f;
         }
         
-        timer.Run();
+        globalTimer.Run();
         
         //(int start, int end) = _grid.MakePlaceForTimer();
         //GetMatch3Rect(start, 0, end-start, ITile.Size, RED);
-        timerText.Text = ((int)timer.ElapsedSeconds).ToString();
-        FadeableColor color = timer.ElapsedSeconds > 0f ? BLUE : WHITE;
+        timerText.Text = ((int)globalTimer.ElapsedSeconds).ToString();
+        FadeableColor color = globalTimer.ElapsedSeconds > 0f ? BLUE : WHITE;
         timerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f};
         timerText.Begin = (GetScreenCoord() * 0.5f) with { Y = 0f };
         timerText.ScaleText();
@@ -101,7 +102,7 @@ internal static class Program
             return false;
         }
 
-        UpdateTimer(ref gameOverScreenTimer); 
+        //UpdateTimer(); 
         ClearBackground(WHITE);
         gameOverText.Src.baseSize = 2;
         gameOverText.Begin = (GetScreenCoord() * 0.5f) with{X = 0f};
@@ -110,27 +111,34 @@ internal static class Program
         gameOverText.Draw(null);
         return gameOverScreenTimer.Done();
     }
-
-    private static void DrawRectAroundEnemyTiles()
+    
+    private static void HandleMouseMovement()
     {
-        //foreach new match3, the internal "find" method always gets all new match3s 
-        //which we dont want, we only need the current match3!
-        var tmp = EnemyTile.GetRectAroundMatch3(EnemiessPerMatch);
-        
-        if (tmp.x == 0f && tmp.y == 0f)
-            DrawRectangleRec(match3Rect, ColorAlpha(RED, 1f)); //invisible
-        else
+        //we only fix the mouse point,
+        //WHEN the cursor exceeds at a certain bounding box
+        if (enemyCellPos != Vector2.Zero)
         {
-            match3Rect = tmp;
-            DrawRectangleRec(tmp, ColorAlpha(RED, 1f)); //invisible
+            bool outsideOfRect = !CheckCollisionPointRec(GetMousePosition(), match3Rect);
+            
+            if (outsideOfRect && enemiesStillThere)
+            {
+                /*the player has to get these enemies out of the way b4 he can pass!*/
+                SetMousePos(enemyCellPos);
+            }
+            else //this is a debuggin else, so we can use console.write()
+                //here to print if we really are out of box and so on
+            {
+                //Console.WriteLine("I am inside rect!");
+                //move freely!
+            }
         }
-        //Console.WriteLine(EnemiessPerMatch.Count);
-        EnemiessPerMatch.Clear();
-    }
 
-    private static void HandleMatching()
+    }
+    
+    private static void HandleMatchMaking()
     {
-        /*Enemy tile was clicked on , ofc after a matchX happened!*/
+        /*
+        //Enemy tile was clicked on , ofc after a matchX happened!
         if (firstClickedTile is EnemyTile e)
         {
             //IF it is an enemy, YOU HAVE TO delete them before u can continue
@@ -151,12 +159,15 @@ internal static class Program
                 enemiesStillThere = matchXCounter <= Level.MatchConstraint;
             }
         }
-        
+        */
+       
         if (_grid.WasAMatchInAnyDirection(secondClickedTile, MatchesOf3))
         {
             UndoBuffer.Clear();
 
-            var body = (secondClickedTile as Tile)!.Body as CandyShape;
+            if ((secondClickedTile as Tile)!.Body is not CandyShape body) 
+                return;
+            
             Console.WriteLine(body);
             
             if (GameRuleManager.TryGetMatch3Quest(body!, out int toCollect))
@@ -206,29 +217,6 @@ internal static class Program
         //Console.WriteLine(firstClickedTile);
         MatchesOf3.Clear();
     }
-
-    private static void HandleMouseMovement()
-    {
-        //we only fix the mouse point,
-        //WHEN the cursor exceeds at a certain bounding box
-        if (enemyCellPos != Vector2.Zero)
-        {
-            bool outsideOfRect = !CheckCollisionPointRec(GetMousePosition(), match3Rect);
-            
-            if (outsideOfRect && enemiesStillThere)
-            {
-                /*the player has to get these enemies out of the way b4 he can pass!*/
-                SetMousePos(enemyCellPos);
-            }
-            else //this is a debuggin else, so we can use console.write()
-                 //here to print if we really are out of box and so on
-            {
-                //Console.WriteLine("I am inside rect!");
-                //move freely!
-            }
-        }
-
-    }
     
     private static void ProcessSelectedTiles()
     {
@@ -241,9 +229,11 @@ internal static class Program
         firstClickedTile!.Selected = (firstClickedTile.State & TileState.Movable)
                                     == TileState.Movable;
         
+        
         /*No tile selected yet*/
         if (secondClickedTile is null)
         {
+            //prepare for next round, so we store first in second!
             secondClickedTile = firstClickedTile;
             return;
         }
@@ -251,6 +241,7 @@ internal static class Program
         /*Same tile selected => deselect*/
         if (firstClickedTile == secondClickedTile)
         {
+            firstClickedTile.Selected = false;
             secondClickedTile.Selected = false;
             secondClickedTile = null;
         }
@@ -263,15 +254,32 @@ internal static class Program
                 UndoBuffer.Add(firstClickedTile);
                 UndoBuffer.Add(secondClickedTile);
                 secondClickedTile.Selected = false;
-                
-                //now secondClickedTile IS firstClickedTile
-                secondClickedTile = null;
-                //now firstClickedTile IS secondClickedTile
-                firstClickedTile.Selected = false;
             }
         }
     }
 
+    private static void DrawGrid()
+    {
+        _grid.Draw(globalTimer.ElapsedSeconds);
+    }
+    
+    private static void DrawRectAroundEnemyTiles()
+    {
+        //foreach new match3, the internal "find" method always gets all new match3s 
+        //which we dont want, we only need the current match3!
+        var tmp = EnemyTile.GetRectAroundMatch3(EnemiessPerMatch);
+        
+        if (tmp.x == 0f && tmp.y == 0f)
+            DrawRectangleRec(match3Rect, ColorAlpha(RED, match3RectAlpha)); //invisible
+        else
+        {
+            match3Rect = tmp;
+            DrawRectangleRec(tmp, ColorAlpha(RED, match3RectAlpha)); //invisible
+        }
+        //Console.WriteLine(EnemiessPerMatch.Count);
+        EnemiessPerMatch.Clear();
+    }
+    
     private static void UndoLastOperation()
     {
         //UNDO...!
@@ -315,19 +323,18 @@ internal static class Program
             UndoBuffer.Clear();
         }
     }
-    
-    private static void CleanUp()
-    {
-        UnloadTexture(AssetManager.DefaultTileAtlas);
-        CloseWindow();
-    }
 
-    private static void DrawGrid()
+    private static void HardReset()
     {
-        _grid.Draw(globalTimer.ElapsedSeconds);
+        if (IsKeyDown(KeyboardKey.KEY_A))
+        {
+            _grid = new Grid(Level);
+            enemiesStillThere = false;
+            match3RectAlpha = 0f;
+        }
     }
     
-    private static void GameLoop()
+    private static void MainGameLoop()
     {
         while (!WindowShouldClose())
         {
@@ -363,22 +370,25 @@ internal static class Program
                 }
                 else
                 {
-                    //DRAW-CALLS! 
-                    UpdateTimer(ref globalTimer);
+                    //UPDATE-CALLS! 
+                    UpdateTimer();
                     HideWelcomeScreen();
                     HandleMouseMovement();
                     ProcessSelectedTiles();
-                    HandleMatching();
+                    HandleMatchMaking();
                     DrawRectAroundEnemyTiles();
                     DrawGrid();
-                    
-                    /*
-                    if (IsKeyDown(KeyboardKey.KEY_A))
-                        UndoLastOperation();*/
+                    HardReset();
                 }
                 enterGame = true;
             }
             EndDrawing();
         }
+    }
+    
+    private static void CleanUp()
+    {
+        UnloadTexture(AssetManager.DefaultTileAtlas);
+        CloseWindow();
     }
 }
