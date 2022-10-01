@@ -24,13 +24,14 @@ internal static class Program
     private static GameText welcomeText, timerText, gameOverText;
     private static int clickCount;
     private static bool backToNormal;
-    private static ITile? secondClickedTile;
+    private static ITile? secondClickedTile, firstClickedTile;
     private static Rectangle match3Rect;
 
     private static Vector2 enemyCellPos;
     private static int matchXCounter = 1;
     private static bool enemiesStillThere = true;
-
+    private static bool wasSwapped;
+    
     private static void Main() 
     {
         InitGame();
@@ -87,6 +88,11 @@ internal static class Program
         welcomeText.Begin = (GetScreenCoord() * 0.5f) with { X = 0f };
         welcomeText.Draw(null);
     }
+    
+    private static void HideWelcomeScreen()
+    {
+        ShowWelcomeScreen(true);
+    }
 
     private static bool OnGameOver(bool? gameWon)
     {
@@ -121,36 +127,10 @@ internal static class Program
         //Console.WriteLine(EnemiessPerMatch.Count);
         EnemiessPerMatch.Clear();
     }
-    
-    private static void ProcessSelectedTiles()
-    {
-        //we only fix the mouse point,
-        //WHEN the cursor exceeds at a certain bounding box
-        if (enemyCellPos != Vector2.Zero)
-        {
-            bool outsideOfRect = !CheckCollisionPointRec(GetMousePosition(), match3Rect);
-            
-            if (outsideOfRect && enemiesStillThere)
-            {
-                /*the player has to get these enemies out of the way b4 he can pass!*/
-                SetMousePos(enemyCellPos);
-            }
-            else
-            {
-                //Console.WriteLine("I am inside rect!");
-                //move freely!
-            }
-        }
-      
-        backToNormal = false; 
-        
-        //Here we check mouse input AND if the clickedTile is actually an enemy, then the clicks correlates to the 
-        if (_grid.NothingClicked(out var firstClickedTile))
-            return;
 
-        firstClickedTile.Selected = (firstClickedTile.State & TileState.Movable)
-                                    == TileState.Movable;
-        
+    private static void HandleMatching()
+    {
+        /*Enemy tile was clicked on , ofc after a matchX happened!*/
         if (firstClickedTile is EnemyTile e)
         {
             //IF it is an enemy, YOU HAVE TO delete them before u can continue
@@ -168,56 +148,25 @@ internal static class Program
                     }
                     Console.WriteLine(matchXCounter++);
                 }
-
                 enemiesStillThere = matchXCounter <= Level.MatchConstraint;
             }
         }
-        
-        /*No tile selected yet*/
-        if (secondClickedTile is null)
-        {
-            secondClickedTile = firstClickedTile;
-            return;
-        }
-
-        /*Same tile selected => deselect*/
-        if (firstClickedTile == secondClickedTile)
-        {
-            firstClickedTile.Selected = false;
-            secondClickedTile.Selected = false;
-            secondClickedTile = null;
-            return;
-        }
-       
-        /*Different tile selected ==> swap*/
-        else
-        {
-            if (firstClickedTile.IsDeleted || secondClickedTile.IsDeleted)
-                return;
-            
-            _grid.Swap(firstClickedTile, secondClickedTile);
-            UndoBuffer.Add(firstClickedTile);
-            UndoBuffer.Add(secondClickedTile);
-            secondClickedTile.Selected = false;
-        }
-
-        var candy = secondClickedTile is Tile d ? d.Body as CandyShape : null;
-
-        if (candy is null)
-            return;
         
         if (_grid.WasAMatchInAnyDirection(secondClickedTile, MatchesOf3))
         {
             UndoBuffer.Clear();
 
-            if (GameRuleManager.TryGetMatch3Quest(candy, out int toCollect))
+            var body = (secondClickedTile as Tile)!.Body as CandyShape;
+            Console.WriteLine(body);
+            
+            if (GameRuleManager.TryGetMatch3Quest(body!, out int toCollect))
             {
                 //tileCounter += 1;
                 //Console.WriteLine($"You already got {tileCounter} match of Balltype: {candy.Ball}");
                 
                 if (++tileCounter == toCollect)
                 {
-                    Console.WriteLine($"Good job, you got your {tileCounter} match3! by {candy.Ball}");
+                    Console.WriteLine($"Good job, you got your {tileCounter} match3! by {body.Ball}");
                     tileCounter = 0;
                     missedSwapTolerance = 0;
                 }
@@ -227,8 +176,6 @@ internal static class Program
             //GameTime toggleTimer = GameTime.GetTimer(500900);
             //here begins the entire swapping from default tile to enemy tile
             //and its affects to other surrounding tiles
-            bool colorOnlyThe1One = true;
-            
             foreach (ITile? match in MatchesOf3)
             {
                 if (match is not null && _grid[match.Cell] is not null)
@@ -258,8 +205,71 @@ internal static class Program
         //}
         //Console.WriteLine(firstClickedTile);
         MatchesOf3.Clear();
-        secondClickedTile = null;
-        firstClickedTile.Selected = false;
+    }
+
+    private static void HandleMouseMovement()
+    {
+        //we only fix the mouse point,
+        //WHEN the cursor exceeds at a certain bounding box
+        if (enemyCellPos != Vector2.Zero)
+        {
+            bool outsideOfRect = !CheckCollisionPointRec(GetMousePosition(), match3Rect);
+            
+            if (outsideOfRect && enemiesStillThere)
+            {
+                /*the player has to get these enemies out of the way b4 he can pass!*/
+                SetMousePos(enemyCellPos);
+            }
+            else //this is a debuggin else, so we can use console.write()
+                 //here to print if we really are out of box and so on
+            {
+                //Console.WriteLine("I am inside rect!");
+                //move freely!
+            }
+        }
+
+    }
+    
+    private static void ProcessSelectedTiles()
+    {
+        backToNormal = false; 
+        
+        //Here we check mouse input AND if the clickedTile is actually an enemy, then the clicks correlates to the 
+        if (_grid.NothingClicked(out firstClickedTile))
+            return;
+
+        firstClickedTile!.Selected = (firstClickedTile.State & TileState.Movable)
+                                    == TileState.Movable;
+        
+        /*No tile selected yet*/
+        if (secondClickedTile is null)
+        {
+            secondClickedTile = firstClickedTile;
+            return;
+        }
+
+        /*Same tile selected => deselect*/
+        if (firstClickedTile == secondClickedTile)
+        {
+            secondClickedTile.Selected = false;
+            secondClickedTile = null;
+        }
+       
+        /*Different tile selected ==> swap*/
+        else
+        {
+            if (_grid.Swap(firstClickedTile, secondClickedTile))
+            {
+                UndoBuffer.Add(firstClickedTile);
+                UndoBuffer.Add(secondClickedTile);
+                secondClickedTile.Selected = false;
+                
+                //now secondClickedTile IS firstClickedTile
+                secondClickedTile = null;
+                //now firstClickedTile IS secondClickedTile
+                firstClickedTile.Selected = false;
+            }
+        }
     }
 
     private static void UndoLastOperation()
@@ -339,7 +349,7 @@ internal static class Program
                     if (OnGameOver(false))
                     {
                         //leave Gameloop and hence end the game
-                        //return;
+                        return;
                     }
                 }
                 else if (wasGameWonB4Timeout == true)
@@ -355,10 +365,13 @@ internal static class Program
                 {
                     //DRAW-CALLS! 
                     UpdateTimer(ref globalTimer);
-                    ShowWelcomeScreen(true);
+                    HideWelcomeScreen();
+                    HandleMouseMovement();
                     ProcessSelectedTiles();
+                    HandleMatching();
                     DrawRectAroundEnemyTiles();
                     DrawGrid();
+                    
                     /*
                     if (IsKeyDown(KeyboardKey.KEY_A))
                         UndoLastOperation();*/
