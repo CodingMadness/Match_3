@@ -255,7 +255,7 @@ public class Tile : ITile
             {
                 Body.Color.CurrentAlpha = 1f;
                 Body.Color.TargetAlpha = 0.35f;
-                Body.Color.AlphaSpeed = 0.55f;
+                Body.Color.AlphaSpeed = 0.75f;
             }
             else
             {

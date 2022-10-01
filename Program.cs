@@ -25,7 +25,7 @@ internal static class Program
     private static GameText welcomeText, timerText, gameOverText;
     private static int clickCount;
     private static bool backToNormal;
-    private static ITile? secondClicked, firstClickedTile;
+    private static ITile? secondClicked;
     private static Rectangle match3Rect;
 
     private static Vector2 enemyCellPos;
@@ -113,7 +113,7 @@ internal static class Program
         ShowWelcomeScreen(true);
     }
     
-    private static void HandleMouseMovement()
+    private static void HandleMouseEvents()
     {
         //we only fix the mouse point,
         //WHEN the cursor exceeds at a certain bounding box
@@ -129,6 +129,8 @@ internal static class Program
             else //this is a debuggin else, so we can use console.write()
                 //here to print if we really are out of box and so on
             {
+                if (!enemiesStillThere)
+                    match3RectAlpha = 0f;
                 //Console.WriteLine("I am inside rect!");
                 //move freely!
             }
@@ -137,78 +139,16 @@ internal static class Program
     }
     
     private static void ProcessSelectedTiles()
-    {
-        backToNormal = false; 
-        
-        //Here we check mouse input AND if the clickedTile is actually an enemy, then the clicks correlates to the 
-        if (_grid.NothingClicked(out var tmpFirst))
-            return;
-
-        //firstClickedTile!.Selected = (firstClickedTile.State & TileState.Movable) == TileState.Movable;
-        Console.WriteLine($"{tmpFirst.Cell} was clicked!");
-
-        /*No tile selected yet*/
-        if (secondClicked is null)
+    {   
+        static void CheckForMatches(Tile? secondClicked) 
         {
-            //prepare for next round, so we store first in second!
-            secondClicked = tmpFirst;
-            secondClicked!.Selected = false;
-            return;
-        }
-
-        /*Same tile selected => deselect*/
-        if (tmpFirst == secondClicked)
-        {
-            //firstClickedTile.Selected = false;
-            secondClicked.Selected = false;
-            secondClicked = null;
-        }
-        /*Different tile selected ==> swap*/
-        else
-        {
-            tmpFirst.Selected = true;
-            if (_grid.Swap(tmpFirst, secondClicked))
-            {
-                //both "first" are in this case the second, due to the swap!
-                //firstClickedTile = tmpFirst;
-            }
-            secondClicked.Selected = false;
-        }
-    }
-    
-    private static void HandleMatchMaking() 
-    {
-            /*
-            //Enemy tile was clicked on , ofc after a matchX happened!
-            if (firstClickedTile is EnemyTile e)
-            {
-                //IF it is an enemy, YOU HAVE TO delete them before u can continue
-                if (GameRuleManager.TryGetEnemyQuest(e.Body as CandyShape, out int clicksNeeded))
-                {
-                    if (clicksNeeded == ++clickCount && !e.IsDeleted)
-                    {
-                        e.IsDeleted = true;
-                        clickCount = 0;
-    
-                        if (!backToNormal)
-                        {
-                            e.BlockSurroundingTiles(_grid, backToNormal);
-                            backToNormal = true;
-                        }
-                        Console.WriteLine(matchXCounter++);
-                    }
-                    enemiesStillThere = matchXCounter <= Level.MatchConstraint;
-                }
-            }
-            */
-            if (firstClickedTile is null)
-                return;
+            Console.WriteLine("am handling right now matches...");
             
             if (_grid.WasAMatchInAnyDirection(secondClicked, MatchesOf3))
             {
                 UndoBuffer.Clear();
     
-                if ((secondClicked as Tile)!.Body is not CandyShape body) 
+                if (secondClicked!.Body is not CandyShape body) 
                     return;
                 
                 Console.WriteLine(body);
@@ -244,8 +184,6 @@ internal static class Program
                     }
                 }
             }
-            secondClicked = null;
-            firstClickedTile.Selected = false;
             //if (++missedSwapTolerance == Level.MaxAllowedSpawns)
             //{
             //    Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
@@ -262,6 +200,75 @@ internal static class Program
             //Console.WriteLine(firstClickedTile);
             MatchesOf3.Clear();
         }
+    
+        backToNormal = false; 
+        
+        //Here we check mouse input AND if the clickedTile is actually an enemy, then the clicks correlates to the 
+        if (_grid.NothingClicked(out var tmpFirst))
+            return;
+
+        //tmpFirst!.Selected = (tmpFirst.State & TileState.Movable) == TileState.Movable;
+        Console.WriteLine($"{tmpFirst.Cell} was clicked!");
+
+        /*No tile selected yet*/
+        if (secondClicked is null)
+        {
+            //prepare for next round, so we store first in second!
+            secondClicked = tmpFirst;
+            secondClicked.Selected = false;
+            return;
+        }
+
+        /*Same tile selected => deselect*/
+        if (tmpFirst == secondClicked)
+        {
+            //firstClickedTile.Selected = false;
+            Console.Clear();
+            Console.WriteLine($"{tmpFirst.Cell} was clicked AGAIN!");
+            secondClicked = null;
+        }
+        /*Different tile selected ==> swap*/
+        else
+        {
+            secondClicked.Selected = true;
+            
+            if (_grid.Swap(tmpFirst, secondClicked))
+            {
+                //Console.WriteLine("first and second were swapped successfully!");
+                //both "first" are in this case the second, due to the swap!
+                CheckForMatches(secondClicked as Tile);
+            }
+            secondClicked = null;
+        }
+    }
+
+    private static void HandleClicksOnEnemies()
+    {
+        if (_grid.NothingClicked(out var enemyTile))
+            return;
+        
+        //Enemy tile was clicked on , ofc after a matchX happened!
+        if (enemyTile is EnemyTile e)
+        {
+            //IF it is an enemy, YOU HAVE TO delete them before u can continue
+            if (GameRuleManager.TryGetEnemyQuest(e.Body as CandyShape, out int clicksNeeded))
+            {
+                if (clicksNeeded == ++clickCount && !e.IsDeleted)
+                {
+                    e.IsDeleted = true;
+                    clickCount = 0;
+    
+                    if (!backToNormal)
+                    {
+                        e.BlockSurroundingTiles(_grid, backToNormal);
+                        backToNormal = true;
+                    }
+                    Console.WriteLine(matchXCounter++);
+                }
+                enemiesStillThere = matchXCounter <= Level.MatchConstraint;
+            }
+        }
+    }
     
     private static void DrawRectAroundEnemyTiles()
     {
@@ -292,7 +299,6 @@ internal static class Program
             _grid = new Grid(Level);
             enemiesStillThere = false;
             match3RectAlpha = 0f;
-            firstClickedTile = null;
             secondClicked = null;
             Console.Clear();
         }
@@ -337,9 +343,9 @@ internal static class Program
                     //UPDATE-CALLS! 
                     UpdateTimer();
                     HideWelcomeScreen();
-                    HandleMouseMovement();
+                    HandleMouseEvents();
                     ProcessSelectedTiles();
-                    HandleMatchMaking();
+                    HandleClicksOnEnemies();
                     DrawRectAroundEnemyTiles();
                     DrawGrid();
                     HardReset();
