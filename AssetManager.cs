@@ -1,6 +1,8 @@
 using System;
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
 
@@ -11,7 +13,12 @@ public static unsafe class AssetManager
     public static Texture BGAtlas;
     public static Texture DefaultTileAtlas;
     public static Texture EnemyAtlas;
-    public static Font WelcomeFont;
+    
+    private static Font welcomeFont = GetFontDefault();
+    public static readonly GameText WelcomeText = new(welcomeFont, "Welcome young man!!", 7f);
+    public static readonly GameText GameOverText = new( welcomeFont, "!!", 7f);
+    public static readonly GameText TimerText = new( welcomeFont with { baseSize = 512 * 2 }, "Welcome young man!!", 7f);
+    public static readonly GameText LogText = new(welcomeFont, "", 20f); 
 
     public static string GetAssetFolderName(string? nextFolder)
     {
@@ -58,11 +65,11 @@ public static unsafe class AssetManager
         return buffer;
     }
 
-    public static void Init()
+    public static void LoadAssets()
     {
         var buffer = GetEmbeddedResource("Fonts.font4.otf");
         byte* first = (byte*)Unsafe.AsPointer(ref buffer[0]);
-        WelcomeFont = LoadFontFromMemory(".otf", first, buffer.Length, 20, null, 0);
+        welcomeFont = LoadFontFromMemory(".otf", first, buffer.Length, 20, null, 0);
 
         buffer = GetEmbeddedResource("Atlas.bg.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
