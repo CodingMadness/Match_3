@@ -47,6 +47,19 @@ public static class Utils
     }
 
     public static Vector2 GetScreenCoord() => new(GetScreenWidth(), GetScreenHeight());
+
+    public static Rectangle Union(this Rectangle rayRect, Rectangle otherRayRect)
+    {
+        var rect1 = new System.Drawing.Rectangle((int)rayRect.x, (int)rayRect.y, (int)rayRect.width, (int)rayRect.height);
+        var rect2 = new System.Drawing.Rectangle((int)otherRayRect.x, (int)otherRayRect.y, (int)otherRayRect.width, (int)otherRayRect.height);
+        var union = System.Drawing.RectangleF.Union(rect1, rect2);
+        return new Rectangle(union.X, union.Y, union.Width, union.Height);
+    }
+
+    public static void SetMousePos(Vector2 position, int scale = ITile.Size)
+    {
+        SetMousePosition((int)position.X * scale, (int)position.Y * scale);
+    }
     
     public static unsafe nint GetAddrOfObject<ObjectT>(this ObjectT Object) where ObjectT: class
     {
@@ -55,19 +68,17 @@ public static class Utils
 
     public static Rectangle GetMatch3Rect(Vector2 begin, int width, int height)
     {
-        return new((int)begin.X, (int)begin.Y, width, height);
+        return new((int)begin.X * ITile.Size,
+            (int)begin.Y * ITile.Size,
+            width * ITile.Size,
+            height* ITile.Size);
     }
 
-    public static void SetMousePos(Vector2 position)
-    {
-        SetMousePosition((int)position.X * ITile.Size, (int)position.Y* ITile.Size);
-    }
     
     public static bool IsRowBased<T>(this ISet<T?> items) where T: ITile
     {
         T? cmpr = items.ElementAt(0);
-
-        var isColumnBased = items.Count(x => x.Cell.Y == cmpr.Cell.Y) == items.Count;
+        var isColumnBased = items.Count(x => x.Cell.Y == cmpr!.Cell.Y) == items.Count;
         return isColumnBased;
     }
 }
