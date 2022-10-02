@@ -75,10 +75,10 @@ public static class Utils
     }
 
     
-    public static bool IsRowBased<T>(this ISet<T?> items) where T: ITile
+    public static bool IsRowBased<T>(this ISet<T> items) where T: ITile
     {
-        T? cmpr = items.ElementAt(0);
-        var isColumnBased = items.Count(x => x.Cell.Y == cmpr!.Cell.Y) == items.Count;
+        T cmpr = items.ElementAt(0);
+        var isColumnBased = items.Count(x => (int)x.Cell.Y == (int)cmpr.Cell.Y) == items.Count;
         return isColumnBased;
     }
 }

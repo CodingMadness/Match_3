@@ -126,9 +126,6 @@ public static class Bakery
         {
             Cell = matchTile.Cell,
             CoordsB4Swap = matchTile.CoordsB4Swap,
-            State = State.Clean,
-            Options = Options.UnMovable | Options.UnShapeable,
-            
             Body = new TileShape
             {
                 Form = ShapeKind.Trapez,
@@ -136,6 +133,8 @@ public static class Bakery
                 Ball = matchTile.Body is TileShape c0 ? c0.Ball : Type.Empty,
                 Layer = matchTile.Body is TileShape c1 ? c1.Layer : (Coat)(-1)
             },
+            State = State.Clean,
+            Options = Options.UnMovable | Options.UnShapeable,
         };
 
         blockTile.Body.Color.AlphaSpeed = 0f;
