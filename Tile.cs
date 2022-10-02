@@ -342,12 +342,13 @@ public class Tile : ITile
         DrawTextureRec(ITile.GetAtlas(), DestRect, (this as ITile).Begin, Body.Color.Apply());
         DrawCoordOnTop();
     }
-    public void Disable()
+    public void Disable(bool shallDelete)
     {
         Body.ChangeColor(BLACK, 0f, 1f);
         Options = Options.UnMovable | Options.UnShapeable;
-        State = State.Disabled;
+        State = !shallDelete ? State.Disabled : State.Deleted;
     }
+    
     public void Enable()
     {
         //draw from whatever was the 1. sprite-atlas 
@@ -355,6 +356,7 @@ public class Tile : ITile
         Options = Options.Movable | Options.Shapeable;
         State = State.Clean;
     }
+   
     public bool Equals(Tile other)
     {
         return Body switch
@@ -446,7 +448,7 @@ public class EnemyTile : Tile
                     var t = map[nextCoords] as Tile;
 
                     if (disable)
-                        t!.Disable();
+                        t!.Disable(false);
                     
                     else
                         t!.Enable();
