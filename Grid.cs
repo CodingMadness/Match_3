@@ -3,6 +3,7 @@
 using System.Numerics;
 using Match_3.GameTypes;
 using Raylib_CsLo;
+using Rectangle = System.Drawing.Rectangle;
 
 namespace Match_3
 {
@@ -69,7 +70,7 @@ namespace Match_3
             TileHeight = current.TilemapHeight;
             _bitmap = new ITile[TileWidth, TileHeight];
             _gridTimer = GameTime.GetTimer(5 * 60);
-            NotifyOnGridCreationDone += GameRuleManager.SetCountPerBall;
+            NotifyOnGridCreationDone += GameRuleManager.SetCountPerType;
             CreateMap();
         }
 
@@ -220,17 +221,14 @@ namespace Match_3
             return true;
         }
 
-        public void Delete(Vector2 coord)
+        public void Delete(MatchX match)
         {
-            var tile = this[coord];
-
-            if (tile is Tile mapTile)
+            Vector2 begin = match.Begin;
+            
+            for (int i = 0; i < match.Count; i++)
             {
-                //we mark the tile as kind of "deleted"
-                //by making it invisible and disallowing any
-                //movement to be happening
-                mapTile.State |= State.Deleted;
-                mapTile.Disable();
+                (this[begin] as Tile)!.Disable(true);
+                begin = match.MapRect.Move(match.IsRowBased).ToWorldCoord();
             }
         }
     }
