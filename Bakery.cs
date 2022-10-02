@@ -118,7 +118,7 @@ public static class Bakery
         return tile;
     }
 
-    public static EnemyTile Transform(Tile matchTile)
+    public static EnemyTile MakeEnemy(Tile matchTile)
     {
         EnemyTile blockTile = new()
         {

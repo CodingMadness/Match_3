@@ -1,4 +1,5 @@
 using System.Numerics;
+using Match_3.GameTypes;
 using Raylib_CsLo;
 
 namespace Match_3;
@@ -7,6 +8,7 @@ public class MatchX
 {
     protected readonly ISet<Tile> Matches;
     public bool IsRowBased => Matches.IsRowBased();
+   
     public int Count => Matches.Count;
     public TileShape? Match3Body { get; private set; }
     public Rectangle MapRect { get; protected set; }
@@ -45,7 +47,7 @@ public class MatchX
 
         foreach (var match in Matches)
         {
-            map[match.Cell] = Bakery.Transform(match!);
+            map[match.Cell] = Bakery.MakeEnemy(match!);
             list.Add((map[match.Cell] as EnemyTile)!);
         }
         return list;

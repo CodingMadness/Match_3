@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Match_3.GameTypes;
 using Raylib_CsLo;
+
 using static Match_3.AssetManager;
 using static Match_3.Utils;
 using static Raylib_CsLo.Raylib;
@@ -18,14 +19,12 @@ internal static class Program
     private static EnemyMatches? enemyMatches;
     private static Tile? secondClicked;
     
-   
     private static bool? wasGameWonB4Timeout;
     private static bool enterGame;
     private static int matchCounter;
     private static int missedSwapTolerance;
     private static int clickCount;
     private static bool backToNormal;
-    private static int matchXCounter = 1;
     private static bool enemiesStillThere = true;
     private static bool wasSwapped;
     private static float match3RectAlpha = 1f;
@@ -90,7 +89,7 @@ internal static class Program
             return;
 
         //tmpFirst!.Selected = (tmpFirst.State & State.Movable) == State.Movable;
-        Console.WriteLine($"{tmpFirst.Cell} was clicked!");
+        Console.WriteLine($"{tmpFirst!.Cell} was clicked!");
 
         /*No tile selected yet*/
         if (secondClicked is null)
@@ -146,13 +145,13 @@ internal static class Program
         }
         
         bool ShallTransformMatchesToEnemyMatches() => Randomizer.NextSingle() <= 0.5f;
-            
-        if (_grid.WasAMatchInAnyDirection(secondClicked!, matchesOf3) && !shallCreateEnemies)
+
+        if (_grid.WasAMatchInAnyDirection(secondClicked!, matchesOf3!) && !shallCreateEnemies)
         {
             if (secondClicked!.Body is not TileShape body)
                 return;
             
-            _grid.Delete(matchesOf3);
+            _grid.Delete(matchesOf3!);
             
             if (CheckIfMatchQuestWasMet(body))
             {
@@ -173,7 +172,7 @@ internal static class Program
         //reset values to default to repeat the code for the next input!
         wasSwapped = false;
         secondClicked = null;
-        matchesOf3.Empty();
+        matchesOf3!.Empty();
     }
     
     private static void HandleEnemies()
@@ -184,10 +183,12 @@ internal static class Program
         //Enemy tile was clicked on , ofc after a matchX happened!
         if (enemyTile is EnemyTile e)
         {
+            //INVOKE MatchX.NotifyMeWhenMatchTileWasClicked//
+            
             //IF it is an enemy, YOU HAVE TO delete them before u can continue
             if (GameRuleManager.TryGetEnemyQuest((TileShape)e.Body, out int clicksNeeded))
             {
-                if (clicksNeeded == ++clickCount /*&& e.State == State.Clean*/)
+                if (clicksNeeded == ++clickCount)
                 {
                     e.State = State.Deleted;
                     clickCount = 0;
@@ -197,9 +198,9 @@ internal static class Program
                         e.BlockSurroundingTiles(_grid, false);
                         backToNormal = true;
                     }
-                    Console.WriteLine(matchXCounter++);
+                    Console.WriteLine(matchCounter++);
                 }
-                enemiesStillThere = matchXCounter <= Level.MatchConstraint;
+                enemiesStillThere = matchCounter <= Level.MatchConstraint;
             }
         }
     }
@@ -209,7 +210,7 @@ internal static class Program
         if (shallCreateEnemies)
         {
             //we now create here the enemies
-            enemyMatches = enemyMatches?.Count == 0 ? matchesOf3.Transform(_grid) : enemyMatches;
+            enemyMatches = enemyMatches?.Count == 0 ? matchesOf3?.Transform(_grid) : enemyMatches;
         }
         else
         {
