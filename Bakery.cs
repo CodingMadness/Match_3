@@ -46,63 +46,63 @@ public static class Bakery
             Type.Green => new()
             {
                 Ball = Type.Green,
-                FrameLocation = new Vector2(0f, 0f) * ITile.Size, 
+                AtlasLocation = new Vector2(0f, 0f) * ITile.Size, 
                 Form = ShapeKind.Circle, 
                 Layer = Coat.A
             },
             Type.Purple => new()
             {
                 Ball = Type.Purple,
-                FrameLocation = new Vector2(1f, 0f) * ITile.Size,
+                AtlasLocation = new Vector2(1f, 0f) * ITile.Size,
                 Form = ShapeKind.Circle,
                 Layer = Coat.B
             },
             Type.Orange => new()
             {
                 Ball = Type.Orange,
-                FrameLocation = new Vector2(2f, 0f) * ITile.Size,
+                AtlasLocation = new Vector2(2f, 0f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.C
             },
             Type.Yellow => new()
             {
                 Ball = Type.Yellow,
-                FrameLocation = new Vector2(3f, 0f) * ITile.Size,
+                AtlasLocation = new Vector2(3f, 0f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.D
             },
             Type.Red => new()
             {
                 Ball = Type.Red,
-                FrameLocation = new Vector2(0f, 1f) * ITile.Size,
+                AtlasLocation = new Vector2(0f, 1f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.E
             },
             Type.Blue => new()
             {
                 Ball = Type.Blue,
-                FrameLocation = new Vector2(1f, 1f) * ITile.Size,
+                AtlasLocation = new Vector2(1f, 1f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.F
             },
             Type.Brown => new()
             {
                 Ball = Type.Brown,
-                FrameLocation = new Vector2(2f, 1f) * ITile.Size,
+                AtlasLocation = new Vector2(2f, 1f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.G
             },
             Type.Violet => new()
             {
                 Ball = Type.Violet,
-                FrameLocation = new Vector2(3f, 1f) * ITile.Size, 
+                AtlasLocation = new Vector2(3f, 1f) * ITile.Size, 
                 Form = ShapeKind.Circle, 
                 Layer = Coat.H
             },
          
             //DEFAULTS.......
-            Type.Length => new() { FrameLocation = -Vector2.One },
-            Type.Empty => new() { FrameLocation = -Vector2.One },
+            Type.Length => new() { AtlasLocation = -Vector2.One },
+            Type.Empty => new() { AtlasLocation = -Vector2.One },
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -125,11 +125,11 @@ public static class Bakery
         EnemyTile blockTile = new()
         {
             Cell = matchTile.Cell,
-            CoordsB4Swap = matchTile.CoordsB4Swap,
+            CoordsB4Swap = matchTile.Cell,
             Body = new TileShape
             {
                 Form = ShapeKind.Trapez,
-                FrameLocation = matchTile.Body.FrameLocation,
+                AtlasLocation = matchTile.Body.AtlasLocation,
                 Ball = matchTile.Body is TileShape c0 ? c0.Ball : Type.Empty,
                 Layer = matchTile.Body is TileShape c1 ? c1.Layer : (Coat)(-1)
             },

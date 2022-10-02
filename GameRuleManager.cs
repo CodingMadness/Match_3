@@ -34,7 +34,7 @@ public static class GameRuleManager
                 Vector2 pos = State.Center with {X = State.Center.X * 1.5f, Y = 4 * ITile.ScaledSize };
                 GameText logText = new(AssetManager.WelcomeFont, txt, pos, 20f, Raylib.RED);
                 //Raylib.DrawText(string.Empty, pos.X, pos.Y *= 1.2f, logText.ScaledSize, Raylib.RED);
-                Program.Draw(logText.AlignText());
+                Program.DrawGrid(logText.AlignText());
                 */
                 break;
             }
