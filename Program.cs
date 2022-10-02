@@ -20,7 +20,7 @@ internal static class Program
     //private static readonly ISet<ITile?> UndoBuffer = new HashSet<ITile?>(5);
     private static bool? wasGameWonB4Timeout;
     private static bool enterGame;
-    private static int tileCounter;
+    private static int matchCounter = 0;
     private static int missedSwapTolerance;
     private static GameText welcomeText, timerText, gameOverText;
     private static int clickCount;
@@ -173,7 +173,6 @@ internal static class Program
                 //ComputeMatches((secondClicked as Tile)!);
                 wasSwapped = true;
             }
-            secondClicked = null;
         }
     }
     
@@ -184,29 +183,36 @@ internal static class Program
         
         bool CheckIfMatchQuestWasMet(TileShape body)
         {
-            if (GameRuleManager.TryGetMatch3Quest(body, out int toCollect))
+            if (GameRuleManager.TryGetMatch3Quest(body, out int matchesNeeded))
             {
-                tileCounter += 1;
-
-                if (++tileCounter == toCollect)
+                if (++matchCounter == matchesNeeded)
                 {
-                    tileCounter = 0;
+                    matchCounter = 0;
                     missedSwapTolerance = 0;
+                    GameRuleManager.RemoveSubQuest(body);
+                    return true;
                 }
             }
-            return tileCounter == toCollect;
+            return false;
         }
-          
+
+        void DeleteMatchFromGrid()
+        {
+            
+        }
+        
         bool ShallTransformMatchesToEnemyMatches() => Randomizer.NextSingle() <= 0.5f;
             
         if (_grid.WasAMatchInAnyDirection(secondClicked!, MatchesOf3) && !ShallCreateEnemies)
         {
             if ((secondClicked as Tile)!.Body is not TileShape body)
                 return;
-                
+            
+            _grid.Delete();
+            
             if (CheckIfMatchQuestWasMet(body))
             {
-                Console.WriteLine($"Good job, you got the {tileCounter} match3! for {body.Ball} Balls");
+                Console.WriteLine($"Good job, you got the {matchCounter} match3! for {body.Ball} Balls");
                 wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
             }
 
@@ -216,9 +222,13 @@ internal static class Program
         //if (++missedSwapTolerance == Level.MaxAllowedSpawns)
         //{
         //    Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
-        //    GameRuleManager.ChangeSubQuest(candy, tileCounter + 3);
+        //    GameRuleManager.ChangeSubQuest(candy, matchCounter + 3);
         //    missedSwapTolerance = 0;
         //}
+        
+        //reset values to default to repeat the code for the next input!
+        wasSwapped = false;
+        secondClicked = null;
         MatchesOf3.Empty();
     }
     

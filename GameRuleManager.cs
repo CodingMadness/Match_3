@@ -40,13 +40,13 @@ public static class GameRuleManager
             }
         }
     } 
-    public static bool TryGetMatch3Quest(TileShape shape, out int number)
+    public static bool TryGetMatch3Quest(TileShape shape, out int matchesNeeded)
     {
-        return State.QuestPerLevel.Quest.TryGetValue(shape.Ball, out number);
+        return State.QuestPerLevel.Quest.TryGetValue(shape.Ball, out matchesNeeded);
     }
     public static void RemoveSubQuest(TileShape shape) => State.QuestPerLevel.Quest.Remove(shape.Ball);
     public static bool IsQuestDone() => State.QuestPerLevel.Quest.Count == 0;
-    public static void SetCountPerBall(int[] totalCountPerBall)
+    public static void SetCountPerType(int[] totalCountPerBall)
     {
         static int GetRndMatch3Quest()
         {
@@ -65,12 +65,12 @@ public static class GameRuleManager
         {            
             for (int currentBall = 0; currentBall < (int)Type.Length; currentBall++)
             {
-                var rndMatch3Quest = GetRndMatch3Quest();
+                var matchesNeeded = GetRndMatch3Quest();
 
-                if (rndMatch3Quest < countsPerBall[currentBall])
-                    State.QuestPerLevel.Quest.TryAdd((Type)currentBall, rndMatch3Quest);
+                if (matchesNeeded < countsPerBall[currentBall])
+                    State.QuestPerLevel.Quest.TryAdd((Type)currentBall, matchesNeeded);
                 else
-                    State.QuestPerLevel.Quest.TryAdd((Type)currentBall, countsPerBall[currentBall] - rndMatch3Quest);
+                    State.QuestPerLevel.Quest.TryAdd((Type)currentBall, countsPerBall[currentBall] - matchesNeeded);
             }
         }
         
