@@ -29,7 +29,10 @@ public class MatchX
     {
         get
         {
-            var tmp = MapRect with { width = MapRect.width / Count, height = MapRect.width / Count };
+            if (MapRect.x == 0 && MapRect.y == 0)
+                return Vector2.Zero;
+            
+            var tmp = MapRect with { x = MapRect.width / Count, y = MapRect.width / Count };
             return new Vector2(tmp.x, tmp.y);
         }
     }
@@ -53,6 +56,7 @@ public class MatchX
 public class EnemyMatches : MatchX
 {
     private readonly Grid _map;
+    private Rectangle _border;
 
     public EnemyMatches(int matchCount, Grid map) : base(matchCount)
     {
@@ -68,14 +72,10 @@ public class EnemyMatches : MatchX
             enemy2.BlockSurroundingTiles(_map, true);
         }
     }
-    /*public void Remove(Tile tile)
-    {
-        Matches.Remove(tile);
-    }*/
-    public void BuildBorder()
+    private Rectangle BuildBorder()
     {
         if (Matches.Count == 0)
-            return;
+            return default;
 
         Vector2 begin;
         int match3RectWidth = 0;
@@ -106,6 +106,16 @@ public class EnemyMatches : MatchX
             match3RectWidth = Matches.Count;
             match3RectHeight = Matches.Count+2;
         }
-        MapRect = Utils.GetMatch3Rect(begin, match3RectWidth, match3RectHeight);
+        return Utils.GetMatch3Rect(begin, match3RectWidth, match3RectHeight);
+    }
+    public Rectangle Border
+    {
+        get
+        {
+            if (_border.x == 0 && _border.y == 0)
+                _border = BuildBorder();
+
+            return _border;
+        }
     }
 }

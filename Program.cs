@@ -11,31 +11,25 @@ namespace Match_3;
 internal static class Program
 {
     private static Level Level;
-    private static GameTime globalTimer, gameOverScreenTimer;
-
+    private static GameTime globalTimer;
     private static Grid _grid;
     private static readonly MatchX MatchesOf3 = new(3);
-    private static EnemyMatches enemyMatches = new(MatchesOf3.Count, _grid);
+    private static EnemyMatches? enemyMatches;
+    private static ITile? secondClicked;
+    private static GameText welcomeText, timerText, gameOverText;
    
-    //private static readonly ISet<ITile?> UndoBuffer = new HashSet<ITile?>(5);
     private static bool? wasGameWonB4Timeout;
     private static bool enterGame;
-    private static int matchCounter = 0;
+    private static int matchCounter;
     private static int missedSwapTolerance;
-    private static GameText welcomeText, timerText, gameOverText;
     private static int clickCount;
     private static bool backToNormal;
-    private static ITile? secondClicked;
-    private static Rectangle match3Rect;
 
-    private static Vector2 enemyCellPos;
     private static int matchXCounter = 1;
     private static bool enemiesStillThere = true;
     private static bool wasSwapped;
     private static float match3RectAlpha = 1f;
-
-    private static MatchX currentMatch;
-    private static bool ShallCreateEnemies;
+    private static bool shallCreateEnemies;
 
     private static void ShowWelcomeScreen(bool hideWelcome)
     {
@@ -61,7 +55,7 @@ internal static class Program
         gameOverText.Text = gameWon.Value ? "YOU WON!" : "YOU LOST";
         gameOverText.ScaleText();
         gameOverText.Draw(null);
-        return gameOverScreenTimer.Done();
+        return globalTimer.Done();
     }
 
     private static void Main()
@@ -76,10 +70,9 @@ internal static class Program
         GameRuleManager.InitNewLevel();
         Level = GameRuleManager.State;
         globalTimer = GameTime.GetTimer(Level.GameStartAt);
-        gameOverScreenTimer = GameTime.GetTimer(Level.GameOverScreenTime);
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
-        InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
+        InitWindow(Level.WindowWidth, Level.WindowHeight, $"Match3 By Shpendicus");
         AssetManager.Init();
         //SetMouseCursor(MouseCursor.MOUSE_CURSOR_RESIZE_NS);
         _grid = new(Level);
@@ -120,14 +113,14 @@ internal static class Program
     {
         //we only fix the mouse point,
         //WHEN the cursor exceeds at a certain bounding box
-        if (enemyCellPos != Vector2.Zero)
+        if (MatchesOf3.Begin != Vector2.Zero)
         {
-            bool outsideOfRect = !CheckCollisionPointRec(GetMousePosition(), match3Rect);
+            bool outsideOfRect = !CheckCollisionPointRec(GetMousePosition(), enemyMatches.Border);
 
             if (outsideOfRect && enemiesStillThere)
             {
                 /*the player has to get these enemies out of the way b4 he can pass!*/
-                SetMousePos(enemyCellPos);
+                SetMousePos(MatchesOf3.Begin);
             }
             else
             {
@@ -203,12 +196,12 @@ internal static class Program
         
         bool ShallTransformMatchesToEnemyMatches() => Randomizer.NextSingle() <= 0.5f;
             
-        if (_grid.WasAMatchInAnyDirection(secondClicked!, MatchesOf3) && !ShallCreateEnemies)
+        if (_grid.WasAMatchInAnyDirection(secondClicked!, MatchesOf3) && !shallCreateEnemies)
         {
             if ((secondClicked as Tile)!.Body is not TileShape body)
                 return;
             
-            _grid.Delete();
+            _grid.Delete(MatchesOf3);
             
             if (CheckIfMatchQuestWasMet(body))
             {
@@ -216,7 +209,7 @@ internal static class Program
                 wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
             }
 
-            ShallCreateEnemies = ShallTransformMatchesToEnemyMatches();
+            shallCreateEnemies = ShallTransformMatchesToEnemyMatches();
         }
 
         //if (++missedSwapTolerance == Level.MaxAllowedSpawns)
@@ -262,7 +255,7 @@ internal static class Program
 
     private static bool CreateEnemiesIfNeeded()
     {
-        if (ShallCreateEnemies)
+        if (shallCreateEnemies)
         {
             //we now create here the enemies
             enemyMatches = enemyMatches.Count == 0 ? MatchesOf3.Transform(_grid) : enemyMatches;
@@ -277,17 +270,10 @@ internal static class Program
 
     private static void DrawRectAroundEnemyTiles()
     {
-        //foreach new match3, the internal "find" method always gets all new match3s 
-        //which we dont want, we only need the current match3!
-        var tmp = enemyMatches.MapRect;
-
-        if (tmp.x == 0f && tmp.y == 0f)
-            DrawRectangleRec(match3Rect, ColorAlpha(RED, match3RectAlpha)); //invisible
-        else
-        {
-            match3Rect = tmp;
-            DrawRectangleRec(tmp, ColorAlpha(RED, match3RectAlpha)); //visible
-        }
+        if (enemyMatches is null || enemyMatches.Count == 0)
+            return;
+        
+        DrawRectangleRec(enemyMatches.Border, ColorAlpha(RED, 1f)); //invisible
     }
 
     private static void DrawGrid()
@@ -309,6 +295,9 @@ internal static class Program
 
     private static void MainGameLoop()
     {
+        
+        
+        
         while (!WindowShouldClose())
         {
             BeginDrawing();
