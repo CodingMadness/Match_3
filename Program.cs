@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Match_3.GameTypes;
 using Raylib_CsLo;
+using static Match_3.AssetManager;
 using static Match_3.Utils;
 using static Raylib_CsLo.Raylib;
 
@@ -13,10 +14,10 @@ internal static class Program
     private static Level Level;
     private static GameTime globalTimer;
     private static Grid _grid;
-    private static readonly MatchX<ITile> MatchesOf3 = new(3);
+    private static MatchX<ITile> MatchesOf3;
     private static EnemyMatches? enemyMatches;
     private static ITile? secondClicked;
-    private static GameText welcomeText, timerText, gameOverText;
+    
    
     private static bool? wasGameWonB4Timeout;
     private static bool enterGame;
@@ -29,34 +30,7 @@ internal static class Program
     private static bool wasSwapped;
     private static float match3RectAlpha = 1f;
     private static bool shallCreateEnemies;
-
-    private static void ShowWelcomeScreen(bool hideWelcome)
-    {
-        FadeableColor tmp = RED;
-        tmp.AlphaSpeed = hideWelcome ? 1f : 0f;
-        welcomeText.Color = tmp;
-        welcomeText.ScaleText();
-        welcomeText.Begin = (GetScreenCoord() * 0.5f) with { X = 0f };
-        welcomeText.Draw(null);
-    }
-
-    private static bool OnGameOver(bool? gameWon)
-    {
-        if (gameWon is null)
-        {
-            return false;
-        }
-
-        //UpdateTimer(); 
-        ClearBackground(WHITE);
-        gameOverText.Src.baseSize = 2;
-        gameOverText.Begin = (GetScreenCoord() * 0.5f) with { X = 0f };
-        gameOverText.Text = gameWon.Value ? "YOU WON!" : "YOU LOST";
-        gameOverText.ScaleText();
-        gameOverText.Draw(null);
-        return globalTimer.Done();
-    }
-
+    
     private static void Main()
     {
         InitGame();
@@ -72,43 +46,11 @@ internal static class Program
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
-        AssetManager.Init();
-        //SetMouseCursor(MouseCursor.MOUSE_CURSOR_RESIZE_NS);
+        LoadAssets();
         _grid = new(Level);
-        //AssetManager.WelcomeFont.baseSize = 32;
-        //USE A TEXTURE FOR LOSE AND WIN ASWELL AS FOR WELCOME TO AVOID HIGH VIDEO/G-RAM USAGE!
-        welcomeText = new(AssetManager.WelcomeFont, "Welcome young man!!", 7f);
-        gameOverText = new(AssetManager.WelcomeFont, "", 7f);
-        Font copy = GetFontDefault() with { baseSize = 512 * 2 };
-        timerText = new(copy, "", 20f);
-        //Console.Empty();        
     }
-
-    public static void UpdateTimer()
-    {
-        if (globalTimer.ElapsedSeconds <= globalTimer.MAX_TIMER_VALUE / 2f)
-        {
-            // timer.ElapsedSeconds -= Raylib.GetFrameTime() * 1.3f;
-        }
-
-        globalTimer.Run();
-
-        //(int start, int end) = _grid.MakePlaceForTimer();
-        //GetMatch3Rect(start, 0, end-start, ITile.SIZE, RED);
-        timerText.Text = ((int)globalTimer.ElapsedSeconds).ToString();
-        FadeableColor color = globalTimer.ElapsedSeconds > 0f ? BLUE : WHITE;
-        timerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
-        timerText.Begin = (GetScreenCoord() * 0.5f) with { Y = 0f };
-        timerText.ScaleText();
-        //timerText.DrawGrid(0.5f);
-    }
-
-    private static void HideWelcomeScreen()
-    {
-        ShowWelcomeScreen(true);
-    }
-
-    private static void HandleMouseEvents()
+    
+    private static void CenterMouse()
     {
         //we only fix the mouse point,
         //WHEN the cursor exceeds at a certain bounding box
@@ -276,14 +218,6 @@ internal static class Program
         return false;
     }
 
-    private static void DrawRectAroundEnemyTiles()
-    {
-        if (enemyMatches is null || enemyMatches.Count == 0)
-            return;
-        
-        DrawRectangleRec(enemyMatches.Border, ColorAlpha(RED, 1f)); //invisible
-    }
-    
     private static void HardResetIf_A_Pressed()
     {
         if (IsKeyDown(KeyboardKey.KEY_A))
@@ -298,19 +232,16 @@ internal static class Program
 
     private static void MainGameLoop()
     {
-        
-        
-        
         while (!WindowShouldClose())
         {
             BeginDrawing();
             ClearBackground(WHITE);
-            DrawTexture(AssetManager.BGAtlas, 0, 0, WHITE);
+            Renderer.DrawBackground();
 
             if (!enterGame)
             {
-                ShowWelcomeScreen(false);
-                GameRuleManager.LogQuest(false);
+                Renderer.ShowWelcomeScreen(false);
+                Renderer.LogQuest(false, Level);
             }
 
             if (IsKeyDown(KeyboardKey.KEY_ENTER) || enterGame)
@@ -319,7 +250,7 @@ internal static class Program
 
                 if (isGameOver)
                 {
-                    if (OnGameOver(false))
+                    if (Renderer.OnGameOver(ref globalTimer,false))
                     {
                         //leave Gameloop and hence end the game
                         return;
@@ -327,7 +258,7 @@ internal static class Program
                 }
                 else if (wasGameWonB4Timeout == true)
                 {
-                    if (OnGameOver(true))
+                    if (Renderer.OnGameOver(true))
                     {
                         InitGame();
                         wasGameWonB4Timeout = false;
@@ -337,18 +268,17 @@ internal static class Program
                 else
                 {
                     //UPDATE-CALLS! 
-                    UpdateTimer();
-                    HideWelcomeScreen();
-                    HandleMouseEvents();
+                    Renderer.UpdateTimer(ref globalTimer);
+                    Renderer.ShowWelcomeScreen(true);
+                    CenterMouse();
                     ProcessSelectedTiles();
                     ComputeMatches();
                     
                     if (CreateEnemiesIfNeeded()) 
                         HandleEnemies();
-                        
-                    //DrawGrid has to be always at any time ! 
-                    DrawRectAroundEnemyTiles();
-                    TileRenderer.DrawGrid(_grid, globalTimer.ElapsedSeconds);
+                    
+                    Renderer.DrawBorder(enemyMatches);
+                    Renderer.DrawGrid(_grid, globalTimer.ElapsedSeconds);
                     HardResetIf_A_Pressed();
                 }
                 enterGame = true;
@@ -359,7 +289,7 @@ internal static class Program
 
     private static void CleanUp()
     {
-        UnloadTexture(AssetManager.DefaultTileAtlas);
+        UnloadTexture(DefaultTileAtlas);
         CloseWindow();
     }
 }
