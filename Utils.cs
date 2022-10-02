@@ -56,6 +56,35 @@ public static class Utils
         return new Rectangle(union.X, union.Y, union.Width, union.Height);
     }
 
+    public static Rectangle Divide(this Rectangle rayRect, int divisor)
+    {
+        //rayrect 
+        return new(rayRect.x, rayRect.y, rayRect.width / divisor, rayRect.height / divisor);
+    }
+    
+    public static Rectangle Move(this Rectangle rayRect, bool xDirection, int steps=1)
+    {
+        if (steps < 2)
+            return rayRect;
+        
+        Rectangle tmp;
+        
+        if (xDirection)
+        {
+            //{0,0, 64, 64}  ---> {64 ,0, 64, 64}  ---> {128 ,0, 64, 64}  
+            tmp = new(rayRect.x + rayRect.width * steps, rayRect.y, rayRect.width, rayRect.height);
+        }
+        else
+        {
+            //{0,0, 64, 64}  ---> {0 ,64, 64, 64}  ---> {0 ,128, 64, 64}  
+            tmp = new(rayRect.x, rayRect.y + rayRect.width * steps, rayRect.width, rayRect.height);
+        }
+
+        return tmp;
+    }
+
+    public static Vector2 ToWorldCoord(this Rectangle rayRect) => new(rayRect.x, rayRect.y);
+
     public static void SetMousePos(Vector2 position, int scale = ITile.Size)
     {
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);
@@ -74,7 +103,6 @@ public static class Utils
             height* ITile.Size);
     }
 
-    
     public static bool IsRowBased<T>(this ISet<T> items) where T: ITile
     {
         T cmpr = items.ElementAt(0);
