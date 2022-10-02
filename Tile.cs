@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
 
@@ -130,24 +129,11 @@ public enum Coat
     A, B, C, D, E, F, G, H
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 1)]
-public struct BoolEnum 
-{
-    [FieldOffset(0)]
-    public bool DELETED;
-    [FieldOffset(0)]
-    public bool DISABLED;
-    [FieldOffset(0)]
-    public bool SELECTED;
-    [FieldOffset(0)]
-    public bool CLEAN;
-}
-
 public abstract class Shape
 {
     public virtual ShapeKind Form { get; set; }
-    public virtual Vector2 FrameLocation { get; init; }
-    public Rectangle Rect => new(FrameLocation.X, FrameLocation.Y, ITile.Size, ITile.Size);
+    public virtual Vector2 AtlasLocation { get; init; }
+    public Rectangle Rect => new(AtlasLocation.X, AtlasLocation.Y, ITile.Size, ITile.Size);
     
     private FadeableColor _f;
     public ref FadeableColor Color => ref _f;
@@ -168,7 +154,7 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
     public Type Ball { get; init; }
     public Coat Layer { get; init; }
     public override ShapeKind Form { get; set; }
-    public override Vector2 FrameLocation { get; init; }
+    public override Vector2 AtlasLocation { get; init; }
     public bool Equals(TileShape? other) =>
         other is not null && Ball == other.Ball && Layer == other.Layer;
     public override int GetHashCode()
@@ -187,7 +173,7 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
             Color = Color ,
             Form = Form,
             Layer = Layer,
-            FrameLocation = FrameLocation,
+            AtlasLocation = AtlasLocation,
         };
         return clone;
     }
@@ -223,14 +209,13 @@ public enum Options
 [Flags]
 public enum State
 {
-    Disabled=1, Deleted= Disabled | Hidden, Hidden=4, Selected=8, Clean=16
+    Disabled=1, Deleted=2, Hidden=4, Selected=8, Clean=16
 }
 
-public interface ITile : IEquatable<ITile>
+public interface ITile
 {
     public Options Options { get; set; }
     public State State { get; set; }
-    
     public bool IsDeleted => (State & State.Disabled) == State.Disabled;
     public Vector2 Cell { get; set; }
     
@@ -241,16 +226,13 @@ public interface ITile : IEquatable<ITile>
     /// <summary>
     /// End in WorldCoordinates
     /// </summary>
-    public Vector2 End => Begin + (Vector2.One * Size);
+    public Vector2 End => Begin + (Vector2.One * Size); 
     public Rectangle Bounds => new(End.X, End.Y, Size, Size);
-    public static bool IsOnlyDefaultTile(ITile? current) =>
-        current is Tile and not EnemyTile; 
-    
-    private static Texture atlas;
-    public static ref Texture GetAtlas() => ref atlas;
     public Vector2 CoordsB4Swap { get; set; }
+    
     public const int Size = 64;
-    public void Draw(float elapsedTime);
+    public static bool IsOnlyDefaultTile(ITile? current) =>
+        current is Tile and not EnemyTile;
 }
 
 public class Tile : ITile
@@ -307,12 +289,14 @@ public class Tile : ITile
                 Body.Color.CurrentAlpha = 1f;
                 Body.Color.AlphaSpeed = 0f;
             }
+
+            _current = value;
         }
     }
     public Vector2 Cell { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public Shape Body { get; init; }
-    private Rectangle DestRect => new(Body.FrameLocation.X, Body.FrameLocation.Y, ITile.Size, ITile.Size);
+    public Rectangle DestRect => new(Body.AtlasLocation.X, Body.AtlasLocation.Y, ITile.Size, ITile.Size);
     public Tile()
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
@@ -320,63 +304,18 @@ public class Tile : ITile
         Body = null!;
     }
     public override string ToString() => $"Cell: {Cell}; ---- {Body}";
-    public virtual void Draw(float elapsedTime)
-    {
-        void DrawCoordOnTop()
-        {
-            Font copy = GetFontDefault() with { baseSize = 1024 };
-            var begin = (this as ITile).End;
-            float halfSize = ITile.Size * 0.5f;
-            begin = begin with { X = begin.X - halfSize - 0, Y = begin.Y - halfSize - ( halfSize * 0.3f)};
-            GameText coordText = new(copy, (Cell).ToString(), 11.5f) 
-            {
-                Begin = begin,
-                Color = State==State.Selected ? RED : BLACK,
-            };
-            coordText.Color.AlphaSpeed = 0f;
-            coordText.ScaleText();
-            coordText.Draw(2f);
-        }
-        
-        Body.Color.ElapsedTime = elapsedTime;
-        DrawTextureRec(ITile.GetAtlas(), DestRect, (this as ITile).Begin, Body.Color.Apply());
-        DrawCoordOnTop();
-    }
     public void Disable(bool shallDelete)
     {
         Body.ChangeColor(BLACK, 0f, 1f);
         Options = Options.UnMovable | Options.UnShapeable;
         State = !shallDelete ? State.Disabled : State.Deleted;
     }
-    
     public void Enable()
     {
         //draw from whatever was the 1. sprite-atlas 
         Body.ChangeColor(WHITE, 0f, 1f);
         Options = Options.Movable | Options.Shapeable;
         State = State.Clean;
-    }
-   
-    public bool Equals(Tile other)
-    {
-        return Body switch
-        {
-            TileShape c when other.Body is TileShape d && 
-                                    State == State.Clean && c.Equals(d) => true,
-            _ => false
-        };
-    }
-    public static bool operator ==(Tile a, Tile b)
-    {
-        return a.Equals(b);
-    }
-    public static bool operator !=(Tile a, Tile b)
-    {
-        return !(a == b);
-    }
-    bool IEquatable<ITile>.Equals(ITile other)
-    {
-        return Equals(other as Tile);
     }
 }
 
@@ -455,11 +394,5 @@ public class EnemyTile : Tile
                 }
             }
         }
-    }
-    
-    public override void Draw(float elapsedTime)
-    {
-        State &= State.Selected;
-        base.Draw(elapsedTime);
     }
 }
