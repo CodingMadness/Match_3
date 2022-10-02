@@ -3,26 +3,11 @@ using Raylib_CsLo;
 
 namespace Match_3;
 
-public class MatchX
+public class MatchX<TTile> where  TTile : ITile
 {
-    protected readonly ISet<ITile> Matches;
+    protected readonly ISet<TTile> Matches;
     public bool IsRowBased => Matches.IsRowBased();
-    
-    public MatchX(int matchCount)
-    {
-        Matches = new HashSet<ITile>(matchCount);
-    }
-
-    public virtual void Add(Tile matchTile)
-    {
-        if (!Matches.Add(matchTile))
-            return;
-
-        MapRect = MapRect.Union((matchTile as ITile)!.Bounds);
-        Match3Body ??= (matchTile.Body as TileShape)!.Clone() as TileShape;
-        Count++;
-    }
-    public int Count { get; protected set; }
+    public int Count => Matches.Count;
     public TileShape? Match3Body { get; private set; }
     public Rectangle MapRect { get; protected set; }
     public Vector2 Begin
@@ -36,6 +21,20 @@ public class MatchX
             return new Vector2(tmp.x, tmp.y);
         }
     }
+    public MatchX(int matchCount)
+    {
+        Matches = new HashSet<TTile>(matchCount);
+    }
+    public virtual void Add(TTile matchTile)
+    {
+        if (Matches.Add(matchTile))
+        {
+            var body = (matchTile as Tile)!.Body;
+            MapRect = MapRect.Union(body.Rect);
+            Console.WriteLine(MapRect.ToStr());
+            Match3Body ??= (body as TileShape)!.Clone() as TileShape;
+        }
+    }
     public void Empty()
     {
         Matches.Clear();
@@ -44,16 +43,16 @@ public class MatchX
     {
         EnemyMatches list = new(Count, map);
 
-        foreach (ITile match in Matches)
+        foreach (var match in Matches)
         {
             map[match.Cell] = Bakery.Transform((match as Tile)!);
-            list.Add((map[match.Cell] as Tile)!);
+            list.Add((map[match.Cell] as EnemyTile)!);
         }
         return list;
     }
 }
 
-public class EnemyMatches : MatchX
+public class EnemyMatches : MatchX<EnemyTile>
 {
     private readonly Grid _map;
     private Rectangle _border;
@@ -62,14 +61,11 @@ public class EnemyMatches : MatchX
     {
         _map = map;
     }
-    public override void Add(Tile matchTile)
+    public override void Add(EnemyTile matchTile)
     {
-        if (matchTile is EnemyTile enemy1 && !Matches.Add(enemy1))
-            return;
-        else if (matchTile is EnemyTile enemy2)
+        if (Matches.Add(matchTile))
         {
-            Count++;
-            enemy2.BlockSurroundingTiles(_map, true);
+            matchTile.BlockSurroundingTiles(_map, true);
         }
     }
     private Rectangle BuildBorder()
