@@ -12,7 +12,7 @@ public static class GameRuleManager
             3*3,
             6,
             5,
-            (-1, new Dictionary<Balls, int>((int)Balls.Length)),
+            (-1, new Dictionary<Type, int>((int)Type.Length)),
             64,
             3);
     }
@@ -40,11 +40,11 @@ public static class GameRuleManager
             }
         }
     } 
-    public static bool TryGetMatch3Quest(CandyShape shape, out int number)
+    public static bool TryGetMatch3Quest(TileShape shape, out int number)
     {
         return State.QuestPerLevel.Quest.TryGetValue(shape.Ball, out number);
     }
-    public static void RemoveSubQuest(CandyShape shape) => State.QuestPerLevel.Quest.Remove(shape.Ball);
+    public static void RemoveSubQuest(TileShape shape) => State.QuestPerLevel.Quest.Remove(shape.Ball);
     public static bool IsQuestDone() => State.QuestPerLevel.Quest.Count == 0;
     public static void SetCountPerBall(int[] totalCountPerBall)
     {
@@ -63,21 +63,21 @@ public static class GameRuleManager
             
         static void SetCollectQuest(int[] countsPerBall)
         {            
-            for (int currentBall = 0; currentBall < (int)Balls.Length; currentBall++)
+            for (int currentBall = 0; currentBall < (int)Type.Length; currentBall++)
             {
                 var rndMatch3Quest = GetRndMatch3Quest();
 
                 if (rndMatch3Quest < countsPerBall[currentBall])
-                    State.QuestPerLevel.Quest.TryAdd((Balls)currentBall, rndMatch3Quest);
+                    State.QuestPerLevel.Quest.TryAdd((Type)currentBall, rndMatch3Quest);
                 else
-                    State.QuestPerLevel.Quest.TryAdd((Balls)currentBall, countsPerBall[currentBall] - rndMatch3Quest);
+                    State.QuestPerLevel.Quest.TryAdd((Type)currentBall, countsPerBall[currentBall] - rndMatch3Quest);
             }
         }
         
         SetCollectQuest(totalCountPerBall);
         LogQuest(false);
     }
-    public static bool TryGetEnemyQuest(CandyShape shape, out int clickCountPerEnemy)
+    public static bool TryGetEnemyQuest(TileShape shape, out int clickCountPerEnemy)
     {
         //We just say: Take the matxh3Quest and reinterpret it
         //also as a ClickQuest, so same data will be used to store

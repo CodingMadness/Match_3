@@ -6,7 +6,7 @@ public class Level
 
     public Level(int gameStartAt, int gameOverScreenTime,
         int tilemapWidth, int tilemapHeight,
-        (int level, Dictionary<Balls, int> Quest) questPerLevel,
+        (int level, Dictionary<Type, int> Quest) questPerLevel,
         int tileSize, int matchConstraint)
     {
         MatchConstraint = matchConstraint;
@@ -21,7 +21,7 @@ public class Level
 
     public bool ShallMakeRandomQuest { get; set; }
     public int WindowHeight => TilemapHeight * TileSize;
-    public (int level, Dictionary<Balls, int> Quest) QuestPerLevel { get; private set; }
+    public (int level, Dictionary<Type, int> Quest) QuestPerLevel { get; private set; }
         
     public int ClickCountPerEnemy { get; }
     public void SetNextLevel()
@@ -31,7 +31,7 @@ public class Level
         tmp.Quest.Clear();
         QuestPerLevel = tmp;
     }
-    //public (int level, Dictionary<Balls, int> Quest) QuestPerLevel { get; private set; };
+    //public (int level, Dictionary<Ball, int> Quest) QuestPerLevel { get; private set; };
 
     public int WindowWidth => TilemapWidth * TileSize;
     public int GameOverScreenTime { get; set; }

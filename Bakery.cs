@@ -4,7 +4,7 @@ namespace Match_3;
 
 public static class Bakery
 {
-    private static Balls GetTileTypeTypeByNoise(float noise)
+    private static Type GetTileTypeTypeByNoise(float noise)
     {
         noise = noise.Trunc(2);
 
@@ -17,92 +17,92 @@ public static class Bakery
         if (noise <= 0.1)
             noise *= 10;
 
-        (Balls, float) ballToNoise = (Balls.Empty, -1f);
+        (Type, float) ballToNoise = (Type.Empty, -1f);
 
         var result = noise switch
         {
-            > 0.0f  and <= 0.15f => ballToNoise = (Balls.Brown, noise),
-            > 0.15f  and <= 0.25f => ballToNoise = (Balls.Red, noise),
-            > 0.25f and <= 0.35f => ballToNoise = (Balls.Orange, noise),
-            > 0.35f and <= 0.45f => ballToNoise = (Balls.Blue, noise),
-            > 0.45f and <= 0.55f => ballToNoise = (Balls.Green, noise),
-            > 0.55f and <= 0.65f => ballToNoise = (Balls.Purple, noise),
-            > 0.65f and <= 0.75f => ballToNoise = (Balls.Violet, noise),
-            > 0.75f and <= 1f => ballToNoise = (Balls.Yellow, noise),
-            _ => ballToNoise = (Balls.Empty, noise),
+            > 0.0f  and <= 0.15f => ballToNoise = (Type.Brown, noise),
+            > 0.15f  and <= 0.25f => ballToNoise = (Type.Red, noise),
+            > 0.25f and <= 0.35f => ballToNoise = (Type.Orange, noise),
+            > 0.35f and <= 0.45f => ballToNoise = (Type.Blue, noise),
+            > 0.45f and <= 0.55f => ballToNoise = (Type.Green, noise),
+            > 0.55f and <= 0.65f => ballToNoise = (Type.Purple, noise),
+            > 0.65f and <= 0.75f => ballToNoise = (Type.Violet, noise),
+            > 0.75f and <= 1f => ballToNoise = (Type.Yellow, noise),
+            _ => ballToNoise = (Type.Empty, noise),
         };
         return result.Item1;
     }
 
-    private static CandyShape DefineFrame(float noise)
+    private static TileShape DefineFrame(float noise)
     {
-        CandyShape tmp = new()
+        TileShape tmp = new()
         {
             Ball = GetTileTypeTypeByNoise(noise)
         };
         
         return tmp.Ball switch
         {
-            Balls.Green => new()
+            Type.Green => new()
             {
-                Ball = Balls.Green,
+                Ball = Type.Green,
                 FrameLocation = new Vector2(0f, 0f) * ITile.Size, 
                 Form = ShapeKind.Circle, 
                 Layer = Coat.A
             },
-            Balls.Purple => new()
+            Type.Purple => new()
             {
-                Ball = Balls.Purple,
+                Ball = Type.Purple,
                 FrameLocation = new Vector2(1f, 0f) * ITile.Size,
                 Form = ShapeKind.Circle,
                 Layer = Coat.B
             },
-            Balls.Orange => new()
+            Type.Orange => new()
             {
-                Ball = Balls.Orange,
+                Ball = Type.Orange,
                 FrameLocation = new Vector2(2f, 0f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.C
             },
-            Balls.Yellow => new()
+            Type.Yellow => new()
             {
-                Ball = Balls.Yellow,
+                Ball = Type.Yellow,
                 FrameLocation = new Vector2(3f, 0f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.D
             },
-            Balls.Red => new()
+            Type.Red => new()
             {
-                Ball = Balls.Red,
+                Ball = Type.Red,
                 FrameLocation = new Vector2(0f, 1f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.E
             },
-            Balls.Blue => new()
+            Type.Blue => new()
             {
-                Ball = Balls.Blue,
+                Ball = Type.Blue,
                 FrameLocation = new Vector2(1f, 1f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.F
             },
-            Balls.Brown => new()
+            Type.Brown => new()
             {
-                Ball = Balls.Brown,
+                Ball = Type.Brown,
                 FrameLocation = new Vector2(2f, 1f) * ITile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.G
             },
-            Balls.Violet => new()
+            Type.Violet => new()
             {
-                Ball = Balls.Violet,
+                Ball = Type.Violet,
                 FrameLocation = new Vector2(3f, 1f) * ITile.Size, 
                 Form = ShapeKind.Circle, 
                 Layer = Coat.H
             },
          
             //DEFAULTS.......
-            Balls.Length => new() { FrameLocation = -Vector2.One },
-            Balls.Empty => new() { FrameLocation = -Vector2.One },
+            Type.Length => new() { FrameLocation = -Vector2.One },
+            Type.Empty => new() { FrameLocation = -Vector2.One },
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -111,13 +111,11 @@ public static class Bakery
     {
         var tile = new Tile
         {
-            IsDisabled = false,
-            IsDeleted = false,
             Cell = gridPos, 
             CoordsB4Swap = -Vector2.One,
             Body = DefineFrame(noise),
-            Selected = false,
-            State = TileState.Movable | TileState.Shapeable |  TileState.Destroyable
+            State = State.Clean,
+            Options = Options.Movable | Options.Shapeable |  Options.Destroyable
         };
         return tile;
     }
@@ -128,17 +126,16 @@ public static class Bakery
         {
             Cell = matchTile.Cell,
             CoordsB4Swap = matchTile.CoordsB4Swap,
-            IsDeleted = false,
-            State = TileState.UnMovable | TileState.UnShapeable,
+            State = State.Clean,
+            Options = Options.UnMovable | Options.UnShapeable,
             
-            Body = new CandyShape
+            Body = new TileShape
             {
                 Form = ShapeKind.Trapez,
                 FrameLocation = matchTile.Body.FrameLocation,
-                Ball = matchTile.Body is CandyShape c0 ? c0.Ball : Balls.Empty,
-                Layer = matchTile.Body is CandyShape c1 ? c1.Layer : (Coat)(-1)
+                Ball = matchTile.Body is TileShape c0 ? c0.Ball : Type.Empty,
+                Layer = matchTile.Body is TileShape c1 ? c1.Layer : (Coat)(-1)
             },
-            Selected = false,
         };
 
         blockTile.Body.Color.AlphaSpeed = 0f;

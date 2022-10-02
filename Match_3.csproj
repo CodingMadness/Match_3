@@ -16,10 +16,13 @@
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' " />
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <WarningsAsErrors>;NU1605;Nullable</WarningsAsErrors>
     <NoWarn>1701;1702;Nullable</NoWarn>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="raylib" />

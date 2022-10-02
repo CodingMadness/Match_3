@@ -1,9 +1,7 @@
 ﻿//using DotNext;
 
-using System.Drawing;
 using System.Numerics;
 using Match_3.GameTypes;
-using Microsoft.Toolkit.HighPerformance;
 using Raylib_CsLo;
 
 namespace Match_3
@@ -18,7 +16,7 @@ namespace Match_3
             NegativeY = 3,
         }
       
-        private readonly ITile?[,] _bitmap;
+        private readonly ITile[,] _bitmap;
 
         //public double Timer { get; private set; } = 10;
         public readonly int TileWidth;
@@ -28,14 +26,14 @@ namespace Match_3
 
         private const int MaxDestroyableTiles = 3;
 
-        public static ITile? LastMatchTrigger { get; private set; }
+        public static ITile LastMatchTrigger { get; private set; }
         private GameTime _gridTimer;
         private readonly bool isDrawn = true;
         private byte _match3FuncCounter;
 
         private void CreateMap()
         {
-            Span<int> counts = stackalloc int[(int)Balls.Length];
+            Span<int> counts = stackalloc int[(int)Type.Length];
             ITile.GetAtlas() = AssetManager.DefaultTileAtlas;
 
             for (int x = 0; x < TileWidth; x++)
@@ -45,12 +43,10 @@ namespace Match_3
                     Vector2 current = new(x, y);
                     float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
                     _bitmap[x, y] = Bakery.CreateTile(current, noise);
-                    var kind = _bitmap[x, y] is Tile { Body: CandyShape c } ? c.Ball : Balls.Empty;
+                    var kind = _bitmap[x, y] is Tile { Body: TileShape c } ? c.Ball : Type.Empty;
                     counts[(int)kind]++;
                 }
             }
-            
-            
             NotifyOnGridCreationDone(counts.ToArray());
         }
 
@@ -71,7 +67,7 @@ namespace Match_3
         {
             TileWidth = current.TilemapWidth;
             TileHeight = current.TilemapHeight;
-            _bitmap = new ITile?[TileWidth, TileHeight];
+            _bitmap = new ITile[TileWidth, TileHeight];
             _gridTimer = GameTime.GetTimer(5 * 60);
             NotifyOnGridCreationDone += GameRuleManager.SetCountPerBall;
             CreateMap();
@@ -84,9 +80,9 @@ namespace Match_3
             {
                 for (int y = 0; y < TileHeight; y++)
                 {
-                    ITile? basicTile = _bitmap[x, y];
-
-                    if (basicTile is not null && !basicTile.IsDeleted)
+                    ITile basicTile = _bitmap[x, y];
+                    
+                    if (!basicTile.IsDeleted)
                     {
                         ITile.GetAtlas() = (basicTile is EnemyTile)
                             ? AssetManager.EnemyAtlas
@@ -103,45 +99,45 @@ namespace Match_3
 
         public bool NothingClicked(out ITile? tile)
         {
-            return !TryGetClickedTile(out tile) || tile is null;
+            return !TryGetClickedTile(out tile);
         }
         
         public ITile? this[Vector2 coord]
         {
             get
             {
+                ITile? tmp = null;
                 if (coord.X >= 0 && coord.X < TileWidth
                                  && coord.Y >= 0 && coord.Y < TileHeight)
                 {
                     //its within bounds!
-                    var tmp = _bitmap[(int)coord.X, (int)coord.Y];
-                    return tmp;
+                    tmp = _bitmap[(int)coord.X, (int)coord.Y];
+                    tmp = tmp.IsDeleted ? null : tmp;
                 }
 
-                return default;
+                return tmp;
             }
             set
             {
                 if (coord.X >= 0 && coord.Y >= 0 && coord.X < TileWidth && coord.Y < TileHeight)
                 {
-                    _bitmap[(int)coord.X, (int)coord.Y] = value;
+                    _bitmap[(int)coord.X, (int)coord.Y] = value ?? throw new NullReferenceException(
+                        "You cannot store NULL inside the Grid anymore, use Grid.Delete(vector2) instead");
                 }
             }
         }
 
-        public bool WasAMatchInAnyDirection(ITile? match3Trigger, ISet<ITile?> matches)
+        public bool WasAMatchInAnyDirection(ITile match3Trigger, MatchX matches)
         {
-            static bool AddWhenEqual(ITile? first, ITile? next, ISet<ITile?> matches)
+            static bool AddWhenEqual(ITile first, ITile next, MatchX matches)
             {
-                if (first is Tile f &&
-                    next is Tile n &&
-                    f.Equals(n))
+                if (first is Tile f && next is Tile n && f == n)
                 {
                     if (matches.Count == MaxDestroyableTiles)
                         return false;
 
-                    matches.Add(first);
-                    matches.Add(next);
+                    matches.Add(f);
+                    matches.Add(n);
                     return true;
                 }
                 return false;
@@ -165,30 +161,27 @@ namespace Match_3
 
             LastMatchTrigger = match3Trigger;
 
-            if (LastMatchTrigger is not null)
+            for (Direction i = 0; i < lastDir; i++)
             {
-                for (Direction i = 0; i < lastDir; i++)
-                {
-                    Vector2 nextCoords = NextFrom(LastMatchTrigger.Cell, i);
-                    var next = this[nextCoords];
+                Vector2 nextCoords = NextFrom(LastMatchTrigger.Cell, i);
+                var next = this[nextCoords];
 
-                    while (AddWhenEqual(LastMatchTrigger, next, matches))
-                    {
-                        //compute the proper (x,y) for next round, because
-                        //we found a match between a -> b, now we check
-                        //a -> c and so on
-                        nextCoords = NextFrom(nextCoords, i);
-                        next = this[nextCoords];
-                    }
-                }
-                //it is kinda working, but depending on game logic, I would like to be able to
-                //potentially swap endlessly the same matching-tiles...
-                if (matches.Count < MaxDestroyableTiles && ++_match3FuncCounter <= 1)
+                while (AddWhenEqual(LastMatchTrigger, next, matches))
                 {
-                    matches.Clear();
-                    return WasAMatchInAnyDirection(this[LastMatchTrigger.CoordsB4Swap], matches);
+                    //compute the proper (x,y) for next round, because
+                    //we found a match between a -> b, now we check
+                    //a -> c and so on
+                    nextCoords = NextFrom(nextCoords, i);
+                    next = this[nextCoords];
                 }
             }
+            //if he could not get a match by the 2.tile which was clicked, try the 1.clicked tile!
+            if (matches.Count < MaxDestroyableTiles && ++_match3FuncCounter <= 1)
+            {
+                matches.Empty();
+                return WasAMatchInAnyDirection(this[LastMatchTrigger.CoordsB4Swap]!, matches);
+            }
+
             if (_match3FuncCounter >= 1)
             {
                 _match3FuncCounter = 0;
@@ -196,7 +189,7 @@ namespace Match_3
             return matches.Count == MaxDestroyableTiles;
         }
 
-        public bool TryGetClickedTile(out ITile? tile)
+        private bool TryGetClickedTile(out ITile? tile)
         {
             tile = default!;
 
@@ -216,8 +209,8 @@ namespace Match_3
             {
                 return false;
             }
-            if ((a.State & TileState.UnMovable) == TileState.UnMovable ||
-                (b.State & TileState.UnMovable) == TileState.UnMovable)
+            if ((a.Options & Options.UnMovable) == Options.UnMovable ||
+                (b.Options & Options.UnMovable) == Options.UnMovable)
                 return false;
             
             this[a.Cell] = b;
@@ -236,7 +229,7 @@ namespace Match_3
                 //we mark the tile as kind of "deleted"
                 //by making it invisible and disallowing any
                 //movement to be happening
-                mapTile.IsDeleted = true;
+                mapTile.State |= State.Deleted;
                 mapTile.Disable();
             }
         }
