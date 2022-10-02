@@ -14,7 +14,7 @@ internal static class Program
     private static Level Level;
     private static GameTime globalTimer;
     private static Grid _grid;
-    private static MatchX MatchesOf3;
+    private static MatchX? matchesOf3;
     private static EnemyMatches? enemyMatches;
     private static Tile? secondClicked;
     
@@ -40,6 +40,7 @@ internal static class Program
 
     private static void InitGame()
     {
+        matchesOf3 = new(3);
         GameRuleManager.InitNewLevel();
         Level = GameRuleManager.State;
         globalTimer = GameTime.GetTimer(Level.GameStartAt);
@@ -54,14 +55,14 @@ internal static class Program
     {
         //we only fix the mouse point,
         //WHEN the cursor exceeds at a certain bounding box
-        if (MatchesOf3.Begin != Vector2.Zero)
+        if (matchesOf3?.Begin != Vector2.Zero && enemyMatches is not null)
         {
             bool outsideOfRect = !CheckCollisionPointRec(GetMousePosition(), enemyMatches.Border);
 
             if (outsideOfRect && enemiesStillThere)
             {
                 /*the player has to get these enemies out of the way b4 he can pass!*/
-                SetMousePos(MatchesOf3.Begin);
+                SetMousePos(matchesOf3!.Begin);
             }
             else
             {
@@ -146,12 +147,12 @@ internal static class Program
         
         bool ShallTransformMatchesToEnemyMatches() => Randomizer.NextSingle() <= 0.5f;
             
-        if (_grid.WasAMatchInAnyDirection(secondClicked!, MatchesOf3) && !shallCreateEnemies)
+        if (_grid.WasAMatchInAnyDirection(secondClicked!, matchesOf3) && !shallCreateEnemies)
         {
             if (secondClicked!.Body is not TileShape body)
                 return;
             
-            _grid.Delete(MatchesOf3);
+            _grid.Delete(matchesOf3);
             
             if (CheckIfMatchQuestWasMet(body))
             {
@@ -172,7 +173,7 @@ internal static class Program
         //reset values to default to repeat the code for the next input!
         wasSwapped = false;
         secondClicked = null;
-        MatchesOf3.Empty();
+        matchesOf3.Empty();
     }
     
     private static void HandleEnemies()
@@ -208,7 +209,7 @@ internal static class Program
         if (shallCreateEnemies)
         {
             //we now create here the enemies
-            enemyMatches = enemyMatches?.Count == 0 ? MatchesOf3.Transform(_grid) : enemyMatches;
+            enemyMatches = enemyMatches?.Count == 0 ? matchesOf3.Transform(_grid) : enemyMatches;
         }
         else
         {
