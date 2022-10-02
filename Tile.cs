@@ -1,15 +1,17 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
 
 namespace Match_3;
-
+ 
 public struct FadeableColor : IEquatable<FadeableColor>
 {
     private Color _toWrap;
-    public float CurrentAlpha, TargetAlpha, ElapsedTime;
+    public float CurrentAlpha, TargetAlpha;
+    public float ElapsedTime;
     /// <summary>
     /// The greater this Value, the faster it fades!
     /// </summary>
@@ -18,7 +20,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
     private FadeableColor(Color color)
     {
         _toWrap = color;
-        AlphaSpeed = 0.5f; //this basically states that we cannot fade!
+        AlphaSpeed = 0.5f; 
         CurrentAlpha = 1.0f;
         TargetAlpha = 0.0f;
         ElapsedTime = 1f;
@@ -49,6 +51,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
     
     private void _Lerp()
     {
+        
         //if u wana maybe stop fading at 0.5f so we explicitly check if currALpha > targetalpha
         if (CurrentAlpha > TargetAlpha)  
             CurrentAlpha -= AlphaSpeed * (1f / ElapsedTime);
@@ -81,7 +84,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
     {
         int bytes4C1 = Unsafe.As<Color, int>(ref c1._toWrap);
         int bytes4C2 = Unsafe.As<Color, int>(ref c2._toWrap);
-        return bytes4C1 == bytes4C2;//&& Math.Abs(c1.CurrentAlpha - (c2.CurrentAlpha)) < 1e-3; ;
+        return bytes4C1 == bytes4C2;
     }
 
     public bool Equals(FadeableColor other)
@@ -107,7 +110,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
 /// <summary>
 /// A hardcoded type which is created from a look into the AngryBallsTexture!
 /// </summary>
-public enum Balls
+public enum Type
 {
     Red, Blue, Green, Purple, Orange, Yellow, Brown, Violet,
     Length = Violet + 1, Empty = -1,
@@ -127,14 +130,26 @@ public enum Coat
     A, B, C, D, E, F, G, H
 }
 
+[StructLayout(LayoutKind.Explicit, Size = 1)]
+public struct BoolEnum 
+{
+    [FieldOffset(0)]
+    public bool DELETED;
+    [FieldOffset(0)]
+    public bool DISABLED;
+    [FieldOffset(0)]
+    public bool SELECTED;
+    [FieldOffset(0)]
+    public bool CLEAN;
+}
+
 public abstract class Shape
 {
     public virtual ShapeKind Form { get; set; }
     public virtual Vector2 FrameLocation { get; init; }
-
+    public Rectangle Rect => new(FrameLocation.X, FrameLocation.Y, ITile.Size, ITile.Size);
+    
     private FadeableColor _f;
-    //public FadeableColor FadeTint => _f;
-
     public ref FadeableColor Color => ref _f;
     public void ChangeColor(Color c, float alphaSpeed, float targetAlpha)
     {
@@ -144,17 +159,17 @@ public abstract class Shape
     }
 }
 
-public class CandyShape : Shape, IEquatable<CandyShape>//, IShape<CandyShape>
+public class TileShape : Shape, IEquatable<TileShape>, ICloneable
 {
-    public CandyShape()
+    public TileShape()
     {
        ChangeColor(WHITE,0f, 1f);
     }
-    public Balls Ball { get; init; }
+    public Type Ball { get; init; }
     public Coat Layer { get; init; }
     public override ShapeKind Form { get; set; }
     public override Vector2 FrameLocation { get; init; }
-    public bool Equals(CandyShape? other) =>
+    public bool Equals(TileShape? other) =>
         other is not null && Ball == other.Ball && Layer == other.Layer;
     public override int GetHashCode()
     {
@@ -164,24 +179,37 @@ public class CandyShape : Shape, IEquatable<CandyShape>//, IShape<CandyShape>
     public override string ToString() =>
         $"Tile type: <{Ball}> with Tint: <{Color}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
 
-    public override bool Equals(object obj)
+    public object Clone()
     {
-        return obj is CandyShape shape && Equals(shape);
+        TileShape clone = new()
+        {
+            Ball = Ball,
+            Color = Color ,
+            Form = Form,
+            Layer = Layer,
+            FrameLocation = FrameLocation,
+        };
+        return clone;
     }
 
-    public static bool operator ==(CandyShape left, CandyShape? right)
+    public override bool Equals(object? obj)
+    {
+        return obj is TileShape shape && Equals(shape);
+    }
+
+    public static bool operator ==(TileShape left, TileShape? right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(CandyShape left, CandyShape right)
+    public static bool operator !=(TileShape left, TileShape right)
     {
         return !(left == right);
     }
 }
 
 [Flags]
-public enum TileState
+public enum Options
 {
     UnDestroyable = 0,
     UnMovable = 1,
@@ -192,92 +220,92 @@ public enum TileState
     Shapeable = 16
 }
 
+[Flags]
+public enum State
+{
+    Disabled=1, Deleted=2, Hidden=4, Selected=8, Clean=16
+}
+
 public interface ITile : IEquatable<ITile>
 {
-    public bool IsDeleted { get; set; }
-    public TileState State { get; set; }
-    public bool IsDisabled { get; protected internal set; }
-    public Rectangle DrawRectAround()
-    {
-        DrawRectangle((int)Cell.X * Size, 
-            (int)Cell.Y* Size,
-            Size, Size, 
-            ColorAlpha(RED, 1f));
-        
-        return new(Cell.X * Size, Cell.Y * Size, Size, Size);
-    }
-    public Vector2 TileUnitX => Vector2.UnitX * Size;
-    public Vector2 TileUnitY => Vector2.UnitY * Size;
+    public Options Options { get; set; }
+    public State State { get; set; }
+    
+    public bool IsDeleted => (State & State.Disabled) == State.Disabled;
+    
+    public Vector2 Cell { get; set; }
+    public Vector2 WorldPosition => (Cell * Size) + (Vector2.One * Size);
+    public Rectangle Bounds => new(WorldPosition.X, WorldPosition.Y, Size, Size);
     public static bool IsOnlyDefaultTile(ITile? current) =>
         current is Tile and not EnemyTile; 
         
     private static Texture atlas;
-
     public static ref Texture GetAtlas() => ref atlas;
-    public Vector2 Cell { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
-    public static int Size => 64;
-    public Vector2 WorldPosition => (Cell * Size) + (Vector2.One * Size);
-    public Vector2 ChangeTileSize(float xFactor, float yFactor) =>
-        WorldPosition with { X = WorldPosition.X * xFactor, Y = WorldPosition.Y * yFactor };
-    public bool Selected { get; set; }
+    public const int Size = 64;
     public void Draw(float elapsedTime);
 }
 
 public class Tile : ITile
 {
-    private bool _selected;
-    public virtual bool IsDeleted { get; set; }
+    private State _current;
+
+    private BoolEnum current;
+    //private bool HasSelection() => (_current & State.Selected) == State.Selected;
     
-    public virtual TileState State { get; set; }
-
-    protected internal bool IsDisabled { get; set; }
-
-    bool ITile.IsDisabled
+    public virtual Options Options { get; set; }
+    
+    public virtual State State 
     {
-        get => IsDisabled;
-        set => IsDisabled = value;
-    }
-
-    /// <summary>
-    /// Important always is: Match Cell with the actual Drawing-Location of the window!
-    /// </summary>
-    public Vector2 Cell { get; set; }
-    public Vector2 CoordsB4Swap { get; set; }
-    public Shape Body { get; init; }
-    public bool Selected
-    {
-        get => _selected;
+        get => _current;
 
         set
         {
-            if (value)
+            if ((value & State.Clean) == State.Clean)
+            {
+                _current &= State.Selected;
+                _current &= State.Disabled;
+                _current &= State.Deleted;
+            }
+            if ((value & State.Selected) == State.Selected)
             {
                 Body.Color.CurrentAlpha = 1f;
                 Body.Color.TargetAlpha = 0.35f;
                 Body.Color.AlphaSpeed = 0.75f;
+                //if a tile is selected it must also be clean/alive
+                _current |= State.Clean;
             }
-            else
+            else if ((value & State.Deleted) == State.Deleted)
             {
+                _current &= State.Clean; //remove clean flag from set
+                _current &= State.Selected; //remove clean flag from set
+                _current |= State.Disabled; //add disabled flag to set cause when smth is deleted 
+                //it must be automatically disabled 
                 Body.Color.AlphaSpeed = 0f;
             }
-            _selected = value;
+            else if ((value & State.Disabled) == State.Disabled)
+            {
+                _current &= State.Clean; //remove clean flag from set
+                _current &= State.Selected; //remove clean flag from set
+                Body.Color.AlphaSpeed = 0f;
+            }
         }
     }
-    private Rectangle DestRect => new(Body.FrameLocation.X, Body.FrameLocation.Y, ITile.Size, ITile.Size);
+    public Vector2 Cell { get; set; }
+    public Vector2 CoordsB4Swap { get; set; }
+    public Shape Body { get; init; }
     
+    private Rectangle DestRect => new(Body.FrameLocation.X, Body.FrameLocation.Y, ITile.Size, ITile.Size);
     public Tile()
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
         //overwrite the Body anyway with the Factorymethod "CreateNewTile(..)";
         Body = null!;
     }
-
     public override string ToString() => $"Cell: {Cell}; ---- {Body}";
-    
     public virtual void Draw(float elapsedTime)
     {
-        void DrawCoordOnTop(in Vector2 worldPosition, bool selected)
+        void DrawCoordOnTop(in Vector2 worldPosition)
         {
             Font copy = GetFontDefault() with { baseSize = 1024 };
             var begin = (this as ITile).WorldPosition;
@@ -286,7 +314,7 @@ public class Tile : ITile
             GameText coordText = new(copy, (worldPosition / ITile.Size).ToString(), 11.5f) 
             {
                 Begin = begin,
-                Color = selected ? RED : BLACK,
+                Color = State==State.Selected ? RED : BLACK,
             };
             coordText.Color.AlphaSpeed = 0f;
             coordText.ScaleText();
@@ -295,30 +323,28 @@ public class Tile : ITile
         
         Body.Color.ElapsedTime = elapsedTime;
         DrawTextureRec(ITile.GetAtlas(), DestRect, Cell * ITile.Size, Body.Color.Apply());
-        DrawCoordOnTop(Cell * ITile.Size, _selected);
+        DrawCoordOnTop(Cell * ITile.Size);
     }
+  
     public void Disable()
     {
         Body.ChangeColor(BLACK, 0f, 1f);
-        State = TileState.UnMovable | TileState.UnShapeable;
-        IsDisabled = true;
+        Options = Options.UnMovable | Options.UnShapeable;
+        _current = State.Disabled;
     }
-    
     public void Enable()
     {
         //draw from whatever was the 1. sprite-atlas 
         Body.ChangeColor(WHITE, 0f, 1f);
-        State = TileState.Movable | TileState.Shapeable;
-        IsDisabled = false;
+        Options = Options.Movable | Options.Shapeable;
+        State = State.Clean;
     }
-    
     public bool Equals(Tile? other)
     {
         return Body switch
         {
-            CandyShape c when other?.Body is CandyShape d   && 
-                                                !IsDeleted   && 
-                                                c.Equals(d) => true,
+            TileShape c when other?.Body is TileShape d && 
+                                    State == State.Clean && c.Equals(d) => true,
             _ => false
         };
     }
@@ -338,8 +364,7 @@ public class Tile : ITile
 
 public class EnemyTile : Tile
 {
-    //private Vector2 TileUnitX => (this as ITile).TileUnitX;
-    public override TileState State => TileState.UnMovable;
+    public override Options Options => Options.UnMovable;
     
     public void BlockSurroundingTiles(Grid map, bool disable)
     {
@@ -414,45 +439,9 @@ public class EnemyTile : Tile
         }
     }
     
-    public static Rectangle GetRectAroundMatch3(ISet<ITile?> match3Set)
-    {
-        if (match3Set.Count == 0)
-            return default;
-        
-        if (match3Set.IsRowBased())
-        {
-            //its row based rectangle
-            //-----------------|
-            // X     Y      Z  |
-            //-----------------|
-            var first = match3Set.OrderBy(x => x.Cell.X).ElementAt(0);
-            var begin = first.Cell - Vector2.One;
-            var match3RectWidth = match3Set.Count + 2;
-            var match3RectHeight = match3Set.Count;
-            return Utils.GetMatch3Rect(begin * ITile.Size, 
-                match3RectWidth * ITile.Size, match3RectHeight * ITile.Size);
-        }
-        else
-        {
-            //its column based rectangle
-            //-*--*--*--|
-            // *  X  *  |
-            // *  Y  *  |
-            // *  Z  *  |
-            // *  *  *  |
-            //----------|
-            var first = match3Set.OrderBy(x => x.Cell.Y).ElementAt(0);
-            var begin = first.Cell - Vector2.One;
-            var match3RectWidth = match3Set.Count;
-            var match3RectHeight = match3Set.Count+2;
-            return Utils.GetMatch3Rect(begin * ITile.Size, 
-                match3RectWidth * ITile.Size, match3RectHeight * ITile.Size);
-        }
-    }
-
     public override void Draw(float elapsedTime)
     {
-        Selected = false;
+        State &= State.Selected;
         base.Draw(elapsedTime);
     }
 }
