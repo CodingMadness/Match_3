@@ -223,7 +223,7 @@ public enum Options
 [Flags]
 public enum State
 {
-    Disabled=1, Deleted=2, Hidden=4, Selected=8, Clean=16
+    Disabled=1, Deleted= Disabled | Hidden, Hidden=4, Selected=8, Clean=16
 }
 
 public interface ITile : IEquatable<ITile>
@@ -232,13 +232,20 @@ public interface ITile : IEquatable<ITile>
     public State State { get; set; }
     
     public bool IsDeleted => (State & State.Disabled) == State.Disabled;
-    
     public Vector2 Cell { get; set; }
-    public Vector2 WorldPosition => (Cell * Size) + (Vector2.One * Size);
-    public Rectangle Bounds => new(WorldPosition.X, WorldPosition.Y, Size, Size);
+    
+    /// <summary>
+    /// Begin in WorldCoordinates
+    /// </summary>
+    public Vector2 Begin => (Cell * Size);
+    /// <summary>
+    /// End in WorldCoordinates
+    /// </summary>
+    public Vector2 End => Begin + (Vector2.One * Size);
+    public Rectangle Bounds => new(End.X, End.Y, Size, Size);
     public static bool IsOnlyDefaultTile(ITile? current) =>
         current is Tile and not EnemyTile; 
-        
+    
     private static Texture atlas;
     public static ref Texture GetAtlas() => ref atlas;
     public Vector2 CoordsB4Swap { get; set; }
@@ -249,12 +256,7 @@ public interface ITile : IEquatable<ITile>
 public class Tile : ITile
 {
     private State _current;
-
-    private BoolEnum current;
-    //private bool HasSelection() => (_current & State.Selected) == State.Selected;
-    
     public virtual Options Options { get; set; }
-    
     public virtual State State 
     {
         get => _current;
@@ -266,12 +268,14 @@ public class Tile : ITile
                 _current &= State.Selected;
                 _current &= State.Disabled;
                 _current &= State.Deleted;
+                Body.Color.CurrentAlpha = 1f;
+                Body.Color.AlphaSpeed = 0f;
             }
             if ((value & State.Selected) == State.Selected)
             {
                 Body.Color.CurrentAlpha = 1f;
-                Body.Color.TargetAlpha = 0.35f;
                 Body.Color.AlphaSpeed = 0.75f;
+                Body.Color.TargetAlpha = 0.35f;
                 //if a tile is selected it must also be clean/alive
                 _current |= State.Clean;
             }
@@ -279,14 +283,26 @@ public class Tile : ITile
             {
                 _current &= State.Clean; //remove clean flag from set
                 _current &= State.Selected; //remove clean flag from set
-                _current |= State.Disabled; //add disabled flag to set cause when smth is deleted 
-                //it must be automatically disabled 
+                //add disabled flag to set cause when smth is deleted it must be automatically disabled 
+                _current |= State.Disabled;
+                _current |= State.Hidden;
+                Body.Color.AlphaSpeed = 0f;
+            }
+            else if ((value & State.Hidden) == State.Hidden)
+            {
+                _current &= State.Clean;    //remove clean flag from set
+                _current |= State.Selected; //remove clean flag from set
+                //add disabled flag to set cause when smth is deleted it must be automatically disabled 
+                _current &= State.Disabled; //operations on that tile with this flag are still possible!
+                _current &= State.Deleted;
                 Body.Color.AlphaSpeed = 0f;
             }
             else if ((value & State.Disabled) == State.Disabled)
             {
                 _current &= State.Clean; //remove clean flag from set
                 _current &= State.Selected; //remove clean flag from set
+                Body.Color = BLACK;
+                Body.Color.CurrentAlpha = 1f;
                 Body.Color.AlphaSpeed = 0f;
             }
         }
@@ -294,7 +310,6 @@ public class Tile : ITile
     public Vector2 Cell { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public Shape Body { get; init; }
-    
     private Rectangle DestRect => new(Body.FrameLocation.X, Body.FrameLocation.Y, ITile.Size, ITile.Size);
     public Tile()
     {
@@ -305,13 +320,13 @@ public class Tile : ITile
     public override string ToString() => $"Cell: {Cell}; ---- {Body}";
     public virtual void Draw(float elapsedTime)
     {
-        void DrawCoordOnTop(in Vector2 worldPosition)
+        void DrawCoordOnTop()
         {
             Font copy = GetFontDefault() with { baseSize = 1024 };
-            var begin = (this as ITile).WorldPosition;
+            var begin = (this as ITile).End;
             float halfSize = ITile.Size * 0.5f;
             begin = begin with { X = begin.X - halfSize - 0, Y = begin.Y - halfSize - ( halfSize * 0.3f)};
-            GameText coordText = new(copy, (worldPosition / ITile.Size).ToString(), 11.5f) 
+            GameText coordText = new(copy, (Cell).ToString(), 11.5f) 
             {
                 Begin = begin,
                 Color = State==State.Selected ? RED : BLACK,
@@ -322,10 +337,9 @@ public class Tile : ITile
         }
         
         Body.Color.ElapsedTime = elapsedTime;
-        DrawTextureRec(ITile.GetAtlas(), DestRect, Cell * ITile.Size, Body.Color.Apply());
-        DrawCoordOnTop(Cell * ITile.Size);
+        DrawTextureRec(ITile.GetAtlas(), DestRect, (this as ITile).Begin, Body.Color.Apply());
+        DrawCoordOnTop();
     }
-  
     public void Disable()
     {
         Body.ChangeColor(BLACK, 0f, 1f);
@@ -339,24 +353,24 @@ public class Tile : ITile
         Options = Options.Movable | Options.Shapeable;
         State = State.Clean;
     }
-    public bool Equals(Tile? other)
+    public bool Equals(Tile other)
     {
         return Body switch
         {
-            TileShape c when other?.Body is TileShape d && 
+            TileShape c when other.Body is TileShape d && 
                                     State == State.Clean && c.Equals(d) => true,
             _ => false
         };
     }
-    public static bool operator ==(Tile? a, Tile? b)
+    public static bool operator ==(Tile a, Tile b)
     {
-        return a?.Equals(b) ?? false;
+        return a.Equals(b);
     }
-    public static bool operator !=(Tile? a, Tile? b)
+    public static bool operator !=(Tile a, Tile b)
     {
         return !(a == b);
     }
-    bool IEquatable<ITile>.Equals(ITile? other)
+    bool IEquatable<ITile>.Equals(ITile other)
     {
         return Equals(other as Tile);
     }
