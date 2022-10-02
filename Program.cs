@@ -14,9 +14,9 @@ internal static class Program
     private static Level Level;
     private static GameTime globalTimer;
     private static Grid _grid;
-    private static MatchX<ITile> MatchesOf3;
+    private static MatchX MatchesOf3;
     private static EnemyMatches? enemyMatches;
-    private static ITile? secondClicked;
+    private static Tile? secondClicked;
     
    
     private static bool? wasGameWonB4Timeout;
@@ -69,7 +69,7 @@ internal static class Program
         }
     }
 
-    private static bool TileClicked(out ITile? tile)
+    private static bool TileClicked(out Tile? tile)
     {
         tile = default!;
 
@@ -78,7 +78,7 @@ internal static class Program
 
         var mouseVec2 = GetMousePosition();
         Vector2 gridPos = new Vector2((int)mouseVec2.X, (int)mouseVec2.Y);
-        gridPos /= ITile.Size;
+        gridPos /= Tile.Size;
         tile = _grid[gridPos];
         return tile is not null;
     }
@@ -101,7 +101,7 @@ internal static class Program
         }
 
         /*Same tile selected => deselect*/
-        if (StateAndBodyComparer<ITile>.Singleton.Equals(tmpFirst, secondClicked))
+        if (StateAndBodyComparer.Singleton.Equals(tmpFirst, secondClicked))
         {
             //firstClickedTile.Selected = false;
             Console.Clear();
@@ -148,7 +148,7 @@ internal static class Program
             
         if (_grid.WasAMatchInAnyDirection(secondClicked!, MatchesOf3) && !shallCreateEnemies)
         {
-            if ((secondClicked as Tile)!.Body is not TileShape body)
+            if (secondClicked!.Body is not TileShape body)
                 return;
             
             _grid.Delete(MatchesOf3);
@@ -258,7 +258,7 @@ internal static class Program
                 }
                 else if (wasGameWonB4Timeout == true)
                 {
-                    if (Renderer.OnGameOver(true))
+                    if (Renderer.OnGameOver(ref globalTimer, true))
                     {
                         InitGame();
                         wasGameWonB4Timeout = false;

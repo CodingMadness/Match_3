@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
 
@@ -103,7 +102,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
 
     public static bool operator !=(FadeableColor c1, FadeableColor c2) => !(c1 == c2);
 
-    public override string ToString() => ToReadableString();
+    public override string ToString() => ToReadableString()!;
 }
 
 /// <summary>
@@ -133,7 +132,7 @@ public abstract class Shape
 {
     public virtual ShapeKind Form { get; set; }
     public virtual Vector2 AtlasLocation { get; init; }
-    public Rectangle Rect => new(AtlasLocation.X, AtlasLocation.Y, ITile.Size, ITile.Size);
+    public Rectangle Rect => new(AtlasLocation.X, AtlasLocation.Y, Tile.Size, Tile.Size);
     
     private FadeableColor _f;
     public ref FadeableColor Color => ref _f;
@@ -212,30 +211,7 @@ public enum State
     Disabled=1, Deleted=2, Hidden=4, Selected=8, Clean=16
 }
 
-public interface ITile
-{
-    public Options Options { get; set; }
-    public State State { get; set; }
-    public bool IsDeleted => (State & State.Disabled) == State.Disabled;
-    public Vector2 Cell { get; set; }
-    
-    /// <summary>
-    /// Begin in WorldCoordinates
-    /// </summary>
-    public Vector2 Begin => (Cell * Size);
-    /// <summary>
-    /// End in WorldCoordinates
-    /// </summary>
-    public Vector2 End => Begin + (Vector2.One * Size); 
-    public Rectangle Bounds => new(End.X, End.Y, Size, Size);
-    public Vector2 CoordsB4Swap { get; set; }
-    
-    public const int Size = 64;
-    public static bool IsOnlyDefaultTile(ITile? current) =>
-        current is Tile and not EnemyTile;
-}
-
-public class Tile : ITile
+public class Tile
 {
     private State _current;
     
@@ -296,7 +272,21 @@ public class Tile : ITile
     public Vector2 Cell { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public Shape Body { get; init; }
-    public Rectangle DestRect => new(Body.AtlasLocation.X, Body.AtlasLocation.Y, ITile.Size, ITile.Size);
+    /// <summary>
+    /// Begin in WorldCoordinates
+    /// </summary>
+    public Vector2 Begin => (Cell * Size);
+    /// <summary>
+    /// End in WorldCoordinates
+    /// </summary>
+    public Vector2 End => Begin + (Vector2.One * Size); 
+    public bool IsDeleted => (State & State.Disabled) == State.Disabled;
+    public Rectangle Bounds => new(End.X, End.Y, Size, Size);
+    
+    public const int Size = 64;
+    public static bool IsOnlyDefaultTile(Tile? current) =>
+        current is not null and not EnemyTile;
+    public Rectangle DestRect => new(Body.AtlasLocation.X, Body.AtlasLocation.Y, Size, Size);
     public Tile()
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
@@ -382,9 +372,9 @@ public class EnemyTile : Tile
                 
                 Vector2 nextCoords = NextCell(i);
 
-                if (ITile.IsOnlyDefaultTile(map[nextCoords]))
+                if (IsOnlyDefaultTile(map[nextCoords]))
                 {
-                    var t = map[nextCoords] as Tile;
+                    var t = map[nextCoords];
 
                     if (disable)
                         t!.Disable(false);

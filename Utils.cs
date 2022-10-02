@@ -1,7 +1,8 @@
-﻿using System.Numerics;
+﻿using System.Drawing;
+using System.Numerics;
 using System.Runtime.CompilerServices;
-using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
+using Rectangle = Raylib_CsLo.Rectangle;
 
 namespace Match_3;
 
@@ -52,7 +53,7 @@ public static class Utils
     {
         var rect1 = new System.Drawing.Rectangle((int)rayRect.x, (int)rayRect.y, (int)rayRect.width, (int)rayRect.height);
         var rect2 = new System.Drawing.Rectangle((int)otherRayRect.x, (int)otherRayRect.y, (int)otherRayRect.width, (int)otherRayRect.height);
-        var union = System.Drawing.RectangleF.Union(rect1, rect2);
+        var union = RectangleF.Union(rect1, rect2);
         return new Rectangle(union.X, union.Y, union.Width, union.Height);
     }
 
@@ -87,7 +88,7 @@ public static class Utils
 
     public static Vector2 ToWorldCoord(this Rectangle rayRect) => new(rayRect.x, rayRect.y);
 
-    public static void SetMousePos(Vector2 position, int scale = ITile.Size)
+    public static void SetMousePos(Vector2 position, int scale = Tile.Size)
     {
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);
     }
@@ -99,15 +100,15 @@ public static class Utils
 
     public static Rectangle GetMatch3Rect(Vector2 begin, int width, int height)
     {
-        return new((int)begin.X * ITile.Size,
-            (int)begin.Y * ITile.Size,
-            width * ITile.Size,
-            height* ITile.Size);
+        return new((int)begin.X * Tile.Size,
+            (int)begin.Y * Tile.Size,
+            width * Tile.Size,
+            height* Tile.Size);
     }
 
-    public static bool IsRowBased<T>(this ISet<T> items) where T: ITile
+    public static bool IsRowBased(this ISet<Tile> items) 
     {
-        T cmpr = items.ElementAt(0);
+        Tile cmpr = items.ElementAt(0);
         var isColumnBased = items.Count(x => (int)x.Cell.Y == (int)cmpr.Cell.Y) == items.Count;
         return isColumnBased;
     }

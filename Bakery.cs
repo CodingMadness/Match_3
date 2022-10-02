@@ -16,20 +16,18 @@ public static class Bakery
 
         if (noise <= 0.1)
             noise *= 10;
-
-        (Type, float) ballToNoise = (Type.Empty, -1f);
-
+        
         var result = noise switch
         {
-            > 0.0f  and <= 0.15f => ballToNoise = (Type.Brown, noise),
-            > 0.15f  and <= 0.25f => ballToNoise = (Type.Red, noise),
-            > 0.25f and <= 0.35f => ballToNoise = (Type.Orange, noise),
-            > 0.35f and <= 0.45f => ballToNoise = (Type.Blue, noise),
-            > 0.45f and <= 0.55f => ballToNoise = (Type.Green, noise),
-            > 0.55f and <= 0.65f => ballToNoise = (Type.Purple, noise),
-            > 0.65f and <= 0.75f => ballToNoise = (Type.Violet, noise),
-            > 0.75f and <= 1f => ballToNoise = (Type.Yellow, noise),
-            _ => ballToNoise = (Type.Empty, noise),
+            > 0.0f  and <= 0.15f =>  (Type.Brown, noise),
+            > 0.15f  and <= 0.25f => (Type.Red, noise),
+            > 0.25f and <= 0.35f =>  (Type.Orange, noise),
+            > 0.35f and <= 0.45f =>  (Type.Blue, noise),
+            > 0.45f and <= 0.55f =>  (Type.Green, noise),
+            > 0.55f and <= 0.65f =>  (Type.Purple, noise),
+            > 0.65f and <= 0.75f =>  (Type.Violet, noise),
+            > 0.75f and <= 1f =>     (Type.Yellow, noise),
+            _ => (Type.Empty, noise),
         };
         return result.Item1;
     }
@@ -46,56 +44,56 @@ public static class Bakery
             Type.Green => new()
             {
                 Ball = Type.Green,
-                AtlasLocation = new Vector2(0f, 0f) * ITile.Size, 
+                AtlasLocation = new Vector2(0f, 0f) * Tile.Size, 
                 Form = ShapeKind.Circle, 
                 Layer = Coat.A
             },
             Type.Purple => new()
             {
                 Ball = Type.Purple,
-                AtlasLocation = new Vector2(1f, 0f) * ITile.Size,
+                AtlasLocation = new Vector2(1f, 0f) * Tile.Size,
                 Form = ShapeKind.Circle,
                 Layer = Coat.B
             },
             Type.Orange => new()
             {
                 Ball = Type.Orange,
-                AtlasLocation = new Vector2(2f, 0f) * ITile.Size,
+                AtlasLocation = new Vector2(2f, 0f) * Tile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.C
             },
             Type.Yellow => new()
             {
                 Ball = Type.Yellow,
-                AtlasLocation = new Vector2(3f, 0f) * ITile.Size,
+                AtlasLocation = new Vector2(3f, 0f) * Tile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.D
             },
             Type.Red => new()
             {
                 Ball = Type.Red,
-                AtlasLocation = new Vector2(0f, 1f) * ITile.Size,
+                AtlasLocation = new Vector2(0f, 1f) * Tile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.E
             },
             Type.Blue => new()
             {
                 Ball = Type.Blue,
-                AtlasLocation = new Vector2(1f, 1f) * ITile.Size,
+                AtlasLocation = new Vector2(1f, 1f) * Tile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.F
             },
             Type.Brown => new()
             {
                 Ball = Type.Brown,
-                AtlasLocation = new Vector2(2f, 1f) * ITile.Size,
+                AtlasLocation = new Vector2(2f, 1f) * Tile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.G
             },
             Type.Violet => new()
             {
                 Ball = Type.Violet,
-                AtlasLocation = new Vector2(3f, 1f) * ITile.Size, 
+                AtlasLocation = new Vector2(3f, 1f) * Tile.Size, 
                 Form = ShapeKind.Circle, 
                 Layer = Coat.H
             },
@@ -107,7 +105,7 @@ public static class Bakery
         };
     }
     
-    public static ITile CreateTile(Vector2 gridPos, float noise)
+    public static Tile CreateTile(Vector2 gridPos, float noise)
     {
         var tile = new Tile
         {

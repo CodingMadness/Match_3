@@ -16,8 +16,8 @@ public static class Renderer
         static void DrawCoordOnTop(Tile tile)
         {
             Font copy = GetFontDefault() with { baseSize = 1024 };
-            var begin = (tile as ITile).End;
-            float halfSize = ITile.Size * 0.5f;
+            var begin = tile.End;
+            float halfSize = Tile.Size * 0.5f;
             begin = begin with { X = begin.X - halfSize - 0, Y = begin.Y - halfSize - (halfSize * 0.3f) };
             GameText coordText = new(copy, (tile.Cell).ToString(), 11.5f)
             {
@@ -32,9 +32,9 @@ public static class Renderer
         if (tile is EnemyTile enemy)
             enemy.State &= State.Selected;
         
-        var body = tile!.Body;
+        var body = tile.Body;
         body.Color.ElapsedTime = elapsedTime;
-        DrawTextureRec(GetAtlas(), tile.DestRect, (tile as ITile).Begin, body.Color.Apply());
+        DrawTextureRec(GetAtlas(), tile.DestRect, tile.Begin, body.Color.Apply());
         DrawCoordOnTop(tile);
     }
 
@@ -48,7 +48,7 @@ public static class Renderer
                 Vector2 current = new(x, y);
                 //the indexer can return a NULL when a tile is marked as
                 //Disabled and the "IsDeleted" returns true
-                ITile? basicTile = map[current];
+                Tile? basicTile = map[current];
                     
                 if (basicTile is not null && !basicTile.IsDeleted)
                 {
@@ -56,7 +56,7 @@ public static class Renderer
                         ? EnemyAtlas
                         : DefaultTileAtlas;
 
-                    Draw((Tile)basicTile, elapsedTime);
+                    Draw(basicTile, elapsedTime);
                 }
             }
         }
@@ -78,7 +78,7 @@ public static class Renderer
         globalTimer.Run();
 
         //(int start, int end) = _grid.MakePlaceForTimer();
-        //GetMatch3Rect(start, 0, end-start, ITile.SIZE, RED);
+        //GetMatch3Rect(start, 0, end-start, Tile.SIZE, RED);
         TimerText.Text = ((int)globalTimer.ElapsedSeconds).ToString();
         FadeableColor color = globalTimer.ElapsedSeconds > 0f ? BLUE : WHITE;
         TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
@@ -131,7 +131,7 @@ public static class Renderer
             {
                 var center = Utils.GetScreenCoord() * 0.5f;
                 string txt = $"You have to collect {pair.Value} {pair.Key}-tiles!";
-                Vector2 pos = center with {X = center.X * 1.5f, Y = 4 * ITile.Size };
+                Vector2 pos = center with {X = center.X * 1.5f, Y = 4 * Tile.Size };
                 LogText.Begin = pos;
                 LogText.Text = txt;
                 LogText.Draw(null);                

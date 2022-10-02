@@ -2,8 +2,6 @@
 
 using System.Numerics;
 using Match_3.GameTypes;
-using Raylib_CsLo;
-using Rectangle = System.Drawing.Rectangle;
 
 namespace Match_3
 {
@@ -17,7 +15,7 @@ namespace Match_3
             NegativeY = 3,
         }
       
-        private readonly ITile[,] _bitmap;
+        private readonly Tile[,] _bitmap;
 
         //public double Timer { get; private set; } = 10;
         public readonly int TileWidth;
@@ -27,7 +25,7 @@ namespace Match_3
 
         private const int MaxDestroyableTiles = 3;
 
-        public static ITile LastMatchTrigger { get; private set; }
+        public static Tile LastMatchTrigger { get; private set; }
         private byte _match3FuncCounter;
 
         private void CreateMap()
@@ -57,8 +55,8 @@ namespace Match_3
             this[new(beginX+1, 0)] = null;
             this[new(beginX+2, 0)] = null;
             
-            int start = (int)(beginX-1) * ITile.Size;
-            int end = (int)(beginX+3) * ITile.Size;
+            int start = (int)(beginX-1) * Tile.Size;
+            int end = (int)(beginX+3) * Tile.Size;
             return (start, end);
         }
         
@@ -66,16 +64,16 @@ namespace Match_3
         {
             TileWidth = current.TilemapWidth;
             TileHeight = current.TilemapHeight;
-            _bitmap = new ITile[TileWidth, TileHeight];
+            _bitmap = new Tile[TileWidth, TileHeight];
             NotifyOnGridCreationDone += GameRuleManager.SetCountPerType;
             CreateMap();
         }
         
-        public ITile? this[Vector2 coord]
+        public Tile? this[Vector2 coord]
         {
             get
             {
-                ITile? tmp = null;
+                Tile? tmp = null;
                 if (coord.X >= 0 && coord.X < TileWidth
                                  && coord.Y >= 0 && coord.Y < TileHeight)
                 {
@@ -96,19 +94,18 @@ namespace Match_3
             }
         }
 
-        public bool WasAMatchInAnyDirection(ITile match3Trigger, MatchX<ITile> matches)
+        public bool WasAMatchInAnyDirection(Tile match3Trigger, MatchX matches)
         {
-            static bool AddWhenEqual(ITile first, ITile next, MatchX<ITile> matches)
+            static bool AddWhenEqual(Tile first, Tile next, MatchX matches)
             {
-                if (first is Tile f && next is Tile n)
                 {
-                    if (StateAndBodyComparer<ITile>.Singleton.Equals(f, n))
+                    if (StateAndBodyComparer.Singleton.Equals(first, next))
                     {
                         if (matches.Count == MaxDestroyableTiles)
                             return false;
 
-                        matches.Add(f);
-                        matches.Add(n);
+                        matches.Add(first);
+                        matches.Add(next);
                         return true;
                     }
                 }
@@ -161,7 +158,7 @@ namespace Match_3
             return matches.Count == MaxDestroyableTiles;
         }
         
-        public bool Swap(ITile? a, ITile? b)
+        public bool Swap(Tile? a, Tile? b)
         {
             if (a is null || b is null || a.IsDeleted || b.IsDeleted)
             {
@@ -179,13 +176,13 @@ namespace Match_3
             return true;
         }
 
-        public void Delete(MatchX<ITile> match)
+        public void Delete(MatchX match)
         {
             Vector2 begin = match.Begin;
             
             for (int i = 0; i < match.Count; i++)
             {
-                (this[begin] as Tile)!.Disable(true);
+                this[begin]!.Disable(true);
                 begin = match.MapRect.Move(match.IsRowBased).ToWorldCoord();
             }
         }

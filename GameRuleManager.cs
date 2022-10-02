@@ -53,7 +53,6 @@ public static class GameRuleManager
         }
         
         SetCollectQuest(totalCountPerBall);
-        LogQuest(false);
     }
     public static bool TryGetEnemyQuest(TileShape shape, out int clickCountPerEnemy)
     {
