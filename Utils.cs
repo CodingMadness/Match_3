@@ -56,6 +56,8 @@ public static class Utils
         return new Rectangle(union.X, union.Y, union.Width, union.Height);
     }
 
+    public static string ToStr(this Rectangle rayRect)
+        => $"x:{rayRect.x} y:{rayRect.y}  width:{rayRect.width}  height:{rayRect.height}";
     public static Rectangle Divide(this Rectangle rayRect, int divisor)
     {
         //rayrect 
