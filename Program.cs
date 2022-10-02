@@ -13,7 +13,7 @@ internal static class Program
     private static Level Level;
     private static GameTime globalTimer;
     private static Grid _grid;
-    private static readonly MatchX MatchesOf3 = new(3);
+    private static readonly MatchX<ITile> MatchesOf3 = new(3);
     private static EnemyMatches? enemyMatches;
     private static ITile? secondClicked;
     private static GameText welcomeText, timerText, gameOverText;
@@ -24,7 +24,6 @@ internal static class Program
     private static int missedSwapTolerance;
     private static int clickCount;
     private static bool backToNormal;
-
     private static int matchXCounter = 1;
     private static bool enemiesStillThere = true;
     private static bool wasSwapped;
@@ -72,7 +71,7 @@ internal static class Program
         globalTimer = GameTime.GetTimer(Level.GameStartAt);
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
-        InitWindow(Level.WindowWidth, Level.WindowHeight, $"Match3 By Shpendicus");
+        InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
         AssetManager.Init();
         //SetMouseCursor(MouseCursor.MOUSE_CURSOR_RESIZE_NS);
         _grid = new(Level);
@@ -101,7 +100,7 @@ internal static class Program
         timerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
         timerText.Begin = (GetScreenCoord() * 0.5f) with { Y = 0f };
         timerText.ScaleText();
-        //timerText.Draw(0.5f);
+        //timerText.DrawGrid(0.5f);
     }
 
     private static void HideWelcomeScreen()
@@ -128,9 +127,23 @@ internal static class Program
         }
     }
 
+    private static bool TileClicked(out ITile? tile)
+    {
+        tile = default!;
+
+        if (!IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
+            return false;
+
+        var mouseVec2 = GetMousePosition();
+        Vector2 gridPos = new Vector2((int)mouseVec2.X, (int)mouseVec2.Y);
+        gridPos /= ITile.Size;
+        tile = _grid[gridPos];
+        return tile is not null;
+    }
+    
     private static void ProcessSelectedTiles()
     {
-        if (_grid.NothingClicked(out var tmpFirst))
+        if (!TileClicked(out var tmpFirst))
             return;
 
         //tmpFirst!.Selected = (tmpFirst.State & State.Movable) == State.Movable;
@@ -141,12 +154,12 @@ internal static class Program
         {
             //prepare for next round, so we store first in second!
             secondClicked = tmpFirst;
-            secondClicked.State = State.Selected;
+            secondClicked.State |= State.Selected;
             return;
         }
 
         /*Same tile selected => deselect*/
-        if (tmpFirst == secondClicked)
+        if (StateAndBodyComparer<ITile>.Singleton.Equals(tmpFirst, secondClicked))
         {
             //firstClickedTile.Selected = false;
             Console.Clear();
@@ -188,11 +201,6 @@ internal static class Program
             }
             return false;
         }
-
-        void DeleteMatchFromGrid()
-        {
-            
-        }
         
         bool ShallTransformMatchesToEnemyMatches() => Randomizer.NextSingle() <= 0.5f;
             
@@ -227,7 +235,7 @@ internal static class Program
     
     private static void HandleEnemies()
     {
-        if (_grid.NothingClicked(out var enemyTile))
+        if (TileClicked(out var enemyTile))
             return;
 
         //Enemy tile was clicked on , ofc after a matchX happened!
@@ -258,7 +266,7 @@ internal static class Program
         if (shallCreateEnemies)
         {
             //we now create here the enemies
-            enemyMatches = enemyMatches.Count == 0 ? MatchesOf3.Transform(_grid) : enemyMatches;
+            enemyMatches = enemyMatches?.Count == 0 ? MatchesOf3.Transform(_grid) : enemyMatches;
         }
         else
         {
@@ -275,12 +283,7 @@ internal static class Program
         
         DrawRectangleRec(enemyMatches.Border, ColorAlpha(RED, 1f)); //invisible
     }
-
-    private static void DrawGrid()
-    {
-        _grid.Draw(globalTimer.ElapsedSeconds);
-    }
-
+    
     private static void HardResetIf_A_Pressed()
     {
         if (IsKeyDown(KeyboardKey.KEY_A))
@@ -343,15 +346,13 @@ internal static class Program
                     if (CreateEnemiesIfNeeded()) 
                         HandleEnemies();
                         
-                    //Draw has to be always at any time ! 
+                    //DrawGrid has to be always at any time ! 
                     DrawRectAroundEnemyTiles();
-                    DrawGrid();
+                    TileRenderer.DrawGrid(_grid, globalTimer.ElapsedSeconds);
                     HardResetIf_A_Pressed();
                 }
-
                 enterGame = true;
             }
-
             EndDrawing();
         }
     }
