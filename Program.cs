@@ -35,6 +35,7 @@ internal static class Program
     private static float match3RectAlpha = 1f;
 
     private static MatchX currentMatch;
+    private static bool ShallCreateEnemies;
 
     private static void ShowWelcomeScreen(bool hideWelcome)
     {
@@ -136,59 +137,6 @@ internal static class Program
 
     private static void ProcessSelectedTiles()
     {
-        static void CheckForMatches(Tile secondClicked)
-        {
-            Console.WriteLine("am handling right now matches...");
-
-            if (_grid.WasAMatchInAnyDirection(secondClicked, MatchesOf3))
-            {
-                if (secondClicked.Body is not TileShape body)
-                    return;
-
-                Console.WriteLine(body);
-
-                if (GameRuleManager.TryGetMatch3Quest(body, out int toCollect))
-                {
-                    //tileCounter += 1;
-                    //Console.WriteLine($"You already got {tileCounter} match of Balltype: {candy.Ball}");
-
-                    if (++tileCounter == toCollect)
-                    {
-                        Console.WriteLine($"Good job, you got your {tileCounter} match3! by {body.Ball}");
-                        tileCounter = 0;
-                        missedSwapTolerance = 0;
-                    }
-                    wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
-                }
-
-                enemyMatches = MatchesOf3.Transform(_grid);
-                //GameTime toggleTimer = GameTime.GetTimer(500900);
-                //here begins the entire swapping from default tile to enemy tile
-                //and its affects to other surrounding tiles
-                enemiesStillThere = true;
-                match3RectAlpha = 1f;
-            }
-
-            //if (++missedSwapTolerance == Level.MaxAllowedSpawns)
-            //{
-            //    Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
-            //    GameRuleManager.ChangeSubQuest(candy, tileCounter + 3);
-            //    missedSwapTolerance = 0;
-            //}
-            //if (MatchesOf3.Count == 0)
-            //{
-            //    secondClicked = (Tile)firstClickedTile;
-            //    Console.WriteLine("calling GOTO in order to try it with the 1. tile");
-            //    MatchesOf3.Add(null!); //this line we just do, in order to interrupt the GOTO call again!
-            //    goto TryMatchWithFirstTile;
-            //}
-            //Console.WriteLine(firstClickedTile);
-            MatchesOf3.Empty();
-        }
-
-        backToNormal = false;
-
-        //Here we check mouse input AND if the clickedTile is actually an enemy, then the clicks correlates to the 
         if (_grid.NothingClicked(out var tmpFirst))
             return;
 
@@ -222,13 +170,59 @@ internal static class Program
             {
                 //Console.WriteLine("first and second were swapped successfully!");
                 //both "first" are in this case the second, due to the swap!
-                CheckForMatches((secondClicked as Tile)!);
+                //ComputeMatches((secondClicked as Tile)!);
+                wasSwapped = true;
             }
             secondClicked = null;
         }
     }
+    
+    static void ComputeMatches()
+    {
+        if (!wasSwapped)
+            return;
+        
+        bool CheckIfMatchQuestWasMet(TileShape body)
+        {
+            if (GameRuleManager.TryGetMatch3Quest(body, out int toCollect))
+            {
+                tileCounter += 1;
 
-    private static void HandleClicksOnEnemies()
+                if (++tileCounter == toCollect)
+                {
+                    tileCounter = 0;
+                    missedSwapTolerance = 0;
+                }
+            }
+            return tileCounter == toCollect;
+        }
+          
+        bool ShallTransformMatchesToEnemyMatches() => Randomizer.NextSingle() <= 0.5f;
+            
+        if (_grid.WasAMatchInAnyDirection(secondClicked!, MatchesOf3) && !ShallCreateEnemies)
+        {
+            if ((secondClicked as Tile)!.Body is not TileShape body)
+                return;
+                
+            if (CheckIfMatchQuestWasMet(body))
+            {
+                Console.WriteLine($"Good job, you got the {tileCounter} match3! for {body.Ball} Balls");
+                wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
+            }
+
+            ShallCreateEnemies = ShallTransformMatchesToEnemyMatches();
+        }
+
+        //if (++missedSwapTolerance == Level.MaxAllowedSpawns)
+        //{
+        //    Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
+        //    GameRuleManager.ChangeSubQuest(candy, tileCounter + 3);
+        //    missedSwapTolerance = 0;
+        //}
+        MatchesOf3.Empty();
+    }
+    
+    private static void HandleEnemies()
     {
         if (_grid.NothingClicked(out var enemyTile))
             return;
@@ -237,25 +231,38 @@ internal static class Program
         if (enemyTile is EnemyTile e)
         {
             //IF it is an enemy, YOU HAVE TO delete them before u can continue
-            if (GameRuleManager.TryGetEnemyQuest(e.Body as TileShape, out int clicksNeeded))
+            if (GameRuleManager.TryGetEnemyQuest((TileShape)e.Body, out int clicksNeeded))
             {
-                if (clicksNeeded == ++clickCount && e.State == State.Clean)
+                if (clicksNeeded == ++clickCount /*&& e.State == State.Clean*/)
                 {
                     e.State = State.Deleted;
                     clickCount = 0;
 
                     if (!backToNormal)
                     {
-                        e.BlockSurroundingTiles(_grid, backToNormal);
+                        e.BlockSurroundingTiles(_grid, false);
                         backToNormal = true;
                     }
-
                     Console.WriteLine(matchXCounter++);
                 }
-
                 enemiesStillThere = matchXCounter <= Level.MatchConstraint;
             }
         }
+    }
+
+    private static bool CreateEnemiesIfNeeded()
+    {
+        if (ShallCreateEnemies)
+        {
+            //we now create here the enemies
+            enemyMatches = enemyMatches.Count == 0 ? MatchesOf3.Transform(_grid) : enemyMatches;
+        }
+        else
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static void DrawRectAroundEnemyTiles()
@@ -269,10 +276,8 @@ internal static class Program
         else
         {
             match3Rect = tmp;
-            DrawRectangleRec(tmp, ColorAlpha(RED, match3RectAlpha)); //invisible
+            DrawRectangleRec(tmp, ColorAlpha(RED, match3RectAlpha)); //visible
         }
-        //Console.WriteLine(EnemiesPerMatch.Count);
-        enemyMatches.Empty();
     }
 
     private static void DrawGrid()
@@ -280,7 +285,7 @@ internal static class Program
         _grid.Draw(globalTimer.ElapsedSeconds);
     }
 
-    private static void HardReset()
+    private static void HardResetIf_A_Pressed()
     {
         if (IsKeyDown(KeyboardKey.KEY_A))
         {
@@ -334,10 +339,15 @@ internal static class Program
                     HideWelcomeScreen();
                     HandleMouseEvents();
                     ProcessSelectedTiles();
-                    HandleClicksOnEnemies();
+                    ComputeMatches();
+                    
+                    if (CreateEnemiesIfNeeded()) 
+                        HandleEnemies();
+                        
+                    //Draw has to be always at any time ! 
                     DrawRectAroundEnemyTiles();
                     DrawGrid();
-                    HardReset();
+                    HardResetIf_A_Pressed();
                 }
 
                 enterGame = true;

@@ -256,6 +256,7 @@ public interface ITile : IEquatable<ITile>
 public class Tile : ITile
 {
     private State _current;
+    
     public virtual Options Options { get; set; }
     public virtual State State 
     {
@@ -268,6 +269,8 @@ public class Tile : ITile
                 _current &= State.Selected;
                 _current &= State.Disabled;
                 _current &= State.Deleted;
+                _current &= State.Hidden;
+                
                 Body.Color.CurrentAlpha = 1f;
                 Body.Color.AlphaSpeed = 0f;
             }
@@ -283,15 +286,12 @@ public class Tile : ITile
             {
                 _current &= State.Clean; //remove clean flag from set
                 _current &= State.Selected; //remove clean flag from set
-                //add disabled flag to set cause when smth is deleted it must be automatically disabled 
-                _current |= State.Disabled;
-                _current |= State.Hidden;
                 Body.Color.AlphaSpeed = 0f;
             }
             else if ((value & State.Hidden) == State.Hidden)
             {
                 _current &= State.Clean;    //remove clean flag from set
-                _current |= State.Selected; //remove clean flag from set
+                //_current |= State.Selected; //remove clean flag from set
                 //add disabled flag to set cause when smth is deleted it must be automatically disabled 
                 _current &= State.Disabled; //operations on that tile with this flag are still possible!
                 _current &= State.Deleted;
@@ -301,6 +301,8 @@ public class Tile : ITile
             {
                 _current &= State.Clean; //remove clean flag from set
                 _current &= State.Selected; //remove clean flag from set
+                _current &= State.Deleted; //deleted is reserved as Disabled AND Hidden, so u cannot be both at same time
+                
                 Body.Color = BLACK;
                 Body.Color.CurrentAlpha = 1f;
                 Body.Color.AlphaSpeed = 0f;
@@ -344,7 +346,7 @@ public class Tile : ITile
     {
         Body.ChangeColor(BLACK, 0f, 1f);
         Options = Options.UnMovable | Options.UnShapeable;
-        _current = State.Disabled;
+        State = State.Disabled;
     }
     public void Enable()
     {
