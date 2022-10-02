@@ -28,14 +28,11 @@ namespace Match_3
         private const int MaxDestroyableTiles = 3;
 
         public static ITile LastMatchTrigger { get; private set; }
-        private GameTime _gridTimer;
-        private readonly bool isDrawn = true;
         private byte _match3FuncCounter;
 
         private void CreateMap()
         {
             Span<int> counts = stackalloc int[(int)Type.Length];
-            ITile.GetAtlas() = AssetManager.DefaultTileAtlas;
 
             for (int x = 0; x < TileWidth; x++)
             {
@@ -45,6 +42,7 @@ namespace Match_3
                     float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
                     _bitmap[x, y] = Bakery.CreateTile(current, noise);
                     var kind = _bitmap[x, y] is Tile { Body: TileShape c } ? c.Ball : Type.Empty;
+                    //Console.WriteLine(( _bitmap[x, y] as Tile).State);
                     counts[(int)kind]++;
                 }
             }
@@ -69,38 +67,8 @@ namespace Match_3
             TileWidth = current.TilemapWidth;
             TileHeight = current.TilemapHeight;
             _bitmap = new ITile[TileWidth, TileHeight];
-            _gridTimer = GameTime.GetTimer(5 * 60);
             NotifyOnGridCreationDone += GameRuleManager.SetCountPerType;
             CreateMap();
-        }
-
-        public void Draw(float elapsedTime)
-        {
-            //Do this Draw second per second ONLY ONCE
-            for (int x = 0; x < TileWidth; x++)
-            {
-                for (int y = 0; y < TileHeight; y++)
-                {
-                    ITile basicTile = _bitmap[x, y];
-                    
-                    if (!basicTile.IsDeleted)
-                    {
-                        ITile.GetAtlas() = (basicTile is EnemyTile)
-                            ? AssetManager.EnemyAtlas
-                            : AssetManager.DefaultTileAtlas;
-
-                        basicTile.Draw(elapsedTime);
-                    }
-                }
-            }
-
-            //isDrawn = true;
-            //Console.WriteLine("ITERATION OVER FOR THIS DRAW-CALL!");
-        }
-
-        public bool NothingClicked(out ITile? tile)
-        {
-            return !TryGetClickedTile(out tile);
         }
         
         public ITile? this[Vector2 coord]
@@ -128,18 +96,21 @@ namespace Match_3
             }
         }
 
-        public bool WasAMatchInAnyDirection(ITile match3Trigger, MatchX matches)
+        public bool WasAMatchInAnyDirection(ITile match3Trigger, MatchX<ITile> matches)
         {
-            static bool AddWhenEqual(ITile first, ITile next, MatchX matches)
+            static bool AddWhenEqual(ITile first, ITile next, MatchX<ITile> matches)
             {
-                if (first is Tile f && next is Tile n && f == n)
+                if (first is Tile f && next is Tile n)
                 {
-                    if (matches.Count == MaxDestroyableTiles)
-                        return false;
+                    if (StateAndBodyComparer<ITile>.Singleton.Equals(f, n))
+                    {
+                        if (matches.Count == MaxDestroyableTiles)
+                            return false;
 
-                    matches.Add(f);
-                    matches.Add(n);
-                    return true;
+                        matches.Add(f);
+                        matches.Add(n);
+                        return true;
+                    }
                 }
                 return false;
             }
@@ -165,7 +136,7 @@ namespace Match_3
             for (Direction i = 0; i < lastDir; i++)
             {
                 Vector2 nextCoords = NextFrom(LastMatchTrigger.Cell, i);
-                var next = this[nextCoords];
+                var next = this[nextCoords]; //when a new tile is give back, the state == 0??
 
                 while (AddWhenEqual(LastMatchTrigger, next, matches))
                 {
@@ -189,21 +160,7 @@ namespace Match_3
             }
             return matches.Count == MaxDestroyableTiles;
         }
-
-        private bool TryGetClickedTile(out ITile? tile)
-        {
-            tile = default!;
-
-            if (!Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
-                return false;
-
-            var mouseVec2 = Raylib.GetMousePosition();
-            Vector2 gridPos = new Vector2((int)mouseVec2.X, (int)mouseVec2.Y);
-            gridPos /= ITile.Size;
-            tile = this[gridPos];
-            return tile is not null;
-        }
-
+        
         public bool Swap(ITile? a, ITile? b)
         {
             if (a is null || b is null || a.IsDeleted || b.IsDeleted)
@@ -216,12 +173,13 @@ namespace Match_3
             
             this[a.Cell] = b;
             this[b.Cell] = a;
+            a.CoordsB4Swap = a.Cell;
+            b.CoordsB4Swap = b.Cell;
             (a.Cell, b.Cell) = (b.Cell, a.Cell);
-            (a.CoordsB4Swap, b.CoordsB4Swap) = (b.Cell, a.Cell);
             return true;
         }
 
-        public void Delete(MatchX match)
+        public void Delete(MatchX<ITile> match)
         {
             Vector2 begin = match.Begin;
             
