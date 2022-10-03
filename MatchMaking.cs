@@ -27,7 +27,7 @@ public class MatchX
     {
         Matches = new HashSet<Tile>(matchCount);
     }
-    public virtual void Add(Tile matchTile)
+    public void Add(Tile matchTile)
     {
         if (Matches.Add(matchTile))
         {
@@ -41,14 +41,16 @@ public class MatchX
     {
         Matches.Clear();
     }
-    public EnemyMatches Transform(Grid map)
+    public EnemyMatches MakeEnemies(Grid map)
     {
-        EnemyMatches list = new(Count, map);
+        EnemyMatches list = new(Count);
 
         foreach (var match in Matches)
         {
             map[match.Cell] = Bakery.MakeEnemy(match!);
-            list.Add((map[match.Cell] as EnemyTile)!);
+            EnemyTile e = (EnemyTile)map[match.Cell]!;
+            e.BlockSurroundingTiles(map, true);
+            list.Add(e);
         }
         return list;
     }
@@ -56,22 +58,9 @@ public class MatchX
 
 public class EnemyMatches : MatchX
 {
-    private readonly Grid _map;
     private Rectangle _border;
-
-    public EnemyMatches(int matchCount, Grid map) : base(matchCount)
+    public EnemyMatches(int matchCount) : base(matchCount)
     {
-        _map = map;
-    }
-    public override void Add(Tile enemyTile)
-    {
-        if (enemyTile is not EnemyTile e)
-            return;
-        
-        if (Matches.Add(e))
-        {
-            e.BlockSurroundingTiles(_map, true);
-        }
     }
     private Rectangle BuildBorder()
     {
@@ -79,10 +68,10 @@ public class EnemyMatches : MatchX
             return default;
 
         Vector2 begin;
-        int match3RectWidth = 0;
-        int match3RectHeight = 0;
+        int match3RectWidth;
+        int match3RectHeight;
         
-        if (Matches.IsRowBased())
+        if (IsRowBased)
         {
             //its row based rectangle
             //-----------------|
