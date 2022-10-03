@@ -151,7 +151,7 @@ internal static class Program
             if (secondClicked!.Body is not TileShape body)
                 return;
             
-            _grid.Delete(matchesOf3!);
+            //_grid.Delete(matchesOf3!);
             
             if (CheckIfMatchQuestWasMet(body))
             {
@@ -159,7 +159,10 @@ internal static class Program
                 wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
             }
 
-            shallCreateEnemies = ShallTransformMatchesToEnemyMatches();
+            shallCreateEnemies = true; //ShallTransformMatchesToEnemyMatches();
+            
+            if (!shallCreateEnemies)
+                matchesOf3!.Empty();
         }
 
         //if (++missedSwapTolerance == Level.MaxAllowedSpawns)
@@ -172,7 +175,6 @@ internal static class Program
         //reset values to default to repeat the code for the next input!
         wasSwapped = false;
         secondClicked = null;
-        matchesOf3!.Empty();
     }
     
     private static void HandleEnemies()
@@ -210,14 +212,10 @@ internal static class Program
         if (shallCreateEnemies)
         {
             //we now create here the enemies
-            enemyMatches = enemyMatches?.Count == 0 ? matchesOf3?.Transform(_grid) : enemyMatches;
+            enemyMatches ??= matchesOf3?.MakeEnemies(_grid);
+            var r = enemyMatches.Border;
         }
-        else
-        {
-            return true;
-        }
-
-        return false;
+        return shallCreateEnemies;
     }
 
     private static void HardResetIf_A_Pressed()
