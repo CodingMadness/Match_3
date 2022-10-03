@@ -86,6 +86,12 @@ public static class Utils
         return tmp;
     }
 
+    public static bool IsOnSameAxis(this Vector2 first, Vector2 next)
+    {
+        return (int)first.X == (int)next.X || 
+               (int)first.Y == (int)next.Y;
+    }
+    
     public static Vector2 ToWorldCoord(this Rectangle rayRect) => new(rayRect.x, rayRect.y);
 
     public static void SetMousePos(Vector2 position, int scale = Tile.Size)

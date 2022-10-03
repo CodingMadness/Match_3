@@ -37,7 +37,7 @@ public static class Renderer
         DrawTextureRec(GetAtlas(), tile.DestRect, tile.Begin, body.Color.Apply());
         DrawCoordOnTop(tile);
     }
-
+    
     public static void DrawGrid(Grid map, float elapsedTime)
     {
         //Do this DrawGrid second per second ONLY ONCE
@@ -70,15 +70,13 @@ public static class Renderer
         if (matches is null || matches.Count == 0)
             return;
         
-        DrawRectangleRec(matches.Border, ColorAlpha(RED, 1f)); //invisible
+        DrawRectangleRec(matches.Border, ColorAlpha(RED, 1f)); //visible
     }
     
     public static void UpdateTimer(ref GameTime globalTimer)
     {
         globalTimer.Run();
 
-        //(int start, int end) = _grid.MakePlaceForTimer();
-        //GetMatch3Rect(start, 0, end-start, Tile.SIZE, RED);
         TimerText.Text = ((int)globalTimer.ElapsedSeconds).ToString();
         FadeableColor color = globalTimer.ElapsedSeconds > 0f ? BLUE : WHITE;
         TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };

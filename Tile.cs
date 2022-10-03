@@ -216,6 +216,7 @@ public class Tile
     private State _current;
     
     public virtual Options Options { get; set; }
+    
     public virtual State State 
     {
         get => _current;
@@ -263,9 +264,9 @@ public class Tile
                 
                 Body.Color = BLACK;
                 Body.Color.CurrentAlpha = 1f;
-                Body.Color.AlphaSpeed = 0f;
+                Body.Color.AlphaSpeed = 0.75f;
+                Body.Color.TargetAlpha = 1f;
             }
-
             _current = value;
         }
     }
@@ -298,7 +299,7 @@ public class Tile
     {
         Body.ChangeColor(BLACK, 0f, 1f);
         Options = Options.UnMovable | Options.UnShapeable;
-        State = !shallDelete ? State.Disabled : State.Deleted;
+        State = shallDelete ? State.Disabled : State.Deleted;
     }
     public void Enable()
     {
