@@ -76,14 +76,27 @@ public static class Utils
 
     }
     
+    public  static bool IsEmpty(this Rectangle rayRect) => 
+        rayRect.x == 0 && rayRect.y == 0 && rayRect.width == 0 && rayRect.height == 0; 
+    
     public static Rectangle Add(this Rectangle rayRect, Rectangle otherRayRect)
     {
-        Clean(ref rayRect, ref otherRayRect);
+        if (rayRect.IsEmpty())
+        {
+            rayRect = otherRayRect;
+            return rayRect;
+        }
+        if (otherRayRect.IsEmpty())
+        {
+            otherRayRect = rayRect;
+            return otherRayRect;
+        }
+    
         Vector2 first = rayRect.ToWorldCoord();
         Vector2 other = otherRayRect.ToWorldCoord();
         bool sameRow = first.IsSameRow(other);
-        float x = sameRow ? rayRect.x + otherRayRect.x : rayRect.x;
-        float y = sameRow ? rayRect.y : otherRayRect.y + rayRect.y;
+        float x = sameRow ? rayRect.x + otherRayRect.width : rayRect.x;
+        float y = sameRow ? rayRect.y : rayRect.y + otherRayRect.height;
         float width = sameRow ? rayRect.width + otherRayRect.width : rayRect.width;
         float height = sameRow ? rayRect.height : otherRayRect.height + rayRect.height;
         return new Rectangle(x, y, width, height);
