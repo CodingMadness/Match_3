@@ -65,9 +65,9 @@ public static class Renderer
         //Console.WriteLine("ITERATION OVER FOR THIS DRAW-CALL!");
     }
     
-    public static void DrawBorder(MatchX? matches)
+    public static void DrawInnerBox(MatchX? matches)
     {
-        if (matches?.Count == 0)
+        if (matches?.Count > 0)
         {
             //if (matches is EnemyMatches em)
               //  DrawRectangleRec(em.Border, ColorAlpha(RED, 1f));
@@ -76,6 +76,16 @@ public static class Renderer
         }
     }
     
+    public static void DrawOuterBox(EnemyMatches? matches)
+    {
+        if (matches?.Count == 0)
+        {
+            //if (matches is EnemyMatches em)
+            //  DrawRectangleRec(em.Border, ColorAlpha(RED, 1f));
+            //else 
+            DrawRectangleRec(matches.MapRect, ColorAlpha(RED, 1f));
+        }
+    }
     public static void UpdateTimer(ref GameTime globalTimer)
     {
         globalTimer.Run();
