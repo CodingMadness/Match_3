@@ -65,12 +65,15 @@ public static class Renderer
         //Console.WriteLine("ITERATION OVER FOR THIS DRAW-CALL!");
     }
     
-    public static void DrawBorder(EnemyMatches? matches)
+    public static void DrawBorder(MatchX? matches)
     {
-        if (matches is null || matches.Count == 0)
-            return;
-        
-        DrawRectangleRec(matches.Border, ColorAlpha(RED, 1f)); //visible
+        if (matches?.Count == 0)
+        {
+            //if (matches is EnemyMatches em)
+              //  DrawRectangleRec(em.Border, ColorAlpha(RED, 1f));
+            //else 
+                DrawRectangleRec(matches.MapRect, ColorAlpha(RED, 1f));
+        }
     }
     
     public static void UpdateTimer(ref GameTime globalTimer)

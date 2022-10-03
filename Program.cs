@@ -179,7 +179,7 @@ internal static class Program
     
     private static void HandleEnemies()
     {
-        if (TileClicked(out var enemyTile))
+        if (!TileClicked(out var enemyTile))
             return;
 
         //Enemy tile was clicked on , ofc after a matchX happened!
@@ -213,7 +213,7 @@ internal static class Program
         {
             //we now create here the enemies
             enemyMatches ??= matchesOf3?.MakeEnemies(_grid);
-            var r = enemyMatches.Border;
+            
         }
         return shallCreateEnemies;
     }
@@ -267,9 +267,8 @@ internal static class Program
                 }
                 else
                 {
-                    //UPDATE-CALLS! 
-                    Renderer.UpdateTimer(ref globalTimer);
                     Renderer.ShowWelcomeScreen(true);
+                    Renderer.UpdateTimer(ref globalTimer);
                     CenterMouse();
                     ProcessSelectedTiles();
                     ComputeMatches();

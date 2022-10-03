@@ -11,7 +11,7 @@ public class MatchX
    
     public int Count => Matches.Count;
     public TileShape? Match3Body { get; private set; }
-    public Rectangle MapRect { get; protected set; }
+    public Rectangle MapRect { get; private set; }
     public Vector2 Begin
     {
         get
@@ -31,10 +31,10 @@ public class MatchX
     {
         if (Matches.Add(matchTile))
         {
-            var body = matchTile!.Body;
-            MapRect = MapRect.Union(body.Rect);
+            var bounds = matchTile!.Bounds;
+            MapRect = MapRect.Add(bounds);
             Console.WriteLine(MapRect.ToStr());
-            Match3Body ??= (body as TileShape)!.Clone() as TileShape;
+            Match3Body ??= (matchTile.Body as TileShape)!.Clone() as TileShape;
         }
     }
     public void Empty()
@@ -43,7 +43,10 @@ public class MatchX
     }
     public EnemyMatches MakeEnemies(Grid map)
     {
-        EnemyMatches list = new(Count);
+        EnemyMatches list = new(Count)
+        {
+            MapRect = default
+        };
 
         foreach (var match in Matches)
         {

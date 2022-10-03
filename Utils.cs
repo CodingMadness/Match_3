@@ -57,6 +57,38 @@ public static class Utils
         return new Rectangle(union.X, union.Y, union.Width, union.Height);
     }
 
+    private static void Clean(ref this Rectangle rayRect, ref Rectangle otherRayRect)
+    {
+        float firstWidth = rayRect.width == 0 ? otherRayRect.width : rayRect.width;
+        float otherWidth = otherRayRect.width == 0 ? rayRect.width : otherRayRect.width;
+        
+        float firstHeight = rayRect.height == 0 ? otherRayRect.height : rayRect.height;
+        float otherHeight = otherRayRect.height == 0 ? rayRect.height : otherRayRect.height;
+        
+        float firstX = rayRect.x == 0 ? otherRayRect.x : rayRect.x;
+        float otherX = otherRayRect.x == 0 ? rayRect.x : otherRayRect.x;
+        
+        float firstY = rayRect.y == 0 ? otherRayRect.y : rayRect.y;
+        float otherY = otherRayRect.y == 0 ? rayRect.y : otherRayRect.y;
+
+        rayRect = new(firstX, firstY, firstWidth, firstY);
+        otherRayRect = new(otherX, otherY, otherWidth, otherHeight);
+
+    }
+    
+    public static Rectangle Add(this Rectangle rayRect, Rectangle otherRayRect)
+    {
+        Clean(ref rayRect, ref otherRayRect);
+        Vector2 first = rayRect.ToWorldCoord();
+        Vector2 other = otherRayRect.ToWorldCoord();
+        bool sameRow = first.IsSameRow(other);
+        float x = sameRow ? rayRect.x + otherRayRect.x : rayRect.x;
+        float y = sameRow ? rayRect.y : otherRayRect.y + rayRect.y;
+        float width = sameRow ? rayRect.width + otherRayRect.width : rayRect.width;
+        float height = sameRow ? rayRect.height : otherRayRect.height + rayRect.height;
+        return new Rectangle(x, y, width, height);
+    }
+    
     public static string ToStr(this Rectangle rayRect)
         => $"x:{rayRect.x} y:{rayRect.y}  width:{rayRect.width}  height:{rayRect.height}";
     public static Rectangle Divide(this Rectangle rayRect, int divisor)
@@ -86,10 +118,9 @@ public static class Utils
         return tmp;
     }
 
-    public static bool IsOnSameAxis(this Vector2 first, Vector2 next)
+    public static bool IsSameRow(this Vector2 first, Vector2 next)
     {
-        return (int)first.X == (int)next.X || 
-               (int)first.Y == (int)next.Y;
+        return (int)first.Y == (int)next.Y;
     }
     
     public static Vector2 ToWorldCoord(this Rectangle rayRect) => new(rayRect.x, rayRect.y);

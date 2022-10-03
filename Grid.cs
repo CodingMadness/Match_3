@@ -98,7 +98,7 @@ namespace Match_3
         {
             static bool AddWhenEqual(Tile? first, Tile? next, MatchX matches)
             {
-                if (first is not null && next is not null && first.Cell.IsOnSameAxis(next.Cell))
+                if (first is not null && next is not null /*&& first.Cell.IsSameRow(next.Cell)*/)
                 {
                     if (StateAndBodyComparer.Singleton.Equals(first, next))
                     {
