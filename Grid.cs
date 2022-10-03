@@ -96,8 +96,9 @@ namespace Match_3
 
         public bool WasAMatchInAnyDirection(Tile match3Trigger, MatchX matches)
         {
-            static bool AddWhenEqual(Tile first, Tile next, MatchX matches)
+            static bool AddWhenEqual(Tile? first, Tile? next, MatchX matches)
             {
+                if (first is not null && next is not null && first.Cell.IsOnSameAxis(next.Cell))
                 {
                     if (StateAndBodyComparer.Singleton.Equals(first, next))
                     {
@@ -112,7 +113,7 @@ namespace Match_3
                 return false;
             }
 
-            static Vector2 NextFrom(Vector2 input, Direction direction)
+            static Vector2 Next(Vector2 input, Direction direction)
             {
                 var tmp = direction switch
                 {
@@ -132,7 +133,7 @@ namespace Match_3
 
             for (Direction i = 0; i < lastDir; i++)
             {
-                Vector2 nextCoords = NextFrom(LastMatchTrigger.Cell, i);
+                Vector2 nextCoords = Next(LastMatchTrigger.Cell, i);
                 var next = this[nextCoords]; //when a new tile is give back, the state == 0??
 
                 while (AddWhenEqual(LastMatchTrigger, next, matches))
@@ -140,7 +141,7 @@ namespace Match_3
                     //compute the proper (x,y) for next round, because
                     //we found a match between a -> b, now we check
                     //a -> c and so on
-                    nextCoords = NextFrom(nextCoords, i);
+                    nextCoords = Next(nextCoords, i);
                     next = this[nextCoords];
                 }
             }
