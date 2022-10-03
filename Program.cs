@@ -56,15 +56,16 @@ internal static class Program
         //WHEN the cursor exceeds at a certain bounding box
         if (matchesOf3?.Begin != Vector2.Zero && enemyMatches is not null)
         {
-            bool outsideOfRect = CheckCollisionPointRec(GetMousePosition(), enemyMatches.MapRect);
+            bool outsideRect = !CheckCollisionPointRec(GetMousePosition(), enemyMatches.Border);
 
-            if (outsideOfRect && enemiesStillThere)
+            if (outsideRect)
             {
                 /*the player has to get these enemies out of the way b4 he can pass!*/
                 SetMousePos(matchesOf3!.Begin);
             }
             else
             {
+                //move freely
             }
         }
     }
@@ -213,7 +214,6 @@ internal static class Program
         {
             //we now create here the enemies
             enemyMatches ??= matchesOf3?.MakeEnemies(_grid);
-            
         }
         return shallCreateEnemies;
     }
@@ -280,7 +280,8 @@ internal static class Program
                     if (CreateEnemiesIfNeeded()) 
                         HandleEnemies();
                     
-                    Renderer.DrawBorder(enemyMatches);
+                    Renderer.DrawInnerBox(enemyMatches);
+                    //Renderer.DrawInnerBox(matchesOf3);
                     Renderer.DrawGrid(_grid, globalTimer.ElapsedSeconds);
                     HardResetIf_A_Pressed();
                 }
