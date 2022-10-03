@@ -56,7 +56,7 @@ internal static class Program
         //WHEN the cursor exceeds at a certain bounding box
         if (matchesOf3?.Begin != Vector2.Zero && enemyMatches is not null)
         {
-            bool outsideOfRect = !CheckCollisionPointRec(GetMousePosition(), enemyMatches.Border);
+            bool outsideOfRect = CheckCollisionPointRec(GetMousePosition(), enemyMatches.MapRect);
 
             if (outsideOfRect && enemiesStillThere)
             {
@@ -146,7 +146,7 @@ internal static class Program
         
         bool ShallTransformMatchesToEnemyMatches() => Randomizer.NextSingle() <= 0.5f;
 
-        if (_grid.WasAMatchInAnyDirection(secondClicked!, matchesOf3!) && !shallCreateEnemies)
+        if (_grid.WasAMatchInAnyDirection(secondClicked!, matchesOf3!) /*&& !shallCreateEnemies*/)
         {
             if (secondClicked!.Body is not TileShape body)
                 return;
@@ -223,9 +223,13 @@ internal static class Program
         if (IsKeyDown(KeyboardKey.KEY_A))
         {
             _grid = new Grid(Level);
+            shallCreateEnemies = true;
+            matchesOf3?.Empty();
+            enemyMatches?.Empty();
             enemiesStillThere = false;
             match3RectAlpha = 0f;
             secondClicked = null;
+            wasSwapped = false;
             Console.Clear();
         }
     }
