@@ -16,11 +16,12 @@ public class MatchX
     {
         get
         {
-            if (MapRect.x == 0 && MapRect.y == 0)
+            if (MapRect.IsEmpty())
                 return Vector2.Zero;
             
-            var tmp = MapRect with { x = MapRect.width / Count, y = MapRect.width / Count };
-            return new Vector2(tmp.x, tmp.y);
+            //var tmp = MapRect with { x = MapRect.width / Count, y = MapRect.width / Count };
+            var tmp = Matches.ElementAt(0).Begin / Tile.Size;
+            return tmp;
         }
     }
     public MatchX(int matchCount)
@@ -39,6 +40,7 @@ public class MatchX
     }
     public void Empty()
     {
+        MapRect = default;
         Matches.Clear();
     }
     public EnemyMatches MakeEnemies(Grid map)
