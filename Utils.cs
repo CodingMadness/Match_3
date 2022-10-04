@@ -57,49 +57,42 @@ public static class Utils
         return new Rectangle(union.X, union.Y, union.Width, union.Height);
     }
 
-    private static void Clean(ref this Rectangle rayRect, ref Rectangle otherRayRect)
-    {
-        float firstWidth = rayRect.width == 0 ? otherRayRect.width : rayRect.width;
-        float otherWidth = otherRayRect.width == 0 ? rayRect.width : otherRayRect.width;
-        
-        float firstHeight = rayRect.height == 0 ? otherRayRect.height : rayRect.height;
-        float otherHeight = otherRayRect.height == 0 ? rayRect.height : otherRayRect.height;
-        
-        float firstX = rayRect.x == 0 ? otherRayRect.x : rayRect.x;
-        float otherX = otherRayRect.x == 0 ? rayRect.x : otherRayRect.x;
-        
-        float firstY = rayRect.y == 0 ? otherRayRect.y : rayRect.y;
-        float otherY = otherRayRect.y == 0 ? rayRect.y : otherRayRect.y;
-
-        rayRect = new(firstX, firstY, firstWidth, firstY);
-        otherRayRect = new(otherX, otherY, otherWidth, otherHeight);
-
-    }
     
     public  static bool IsEmpty(this Rectangle rayRect) => 
-        rayRect.x == 0 && rayRect.y == 0 && rayRect.width == 0 && rayRect.height == 0; 
-    
-    public static Rectangle Add(this Rectangle rayRect, Rectangle otherRayRect)
+        rayRect.x < 0 && rayRect.y < 0 && rayRect.width == 0 && rayRect.height == 0;
+
+    public static readonly Rectangle EMPTY = new(-1f, -1f, 0f, 0f); 
+    public static Rectangle Add(this Rectangle a, Rectangle b)
     {
-        if (rayRect.IsEmpty())
+        if (a.IsEmpty())
         {
-            rayRect = otherRayRect;
-            return rayRect;
+            a = b;
+            return a;
         }
-        if (otherRayRect.IsEmpty())
+        if (b.IsEmpty())
         {
-            otherRayRect = rayRect;
-            return otherRayRect;
+            b = a;
+            return b;
         }
     
-        Vector2 first = rayRect.ToWorldCoord();
-        Vector2 other = otherRayRect.ToWorldCoord();
-        bool sameRow = first.IsSameRow(other);
-        float x = sameRow ? rayRect.x + otherRayRect.width : rayRect.x;
-        float y = sameRow ? rayRect.y : rayRect.y + otherRayRect.height;
-        float width = sameRow ? rayRect.width + otherRayRect.width : rayRect.width;
-        float height = sameRow ? rayRect.height : otherRayRect.height + rayRect.height;
-        return new Rectangle(x, y, width, height);
+        Vector2 first = a.GetBegin();
+        Vector2 other = b.GetBegin();
+        (Vector2 Direction, bool isRow) pair = first.GetDirectionTo(other);
+        float width = a.width;
+        float height = a.height;
+        
+        //we know that: a) the direction and b)
+        if (pair.isRow)
+        {
+            //a=10, b=10, result= a + b * 1
+            width = ((a.width + b.width) * pair.Direction).X;
+        }
+        else
+        {
+            height = ((a.height + b.height) * pair.Direction).Y;
+        }
+
+        return new(first.X, first.Y, width, height);
     }
     
     public static string ToStr(this Rectangle rayRect)
@@ -131,12 +124,78 @@ public static class Utils
         return tmp;
     }
 
-    public static bool IsSameRow(this Vector2 first, Vector2 next)
+    public static (Vector2 Direction, bool isRow) GetDirectionTo(this Vector2 first, Vector2 next)
     {
-        return (int)first.Y == (int)next.Y;
+        bool sameRow = (int)first.Y == (int)next.Y;
+        
+        //switch on direction
+        if (sameRow)
+        {
+            //the difference is positive
+            if (first.X < next.X)
+                return (Vector2.UnitX, sameRow);
+            
+            if (first.X > next.X)
+                return (-Vector2.UnitX, sameRow);
+        }
+        //switch on direction
+        else
+        {
+            //the difference is positive
+            if (first.Y < next.Y)
+                return (Vector2.UnitY, sameRow);
+            
+            if (first.Y > next.Y)
+                return (-Vector2.UnitY, sameRow);
+        }
+
+        return (-Vector2.One, false);
+    }
+
+    public static Vector2 GetOpposite(this Vector2 a, Vector2 b)
+    {
+        var pair = a.GetDirectionTo(b);
+        
+        if (pair.isRow)
+        {
+            if (pair.Direction == -Vector2.UnitX)
+            {
+                //store the "PlaceHere" vector2 to set
+                //the 3.tile to that position to be X-aligned
+                return a + Vector2.UnitX;
+            }
+            if (pair.Direction == Vector2.UnitX)
+            {
+                //store the "PlaceHere" vector2 to set
+                //the 3.tile to that position to be X-aligned
+                return a - Vector2.UnitX;
+            }
+        }
+        else 
+        {
+            if (pair.Direction == -Vector2.UnitY)
+            {
+                //store the "PlaceHere" vector2 to set
+                //the 3.tile to that position to be X-aligned
+                return a + Vector2.UnitY;
+            }
+            if (pair.Direction == Vector2.UnitY)
+            {
+                //store the "PlaceHere" vector2 to set
+                //the 3.tile to that position to be X-aligned
+                return a - Vector2.UnitY;
+            }
+        }
+
+        throw new ArgumentException("this line should never be reached!");
+    }
+
+    public static bool CompletelyDifferent(this Vector2 a, Vector2 b)
+    {
+        return  ((int)a.X != (int)b.X && (int)a.Y != (int)b.Y) ;
     }
     
-    public static Vector2 ToWorldCoord(this Rectangle rayRect) => new(rayRect.x, rayRect.y);
+    public static Vector2 GetBegin(this Rectangle rayRect) => new(rayRect.x, rayRect.y);
 
     public static void SetMousePos(Vector2 position, int scale = Tile.Size)
     {
@@ -159,7 +218,7 @@ public static class Utils
     public static bool IsRowBased(this ISet<Tile> items) 
     {
         Tile cmpr = items.ElementAt(0);
-        var isColumnBased = items.Count(x => (int)x.Cell.Y == (int)cmpr.Cell.Y) == items.Count;
+        var isColumnBased = items.Count(x => (int)x.GridCell.Y == (int)cmpr.GridCell.Y) == items.Count;
         return isColumnBased;
     }
 }
