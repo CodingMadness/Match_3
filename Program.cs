@@ -54,7 +54,7 @@ internal static class Program
     {
         //we only fix the mouse point,
         //WHEN the cursor exceeds at a certain bounding box
-        if (_matchesOf3?.Begin != Vector2.Zero && _enemyMatches is not null)
+        if (_enemyMatches?.Begin != INVALID_CELL && _enemyMatches is not null)
         {
             bool outsideRect = !CheckCollisionPointRec(GetMousePosition(), _enemyMatches.Border);
 
@@ -159,21 +159,12 @@ internal static class Program
                 Console.WriteLine($"Good job, you got the {_matchCounter} match3! for {body.Ball} Balls");
                 _wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
             }
-
-            _shallCreateEnemies = true; //ShallTransformMatchesToEnemyMatches();
-
-            if (!_shallCreateEnemies) ;
-            //  _matchesOf3!.Empty();
+            _shallCreateEnemies = false; //ShallTransformMatchesToEnemyMatches();
         }
-
-        //if (++_missedSwapTolerance == _level.MaxAllowedSpawns)
-        //{
-        //    Console.WriteLine("UPSI! you needed to many swaps to get a match now enjoy the punishment of having to collect MORE THAN BEFORE");
-        //    GameRuleManager.ChangeSubQuest(candy, _matchCounter + 3);
-        //    _missedSwapTolerance = 0;
-        //}
         
-        //reset values to default to repeat the code for the next input!
+        else
+            _matchesOf3!.Empty();
+        
         _wasSwapped = false;
         _secondClicked = null;
     }
@@ -270,17 +261,23 @@ internal static class Program
                 }
                 else
                 {
+                    Vector2 a = new(32f, 32f);
+                    Vector2 b = a * 3;
+                    Console.WriteLine("Euklid Distance: " + Vector2.Distance(a, b));
                     Renderer.ShowWelcomeScreen(true);
                     Renderer.UpdateTimer(ref _globalTimer);
                     CenterMouse();
                     ProcessSelectedTiles();
                     ComputeMatches();
                     
+                    /*
                     if (CreateEnemiesIfNeeded()) 
                         HandleEnemies();
+                        
+                     Renderer.DrawInnerBox(_enemyMatches);  //works not!
+                    */
                     
-                    //Renderer.DrawInnerBox(_enemyMatches);  //works not!
-                    //Renderer.DrawInnerBox(_matchesOf3);  //works!
+                    Renderer.DrawInnerBox(_matchesOf3);  //works!
                     Renderer.DrawGrid(_grid, _globalTimer.ElapsedSeconds);
                     HardReset();
                 }
