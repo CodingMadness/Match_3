@@ -282,8 +282,9 @@ public class Tile
     /// </summary>
     public Vector2 End => MapCell + (Vector2.One * Size); 
     public bool IsDeleted => (State & State.Disabled) == State.Disabled;
-    public Rectangle Bounds => new(MapCell.X, MapCell.Y, Size, Size);
-    
+    public Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
+    public Rectangle WorldBounds => GridBounds.ToWorldBox();
+
     public const int Size = 64;
     public static bool IsOnlyDefaultTile(Tile? current) =>
         current is not null and not EnemyTile;
