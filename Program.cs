@@ -271,8 +271,8 @@ internal static class Program
                     if (CreateEnemiesIfNeeded()) 
                         HandleEnemyMatches();
 
-                    Renderer.DrawOuterBox(_enemyMatches);  //works!
-                    //Renderer.DrawInnerBox(_matchesOf3);  //works!
+                    Renderer.DrawOuterBox(_enemyMatches, _globalTimer.ElapsedSeconds);  //works!
+                    Renderer.DrawInnerBox(_matchesOf3, _globalTimer.ElapsedSeconds) ;  //works!
                     Renderer.DrawGrid(_grid, _globalTimer.ElapsedSeconds);
                     HardReset();
                 }

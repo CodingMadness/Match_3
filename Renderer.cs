@@ -65,22 +65,22 @@ public static class Renderer
         //Console.WriteLine("ITERATION OVER FOR THIS DRAW-CALL!");
     }
     
-    public static void DrawInnerBox(MatchX? matches)
+    public static void DrawInnerBox(MatchX? matches, float elapsedTime)
     {
         if (matches?.IsMatch == true)
         {
-            DrawRectangleRec(matches.WorldBox, ColorAlpha(RED, 1f));
+            matches.Body!.Color = RED;
+            matches.Body!.Color.ElapsedTime = elapsedTime;
+            DrawRectangleRec(matches.WorldBox, matches.Body!.Color.Apply());
         }
     }
     
-    public static void DrawOuterBox(EnemyMatches? matches)
+    public static void DrawOuterBox(EnemyMatches? matches, float elapsedTime)
     {
         if (matches?.IsMatch == true)
         {
-            //if (matches is EnemyMatches em)
-            //  DrawRectangleRec(em.Border, ColorAlpha(RED, 1f));
-            //else 
-            DrawRectangleRec(matches.Border, ColorAlpha(RED, 1f));
+            matches.Body!.Color.ElapsedTime = elapsedTime;
+            DrawRectangleRec(matches.Border, matches.Body!.Color.Apply());
         }
     }
     
