@@ -184,7 +184,7 @@ namespace Match_3
             for (int i = 0; i < match.Count; i++)
             {
                 this[begin]!.Disable(true);
-                begin = match.MapRect.Move(match.IsRowBased).GetBegin();
+                begin = match.WorldBox.Move(match.IsRowBased).GetBegin();
             }
         }
     }
