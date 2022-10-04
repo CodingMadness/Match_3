@@ -59,20 +59,22 @@ public static class Utils
 
     
     public  static bool IsEmpty(this Rectangle rayRect) => 
-        rayRect.x < 0 && rayRect.y < 0 && rayRect.width == 0 && rayRect.height == 0;
+       /* rayRect.x == 0 && rayRect.y == 0 &&*/ rayRect.width == 0 && rayRect.height == 0;
 
-    public static readonly Rectangle EMPTY = new(-1f, -1f, 0f, 0f); 
-    public static Rectangle Add(this Rectangle a, Rectangle b)
+    public static readonly Rectangle INVALID_RECT = new(-1f, -1f, 0f, 0f);
+    public static Vector2 INVALID_CELL => -Vector2.One;
+    
+    public static void Add(ref this Rectangle a, Rectangle b)
     {
         if (a.IsEmpty())
         {
             a = b;
-            return a;
+            return;
         }
         if (b.IsEmpty())
         {
             b = a;
-            return b;
+            return;
         }
     
         Vector2 first = a.GetBegin();
@@ -85,24 +87,43 @@ public static class Utils
         if (pair.isRow)
         {
             //a=10, b=10, result= a + b * 1
-            width = ((a.width + b.width) * pair.Direction).X;
+            width = (a.width + b.width);
         }
         else
         {
-            height = ((a.height + b.height) * pair.Direction).Y;
+            height = (a.height + b.height);
         }
 
-        return new(first.X, first.Y, width, height);
+        a = new(first.X, first.Y, width, height);
     }
-    
     public static string ToStr(this Rectangle rayRect)
         => $"x:{rayRect.x} y:{rayRect.y}  width:{rayRect.width}  height:{rayRect.height}";
-    public static Rectangle Divide(this Rectangle rayRect, int divisor)
+    public static Rectangle ToWorldBox(this Rectangle cellRect)
     {
         //rayrect 
-        return new(rayRect.x, rayRect.y, rayRect.width / divisor, rayRect.height / divisor);
+        return new(cellRect.x * Tile.Size, 
+            cellRect.y * Tile.Size,
+            cellRect.width * Tile.Size,
+            cellRect.height * Tile.Size);
     }
-    
+    public static Rectangle ToGridBox(this Rectangle worldRect)
+    {
+        //rayrect 
+        return new(worldRect.x / Tile.Size, 
+            worldRect.y / Tile.Size,
+            worldRect.width / Tile.Size,
+            worldRect.height / Tile.Size);
+    }
+    public static Rectangle ScaleUp(this Rectangle rayRect, int factor)
+    {
+        //rayrect 
+        return new(rayRect.x, rayRect.y, rayRect.width / factor, rayRect.height / factor);
+    }
+    public static Rectangle SliceBy(this Rectangle rayRect, int factor)
+    {
+        //rayrect 
+        return new(rayRect.x, rayRect.y, rayRect.width * factor, rayRect.height * factor);
+    }
     public static Rectangle Move(this Rectangle rayRect, bool xDirection, int steps=1)
     {
         if (steps < 2)
@@ -124,6 +145,32 @@ public static class Utils
         return tmp;
     }
 
+    public static int CompareTo(this Vector2 a, Vector2 b)
+    {
+        if (a == b)
+            return 0;
+        
+        //case1: full a with full b
+        else if (a.X < b.X && a.Y < b.Y)
+            return -1;
+        else if (a.X > b.X && a.Y > b.Y)
+            return 1;
+
+        //case2: a is same row as b, so compare only X
+        bool isRow = a.GetDirectionTo(b).isRow;
+
+        if (isRow)
+        {
+            if (a.X < b.X) return -1;
+            else return 1;
+        }
+        else
+        {
+            if (a.Y < b.Y) return -1;
+            else return 1;
+        }
+    }
+    
     public static (Vector2 Direction, bool isRow) GetDirectionTo(this Vector2 first, Vector2 next)
     {
         bool sameRow = (int)first.Y == (int)next.Y;
@@ -195,8 +242,8 @@ public static class Utils
         return  ((int)a.X != (int)b.X && (int)a.Y != (int)b.Y) ;
     }
     
-    public static Vector2 GetBegin(this Rectangle rayRect) => new(rayRect.x, rayRect.y);
-
+    public static Vector2 GetBegin(this Rectangle a) => new((int)a.x, (int)a.y);
+    public static Vector2 GetGridCell(this Rectangle a) => GetBegin(a) / Tile.Size;
     public static void SetMousePos(Vector2 position, int scale = Tile.Size)
     {
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);
@@ -207,7 +254,7 @@ public static class Utils
         return (nint) Unsafe.AsPointer(ref Unsafe.As<StrongBox<byte>>(Object).Value);
     }
 
-    public static Rectangle GetMatch3Rect(Vector2 begin, int width, int height)
+    public static Rectangle NewWorldRect(Vector2 begin, int width, int height)
     {
         return new((int)begin.X * Tile.Size,
             (int)begin.Y * Tile.Size,
