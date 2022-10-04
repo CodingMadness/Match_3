@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Numerics;
 using Raylib_CsLo;
 
@@ -16,7 +17,7 @@ public class MatchX
     public bool IsRowBased => _wasRow;
     public int Count => _matches.Count;
     public bool IsMatch => Count == AllowedMatchCount;
-    public TileShape? Match3Body { get; private set; }
+    public TileShape? Body { get; private set; }
     public Rectangle WorldBox
     {
         get
@@ -44,13 +45,10 @@ public class MatchX
             {
                 return _worldRect.GetBeginInWorld();
             }
-            if (_orderedSet is null)
+            if (_orderedSet is null || _matches.Count == 0)
             {
                 return Utils.INVALID_CELL;
             }
-            else if (_matches.Count == 0)
-                throw new ArgumentException("empty matchlist, add tiles to it b4 u call a member!");
-            
             else
             {
                 var result = _orderedSet ??= _matches.Order(CellComparer.Singleton);
@@ -101,7 +99,9 @@ public class MatchX
                 var cell1 = _matches.ElementAt(1).GridCell;
                 _wasRow = cell0.GetDirectionTo(cell1).isRow;
             }
-            Match3Body ??= (matchTile.Body as TileShape)!.Clone() as TileShape;
+            Body ??= (matchTile.Body as TileShape)!.Clone() as TileShape;
+            Body.Color = Raylib.GREEN;
+            Body.Color.AlphaSpeed = 0.5f;
         }
     }
     public void Empty()
@@ -144,15 +144,14 @@ public class EnemyMatches : MatchX
         Vector2 next;
         int match3RectWidth;
         int match3RectHeight;
-        
+        var firstSlot = WorldBox.GetBeginInGrid();
+        next = firstSlot - Vector2.One;
         if (IsRowBased)
         {
             //its row based rectangle
             //-----------------|
             // X     Y      Z  |
             //-----------------|
-            var firstSlot = WorldBox.GetBeginInGrid();
-            next = firstSlot - Vector2.One;
             match3RectWidth = Count + 2;
             match3RectHeight = Count;
         }
@@ -165,8 +164,6 @@ public class EnemyMatches : MatchX
             // *  Z  *  |
             // *  *  *  |
             //----------|
-            var firstSlot = WorldBox.GetBeginInGrid();
-            next = firstSlot - Vector2.One;
             match3RectWidth = Count;
             match3RectHeight = Count+2;
         }
