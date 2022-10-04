@@ -13,8 +13,7 @@ public class MatchX
     public readonly int AllowedMatchCount;
     private Rectangle _worldRect;
     
-    public bool IsRowBased => _matches.IsRowBased();
-    
+    public bool IsRowBased => _wasRow;
     public int Count => _matches.Count;
     public bool IsMatch => Count == AllowedMatchCount;
     public TileShape? Match3Body { get; private set; }
@@ -37,7 +36,7 @@ public class MatchX
             return _worldRect;
         }
     }
-    public Vector2 Begin
+    public Vector2 BeginInWorld
     {
         get
         {
@@ -96,6 +95,12 @@ public class MatchX
       
         if (_matches.Add(matchTile))
         {
+            if (Count is > 1 and < 3)
+            {
+                var cell0 = _matches.ElementAt(0).GridCell;
+                var cell1 = _matches.ElementAt(1).GridCell;
+                _wasRow = cell0.GetDirectionTo(cell1).isRow;
+            }
             Match3Body ??= (matchTile.Body as TileShape)!.Clone() as TileShape;
         }
     }

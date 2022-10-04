@@ -193,6 +193,8 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
     }
 }
 
+ 
+
 [Flags]
 public enum Options
 {
@@ -217,7 +219,7 @@ public class Tile
     
     public virtual Options Options { get; set; }
     
-    public virtual State State 
+    public State State 
     {
         get => _current;
 

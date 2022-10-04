@@ -180,7 +180,7 @@ namespace Match_3
         /*
         public void Delete(MatchX match)
         {
-            Vector2 begin = match.Begin;
+            Vector2 begin = match.BeginInWorld;
             
             for (int i = 0; i < match.Count; i++)
             {

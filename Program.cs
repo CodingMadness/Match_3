@@ -50,18 +50,18 @@ internal static class Program
         _grid = new(_level);
     }
     
-    private static void CenterMouse()
+    private static void CenterMouseToEnemyMatch()
     {
         //we only fix the mouse point,
         //WHEN the cursor exceeds at a certain bounding box
-        if (_enemyMatches?.Begin != INVALID_CELL && _enemyMatches is not null)
+        if (_enemyMatches?.BeginInWorld != INVALID_CELL && _enemyMatches is not null)
         {
             bool outsideRect = !CheckCollisionPointRec(GetMousePosition(), _enemyMatches.Border);
 
             if (outsideRect)
             {
                 /*the player has to get these enemies out of the way b4 he can pass!*/
-                SetMousePos(_matchesOf3!.Begin);
+                SetMouseToWorldPos(_enemyMatches.BeginInWorld, 1);
             }
             else
             {
@@ -170,7 +170,7 @@ internal static class Program
         _secondClicked = null;
     }
     
-    private static void HandleEnemies()
+    private static void HandleEnemyMatches()
     {
         if (!TileClicked(out var enemyTile))
             return;
@@ -264,12 +264,12 @@ internal static class Program
                 {
                     Renderer.ShowWelcomeScreen(true);
                     Renderer.UpdateTimer(ref _globalTimer);
-                    CenterMouse();
+                    CenterMouseToEnemyMatch();
                     ProcessSelectedTiles();
                     ComputeMatches();
       
                     if (CreateEnemiesIfNeeded()) 
-                        HandleEnemies();
+                        HandleEnemyMatches();
 
                     Renderer.DrawOuterBox(_enemyMatches);  //works!
                     //Renderer.DrawInnerBox(_matchesOf3);  //works!
