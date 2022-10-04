@@ -1,15 +1,18 @@
 using System.Numerics;
-using Match_3.GameTypes;
 using Raylib_CsLo;
 
 namespace Match_3;
 
 public class MatchX
 {
-    protected readonly ISet<Tile> Matches;
-    public bool IsRowBased => Matches.IsRowBased();
-   
-    public int Count => Matches.Count;
+    protected readonly ISet<Tile> _matches;
+    private Vector2 _first = -Vector2.One;
+    private bool _wasRow;
+    private Vector2 _placeHere;
+    private readonly int _matchCount;
+
+    public bool IsRowBased => _matches.IsRowBased();
+    public int Count => _matches.Count;
     public TileShape? Match3Body { get; private set; }
     public Rectangle MapRect { get; private set; }
     public Vector2 Begin
@@ -18,44 +21,73 @@ public class MatchX
         {
             if (MapRect.IsEmpty())
                 return Vector2.Zero;
-            
+
             //var tmp = MapRect with { x = MapRect.width / Count, y = MapRect.width / Count };
-            var tmp = Matches.ElementAt(0).Begin / Tile.Size;
+            //the comment above is the actual real code i will use! but its buggy for now!
+            var tmp = _matches.ElementAt(0).MapCell / Tile.Size;
             return tmp;
         }
     }
     public MatchX(int matchCount)
     {
-        Matches = new HashSet<Tile>(matchCount);
+        _matchCount = matchCount;
+        _matches = new HashSet<Tile>(matchCount);
     }
-    public void Add(Tile matchTile)
+
+    /// <summary>
+    /// Reorder the Match if it has a structure like: (x0,x1,y2) or similar
+    /// </summary>
+    public void AsRow()
     {
-        if (Matches.Add(matchTile))
+        
+    }
+    
+    public void Add(Tile matchTile, Grid grid)
+    {
+        void ForceMatchAxisAligned()
         {
-            var bounds = matchTile!.Bounds;
-            MapRect = MapRect.Add(bounds);
-            Console.WriteLine(MapRect.ToStr());
+            var current = matchTile.GridCell;
+            //Console.WriteLine(matchTile.GridCell);
+            _first = _first == -Vector2.One ? current : _first;
+            
+            
+            if (Count == _matchCount)
+            {
+                if (_first.CompletelyDifferent(current) || _first != (current))
+                {
+                    _placeHere = _first.GetOpposite(current);
+                    var tmpTile = grid[current];
+                    grid[_placeHere] = tmpTile;
+                }
+            }
+        }
+        
+        if (_matches.Add(matchTile))
+        {
+            //Console.WriteLine("Add() --> " + matchTile.GridCell);
+            ForceMatchAxisAligned();
+            MapRect = MapRect.Add(matchTile.Bounds);
             Match3Body ??= (matchTile.Body as TileShape)!.Clone() as TileShape;
         }
     }
     public void Empty()
     {
+        _wasRow = false;
+        _first = -Vector2.One;
+        _placeHere = _first;
         MapRect = default;
-        Matches.Clear();
+        _matches.Clear();
     }
-    public EnemyMatches MakeEnemies(Grid map)
+    public EnemyMatches AsEnemies(Grid map)
     {
-        EnemyMatches list = new(Count)
-        {
-            MapRect = default
-        };
+        EnemyMatches list = new(Count);
 
-        foreach (var match in Matches)
+        foreach (var match in _matches.Order(CellComparer.Singleton))
         {
-            map[match.Cell] = Bakery.MakeEnemy(match!);
-            EnemyTile e = (EnemyTile)map[match.Cell]!;
+            map[match.GridCell] = Bakery.AsEnemy(match);
+            EnemyTile e = (EnemyTile)map[match.GridCell]!;
             e.BlockSurroundingTiles(map, true);
-            list.Add(e);
+            list.Add(e, map);
         }
         return list;
     }
@@ -66,11 +98,12 @@ public class EnemyMatches : MatchX
     private Rectangle _border;
     public EnemyMatches(int matchCount) : base(matchCount)
     {
+        //MapRect = default;
     }
     private Rectangle BuildBorder()
     {
-        if (Matches.Count == 0)
-            return default;
+        if (_matches.Count == 0)
+            throw new MethodAccessException($"This method is accessed even tho {MapRect} seems to be empty");
 
         Vector2 begin;
         int match3RectWidth;
@@ -82,10 +115,10 @@ public class EnemyMatches : MatchX
             //-----------------|
             // X     Y      Z  |
             //-----------------|
-            var first = Matches.OrderBy(x => x.Cell.X).ElementAt(0);
-            begin = first.Cell - Vector2.One;
-            match3RectWidth = Matches.Count + 2;
-            match3RectHeight = Matches.Count;
+            var first = _matches.OrderBy(x => x.GridCell.X).ElementAt(0);
+            begin = first.GridCell - Vector2.One;
+            match3RectWidth = _matches.Count + 2;
+            match3RectHeight = _matches.Count;
         }
         else
         {
@@ -96,10 +129,10 @@ public class EnemyMatches : MatchX
             // *  Z  *  |
             // *  *  *  |
             //----------|
-            var first = Matches.OrderBy(x => x.Cell.Y).ElementAt(0);
-            begin = first.Cell - Vector2.One;
-            match3RectWidth = Matches.Count;
-            match3RectHeight = Matches.Count+2;
+            var first = _matches.OrderBy(x => x.GridCell.Y).ElementAt(0);
+            begin = first.GridCell - Vector2.One;
+            match3RectWidth = _matches.Count;
+            match3RectHeight = _matches.Count+2;
         }
         return Utils.GetMatch3Rect(begin, match3RectWidth, match3RectHeight);
     }
