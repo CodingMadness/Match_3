@@ -19,7 +19,7 @@ public static class Renderer
             var begin = tile.End;
             float halfSize = Tile.Size * 0.5f;
             begin = begin with { X = begin.X - halfSize - 0, Y = begin.Y - halfSize - (halfSize * 0.3f) };
-            GameText coordText = new(copy, (tile.Cell).ToString(), 11.5f)
+            GameText coordText = new(copy, (tile.GridCell).ToString(), 11.5f)
             {
                 Begin = begin,
                 Color = tile.State == State.Selected ? RED : BLACK,
@@ -34,7 +34,7 @@ public static class Renderer
         
         var body = tile.Body;
         body.Color.ElapsedTime = elapsedTime;
-        DrawTextureRec(GetAtlas(), tile.DestRect, tile.Begin, body.Color.Apply());
+        DrawTextureRec(GetAtlas(), tile.DestRect, tile.MapCell, body.Color.Apply());
         DrawCoordOnTop(tile);
     }
     
@@ -69,23 +69,21 @@ public static class Renderer
     {
         if (matches?.Count > 0)
         {
-            //if (matches is EnemyMatches em)
-              //  DrawRectangleRec(em.Border, ColorAlpha(RED, 1f));
-            //else 
-                DrawRectangleRec(matches.MapRect, ColorAlpha(RED, 1f));
+            DrawRectangleRec(matches.MapRect, ColorAlpha(RED, 1f));
         }
     }
     
     public static void DrawOuterBox(EnemyMatches? matches)
     {
-        if (matches?.Count == 0)
+        if (matches?.Count > 0)
         {
             //if (matches is EnemyMatches em)
             //  DrawRectangleRec(em.Border, ColorAlpha(RED, 1f));
             //else 
-            DrawRectangleRec(matches.MapRect, ColorAlpha(RED, 1f));
+            DrawRectangleRec(matches.Border, ColorAlpha(RED, 1f));
         }
     }
+    
     public static void UpdateTimer(ref GameTime globalTimer)
     {
         globalTimer.Run();

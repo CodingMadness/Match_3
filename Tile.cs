@@ -270,19 +270,19 @@ public class Tile
             _current = value;
         }
     }
-    public Vector2 Cell { get; set; }
+    public Vector2 GridCell { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public Shape Body { get; init; }
     /// <summary>
-    /// Begin in WorldCoordinates
+    /// MapCell in WorldCoordinates
     /// </summary>
-    public Vector2 Begin => (Cell * Size);
+    public Vector2 MapCell => (GridCell * Size);
     /// <summary>
     /// End in WorldCoordinates
     /// </summary>
-    public Vector2 End => Begin + (Vector2.One * Size); 
+    public Vector2 End => MapCell + (Vector2.One * Size); 
     public bool IsDeleted => (State & State.Disabled) == State.Disabled;
-    public Rectangle Bounds => new(End.X, End.Y, Size, Size);
+    public Rectangle Bounds => new(MapCell.X, MapCell.Y, Size, Size);
     
     public const int Size = 64;
     public static bool IsOnlyDefaultTile(Tile? current) =>
@@ -294,7 +294,7 @@ public class Tile
         //overwrite the Body anyway with the Factorymethod "CreateNewTile(..)";
         Body = null!;
     }
-    public override string ToString() => $"Cell: {Cell}; ---- {Body}";
+    public override string ToString() => $"GridCell: {GridCell}; ---- {Body}";
     public void Disable(bool shallDelete)
     {
         Body.ChangeColor(BLACK, 0f, 1f);
@@ -333,10 +333,10 @@ public class EnemyTile : Tile
                      *    +Y => DOWN
                      * 
                      */
-                    Grid.Direction.NegativeX => Cell with { X = Cell.X - 1 },
-                    Grid.Direction.PositiveX => Cell with { X = Cell.X + 1 },
-                    Grid.Direction.NegativeY => Cell with { Y = Cell.Y - 1 },
-                    Grid.Direction.PositiveY => Cell with { Y = Cell.Y + 1 },
+                    Grid.Direction.NegativeX => GridCell with { X = GridCell.X - 1 },
+                    Grid.Direction.PositiveX => GridCell with { X = GridCell.X + 1 },
+                    Grid.Direction.NegativeY => GridCell with { Y = GridCell.Y - 1 },
+                    Grid.Direction.PositiveY => GridCell with { Y = GridCell.Y + 1 },
                     _ => Vector2.Zero
                 };
             }
@@ -344,10 +344,10 @@ public class EnemyTile : Tile
             {
                 return direction switch
                 {
-                    Grid.Direction.NegativeX => Cell - Vector2.One,
-                    Grid.Direction.PositiveX => Cell + Vector2.One,
-                    Grid.Direction.NegativeY => Cell with { X = Cell.X + 1, Y = Cell.Y - 1},
-                    Grid.Direction.PositiveY => Cell with { X = Cell.X - 1, Y = Cell.Y + 1},
+                    Grid.Direction.NegativeX => GridCell - Vector2.One,
+                    Grid.Direction.PositiveX => GridCell + Vector2.One,
+                    Grid.Direction.NegativeY => GridCell with { X = GridCell.X + 1, Y = GridCell.Y - 1},
+                    Grid.Direction.PositiveY => GridCell with { X = GridCell.X - 1, Y = GridCell.Y + 1},
                     _ => Vector2.Zero
                 };
             }
@@ -365,7 +365,7 @@ public class EnemyTile : Tile
             }
         }
         
-        if (map[Cell] is not null)
+        if (map[GridCell] is not null)
         {
             for (Grid.Direction i = 0; i < lastDir; i++)
             {

@@ -96,17 +96,17 @@ namespace Match_3
 
         public bool WasAMatchInAnyDirection(Tile match3Trigger, MatchX matches)
         {
-            static bool AddWhenEqual(Tile? first, Tile? next, MatchX matches)
+            bool AddWhenEqual(Tile? first, Tile? next)
             {
-                if (first is not null && next is not null /*&& first.Cell.IsSameRow(next.Cell)*/)
+                if (first is not null && next is not null /*&& first.GridCell.GetDirectionTo(next.GridCell)*/)
                 {
                     if (StateAndBodyComparer.Singleton.Equals(first, next))
                     {
                         if (matches.Count == MaxDestroyableTiles)
                             return false;
 
-                        matches.Add(first);
-                        matches.Add(next);
+                        matches.Add(first, this);
+                        matches.Add(next, this);
                         return true;
                     }
                 }
@@ -133,10 +133,10 @@ namespace Match_3
 
             for (Direction i = 0; i < lastDir; i++)
             {
-                Vector2 nextCoords = Next(LastMatchTrigger.Cell, i);
+                Vector2 nextCoords = Next(LastMatchTrigger.GridCell, i);
                 var next = this[nextCoords]; //when a new tile is give back, the state == 0??
 
-                while (AddWhenEqual(LastMatchTrigger, next, matches))
+                while (AddWhenEqual(LastMatchTrigger, next))
                 {
                     //compute the proper (x,y) for next round, because
                     //we found a match between a -> b, now we check
@@ -169,11 +169,11 @@ namespace Match_3
                 (b.Options & Options.UnMovable) == Options.UnMovable)
                 return false;
             
-            this[a.Cell] = b;
-            this[b.Cell] = a;
-            a.CoordsB4Swap = a.Cell;
-            b.CoordsB4Swap = b.Cell;
-            (a.Cell, b.Cell) = (b.Cell, a.Cell);
+            this[a.GridCell] = b;
+            this[b.GridCell] = a;
+            a.CoordsB4Swap = a.GridCell;
+            b.CoordsB4Swap = b.GridCell;
+            (a.GridCell, b.GridCell) = (b.GridCell, a.GridCell);
             return true;
         }
 
@@ -184,7 +184,7 @@ namespace Match_3
             for (int i = 0; i < match.Count; i++)
             {
                 this[begin]!.Disable(true);
-                begin = match.MapRect.Move(match.IsRowBased).ToWorldCoord();
+                begin = match.MapRect.Move(match.IsRowBased).GetBegin();
             }
         }
     }

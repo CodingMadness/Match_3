@@ -109,7 +109,7 @@ public static class Bakery
     {
         var tile = new Tile
         {
-            Cell = gridPos, 
+            GridCell = gridPos, 
             CoordsB4Swap = -Vector2.One,
             Body = DefineFrame(noise),
             State = State.Clean,
@@ -118,12 +118,12 @@ public static class Bakery
         return tile;
     }
 
-    public static EnemyTile MakeEnemy(Tile matchTile)
+    public static EnemyTile AsEnemy(Tile matchTile)
     {
         EnemyTile blockTile = new()
         {
-            Cell = matchTile.Cell,
-            CoordsB4Swap = matchTile.Cell,
+            GridCell = matchTile.GridCell,
+            CoordsB4Swap = matchTile.GridCell,
             Body = new TileShape
             {
                 Form = ShapeKind.Trapez,
