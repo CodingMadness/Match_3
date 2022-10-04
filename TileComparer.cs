@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace Match_3;
 
 public sealed class StateAndBodyComparer : EqualityComparer<Tile>
@@ -31,19 +33,27 @@ public sealed class StateAndBodyComparer : EqualityComparer<Tile>
     public static StateAndBodyComparer Singleton => new();
 }
 
-public sealed class CellComparer : EqualityComparer<Tile>
+public sealed class CellComparer : EqualityComparer<Tile>, IComparer<Tile>
 {
     public override bool Equals(Tile? x, Tile? y)
     {
-        if (x is null) return false;
-        if (y is null) return false;
-        return x.Cell == y.Cell;
+        return Compare(x, y) == 0;
     }
-
     public override int GetHashCode(Tile obj)
     {
-        return obj.Cell.GetHashCode();
+        return obj.GridCell.GetHashCode();
     }
-
+    public int Compare(Tile? a, Tile? b)
+    {
+        if (a == b) return 0;
+        if (b is null) return 1;
+        
+        var pair = a?.GridCell.GetDirectionTo(b.GridCell);
+        
+        if (pair?.isRow is not null)
+            return a!.GridCell.X.CompareTo(b.GridCell.X);
+        else
+            return a!.GridCell.Y.CompareTo(b.GridCell.Y);
+    }
     public static CellComparer Singleton => new();
 }
