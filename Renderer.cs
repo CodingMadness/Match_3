@@ -67,9 +67,9 @@ public static class Renderer
     
     public static void DrawInnerBox(MatchX? matches)
     {
-        if (matches?.Count > 0)
+        if (matches?.IsMatch == true)
         {
-            DrawRectangleRec(matches.MapRect, ColorAlpha(RED, 1f));
+            DrawRectangleRec(matches.WorldBox, ColorAlpha(RED, 1f));
         }
     }
     
