@@ -48,10 +48,7 @@ public sealed class CellComparer : EqualityComparer<Tile>, IComparer<Tile>
         if (a is null) return -1;
         if (a == b) return 0;
         if (b is null) return 1;
-        
-        var pair = a.GridCell.GetDirectionTo(b.GridCell);
-        
-        return pair.isRow ? a.GridCell.X.CompareTo(b.GridCell.X) : a.GridCell.Y.CompareTo(b.GridCell.Y);
+        return a.GridCell.CompareTo(b.GridCell);
     }
     public static CellComparer Singleton => new();
 }

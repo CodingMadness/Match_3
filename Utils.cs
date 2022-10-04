@@ -144,31 +144,11 @@ public static class Utils
 
         return tmp;
     }
-
+    
     public static int CompareTo(this Vector2 a, Vector2 b)
     {
-        if (a == b)
-            return 0;
-        
-        //case1: full a with full b
-        else if (a.X < b.X && a.Y < b.Y)
-            return -1;
-        else if (a.X > b.X && a.Y > b.Y)
-            return 1;
-
-        //case2: a is same row as b, so compare only X
-        bool isRow = a.GetDirectionTo(b).isRow;
-
-        if (isRow)
-        {
-            if (a.X < b.X) return -1;
-            else return 1;
-        }
-        else
-        {
-            if (a.Y < b.Y) return -1;
-            else return 1;
-        }
+        var pair = a.GetDirectionTo(b);
+        return pair.isRow ? a.X.CompareTo(b.X) : a.Y.CompareTo(b.Y);
     }
     
     public static (Vector2 Direction, bool isRow) GetDirectionTo(this Vector2 first, Vector2 next)
