@@ -177,6 +177,7 @@ namespace Match_3
             return true;
         }
 
+        /*
         public void Delete(MatchX match)
         {
             Vector2 begin = match.Begin;
@@ -184,8 +185,9 @@ namespace Match_3
             for (int i = 0; i < match.Count; i++)
             {
                 this[begin]!.Disable(true);
-                begin = match.WorldBox.Move(match.IsRowBased).GetBegin();
+                begin = match.WorldBox.Move(match.IsRowBased).GetBeginInWorld();
             }
         }
+        */
     }
 }

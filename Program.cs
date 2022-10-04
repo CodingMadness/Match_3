@@ -164,7 +164,8 @@ internal static class Program
         
         else
             _matchesOf3!.Empty();
-        
+
+        _shallCreateEnemies = true;
         _wasSwapped = false;
         _secondClicked = null;
     }
@@ -261,23 +262,17 @@ internal static class Program
                 }
                 else
                 {
-                    Vector2 a = new(32f, 32f);
-                    Vector2 b = a * 3;
-                    Console.WriteLine("Euklid Distance: " + Vector2.Distance(a, b));
                     Renderer.ShowWelcomeScreen(true);
                     Renderer.UpdateTimer(ref _globalTimer);
                     CenterMouse();
                     ProcessSelectedTiles();
                     ComputeMatches();
-                    
-                    /*
+      
                     if (CreateEnemiesIfNeeded()) 
                         HandleEnemies();
-                        
-                     Renderer.DrawInnerBox(_enemyMatches);  //works not!
-                    */
-                    
-                    Renderer.DrawInnerBox(_matchesOf3);  //works!
+
+                    Renderer.DrawOuterBox(_enemyMatches);  //works!
+                    //Renderer.DrawInnerBox(_matchesOf3);  //works!
                     Renderer.DrawGrid(_grid, _globalTimer.ElapsedSeconds);
                     HardReset();
                 }

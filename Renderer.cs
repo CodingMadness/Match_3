@@ -34,7 +34,7 @@ public static class Renderer
         
         var body = tile.Body;
         body.Color.ElapsedTime = elapsedTime;
-        DrawTextureRec(GetAtlas(), tile.DestRect, tile.MapCell, body.Color.Apply());
+        DrawTextureRec(GetAtlas(), tile.DestRect, tile.WorldCell, body.Color.Apply());
         DrawCoordOnTop(tile);
     }
     
@@ -75,7 +75,7 @@ public static class Renderer
     
     public static void DrawOuterBox(EnemyMatches? matches)
     {
-        if (matches?.Count > 0)
+        if (matches?.IsMatch == true)
         {
             //if (matches is EnemyMatches em)
             //  DrawRectangleRec(em.Border, ColorAlpha(RED, 1f));

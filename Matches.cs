@@ -14,10 +14,9 @@ public class MatchX
     private Rectangle _worldRect;
     
     public bool IsRowBased => _matches.IsRowBased();
-    public int Count => _matches.Count;
-
-    public bool IsMatch => Count == AllowedMatchCount;
     
+    public int Count => _matches.Count;
+    public bool IsMatch => Count == AllowedMatchCount;
     public TileShape? Match3Body { get; private set; }
     public Rectangle WorldBox
     {
@@ -26,6 +25,9 @@ public class MatchX
             if (!_worldRect.IsEmpty())
                 return _worldRect;
 
+            if (_matches.Count == 0)
+                throw new ArgumentException("empty matchlist, add tiles to it b4 u call a member!");
+            
             _orderedSet ??= _matches.Order(CellComparer.Singleton);
             
             foreach (var tile in _orderedSet)
@@ -39,10 +41,22 @@ public class MatchX
     {
         get
         {
-            if (_worldRect.IsEmpty())
+            if (!_worldRect.IsEmpty())
+            {
+                return _worldRect.GetBeginInWorld();
+            }
+            if (_orderedSet is null)
+            {
                 return Utils.INVALID_CELL;
-
-            return _worldRect.GetBegin();
+            }
+            else if (_matches.Count == 0)
+                throw new ArgumentException("empty matchlist, add tiles to it b4 u call a member!");
+            
+            else
+            {
+                var result = _orderedSet ??= _matches.Order(CellComparer.Singleton);
+                return result.ElementAt(0).WorldCell;
+            }
         }
     }
     public MatchX(int allowedMatchCount)
@@ -122,7 +136,7 @@ public class EnemyMatches : MatchX
         if (_matches.Count == 0)
             throw new MethodAccessException($"This method is accessed even tho {WorldBox} seems to be empty");
 
-        Vector2 begin;
+        Vector2 next;
         int match3RectWidth;
         int match3RectHeight;
         
@@ -132,10 +146,10 @@ public class EnemyMatches : MatchX
             //-----------------|
             // X     Y      Z  |
             //-----------------|
-            var firstSlot = Begin / Tile.Size;
-            begin = firstSlot - Vector2.One;
-            match3RectWidth = _matches.Count + 2;
-            match3RectHeight = _matches.Count;
+            var firstSlot = WorldBox.GetBeginInGrid();
+            next = firstSlot - Vector2.One;
+            match3RectWidth = Count + 2;
+            match3RectHeight = Count;
         }
         else
         {
@@ -146,19 +160,21 @@ public class EnemyMatches : MatchX
             // *  Z  *  |
             // *  *  *  |
             //----------|
-            var firstSlot = Begin / Tile.Size;
-            begin = firstSlot - Vector2.One;
-            match3RectWidth = _matches.Count;
-            match3RectHeight = _matches.Count+2;
+            var firstSlot = WorldBox.GetBeginInGrid();
+            next = firstSlot - Vector2.One;
+            match3RectWidth = Count;
+            match3RectHeight = Count+2;
         }
-        return Utils.NewWorldRect(begin, match3RectWidth, match3RectHeight);
+        return Utils.NewWorldRect(next, match3RectWidth, match3RectHeight);
     }
     public Rectangle Border
     {
         get
         {
             if (_border.x == 0 && _border.y == 0)
+            {
                 _border = BuildBorder();
+            }
 
             return _border;
         }

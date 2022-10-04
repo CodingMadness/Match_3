@@ -274,13 +274,13 @@ public class Tile
     public Vector2 CoordsB4Swap { get; set; }
     public Shape Body { get; init; }
     /// <summary>
-    /// MapCell in WorldCoordinates
+    /// WorldCell in WorldCoordinates
     /// </summary>
-    public Vector2 MapCell => (GridCell * Size);
+    public Vector2 WorldCell => (GridCell * Size);
     /// <summary>
     /// End in WorldCoordinates
     /// </summary>
-    public Vector2 End => MapCell + (Vector2.One * Size); 
+    public Vector2 End => WorldCell + (Vector2.One * Size); 
     public bool IsDeleted => (State & State.Disabled) == State.Disabled;
     public Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
     public Rectangle WorldBounds => GridBounds.ToWorldBox();
