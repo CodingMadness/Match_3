@@ -79,6 +79,7 @@ public static class Renderer
     {
         if (matches?.IsMatch == true)
         {
+            matches.Body!.Color.AlphaSpeed = 0.7f;
             matches.Body!.Color.ElapsedTime = elapsedTime;
             DrawRectangleRec(matches.Border, matches.Body!.Color.Apply());
         }
@@ -124,7 +125,7 @@ public static class Renderer
 
     public static void DrawBackground()
     {
-        DrawTexture(BGAtlas, 0, 0, WHITE);
+        DrawTexture(BgAtlas, 0, 0, WHITE);
     }
     
     public static void LogQuest(bool useConsole, Level current)

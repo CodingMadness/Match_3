@@ -73,7 +73,6 @@ public static class Utils
         }
         if (b.IsEmpty())
         {
-            b = a;
             return;
         }
     

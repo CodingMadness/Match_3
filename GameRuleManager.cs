@@ -15,6 +15,7 @@ public static class GameRuleManager
             (-1, new Dictionary<Type, int>((int)Type.Length)),
             64,
             3);
+        Console.WriteLine("static ctor() was called! ");
     }
   
     public static bool ShallMakeRndQuests { get; set; }
@@ -34,7 +35,7 @@ public static class GameRuleManager
                 { level: 1 } => 2..3,
                 { level: 2 } => 3..4,
                 { level: 3 } => 4..6,
-                _ => -1..-1
+                _ => ..0
             };
             return Utils.Randomizer.Next(range.Start.Value, range.End.Value);
         }
@@ -49,6 +50,8 @@ public static class GameRuleManager
                     State.QuestPerLevel.Quest.TryAdd((Type)currentBall, matchesNeeded);
                 else
                     State.QuestPerLevel.Quest.TryAdd((Type)currentBall, countsPerBall[currentBall] - matchesNeeded);
+                
+                //Console.WriteLine(State.QuestPerLevel.Quest[(Type)currentBall]);
             }
         }
         

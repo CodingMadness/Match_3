@@ -1,4 +1,7 @@
-﻿namespace Match_3.GameTypes;
+﻿using System.Runtime.CompilerServices;
+
+namespace Match_3.GameTypes;
+
 
 public class Level
 {

@@ -8,7 +8,7 @@ namespace Match_3;
 
 public static unsafe class AssetManager
 {
-    public static Texture BGAtlas;
+    public static Texture BgAtlas;
     public static Texture DefaultTileAtlas;
     public static Texture EnemyAtlas;
     
@@ -72,7 +72,7 @@ public static unsafe class AssetManager
         buffer = GetEmbeddedResource("Atlas.bg.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         Image bg = LoadImageFromMemory(".png", first, buffer.Length);
-        BGAtlas = LoadTextureFromImage(bg);
+        BgAtlas = LoadTextureFromImage(bg);
         
         buffer = GetEmbeddedResource("Atlas.set1.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);

@@ -21,6 +21,7 @@ public sealed class StateAndBodyComparer : EqualityComparer<Tile>
                            (y1.State & State.Hidden) == State.Hidden
             ? y1.State
             : State.Deleted;
+        
         bool xHasY = (xGoodState & yGoodState) == yGoodState;
         bool yHasX = (yGoodState & xGoodState) == xGoodState;
         
