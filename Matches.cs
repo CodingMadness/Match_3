@@ -6,7 +6,7 @@ namespace Match_3;
 
 public class MatchX
 {
-    protected readonly ISet<Tile> _matches;
+    protected readonly ISet<Tile> Matches;
     private IOrderedEnumerable<Tile>? _orderedSet;
     private Vector2 _first = -Vector2.One;
     private bool _wasRow;
@@ -15,7 +15,7 @@ public class MatchX
     private Rectangle _worldRect;
     
     public bool IsRowBased => _wasRow;
-    public int Count => _matches.Count;
+    public int Count => Matches.Count;
     public bool IsMatch => Count == AllowedMatchCount;
     public TileShape? Body { get; private set; }
     public Rectangle WorldBox
@@ -25,10 +25,10 @@ public class MatchX
             if (!_worldRect.IsEmpty())
                 return _worldRect;
 
-            if (_matches.Count == 0)
+            if (Matches.Count == 0)
                 throw new ArgumentException("empty matchlist, add tiles to it b4 u call a member!");
             
-            _orderedSet ??= _matches.Order(CellComparer.Singleton);
+            _orderedSet ??= Matches.Order(CellComparer.Singleton);
             
             foreach (var tile in _orderedSet)
             {
@@ -45,13 +45,13 @@ public class MatchX
             {
                 return _worldRect.GetBeginInWorld();
             }
-            if (_orderedSet is null || _matches.Count == 0)
+            if (_orderedSet is null || Matches.Count == 0)
             {
                 return Utils.INVALID_CELL;
             }
             else
             {
-                var result = _orderedSet ??= _matches.Order(CellComparer.Singleton);
+                var result = _orderedSet ??= Matches.Order(CellComparer.Singleton);
                 return result.ElementAt(0).WorldCell;
             }
         }
@@ -60,7 +60,7 @@ public class MatchX
     {
         _worldRect = default;
         AllowedMatchCount = allowedMatchCount;
-        _matches = new HashSet<Tile>(allowedMatchCount);
+        Matches = new HashSet<Tile>(allowedMatchCount);
     }
 
     /// <summary>
@@ -91,12 +91,12 @@ public class MatchX
             }
         }
       
-        if (_matches.Add(matchTile))
+        if (Matches.Add(matchTile))
         {
             if (Count is > 1 and < 3)
             {
-                var cell0 = _matches.ElementAt(0).GridCell;
-                var cell1 = _matches.ElementAt(1).GridCell;
+                var cell0 = Matches.ElementAt(0).GridCell;
+                var cell1 = Matches.ElementAt(1).GridCell;
                 _wasRow = cell0.GetDirectionTo(cell1).isRow;
             }
             Body ??= (matchTile.Body as TileShape)!.Clone() as TileShape;
@@ -104,19 +104,20 @@ public class MatchX
             Body.Color.AlphaSpeed = 0.5f;
         }
     }
-    public void Empty()
+    public void Clear()
     {
         _worldRect = Utils.INVALID_RECT;
         _wasRow = false;
         _first = -Vector2.One;
         _placeHere = _first;
-        _matches.Clear();
+        Matches.Clear();
+        _orderedSet = null;
     }
     public EnemyMatches AsEnemies(Grid map)
     {
         EnemyMatches list = new(Count);
 
-        _orderedSet ??= _matches.Order(CellComparer.Singleton);
+        _orderedSet ??= Matches.Order(CellComparer.Singleton);
         
         foreach (var match in _orderedSet)
         {
@@ -138,7 +139,7 @@ public class EnemyMatches : MatchX
     }
     private Rectangle BuildBorder()
     {
-        if (_matches.Count == 0)
+        if (Matches.Count == 0)
             throw new MethodAccessException($"This method is accessed even tho {WorldBox} seems to be empty");
 
         Vector2 next;
