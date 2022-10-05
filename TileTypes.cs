@@ -53,6 +53,8 @@ public struct FadeableColor : IEquatable<FadeableColor>
         //if u wana maybe stop fading at 0.5f so we explicitly check if currALpha > targetalpha
         if (CurrentAlpha > TargetAlpha)  
             CurrentAlpha -= AlphaSpeed * (1f / ElapsedTime);
+
+       // CurrentAlpha = CurrentAlpha < 0f ? 0f : CurrentAlpha;
     }
 
     public string? ToReadableString()
@@ -231,8 +233,10 @@ public class Tile
                 _current &= State.Disabled;
                 _current &= State.Deleted;
                 _current &= State.Hidden;
-                
+
+                Body.Color = WHITE;
                 Body.Color.CurrentAlpha = 1f;
+                Body.Color.TargetAlpha = 1f;
                 Body.Color.AlphaSpeed = 0f;
             }
             if ((value & State.Selected) == State.Selected)
@@ -240,14 +244,9 @@ public class Tile
                 Body.Color.CurrentAlpha = 1f;
                 Body.Color.AlphaSpeed = 0.75f;
                 Body.Color.TargetAlpha = 0.35f;
+                
                 //if a tile is selected it must also be clean/alive
                 _current |= State.Clean;
-            }
-            else if ((value & State.Deleted) == State.Deleted)
-            {
-                _current &= State.Clean; //remove clean flag from set
-                _current &= State.Selected; //remove clean flag from set
-                Body.Color.AlphaSpeed = 0f;
             }
             else if ((value & State.Hidden) == State.Hidden)
             {
@@ -256,7 +255,18 @@ public class Tile
                 //add disabled flag to set cause when smth is deleted it must be automatically disabled 
                 _current &= State.Disabled; //operations on that tile with this flag are still possible!
                 _current &= State.Deleted;
-                Body.Color.AlphaSpeed = 0f;
+                //Body.Color.AlphaSpeed = 0f;
+            }
+            else if ((value & State.Deleted) == State.Deleted)
+            {
+                //remove all flags
+                _current &= State.Clean; 
+                _current &= State.Selected; //remove clean flag from set
+                _current &= State.Disabled;
+                Body.Color = WHITE;
+                Body.Color.CurrentAlpha = 0f;
+                //Body.Color.AlphaSpeed = 0.75f;
+                //Body.Color.TargetAlpha = 1f;
             }
             else if ((value & State.Disabled) == State.Disabled)
             {
@@ -266,8 +276,8 @@ public class Tile
                 
                 Body.Color = BLACK;
                 Body.Color.CurrentAlpha = 1f;
-                Body.Color.AlphaSpeed = 0.75f;
-                Body.Color.TargetAlpha = 1f;
+                Body.Color.AlphaSpeed = 0.0f;
+                //Body.Color.TargetAlpha = 1f;
             }
             _current = value;
         }
@@ -283,7 +293,7 @@ public class Tile
     /// End in WorldCoordinates
     /// </summary>
     public Vector2 End => WorldCell + (Vector2.One * Size); 
-    public bool IsDeleted => (State & State.Disabled) == State.Disabled;
+    public bool IsDeleted => (State & State.Deleted) == State.Deleted;
     public Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
     public Rectangle WorldBounds => GridBounds.ToWorldBox();
 
@@ -300,14 +310,14 @@ public class Tile
     public override string ToString() => $"GridCell: {GridCell}; ---- {Body}";
     public void Disable(bool shallDelete)
     {
-        Body.ChangeColor(BLACK, 0f, 1f);
+        //Body.ChangeColor(BLACK, 0f, 1f);
         Options = Options.UnMovable | Options.UnShapeable;
-        State = shallDelete ? State.Disabled : State.Deleted;
+        State = !shallDelete ? State.Disabled : State.Deleted;
     }
     public void Enable()
     {
         //draw from whatever was the 1. sprite-atlas 
-        Body.ChangeColor(WHITE, 0f, 1f);
+        //Body.ChangeColor(WHITE, 0f, 1f);
         Options = Options.Movable | Options.Shapeable;
         State = State.Clean;
     }
@@ -368,17 +378,17 @@ public class EnemyTile : Tile
             }
         }
         
-        if (map[GridCell] is not null)
+        //if (map[GridCell] is not null)
         {
             for (Grid.Direction i = 0; i < lastDir; i++)
             {
                 RepeatLoop(ref i, false);
                 
-                Vector2 nextCoords = NextCell(i);
+                Vector2 next = NextCell(i);
 
-                if (IsOnlyDefaultTile(map[nextCoords]))
+                if (IsOnlyDefaultTile(map[next]))
                 {
-                    var t = map[nextCoords];
+                    var t = map[next];
 
                     if (disable)
                         t!.Disable(false);
