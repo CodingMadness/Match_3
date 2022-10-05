@@ -65,7 +65,7 @@ namespace Match_3
             TileWidth = current.TilemapWidth;
             TileHeight = current.TilemapHeight;
             _bitmap = new Tile[TileWidth, TileHeight];
-            NotifyOnGridCreationDone += GameRuleManager.SetCountPerType;
+            NotifyOnGridCreationDone += QuestManager.SetCountPerType;
             CreateMap();
         }
         
@@ -148,7 +148,7 @@ namespace Match_3
             //if he could not get a match by the 2.tile which was clicked, try the 1.clicked tile!
             if (matches.Count < MaxDestroyableTiles && ++_match3FuncCounter <= 1)
             {
-                matches.Empty();
+                matches.Clear();
                 return WasAMatchInAnyDirection(this[LastMatchTrigger.CoordsB4Swap]!, matches);
             }
 
@@ -176,18 +176,5 @@ namespace Match_3
             (a.GridCell, b.GridCell) = (b.GridCell, a.GridCell);
             return true;
         }
-
-        /*
-        public void Delete(MatchX match)
-        {
-            Vector2 begin = match.BeginInWorld;
-            
-            for (int i = 0; i < match.Count; i++)
-            {
-                this[begin]!.Disable(true);
-                begin = match.WorldBox.Move(match.IsRowBased).GetBeginInWorld();
-            }
-        }
-        */
     }
 }

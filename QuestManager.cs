@@ -2,11 +2,11 @@ using Match_3.GameTypes;
 
 namespace Match_3;
 
-public static class GameRuleManager
+public static class QuestManager
 {
     public static Level State { get; }
 
-    static GameRuleManager()
+    static QuestManager()
     {
         State = new(10,
             3*3,

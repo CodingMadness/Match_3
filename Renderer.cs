@@ -11,7 +11,7 @@ public static class Renderer
     private static Texture atlas = DefaultTileAtlas;
     public static ref Texture GetAtlas() => ref atlas;
 
-    private static void Draw(Tile tile, float elapsedTime)
+    private static void DrawTile(Tile tile, float elapsedTime)
     {
         static void DrawCoordOnTop(Tile tile)
         {
@@ -56,7 +56,7 @@ public static class Renderer
                         ? EnemyAtlas
                         : DefaultTileAtlas;
 
-                    Draw(basicTile, elapsedTime);
+                    DrawTile(basicTile, elapsedTime);
                 }
             }
         }
@@ -85,7 +85,7 @@ public static class Renderer
         }
     }
     
-    public static void UpdateTimer(ref GameTime globalTimer)
+    public static void DrawTimer(ref GameTime globalTimer)
     {
         globalTimer.Run();
 
@@ -94,7 +94,7 @@ public static class Renderer
         TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
         TimerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 0f };
         TimerText.ScaleText();
-        //timerText.DrawGrid(0.5f);
+        TimerText.Draw(null);
     }
     
     public static void ShowWelcomeScreen(bool hideWelcome)

@@ -40,8 +40,8 @@ internal static class Program
     private static void InitGame()
     {
         _matchesOf3 = new(3);
-        GameRuleManager.InitNewLevel();
-        _level = GameRuleManager.State;
+        QuestManager.InitNewLevel();
+        _level = QuestManager.State;
         _globalTimer = GameTime.GetTimer(_level.GameStartAt);
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
@@ -64,8 +64,16 @@ internal static class Program
                 /*the player has to get these enemies out of the way b4 he can pass!*/
                 SetMouseToWorldPos(_enemyMatches.BeginInWorld, 1);
             }
-            else
+            else if (!_enemiesStillThere && _enemyMatches.IsMatch)
             {
+                //we set this to null, because we cant make any swaps after this, cause 
+                //_secondClicked has a value! so we then can repeat the entire cycle!
+                _secondClicked = null;
+                //enemies were created from the matchesOf3, so we have to
+                //delete all of them, because else we will reference always the base-matches internally which is bad!
+                _enemyMatches.Clear(); 
+                _matchesOf3?.Clear();
+                _matchCounter = 0;
                 //move freely
             }
         }
@@ -132,7 +140,7 @@ internal static class Program
         
         bool CheckIfMatchQuestWasMet(TileShape body)
         {
-            if (GameRuleManager.TryGetMatch3Quest(body, out int matchesNeeded))
+            if (QuestManager.TryGetMatch3Quest(body, out int matchesNeeded))
             {
                 if (++_matchCounter == matchesNeeded)
                 {
@@ -146,6 +154,16 @@ internal static class Program
         
         bool ShallTransformMatchesToEnemyMatches() => Randomizer.NextSingle() <= 0.5f;
 
+        void CreateEnemiesIfNeeded()
+        {
+            if (_shallCreateEnemies && 
+                (_enemyMatches is null || _enemyMatches.Count == 0) &&
+                _matchesOf3?.Count > 0)
+            {
+                _enemyMatches = _matchesOf3?.AsEnemies(_grid);
+            }
+        }
+        
         if (_grid.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!) /*&& !_shallCreateEnemies*/)
         {
             if (_secondClicked!.Body is not TileShape body)
@@ -156,14 +174,14 @@ internal static class Program
             if (CheckIfMatchQuestWasMet(body))
             {
                 Console.WriteLine($"Good job, you got the {_matchCounter} match3! for {body.Ball} Balls");
-                _wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
+                _wasGameWonB4Timeout = QuestManager.IsQuestDone();
             }
-            //_shallCreateEnemies = false; //ShallTransformMatchesToEnemyMatches();
+            _shallCreateEnemies = true;
+            CreateEnemiesIfNeeded();
         }
         else
-            _matchesOf3!.Empty();
-
-        _shallCreateEnemies = true;
+            _matchesOf3!.Clear();
+        
         _wasSwapped = false;
         _secondClicked = null;
     }
@@ -177,13 +195,13 @@ internal static class Program
         if (enemyTile is EnemyTile e)
         {
             //IF it is an enemy, YOU HAVE TO delete them before u can continue
-            if (GameRuleManager.TryGetEnemyQuest((TileShape)e.Body, out int clicksNeeded))
+            if (QuestManager.TryGetEnemyQuest((TileShape)e.Body, out int clicksNeeded))
             {
                 if (clicksNeeded == ++_clickCount)
                 {
                     if (_enemiesStillThere)
                     {
-                        e.State = State.Deleted;
+                        e.Disable(true);
                         e.BlockSurroundingTiles(_grid, false);
                         _clickCount = 0;
                     }
@@ -194,25 +212,14 @@ internal static class Program
         }
     }
 
-    private static bool CreateEnemiesIfNeeded()
-    {
-        if (_shallCreateEnemies && 
-            (_enemyMatches is null || _enemyMatches.Count == 0) &&
-            _matchesOf3?.Count > 0)
-        {
-            _enemyMatches = _matchesOf3?.AsEnemies(_grid);
-        }
-        return _shallCreateEnemies;
-    }
-
     private static void HardReset()
     {
         if (IsKeyDown(KeyboardKey.KEY_A))
         {
             _grid = new Grid(_level);
             _shallCreateEnemies = true;
-            _matchesOf3?.Empty();
-            _enemyMatches?.Empty();
+            _matchesOf3?.Clear();
+            _enemyMatches?.Clear();
             _enemiesStillThere = false;
             _match3RectAlpha = 0f;
             _secondClicked = null;
@@ -258,15 +265,13 @@ internal static class Program
                 }
                 else
                 {
+                    Renderer.DrawTimer(ref _globalTimer);
                     Renderer.ShowWelcomeScreen(true);
-                    Renderer.UpdateTimer(ref _globalTimer);
+                    Renderer.DrawTimer(ref _globalTimer);
                     CenterMouseToEnemyMatch();
                     ProcessSelectedTiles();
                     ComputeMatches();
-      
-                    if (CreateEnemiesIfNeeded()) 
-                        HandleEnemyMatches();
-
+                    HandleEnemyMatches();
                     Renderer.DrawOuterBox(_enemyMatches, _globalTimer.ElapsedSeconds);  //works!
                     Renderer.DrawInnerBox(_matchesOf3, _globalTimer.ElapsedSeconds) ;  //works!
                     Renderer.DrawGrid(_grid, _globalTimer.ElapsedSeconds);
