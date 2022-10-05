@@ -48,6 +48,7 @@ internal static class Program
         InitWindow(_level.WindowWidth, _level.WindowHeight, "Match3 By Shpendicus");
         LoadAssets();
         _grid = new(_level);
+        Console.WriteLine("MATCHCOUNT/BALL: " +_level.QuestPerLevel.Quest.Count);
     }
     
     private static void CenterMouseToEnemyMatch()
@@ -58,7 +59,7 @@ internal static class Program
         {
             bool outsideRect = !CheckCollisionPointRec(GetMousePosition(), _enemyMatches.Border);
 
-            if (outsideRect)
+            if (outsideRect && _enemiesStillThere)
             {
                 /*the player has to get these enemies out of the way b4 he can pass!*/
                 SetMouseToWorldPos(_enemyMatches.BeginInWorld, 1);
@@ -90,30 +91,29 @@ internal static class Program
             return;
 
         //tmpFirst!.Selected = (tmpFirst.State & State.Movable) == State.Movable;
-        Console.WriteLine($"{tmpFirst!.GridCell} was clicked!");
+        //Console.WriteLine($"{tmpFirst!.GridCell} was clicked!");
 
         /*No tile selected yet*/
         if (_secondClicked is null)
         {
             //prepare for next round, so we store first in second!
             _secondClicked = tmpFirst;
-            _secondClicked.State |= State.Selected;
+            _secondClicked!.State |= State.Selected;
             return;
         }
 
         /*Same tile selected => deselect*/
         if (StateAndBodyComparer.Singleton.Equals(tmpFirst, _secondClicked))
         {
-            //firstClickedTile.Selected = false;
             Console.Clear();
-            Console.WriteLine($"{tmpFirst.GridCell} was clicked AGAIN!");
+            //Console.WriteLine($"{tmpFirst.GridCell} was clicked AGAIN!");
             _secondClicked.State |= State.Selected;
             _secondClicked = null;
         }
         /*Different tile selected ==> swap*/
         else
         {
-            tmpFirst.State |= State.Selected;
+            tmpFirst!.State |= State.Selected;
 
             if (_grid.Swap(tmpFirst, _secondClicked))
             {
@@ -138,7 +138,6 @@ internal static class Program
                 {
                     _matchCounter = 0;
                     _missedSwapTolerance = 0;
-                    GameRuleManager.RemoveSubQuest(body);
                     return true;
                 }
             }
@@ -159,9 +158,8 @@ internal static class Program
                 Console.WriteLine($"Good job, you got the {_matchCounter} match3! for {body.Ball} Balls");
                 _wasGameWonB4Timeout = GameRuleManager.IsQuestDone();
             }
-            _shallCreateEnemies = false; //ShallTransformMatchesToEnemyMatches();
+            //_shallCreateEnemies = false; //ShallTransformMatchesToEnemyMatches();
         }
-        
         else
             _matchesOf3!.Empty();
 
@@ -183,17 +181,15 @@ internal static class Program
             {
                 if (clicksNeeded == ++_clickCount)
                 {
-                    e.State = State.Deleted;
-                    _clickCount = 0;
-
-                    if (!_backToNormal)
+                    if (_enemiesStillThere)
                     {
+                        e.State = State.Deleted;
                         e.BlockSurroundingTiles(_grid, false);
-                        _backToNormal = true;
+                        _clickCount = 0;
                     }
                     Console.WriteLine(_matchCounter++);
                 }
-                _enemiesStillThere = _matchCounter <= _level.MatchConstraint;
+                _enemiesStillThere = _matchCounter < _level.MatchConstraint;
             }
         }
     }
