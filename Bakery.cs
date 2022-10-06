@@ -36,63 +36,63 @@ public static class Bakery
     {
         TileShape tmp = new()
         {
-            Ball = GetTileTypeTypeByNoise(noise)
+            TileType = GetTileTypeTypeByNoise(noise)
         };
         
-        return tmp.Ball switch
+        return tmp.TileType switch
         {
             Type.Green => new()
             {
-                Ball = Type.Green,
+                TileType = Type.Green,
                 AtlasLocation = new Vector2(0f, 0f) * Tile.Size, 
                 Form = ShapeKind.Circle, 
                 Layer = Coat.A
             },
             Type.Purple => new()
             {
-                Ball = Type.Purple,
+                TileType = Type.Purple,
                 AtlasLocation = new Vector2(1f, 0f) * Tile.Size,
                 Form = ShapeKind.Circle,
                 Layer = Coat.B
             },
             Type.Orange => new()
             {
-                Ball = Type.Orange,
+                TileType = Type.Orange,
                 AtlasLocation = new Vector2(2f, 0f) * Tile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.C
             },
             Type.Yellow => new()
             {
-                Ball = Type.Yellow,
+                TileType = Type.Yellow,
                 AtlasLocation = new Vector2(3f, 0f) * Tile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.D
             },
             Type.Red => new()
             {
-                Ball = Type.Red,
+                TileType = Type.Red,
                 AtlasLocation = new Vector2(0f, 1f) * Tile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.E
             },
             Type.Blue => new()
             {
-                Ball = Type.Blue,
+                TileType = Type.Blue,
                 AtlasLocation = new Vector2(1f, 1f) * Tile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.F
             },
             Type.Brown => new()
             {
-                Ball = Type.Brown,
+                TileType = Type.Brown,
                 AtlasLocation = new Vector2(2f, 1f) * Tile.Size,
                 Form = ShapeKind.Circle, 
                 Layer = Coat.G
             },
             Type.Violet => new()
             {
-                Ball = Type.Violet,
+                TileType = Type.Violet,
                 AtlasLocation = new Vector2(3f, 1f) * Tile.Size, 
                 Form = ShapeKind.Circle, 
                 Layer = Coat.H
@@ -128,7 +128,7 @@ public static class Bakery
             {
                 Form = ShapeKind.Trapez,
                 AtlasLocation = matchTile.Body.AtlasLocation,
-                Ball = matchTile.Body is TileShape c0 ? c0.Ball : Type.Empty,
+                TileType = matchTile.Body is TileShape c0 ? c0.TileType : Type.Empty,
                 Layer = matchTile.Body is TileShape c1 ? c1.Layer : (Coat)(-1)
             },
             State = State.Clean,

@@ -21,7 +21,7 @@ namespace Match_3
         public readonly int TileWidth;
         public readonly int TileHeight;
 
-        public static event Action<int[]> NotifyOnGridCreationDone;
+        public static event Action<GameState> NotifyOnGridCreationDone;
 
         private const int MaxDestroyableTiles = 3;
 
@@ -39,33 +39,20 @@ namespace Match_3
                     Vector2 current = new(x, y);
                     float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
                     _bitmap[x, y] = Bakery.CreateTile(current, noise);
-                    var kind = _bitmap[x, y] is Tile { Body: TileShape c } ? c.Ball : Type.Empty;
+                    var kind = _bitmap[x, y] is Tile { Body: TileShape c } ? c.TileType : Type.Empty;
                     //Console.WriteLine(( _bitmap[x, y] as Tile).State);
                     counts[(int)kind]++;
                 }
             }
-            NotifyOnGridCreationDone(counts.ToArray());
+            Program.StatePerLevel.TotalCountPerType = counts.ToArray();
+            NotifyOnGridCreationDone(Program.StatePerLevel);
         }
 
-        public (int start, int end) MakePlaceForTimer()
-        {
-            float beginX = (TileWidth - 1) / 2f;
-            this[new(beginX-1, 0)] = null;
-            this[new(beginX-0, 0)] = null;
-            this[new(beginX+1, 0)] = null;
-            this[new(beginX+2, 0)] = null;
-            
-            int start = (int)(beginX-1) * Tile.Size;
-            int end = (int)(beginX+3) * Tile.Size;
-            return (start, end);
-        }
-        
         public Grid(Level current)
         {
-            TileWidth = current.TilemapWidth;
-            TileHeight = current.TilemapHeight;
+            TileWidth = current.GridWidth;
+            TileHeight = current.GridHeight;
             _bitmap = new Tile[TileWidth, TileHeight];
-            NotifyOnGridCreationDone += QuestManager.SetCountPerType;
             CreateMap();
         }
         

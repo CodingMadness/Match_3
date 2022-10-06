@@ -152,25 +152,25 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
     {
        ChangeColor(WHITE,0f, 1f);
     }
-    public Type Ball { get; init; }
+    public Type TileType { get; init; }
     public Coat Layer { get; init; }
     public override ShapeKind Form { get; set; }
     public override Vector2 AtlasLocation { get; init; }
     public bool Equals(TileShape? other) =>
-        other is not null && Ball == other.Ball && Layer == other.Layer;
+        other is not null && TileType == other.TileType && Layer == other.Layer;
     public override int GetHashCode()
     {
-        return HashCode.Combine(Color, Ball);
+        return HashCode.Combine(Color, TileType);
     }
 
     public override string ToString() =>
-        $"Tile type: <{Ball}> with Tint: <{Color}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
+        $"Tile type: <{TileType}> with Tint: <{Color}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
 
     public object Clone()
     {
         TileShape clone = new()
         {
-            Ball = Ball,
+            TileType = TileType,
             Color = Color ,
             Form = Form,
             Layer = Layer,

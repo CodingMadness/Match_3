@@ -8,8 +8,7 @@ namespace Match_3;
 
 public static class Renderer
 {
-    private static Texture atlas = DefaultTileAtlas;
-    public static ref Texture GetAtlas() => ref atlas;
+    public static Texture Atlas;
 
     private static void DrawTile(Tile tile, float elapsedTime)
     {
@@ -34,7 +33,7 @@ public static class Renderer
         
         var body = tile.Body;
         body.Color.ElapsedTime = elapsedTime;
-        DrawTextureRec(GetAtlas(), tile.DestRect, tile.WorldCell, body.Color.Apply());
+        DrawTextureRec(Atlas, tile.DestRect, tile.WorldCell, body.Color.Apply());
         DrawCoordOnTop(tile);
     }
     
@@ -52,7 +51,7 @@ public static class Renderer
                     
                 if (basicTile is not null && !basicTile.IsDeleted)
                 {
-                    GetAtlas() = (basicTile is EnemyTile)
+                    Atlas = (basicTile is EnemyTile)
                         ? EnemyAtlas
                         : DefaultTileAtlas;
 
@@ -128,9 +127,10 @@ public static class Renderer
         DrawTexture(BgAtlas, 0, 0, WHITE);
     }
     
-    public static void LogQuest(bool useConsole, Level current)
+    /*
+    public static void LogQuest(bool useConsole, QuestData current)
     {
-        foreach (var pair in current.QuestPerLevel.Quest)
+        foreach (var pair in current.BallCountPerLevel.Quest)
         {
             if (useConsole)
             {
@@ -149,4 +149,5 @@ public static class Renderer
             }
         }
     } 
+    */
 }
