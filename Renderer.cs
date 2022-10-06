@@ -21,7 +21,7 @@ public static class Renderer
             GameText coordText = new(copy, (tile.GridCell).ToString(), 11.5f)
             {
                 Begin = begin,
-                Color = tile.State == State.Selected ? RED : BLACK,
+                Color = tile.TileState == TileState.Selected ? RED : BLACK,
             };
             coordText.Color.AlphaSpeed = 0f;
             coordText.ScaleText();
@@ -29,7 +29,7 @@ public static class Renderer
         }
 
         if (tile is EnemyTile enemy)
-            enemy.State &= State.Selected;
+            enemy.TileState &= TileState.Selected;
         
         var body = tile.Body;
         body.Color.ElapsedTime = elapsedTime;
@@ -84,29 +84,25 @@ public static class Renderer
         }
     }
     
-    public static void DrawTimer(GameTime globalTimer)
+    public static void DrawTimer(float elapsedSeconds)
     {
-        globalTimer.Run();
-
-        TimerText.Text = ((int)globalTimer.ElapsedSeconds).ToString();
-        FadeableColor color = globalTimer.ElapsedSeconds > 0f ? BLUE : WHITE;
+        TimerText.Text = ((int)elapsedSeconds).ToString();
+        FadeableColor color = elapsedSeconds > 0f ? BLUE : WHITE;
         TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
         TimerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 0f };
         TimerText.ScaleText();
         TimerText.Draw(null);
     }
     
-    public static void ShowWelcomeScreen(bool hideWelcome)
+    public static void ShowWelcomeScreen()
     {
-        FadeableColor tmp = RED;
-        tmp.AlphaSpeed = hideWelcome ? 1f : 0f;
-        WelcomeText.Color = tmp;
+        WelcomeText.Color = RED;
         WelcomeText.ScaleText();
         WelcomeText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
         WelcomeText.Draw(null);
     }
-
-    public static bool OnGameOver(GameTime globalTimer, bool? gameWon)
+    
+    public static bool OnGameOver(bool isDone, bool? gameWon)
     {
         if (gameWon is null)
         {
@@ -119,7 +115,7 @@ public static class Renderer
         GameOverText.Text = gameWon.Value ? "YOU WON!" : "YOU LOST";
         GameOverText.ScaleText();
         GameOverText.Draw(null);
-        return globalTimer.Done();
+        return isDone;
     }
 
     public static void DrawBackground()
