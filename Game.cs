@@ -32,14 +32,14 @@ internal static class Game
 
     private static void InitGame()
     {
-        _level = new(0,45*3, 4, 7, 7, 64, null);
+        _level = new(3,0,45*3, 4, 7, 7, 64, null);
         State = new();
-        _matchesOf3 = new(Goal.MAX_TILES_PER_MATCH);
+        _matchesOf3 = new(_level.MAX_TILES_PER_MATCH);
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(_level.WindowWidth, _level.WindowHeight, "Match3 By Shpendicus");
         LoadAssets();
-        QuestHandler.InitGameEventSubscriber(_level.ID);
+        QuestHandler.InitAllQuestHandlers(_level.ID);
         _grid = new(_level);
     }
     
@@ -143,7 +143,8 @@ internal static class Game
             if (_secondClicked?.Body is TileShape t)
             {
                 State.CollectPair = (t.TileType, 1);
-                State.Swapped = (t.TileType, 1);
+                State.ElapsedTime = _level.GameTimer.ElapsedSeconds;
+                State.Swapped = State.CollectPair;
                 OnMatchFound(State);
             }
 
