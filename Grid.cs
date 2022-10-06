@@ -44,8 +44,8 @@ namespace Match_3
                     counts[(int)kind]++;
                 }
             }
-            Program.StatePerLevel.TotalCountPerType = counts.ToArray();
-            NotifyOnGridCreationDone(Program.StatePerLevel);
+            Game.StatePerLevel.TotalCountPerType = counts.ToArray();
+            NotifyOnGridCreationDone(Game.StatePerLevel);
         }
 
         public Grid(Level current)

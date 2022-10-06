@@ -29,6 +29,7 @@ public sealed class GameState
     public (Type ballType, int swapped) Swapped;
     public bool AreEnemiesStillPresent;
     public int[] TotalCountPerType;
+    public bool WasGameWonB4Timeout;
     public EnemyTile Enemy;
     public Grid Map;
 }
@@ -109,37 +110,25 @@ public class CollectQuestHandler : QuestHandler
 
     public CollectQuestHandler(int levelIdId) : base(levelIdId)
     {
-        Program.OnMatchFound += CompareStateWithGoal;
+        Game.OnMatchFound += CompareStateWithGoal;
         Grid.NotifyOnGridCreationDone += DefineCollectionGoal;
     }
     
     private void CompareStateWithGoal(GameState inventory)
     {
-        //The Program notifies the QuestHandler, when a matchX happened or a tile was swapped
+        //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
-        //Program -------> QuestHandler--->takes "GameState" does == with Goal and based on the comparison, it decides what to do!
+        //Game -------> QuestHandler--->takes "GameState" does == with Goal and based on the comparison, it decides what to do!
         TilesPerCount.TryGetValue(inventory.CollectPair.ballType, out int collectCount);
 
         if (inventory.CollectPair.collected == collectCount && 
-            (int)inventory.ElapsedTime >= (int)_goal.GoalTime)
+            (int)inventory.ElapsedTime >=
+            (int)_goal.GoalTime)
         {
+            inventory.WasGameWonB4Timeout = TilesPerCount.Count == 0;
             TilesPerCount.Remove(inventory.CollectPair.ballType);
            // inventory.CollectPair.collected = 0;
             Console.WriteLine("YEA YOU GOT A MATCH AND ARE REWARDED FOR IT !: ");
         }
-        /*
-else if (inventory.TilesClicked.Count == _goal.ClicksPerTileNeeded)
-{
-    Console.WriteLine("YEA you have done enough clicks on this one");
-    
-    if (inventory.AreEnemiesStillPresent)
-    {
-        inventory.Enemy.Disable(true);
-        inventory.Enemy.BlockSurroundingTiles(inventory.Map, false);
-        inventory.TilesClicked.Count = 0;
-    }
-}
-inventory.AreEnemiesStillPresent = inventory.TilesClicked.Count < _goal.ClicksPerTileNeeded;
-*/
     }
 }

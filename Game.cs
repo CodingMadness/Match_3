@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using Match_3.GameTypes;
 using Microsoft.Toolkit.HighPerformance;
 using Raylib_CsLo;
@@ -11,7 +12,7 @@ using static Raylib_CsLo.Raylib;
 
 namespace Match_3;
 
-internal static class Program
+internal static class Game
 {
     private static Level _level;
     private static GameTime _globalTimer;
@@ -22,15 +23,9 @@ internal static class Program
     private static CollectQuestHandler collectQuestHandler;
     public static GameState StatePerLevel { get; private set; }
     
-    private static bool? _wasGameWonB4Timeout;
     private static bool _enterGame;
-    private static int _tilesClicked;
     private static int _missedSwapTolerance;
-    private static int _clickCount;
-    private static bool _backToNormal;
-    private static bool _enemiesStillThere = true;
     private static bool _wasSwapped;
-    private static float _match3RectAlpha = 1f;
     private static bool _shallCreateEnemies;
 
     public static event Action<GameState> OnMatchFound;
@@ -58,7 +53,6 @@ internal static class Program
         LoadAssets();
         collectQuestHandler = new(_level.ID);
         _grid = new(_level);
-        //Console.WriteLine("MATCHCOUNT/BALL: " +_level.BallCountPerLevel.Quest.Count);
     }
     
     private static void CenterMouseToEnemyMatch()
@@ -69,12 +63,12 @@ internal static class Program
         {
             bool outsideRect = !CheckCollisionPointRec(GetMousePosition(), _enemyMatches.Border);
 
-            if (outsideRect && _enemiesStillThere)
+            if (outsideRect && StatePerLevel.AreEnemiesStillPresent)
             {
                 /*the player has to get these enemies out of the way b4 he can pass!*/
                 SetMouseToWorldPos(_enemyMatches.BeginInWorld, 1);
             }
-            else if (!_enemiesStillThere && _enemyMatches.IsMatch)
+            else if (!StatePerLevel.AreEnemiesStillPresent && _enemyMatches.IsMatch)
             {
                 //we set this to null, because we cant make any swaps after this, cause 
                 //_secondClicked has a value! so we then can repeat the entire cycle!
@@ -83,7 +77,6 @@ internal static class Program
                 //delete all of them, because else we will reference always the base-matches internally which is bad!
                 _enemyMatches.Clear(); 
                 _matchesOf3?.Clear();
-                _tilesClicked = 0;
                 //move freely
             }
         }
@@ -200,8 +193,7 @@ internal static class Program
             _shallCreateEnemies = true;
             _matchesOf3?.Clear();
             _enemyMatches?.Clear();
-            _enemiesStillThere = false;
-            _match3RectAlpha = 0f;
+            StatePerLevel.AreEnemiesStillPresent = false;
             _secondClicked = null;
             _wasSwapped = false;
             Console.Clear();
@@ -226,21 +218,21 @@ internal static class Program
                 bool isGameOver = _globalTimer.Done();
 
                 Console.WriteLine("TIME  : "+_globalTimer.ElapsedSeconds);
+                
                 if (isGameOver)
                 {
                     if (Renderer.OnGameOver(ref _globalTimer,false))
                     {
-                         
                         //leave Gameloop and hence end the game
                         return;
                     }
                 }
-                else if (_wasGameWonB4Timeout == true)
+                else if (StatePerLevel.WasGameWonB4Timeout)
                 {
                     if (Renderer.OnGameOver(ref _globalTimer, true))
                     {
                         InitGame();
-                        _wasGameWonB4Timeout = false;
+                        StatePerLevel.WasGameWonB4Timeout = false;
                         continue;
                     }
                 }
