@@ -11,16 +11,14 @@ namespace Match_3;
 internal static class Game
 {
     private static Level _level;
-    private static GameTime _globalTimer;
     private static Grid _grid;
     private static MatchX? _matchesOf3;
     private static EnemyMatches? _enemyMatches;
     private static Tile? _secondClicked;
-    private static CollectQuestHandler collectQuestHandler;
+    
     public static GameState StatePerLevel { get; private set; }
     
     private static bool _enterGame;
-    private static int _missedSwapTolerance;
     private static bool _shallCreateEnemies;
 
     public static event Action<GameState> OnMatchFound;
@@ -36,17 +34,13 @@ internal static class Game
 
     private static void InitGame()
     {
-        _matchesOf3 = new(3);
-        StatePerLevel = new();
-        //QuestManager.InitNewLevel();
-        //_level = QuestManager.State;
         _level = new(0,45, 4, 7, 7, 64, null);
-        _globalTimer = GameTime.GetTimer(_level.GameBeginAt);
+        StatePerLevel = new();
+        _matchesOf3 = new(Goal.MAX_TILES_PER_MATCH);
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(_level.WindowWidth, _level.WindowHeight, "Match3 By Shpendicus");
         LoadAssets();
-        collectQuestHandler = new(_level.ID);
         _grid = new(_level);
     }
     
@@ -123,10 +117,8 @@ internal static class Game
 
             if (_grid.Swap(tmpFirst, _secondClicked))
             {
-                //Console.WriteLine("first and second were swapped successfully!");
-                //both "first" are in this case the second, due to the swap!
-                //ComputeMatches((_secondClicked as Tile)!);
                 StatePerLevel.WasSwapped = true;
+                OnTileSwapped(StatePerLevel);
             }
         }
     }
@@ -210,13 +202,13 @@ internal static class Game
             }
             if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
             {
-                bool isGameOver = _globalTimer.Done();
+                bool isGameOver = _level.GameTimer.Done();
 
-                Console.WriteLine("TIME  : "+_globalTimer.ElapsedSeconds);
+                Console.WriteLine("TIME  : "+_level.GameTimer.ElapsedSeconds);
                 
                 if (isGameOver)
                 {
-                    if (Renderer.OnGameOver(ref _globalTimer,false))
+                    if (Renderer.OnGameOver(_level.GameTimer,false))
                     {
                         //leave Gameloop and hence end the game
                         return;
@@ -224,7 +216,7 @@ internal static class Game
                 }
                 else if (StatePerLevel.WasGameWonB4Timeout)
                 {
-                    if (Renderer.OnGameOver(ref _globalTimer, true))
+                    if (Renderer.OnGameOver(_level.GameTimer, true))
                     {
                         InitGame();
                         StatePerLevel.WasGameWonB4Timeout = false;
@@ -233,16 +225,16 @@ internal static class Game
                 }
                 else
                 {
-                    Renderer.DrawTimer(ref _globalTimer);
+                    Renderer.DrawTimer(_level.GameTimer);
                     Renderer.ShowWelcomeScreen(true);
-                    Renderer.DrawTimer(ref _globalTimer);
+                    Renderer.DrawTimer(_level.GameTimer);
                     CenterMouseToEnemyMatch();
                     ProcessSelectedTiles();
                     ComputeMatches();
                     HandleEnemyMatches();
-                    Renderer.DrawOuterBox(_enemyMatches, _globalTimer.ElapsedSeconds);  //works!
-                    Renderer.DrawInnerBox(_matchesOf3, _globalTimer.ElapsedSeconds) ;  //works!
-                    Renderer.DrawGrid(_grid, _globalTimer.ElapsedSeconds);
+                    Renderer.DrawOuterBox(_enemyMatches, _level.GameTimer.ElapsedSeconds);  //works!
+                    Renderer.DrawInnerBox(_matchesOf3, _level.GameTimer.ElapsedSeconds) ;  //works!
+                    Renderer.DrawGrid(_grid, _level.GameTimer.ElapsedSeconds);
                     HardReset();
                 }
                 _enterGame = true;

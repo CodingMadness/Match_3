@@ -49,13 +49,20 @@ public abstract class QuestHandler
 
     protected QuestHandler(int levelIdId)
     {
-        Grid.NotifyOnGridCreationDone += DefineTileTypeToCountRelation;
         TilesPerCount = new Dictionary<Type, int>((int)Type.Length);
+        Grid.NotifyOnGridCreationDone += DefineTileTypeToCountRelation;
         GenerateQuestBasedOnLevel(levelIdId);
     }
 
     protected abstract void DefineTileTypeToCountRelation(GameState inventory);
     protected abstract void DoSmthWhenGoalReached(GameState inventory);
+
+    public static void InitGameEventSubscriber(int levelID)
+    {
+        // INIT all Sub_QuestHandlers here!...
+        _ = new SwapQuestHandler(levelID);
+        _ = new CollectQuestHandler(levelID);
+    }
 }
 
 public class SwapQuestHandler : QuestHandler

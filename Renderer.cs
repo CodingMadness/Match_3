@@ -84,7 +84,7 @@ public static class Renderer
         }
     }
     
-    public static void DrawTimer(ref GameTime globalTimer)
+    public static void DrawTimer(GameTime globalTimer)
     {
         globalTimer.Run();
 
@@ -106,7 +106,7 @@ public static class Renderer
         WelcomeText.Draw(null);
     }
 
-    public static bool OnGameOver(ref GameTime globalTimer, bool? gameWon)
+    public static bool OnGameOver(GameTime globalTimer, bool? gameWon)
     {
         if (gameWon is null)
         {

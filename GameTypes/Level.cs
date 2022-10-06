@@ -6,4 +6,6 @@ public readonly record struct Level(int ID, int GameBeginAt, int GameOverScreenC
 {
     public int WindowHeight => GridWidth * TileSize;
     public int WindowWidth => GridHeight * TileSize;
+
+    public GameTime GameTimer { get; } = GameTime.GetTimer(GameBeginAt);
 }
