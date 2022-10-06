@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Match_3.GameTypes;
+using Microsoft.Toolkit.HighPerformance;
 using Raylib_CsLo;
 
 using static Match_3.AssetManager;
@@ -18,10 +19,12 @@ internal static class Program
     private static MatchX? _matchesOf3;
     private static EnemyMatches? _enemyMatches;
     private static Tile? _secondClicked;
+    private static CollectQuestHandler collectQuestHandler;
+    public static GameState StatePerLevel { get; private set; }
     
     private static bool? _wasGameWonB4Timeout;
     private static bool _enterGame;
-    private static int _matchCounter;
+    private static int _tilesClicked;
     private static int _missedSwapTolerance;
     private static int _clickCount;
     private static bool _backToNormal;
@@ -29,6 +32,10 @@ internal static class Program
     private static bool _wasSwapped;
     private static float _match3RectAlpha = 1f;
     private static bool _shallCreateEnemies;
+
+    public static event Action<GameState> OnMatchFound;
+    public static event Action<GameState> OnTileClicked;
+    public static event Action<GameState> OnTileSwapped;
     
     private static void Main()
     {
@@ -40,15 +47,18 @@ internal static class Program
     private static void InitGame()
     {
         _matchesOf3 = new(3);
-        QuestManager.InitNewLevel();
-        _level = QuestManager.State;
-        _globalTimer = GameTime.GetTimer(_level.GameStartAt);
+        StatePerLevel = new();
+        //QuestManager.InitNewLevel();
+        //_level = QuestManager.State;
+        _level = new(0,45, 4, 7, 7, 64, null);
+        _globalTimer = GameTime.GetTimer(_level.GameBeginAt);
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(_level.WindowWidth, _level.WindowHeight, "Match3 By Shpendicus");
         LoadAssets();
+        collectQuestHandler = new(_level.ID);
         _grid = new(_level);
-        Console.WriteLine("MATCHCOUNT/BALL: " +_level.QuestPerLevel.Quest.Count);
+        //Console.WriteLine("MATCHCOUNT/BALL: " +_level.BallCountPerLevel.Quest.Count);
     }
     
     private static void CenterMouseToEnemyMatch()
@@ -73,7 +83,7 @@ internal static class Program
                 //delete all of them, because else we will reference always the base-matches internally which is bad!
                 _enemyMatches.Clear(); 
                 _matchesOf3?.Clear();
-                _matchCounter = 0;
+                _tilesClicked = 0;
                 //move freely
             }
         }
@@ -137,21 +147,7 @@ internal static class Program
     {
         if (!_wasSwapped)
             return;
-        
-        bool CheckIfMatchQuestWasMet(TileShape body)
-        {
-            if (QuestManager.TryGetMatch3Quest(body, out int matchesNeeded))
-            {
-                if (++_matchCounter == matchesNeeded)
-                {
-                    _matchCounter = 0;
-                    _missedSwapTolerance = 0;
-                    return true;
-                }
-            }
-            return false;
-        }
-        
+
         bool ShallTransformMatchesToEnemyMatches() => Randomizer.NextSingle() <= 0.5f;
 
         void CreateEnemiesIfNeeded()
@@ -166,16 +162,13 @@ internal static class Program
         
         if (_grid.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!) /*&& !_shallCreateEnemies*/)
         {
-            if (_secondClicked!.Body is not TileShape body)
-                return;
-
-            //_grid.Delete(_matchesOf3!);
-            
-            if (CheckIfMatchQuestWasMet(body))
+            if (_secondClicked?.Body is TileShape t)
             {
-                Console.WriteLine($"Good job, you got the {_matchCounter} match3! for {body.Ball} Balls");
-                _wasGameWonB4Timeout = QuestManager.IsQuestDone();
+                StatePerLevel.CollectPair = (t.TileType, 1);
+                StatePerLevel.Swapped = (t.TileType, 1);
+                OnMatchFound(StatePerLevel);
             }
+
             _shallCreateEnemies = true;
             CreateEnemiesIfNeeded();
         }
@@ -194,21 +187,8 @@ internal static class Program
         //Enemy tile was clicked on , ofc after a matchX happened!
         if (enemyTile is EnemyTile e)
         {
-            //IF it is an enemy, YOU HAVE TO delete them before u can continue
-            if (QuestManager.TryGetEnemyQuest((TileShape)e.Body, out int clicksNeeded))
-            {
-                if (clicksNeeded == ++_clickCount)
-                {
-                    if (_enemiesStillThere)
-                    {
-                        e.Disable(true);
-                        e.BlockSurroundingTiles(_grid, false);
-                        _clickCount = 0;
-                    }
-                    Console.WriteLine(_matchCounter++);
-                }
-                _enemiesStillThere = _matchCounter < _level.MatchConstraint;
-            }
+            StatePerLevel.Enemy = e;
+            StatePerLevel.Map = _grid;
         }
     }
 
@@ -239,17 +219,18 @@ internal static class Program
             if (!_enterGame)
             {
                 Renderer.ShowWelcomeScreen(false);
-                Renderer.LogQuest(false, _level);
+                //Renderer.LogQuest(false, _level);
             }
-
             if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
             {
                 bool isGameOver = _globalTimer.Done();
 
+                Console.WriteLine("TIME  : "+_globalTimer.ElapsedSeconds);
                 if (isGameOver)
                 {
                     if (Renderer.OnGameOver(ref _globalTimer,false))
                     {
+                         
                         //leave Gameloop and hence end the game
                         return;
                     }
@@ -279,6 +260,7 @@ internal static class Program
                 }
                 _enterGame = true;
             }
+            
             EndDrawing();
         }
     }
