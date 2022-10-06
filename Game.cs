@@ -1,14 +1,10 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
 using Match_3.GameTypes;
-using Microsoft.Toolkit.HighPerformance;
 using Raylib_CsLo;
 
 using static Match_3.AssetManager;
 using static Match_3.Utils;
 using static Raylib_CsLo.Raylib;
-
-//INITIALIZATION:................................
 
 namespace Match_3;
 
@@ -25,7 +21,6 @@ internal static class Game
     
     private static bool _enterGame;
     private static int _missedSwapTolerance;
-    private static bool _wasSwapped;
     private static bool _shallCreateEnemies;
 
     public static event Action<GameState> OnMatchFound;
@@ -131,14 +126,14 @@ internal static class Game
                 //Console.WriteLine("first and second were swapped successfully!");
                 //both "first" are in this case the second, due to the swap!
                 //ComputeMatches((_secondClicked as Tile)!);
-                _wasSwapped = true;
+                StatePerLevel.WasSwapped = true;
             }
         }
     }
     
     static void ComputeMatches()
     {
-        if (!_wasSwapped)
+        if (!StatePerLevel.WasSwapped)
             return;
 
         bool ShallTransformMatchesToEnemyMatches() => Randomizer.NextSingle() <= 0.5f;
@@ -168,7 +163,7 @@ internal static class Game
         else
             _matchesOf3!.Clear();
         
-        _wasSwapped = false;
+        StatePerLevel.WasSwapped = false;
         _secondClicked = null;
     }
     
@@ -195,7 +190,7 @@ internal static class Game
             _enemyMatches?.Clear();
             StatePerLevel.AreEnemiesStillPresent = false;
             _secondClicked = null;
-            _wasSwapped = false;
+            StatePerLevel.WasSwapped = false;
             Console.Clear();
         }
     }
