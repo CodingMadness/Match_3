@@ -47,15 +47,15 @@ public abstract class QuestHandler
         }
     }
 
-    protected QuestHandler(int levelIdId)
+    protected QuestHandler(int levelId)
     {
         TilesPerCount = new Dictionary<Type, int>((int)Type.Length);
         Grid.NotifyOnGridCreationDone += DefineTileTypeToCountRelation;
-        GenerateQuestBasedOnLevel(levelIdId);
+        GenerateQuestBasedOnLevel(levelId);
     }
 
-    protected abstract void DefineTileTypeToCountRelation(GameState inventory);
-    protected abstract void DoSmthWhenGoalReached(GameState inventory);
+    protected abstract void DefineTileTypeToCountRelation(QuestState inventory);
+    protected abstract void DoSmthWhenGoalReached(QuestState inventory);
 
     public static void InitGameEventSubscriber(int levelID)
     {
@@ -67,13 +67,13 @@ public abstract class QuestHandler
 
 public class SwapQuestHandler : QuestHandler
 {
-    public SwapQuestHandler(int levelIdId) : base(levelIdId)
+    public SwapQuestHandler(int levelId) : base(levelId)
     {
         TilesPerCount.Clear();
         Game.OnTileSwapped += DoSmthWhenGoalReached;
     }
     
-    protected override void DefineTileTypeToCountRelation(GameState inventory)
+    protected override void DefineTileTypeToCountRelation(QuestState inventory)
     {
         for (Type i = 0; i < Type.Length; i++)
         {
@@ -82,11 +82,11 @@ public class SwapQuestHandler : QuestHandler
         }
     }
 
-    protected override void DoSmthWhenGoalReached(GameState inventory)
+    protected override void DoSmthWhenGoalReached(QuestState inventory)
     {
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
-        //Game -------> QuestHandler--->takes "GameState" does == with Goal and based on the comparison, it decides what to do!
+        //Game -------> QuestHandler--->takes "QuestState" does == with Goal and based on the comparison, it decides what to do!
         TilesPerCount.TryGetValue(inventory.Swapped.ballType, out int swapCount);
 
         if (inventory.Swapped.count == swapCount)
@@ -99,7 +99,7 @@ public class SwapQuestHandler : QuestHandler
 
 public class CollectQuestHandler : QuestHandler
 {
-    protected override void DefineTileTypeToCountRelation(GameState inventory)
+    protected override void DefineTileTypeToCountRelation(QuestState inventory)
     {
         for (int currentBall = 0; currentBall < _goal.TypeCountToCollect; currentBall++)
         {
@@ -114,16 +114,16 @@ public class CollectQuestHandler : QuestHandler
         }
     }
 
-    public CollectQuestHandler(int levelIdId) : base(levelIdId)
+    public CollectQuestHandler(int levelId) : base(levelId)
     {
         Game.OnMatchFound += DoSmthWhenGoalReached;
     }
 
-    protected override void DoSmthWhenGoalReached(GameState inventory)
+    protected override void DoSmthWhenGoalReached(QuestState inventory)
     {
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
-        //Game -------> QuestHandler--->takes "GameState" does == with Goal and based on the comparison, it decides what to do!
+        //Game -------> QuestHandler--->takes "QuestState" does == with Goal and based on the comparison, it decides what to do!
         TilesPerCount.TryGetValue(inventory.Swapped.ballType, out int swapCount);
 
         if (inventory.CollectPair.collected == swapCount &&

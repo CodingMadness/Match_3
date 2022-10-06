@@ -13,23 +13,23 @@ public sealed class StateAndBodyComparer : EqualityComparer<Tile>
         if (ReferenceEquals(y1, null)) return false;
         if (x1.GetType() != y1.GetType()) return false;
 
-        State xGoodState = (x1.State & State.Clean) == State.Clean ||
-                          (x1.State & State.Hidden) == State.Hidden
-            ? x1.State
-            : State.Deleted;
-        State yGoodState = (y1.State & State.Clean) == State.Clean ||
-                           (y1.State & State.Hidden) == State.Hidden
-            ? y1.State
-            : State.Deleted;
+        TileState xGoodTileState = (x1.TileState & TileState.Clean) == TileState.Clean ||
+                          (x1.TileState & TileState.Hidden) == TileState.Hidden
+            ? x1.TileState
+            : TileState.Deleted;
+        TileState yGoodTileState = (y1.TileState & TileState.Clean) == TileState.Clean ||
+                           (y1.TileState & TileState.Hidden) == TileState.Hidden
+            ? y1.TileState
+            : TileState.Deleted;
         
-        bool xHasY = (xGoodState & yGoodState) == yGoodState;
-        bool yHasX = (yGoodState & xGoodState) == xGoodState;
+        bool xHasY = (xGoodTileState & yGoodTileState) == yGoodTileState;
+        bool yHasX = (yGoodTileState & xGoodTileState) == xGoodTileState;
         
         return (xHasY ||yHasX)  && ((TileShape)x1.Body).Equals(y1.Body as TileShape);
     }
     public override int GetHashCode(Tile obj)
     {
-        return HashCode.Combine((int)obj.State, obj.Body);
+        return HashCode.Combine((int)obj.TileState, obj.Body);
     }
     public static StateAndBodyComparer Singleton => new();
 }

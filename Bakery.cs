@@ -112,7 +112,7 @@ public static class Bakery
             GridCell = gridPos, 
             CoordsB4Swap = -Vector2.One,
             Body = DefineFrame(noise),
-            State = State.Clean,
+            TileState = TileState.Clean,
             Options = Options.Movable | Options.Shapeable |  Options.Destroyable
         };
         return tile;
@@ -131,7 +131,7 @@ public static class Bakery
                 TileType = matchTile.Body is TileShape c0 ? c0.TileType : Type.Empty,
                 Layer = matchTile.Body is TileShape c1 ? c1.Layer : (Coat)(-1)
             },
-            State = State.Clean,
+            TileState = TileState.Clean,
             Options = Options.UnMovable | Options.UnShapeable,
         };
 

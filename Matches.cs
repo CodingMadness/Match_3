@@ -37,7 +37,7 @@ public class MatchX
             return _worldRect;
         }
     }
-    public Vector2 BeginInWorld
+    public Vector2 WorldPos
     {
         get
         {

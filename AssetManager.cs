@@ -18,30 +18,6 @@ public static unsafe class AssetManager
     public static readonly GameText TimerText = new( welcomeFont with { baseSize = 512 * 2 }, "Welcome young man!!", 7f);
     public static readonly GameText LogText = new(welcomeFont, "", 20f); 
 
-    public static string GetAssetFolderName(string? nextFolder)
-    {
-        //this line has to be because when calling the .exe from the bin folder, 
-        //rider apparently sets the currentDirectory to /usr/shpend and not as I expect to the
-        //full location of the 
-        Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
-        var net6Path = Environment.CurrentDirectory.AsSpan();
-        Console.WriteLine(net6Path.ToString());
-
-        const string projectName = "Match_3";
-        int lastProjectNameOccurence = net6Path.LastIndexOf(projectName, StringComparison.Ordinal) + projectName.Length;
-        var projectPath = net6Path[..lastProjectNameOccurence];
-
-        string assetFolderName;
-
-        if (nextFolder is null)
-            assetFolderName = Environment.OSVersion.Platform == PlatformID.Unix ? "/Assets/" : "\\Assets\\";
-
-        else
-            assetFolderName = Environment.OSVersion.Platform == PlatformID.Unix ? $"/Assets/{nextFolder}/" : $"\\Assets\\{nextFolder}\\";
-
-        return $"{projectPath}{assetFolderName}";
-    }
-
     /// <summary>
     /// 
     /// </summary>
