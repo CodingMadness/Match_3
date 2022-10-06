@@ -210,69 +210,70 @@ public enum Options
 }
 
 [Flags]
-public enum State
+public enum TileState
 {
     Disabled=1, Deleted=2, Hidden=4, Selected=8, Clean=16
 }
 
 public class Tile
 {
-    private State _current;
+    private TileState _current;
     
     public virtual Options Options { get; set; }
     
-    public State State 
+    public TileState TileState 
     {
         get => _current;
 
         set
         {
-            if ((value & State.Clean) == State.Clean)
+            if ((value & TileState.Clean) == TileState.Clean)
             {
-                _current &= State.Selected;
-                _current &= State.Disabled;
-                _current &= State.Deleted;
-                _current &= State.Hidden;
+                _current &= TileState.Selected;
+                _current &= TileState.Disabled;
+                _current &= TileState.Deleted;
+                _current &= TileState.Hidden;
 
                 Body.Color = WHITE;
                 Body.Color.CurrentAlpha = 1f;
                 Body.Color.TargetAlpha = 1f;
                 Body.Color.AlphaSpeed = 0f;
             }
-            if ((value & State.Selected) == State.Selected)
+            if ((value & TileState.Selected) == TileState.Selected)
             {
+                Body.Color = GREEN;
                 Body.Color.CurrentAlpha = 1f;
-                Body.Color.AlphaSpeed = 0.75f;
+                Body.Color.AlphaSpeed = 0.65f;
                 Body.Color.TargetAlpha = 0.35f;
                 
                 //if a tile is selected it must also be clean/alive
-                _current |= State.Clean;
+                _current |= TileState.Clean;
             }
-            else if ((value & State.Hidden) == State.Hidden)
+            else if ((value & TileState.Hidden) == TileState.Hidden)
             {
-                _current &= State.Clean;    //remove clean flag from set
-                //_current |= State.Selected; //remove clean flag from set
+                _current &= TileState.Clean;    //remove clean flag from set
+                //_current |= TileState.Selected; //remove clean flag from set
                 //add disabled flag to set cause when smth is deleted it must be automatically disabled 
-                _current &= State.Disabled; //operations on that tile with this flag are still possible!
-                _current &= State.Deleted;
+                _current &= TileState.Disabled; //operations on that tile with this flag are still possible!
+                _current &= TileState.Deleted;
                 //Body.Color.AlphaSpeed = 0f;
             }
-            else if ((value & State.Deleted) == State.Deleted)
+            else if ((value & TileState.Deleted) == TileState.Deleted)
             {
                 //remove all flags
-                _current &= State.Clean; 
-                _current &= State.Selected; //remove clean flag from set
-                _current &= State.Disabled;
+                _current &= TileState.Clean; 
+                _current &= TileState.Selected; //remove clean flag from set
+                _current &= TileState.Disabled;
                 Body.Color = WHITE;
                 Body.Color.CurrentAlpha = 0f;
                 //Body.Color.AlphaSpeed = 0.75f;
                 //Body.Color.TargetAlpha = 1f;
             }
-            else if ((value & State.Disabled) == State.Disabled)
+            else if ((value & TileState.Disabled) == TileState.Disabled)
             {
-                _current &= State.Clean; //remove clean flag from set
-                _current &= State.Selected; //remove clean flag from set
-                _current &= State.Deleted; //deleted is reserved as Disabled AND Hidden, so u cannot be both at same time
+                _current &= TileState.Clean; //remove clean flag from set
+                _current &= TileState.Selected; //remove clean flag from set
+                _current &= TileState.Deleted; //deleted is reserved as Disabled AND Hidden, so u cannot be both at same time
                 
                 Body.Color = BLACK;
                 Body.Color.CurrentAlpha = 1f;
@@ -293,7 +294,7 @@ public class Tile
     /// End in WorldCoordinates
     /// </summary>
     public Vector2 End => WorldCell + (Vector2.One * Size); 
-    public bool IsDeleted => (State & State.Deleted) == State.Deleted;
+    public bool IsDeleted => (TileState & TileState.Deleted) == TileState.Deleted;
     public Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
     public Rectangle WorldBounds => GridBounds.ToWorldBox();
 
@@ -308,18 +309,28 @@ public class Tile
         Body = null!;
     }
     public override string ToString() => $"GridCell: {GridCell}; ---- {Body}";
+
+    public void Select()
+    {
+        TileState |= TileState.Selected;
+    }
+    public void DeSelect()
+    {
+        TileState &= TileState.Selected;
+        Body.Color.AlphaSpeed = 0f;
+    }
     public void Disable(bool shallDelete)
     {
         //Body.ChangeColor(BLACK, 0f, 1f);
         Options = Options.UnMovable | Options.UnShapeable;
-        State = !shallDelete ? State.Disabled : State.Deleted;
+        TileState = !shallDelete ? TileState.Disabled : TileState.Deleted;
     }
     public void Enable()
     {
         //draw from whatever was the 1. sprite-atlas 
         //Body.ChangeColor(WHITE, 0f, 1f);
         Options = Options.Movable | Options.Shapeable;
-        State = State.Clean;
+        TileState = TileState.Clean;
     }
 }
 
