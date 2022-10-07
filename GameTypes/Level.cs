@@ -1,6 +1,6 @@
 ﻿namespace Match_3.GameTypes;
 
-public record Level(int ID, int GameBeginAt, int GameOverScreenCountdown,
+public record Level(int MAX_TILES_PER_MATCH,int ID, int GameBeginAt, int GameOverScreenCountdown,
     int GridWidth, int GridHeight, int TileSize,
     byte[] MapLayout)
 {

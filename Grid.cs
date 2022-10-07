@@ -148,7 +148,8 @@ namespace Match_3
         
         public bool Swap(Tile? a, Tile? b)
         {
-            if (a is null || b is null || a.IsDeleted || b.IsDeleted)
+            if (a is null || b is null || 
+                a.IsDeleted || b.IsDeleted)
             {
                 return false;
             }
