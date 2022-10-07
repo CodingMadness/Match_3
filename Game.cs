@@ -34,7 +34,7 @@ internal static class Game
     {
         _level = new(0,45*3, 4, 7, 7, 64, null);
         State = new();
-        _matchesOf3 = new(Goal.MAX_TILES_PER_MATCH);
+        _matchesOf3 = new(Level.MAX_TILES_PER_MATCH);
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(_level.WindowWidth, _level.WindowHeight, "Match3 By Shpendicus");
@@ -96,7 +96,7 @@ internal static class Game
         {
             //prepare for next round, so we store first in second!
             _secondClicked = firstClickedTile;
-            _secondClicked!.Select();
+            //_secondClicked.Select();
             return;
         }
 
@@ -147,7 +147,7 @@ internal static class Game
                 OnMatchFound(State);
             }
 
-            _shallCreateEnemies = true;
+            State.EnemiesStillPresent = _shallCreateEnemies = true;
             CreateEnemiesIfNeeded();
         }
         else

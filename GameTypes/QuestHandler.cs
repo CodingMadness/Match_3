@@ -74,6 +74,12 @@ public abstract class QuestHandler
         _ = new SwapQuestHandler(levelID);
         _ = new CollectQuestHandler(levelID);
     }
+
+    public static void InitGameEventSubscriber(int levelId)
+    {
+        _ = new CollectQuestHandler(levelId);
+        _ = new SwapQuestHandler(levelId);
+    }
 }
 
 file class SwapQuestHandler : QuestHandler

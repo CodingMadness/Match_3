@@ -234,14 +234,14 @@ public class Tile
                 _current &= TileState.Deleted;
                 _current &= TileState.Hidden;
 
-                Body.Color = WHITE;
+                //Body.Color = WHITE;
                 Body.Color.CurrentAlpha = 1f;
                 Body.Color.TargetAlpha = 1f;
                 Body.Color.AlphaSpeed = 0f;
             }
             if ((value & TileState.Selected) == TileState.Selected)
             {
-                Body.Color = GREEN;
+                
                 Body.Color.CurrentAlpha = 1f;
                 Body.Color.AlphaSpeed = 0.65f;
                 Body.Color.TargetAlpha = 0.35f;
@@ -312,10 +312,12 @@ public class Tile
 
     public void Select()
     {
+        Body.Color = GREEN;
         TileState |= TileState.Selected;
     }
     public void DeSelect()
     {
+        Body.Color = WHITE;
         TileState &= TileState.Selected;
         Body.Color.AlphaSpeed = 0f;
     }

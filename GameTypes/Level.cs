@@ -4,6 +4,7 @@ public record Level(int ID, int GameBeginAt, int GameOverScreenCountdown,
     int GridWidth, int GridHeight, int TileSize,
     byte[] MapLayout)
 {
+    public const int MAX_TILES_PER_MATCH = 3;
     public int WindowHeight => GridWidth * TileSize;
     public int WindowWidth => GridHeight * TileSize;
 
