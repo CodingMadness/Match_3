@@ -134,7 +134,10 @@ public static class Bakery
             CoordsB4Swap = matchTile.GridCell,
             Body = new TileShape
             {
-                Scale = 1f,
+                Scale = new(0.7f, 1.2f)
+                {
+                    ElapsedTime = 0f, Speed = 0.2f
+                },
                 Form = ShapeKind.Trapez,
                 AtlasLocation = matchTile.Body.AtlasLocation,
                 TileType = matchTile.Body is TileShape c0 ? c0.TileType : Type.Empty,

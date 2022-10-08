@@ -4,7 +4,51 @@ using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
 
 namespace Match_3;
- 
+
+public struct Scale
+{
+    private readonly float _minScale;
+    private readonly float _maxScale;
+    private float _direction;
+    private float _finalScaleFactor;
+
+    public float Speed;
+    public float ElapsedTime;
+
+    public Scale(float minScale, float maxScale)
+    {
+        _minScale = minScale;
+        _maxScale = maxScale;
+        Speed = 0.25f;
+        _direction = -1f;
+        _finalScaleFactor = 1f;
+    }
+    
+    private float DoScale()
+    {
+        if (ElapsedTime <= 0f)
+            return _finalScaleFactor;
+
+        if (_finalScaleFactor.Equals(_minScale, 0.1f) || 
+            _finalScaleFactor.Equals(_maxScale, 0.1f))
+        {
+            //so we start at scale1: then it scaled slowly down to "_minScale" and then from there
+            //we change the multiplier to now ADD the x to the scale, so we scale back UP
+            //this created this scaling flow
+            _direction *= -1;  
+        }
+        float x = Speed * (1 / ElapsedTime); 
+        return _finalScaleFactor += (_direction * x);
+    }
+
+    public static implicit operator float(Scale size) => size.DoScale();
+
+    public static implicit operator Scale(float size) => new(size, size)
+    {
+        _direction = 0,
+    };
+}
+
 public struct FadeableColor : IEquatable<FadeableColor>
 {
     private Color _toWrap;
@@ -135,9 +179,9 @@ public abstract class Shape
     public virtual ShapeKind Form { get; set; }
     public virtual Vector2 AtlasLocation { get; init; }
     public Rectangle AtlasRect => new(AtlasLocation.X, AtlasLocation.Y, Tile.Size, Tile.Size);
-    public float Scale { get; set; }
-    
+    public Scale Scale;
     public FadeableColor Color;
+    
     public void ChangeColor(Color c, float alphaSpeed, float targetAlpha)
     {
         Color = c;
@@ -314,12 +358,7 @@ public class Tile
         Body = null!;
     }
     public override string ToString() => $"GridCell: {GridCell}; ---- {Body}";
-
-    public void Pulsate()
-    {
-        TileState |= TileState.Pulsate;
-        Body.Scale = 2f;
-    }
+    
     public void Select()
     {
         Body.Color = GREEN;
@@ -349,28 +388,16 @@ public class Tile
 public class EnemyTile : Tile
 {
     public override Options Options => Options.UnMovable;
-
-    private float minScale = 0.70f;
-    private float maxScale = 1.20f;
-    private float CurrentSize = 0.15f;
-    private float direction = -1f;
-
-    public Rectangle ScaleWorldBounds(float elapsedTime)
+    
+    public Rectangle Pulsate(float elapsedTime)
     {
         if (elapsedTime <= 0f)
             return Body.AtlasRect;
-
-        if (Body.Scale.Equals(minScale, 0.1f) || 
-            Body.Scale.Equals(maxScale, 0.1f))
-        {
-            //so we start at scale1: then it scaled slowly down to "minScale" and then from there
-            //we change the multipler to now ADD the x to the scale, so we scale back UP
-            //this created this scaling flow
-            direction *= -1;  
-        }
-        float x = CurrentSize * (1 / elapsedTime);
-        Body.Scale += (direction * x);
+        
+        Body.Scale.ElapsedTime = elapsedTime;
+        //Body.Scale.Speed = 2.75f;
         var rect = Body.AtlasRect.Scale(Body.Scale);
+        Console.WriteLine(Body.Scale);
         return rect with { X = WorldCell.X, Y = WorldCell.Y };
     }
     

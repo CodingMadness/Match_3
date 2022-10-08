@@ -32,7 +32,7 @@ public static class Renderer
         if (tile is EnemyTile enemy)
         {
             enemy.TileState &= TileState.Selected;
-            DrawTexturePro(Atlas, enemy.Body.AtlasRect, enemy.ScaleWorldBounds(elapsedTime), 
+            DrawTexturePro(Atlas, enemy.Body.AtlasRect, enemy.Pulsate(elapsedTime), 
                             Vector2.Zero, 0f, enemy.Body.Color);
             return;
         }
