@@ -113,10 +113,10 @@ public static class Utils
             worldRect.width / Tile.Size,
             worldRect.height / Tile.Size);
     }
-    public static Rectangle ScaleUp(this Rectangle rayRect, int factor)
+    public static Rectangle Scale(this Rectangle rayRect, float factor)
     {
         //rayrect 
-        return new(rayRect.x, rayRect.y, rayRect.width / factor, rayRect.height / factor);
+        return new(rayRect.x, rayRect.y, rayRect.width * factor, rayRect.height * factor);
     }
     public static Rectangle SliceBy(this Rectangle rayRect, int factor)
     {
@@ -142,6 +142,13 @@ public static class Utils
         }
 
         return tmp;
+    }
+    
+    public static bool Equals(this float x, float y, float tolerance)
+    {
+        var diff = MathF.Abs(x - y);
+        return diff <= tolerance ||
+               diff <= MathF.Max(MathF.Abs(x), MathF.Abs(y)) * tolerance;
     }
     
     public static int CompareTo(this Vector2 a, Vector2 b)

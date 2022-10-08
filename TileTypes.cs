@@ -134,15 +134,15 @@ public abstract class Shape
 {
     public virtual ShapeKind Form { get; set; }
     public virtual Vector2 AtlasLocation { get; init; }
-    public Rectangle Rect => new(AtlasLocation.X, AtlasLocation.Y, Tile.Size, Tile.Size);
+    public Rectangle AtlasRect => new(AtlasLocation.X, AtlasLocation.Y, Tile.Size, Tile.Size);
+    public float Scale { get; set; }
     
-    private FadeableColor _f;
-    public ref FadeableColor Color => ref _f;
+    public FadeableColor Color;
     public void ChangeColor(Color c, float alphaSpeed, float targetAlpha)
     {
-        _f = c;
-        _f.AlphaSpeed = alphaSpeed;
-        _f.TargetAlpha = targetAlpha;
+        Color = c;
+        Color.AlphaSpeed = alphaSpeed;
+        Color.TargetAlpha = targetAlpha;
     }
 }
 
@@ -195,7 +195,6 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
     }
 }
 
- 
 
 [Flags]
 public enum Options
@@ -212,7 +211,7 @@ public enum Options
 [Flags]
 public enum TileState
 {
-    Disabled=1, Deleted=2, Hidden=4, Selected=8, Clean=16
+    Disabled=1, Deleted=2, Hidden=4, Selected=8, Clean=16, Pulsate=32
 }
 
 public class Tile
@@ -234,10 +233,18 @@ public class Tile
                 _current &= TileState.Deleted;
                 _current &= TileState.Hidden;
 
-                //Body.Color = WHITE;
                 Body.Color.CurrentAlpha = 1f;
                 Body.Color.TargetAlpha = 1f;
                 Body.Color.AlphaSpeed = 0f;
+            }
+            if ((value & TileState.Pulsate) == TileState.Pulsate)
+            {
+                _current &= TileState.Selected;
+                _current &= TileState.Disabled;
+                _current &= TileState.Deleted;
+                _current &= TileState.Hidden;
+
+                
             }
             if ((value & TileState.Selected) == TileState.Selected)
             {
@@ -256,7 +263,6 @@ public class Tile
                 //add disabled flag to set cause when smth is deleted it must be automatically disabled 
                 _current &= TileState.Disabled; //operations on that tile with this flag are still possible!
                 _current &= TileState.Deleted;
-                //Body.Color.AlphaSpeed = 0f;
             }
             else if ((value & TileState.Deleted) == TileState.Deleted)
             {
@@ -301,7 +307,6 @@ public class Tile
     public const int Size = 64;
     public static bool IsOnlyDefaultTile(Tile? current) =>
         current is not null and not EnemyTile;
-    public Rectangle DestRect => new(Body.AtlasLocation.X, Body.AtlasLocation.Y, Size, Size);
     public Tile()
     {
         //we just init the variable with a dummy value to have the error gone, since we will 
@@ -310,6 +315,11 @@ public class Tile
     }
     public override string ToString() => $"GridCell: {GridCell}; ---- {Body}";
 
+    public void Pulsate()
+    {
+        TileState |= TileState.Pulsate;
+        Body.Scale = 2f;
+    }
     public void Select()
     {
         Body.Color = GREEN;
@@ -339,6 +349,30 @@ public class Tile
 public class EnemyTile : Tile
 {
     public override Options Options => Options.UnMovable;
+
+    private float minScale = 0.70f;
+    private float maxScale = 1.20f;
+    private float CurrentSize = 0.15f;
+    private float direction = -1f;
+
+    public Rectangle ScaleWorldBounds(float elapsedTime)
+    {
+        if (elapsedTime <= 0f)
+            return Body.AtlasRect;
+
+        if (Body.Scale.Equals(minScale, 0.1f) || 
+            Body.Scale.Equals(maxScale, 0.1f))
+        {
+            //so we start at scale1: then it scaled slowly down to "minScale" and then from there
+            //we change the multipler to now ADD the x to the scale, so we scale back UP
+            //this created this scaling flow
+            direction *= -1;  
+        }
+        float x = CurrentSize * (1 / elapsedTime);
+        Body.Scale += (direction * x);
+        var rect = Body.AtlasRect.Scale(Body.Scale);
+        return rect with { X = WorldCell.X, Y = WorldCell.Y };
+    }
     
     public void BlockSurroundingTiles(Grid map, bool disable)
     {
