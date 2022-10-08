@@ -86,7 +86,7 @@ public static class Renderer
     {
         if (matches?.IsMatch == true)
         {
-            matches.Body!.Color.AlphaSpeed = 0.7f;
+            matches.Body!.Color.AlphaSpeed = 0.2f;
             matches.Body!.Color.ElapsedTime = elapsedTime;
             DrawRectangleRec(matches.Border, matches.Body!.Color.Apply());
         }

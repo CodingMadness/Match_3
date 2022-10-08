@@ -12,13 +12,12 @@ public sealed class QuestState
 {
     public bool WasSwapped;
     public float ElapsedTime;
-    public Type[] SwappedTiles;
+    public Type A, MatchTrigger;
     public IDictionary<Type, Numbers> EventData { get; init; }
     public bool EnemiesStillPresent;
     public int[] TotalAmountPerType;
     public bool WasGameWonB4Timeout;
     public EnemyTile Enemy;
-    public Type MatchTrigger;
     public Grid Grid;
 }
 
@@ -116,14 +115,6 @@ public class MatchQuestHandler : QuestHandler
 
     public MatchQuestHandler()
     {
-        _numbers.Match = Game.Level.ID switch
-        {
-            0 => (4, 4),
-            1 => (6, 3),
-            2 => (7, 2),
-            3 => (9, 4),
-            _ => _numbers.Match
-        };
         Grid.NotifyOnGridCreationDone += DefineGoals;
         Game.OnMatchFound += HandleMatch;
     }
@@ -133,6 +124,15 @@ public class MatchQuestHandler : QuestHandler
         if (inventory is null)
             throw new ArgumentException("Inventory has to have values or we cannot build the QUestHandler");
 
+        _numbers.Match = Game.Level.ID switch
+        {
+            0 => (4, 4),
+            1 => (6, 3),
+            2 => (7, 2),
+            3 => (9, 4),
+            _ => _numbers.Match
+        };
+        
         for (Type i = 0; i < Type.Length; i++)
         {
             int matchesNeeded = _numbers.Match.Count;
@@ -149,16 +149,26 @@ public class MatchQuestHandler : QuestHandler
         }
     }
 
+    private Numbers GetGoalMatchData(QuestState inventory)
+    {
+        _goalPerType.EventData.TryGetValue(inventory.MatchTrigger, out var goal);
+        return goal;
+    }
+
+    private bool MatchGoalReached(QuestState inventory)
+    {
+        bool success = inventory.EventData.TryGetValue(inventory.MatchTrigger, out var existent);
+        var matchGoal = GetGoalMatchData(inventory);
+        return success && existent.Match == matchGoal.Match;
+    }
+    
     protected override void HandleMatch(QuestState inventory)
     {
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
         //Game -------> QuestHandler--->takes "QuestState" does == with _goalPerType and based on the comparison, it decides what to do!
-        _goalPerType.EventData.TryGetValue(inventory.MatchTrigger, out var existent);
 
-        bool success = inventory.EventData.TryGetValue(inventory.MatchTrigger, out var goal);
-
-        if (success && goal.Match == existent.Match)
+        if (MatchGoalReached(inventory))
         {
             inventory.WasGameWonB4Timeout = _goalPerType.EventData.Count == 0;
             _goalPerType.EventData.Remove(inventory.MatchTrigger);
@@ -166,8 +176,9 @@ public class MatchQuestHandler : QuestHandler
         }
     }
 }
-/*
-file class ClickQuestHandler : QuestHandler
+
+
+public class ClickQuestHandler : QuestHandler
 {
     public ClickQuestHandler(int levelId) : base(levelId)
     {
@@ -213,4 +224,4 @@ file class ClickQuestHandler : QuestHandler
             Console.WriteLine("YEA YOU DELETED THE EVIL-MATCH AND ARE REWARDED FOR IT !: ");
         }
     }
-}*/
+}

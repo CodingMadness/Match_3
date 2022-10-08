@@ -134,7 +134,7 @@ public static class Bakery
             CoordsB4Swap = matchTile.GridCell,
             Body = new TileShape
             {
-                Scale = new(0.7f, 1.2f)
+                Scale = new(0.7f, 1.15f)
                 {
                     ElapsedTime = 0f, Speed = 0.2f
                 },
