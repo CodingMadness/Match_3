@@ -113,7 +113,7 @@ public static class Utils
             worldRect.width / Tile.Size,
             worldRect.height / Tile.Size);
     }
-    public static Rectangle Scale(this Rectangle rayRect, float factor)
+    public static Rectangle DoScale(this Rectangle rayRect, float factor)
     {
         //rayrect 
         return new(rayRect.x, rayRect.y, rayRect.width * factor, rayRect.height * factor);

@@ -146,7 +146,7 @@ public static class Bakery
             TileState = TileState.Clean,
             Options = Options.UnMovable | Options.UnShapeable,
         };
-
+        Console.WriteLine(blockTile.Body.Scale);
         blockTile.Body.Color.AlphaSpeed = 0f;
         return blockTile;
     }

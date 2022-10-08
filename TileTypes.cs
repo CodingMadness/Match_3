@@ -19,12 +19,12 @@ public struct Scale
     {
         _minScale = minScale;
         _maxScale = maxScale;
-        Speed = 0.25f;
+         Speed = 0f;
         _direction = -1f;
         _finalScaleFactor = 1f;
     }
     
-    private float DoScale()
+    public float DoScale()
     {
         if (ElapsedTime <= 0f)
             return _finalScaleFactor;
@@ -40,9 +40,7 @@ public struct Scale
         float x = Speed * (1 / ElapsedTime); 
         return _finalScaleFactor += (_direction * x);
     }
-
-    public static implicit operator float(Scale size) => size.DoScale();
-
+    
     public static implicit operator Scale(float size) => new(size, size)
     {
         _direction = 0,
@@ -388,16 +386,19 @@ public class Tile
 public class EnemyTile : Tile
 {
     public override Options Options => Options.UnMovable;
+    private float speed = 0.25f;
     
     public Rectangle Pulsate(float elapsedTime)
     {
         if (elapsedTime <= 0f)
             return Body.AtlasRect;
+
+        if (Body.Scale.Speed == 0f)
+            Body.Scale.Speed = 20.25f;
         
+        var rect = Body.AtlasRect.DoScale(Body.Scale.DoScale());
+                
         Body.Scale.ElapsedTime = elapsedTime;
-        //Body.Scale.Speed = 2.75f;
-        var rect = Body.AtlasRect.Scale(Body.Scale);
-        Console.WriteLine(Body.Scale);
         return rect with { X = WorldCell.X, Y = WorldCell.Y };
     }
     
