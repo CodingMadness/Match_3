@@ -1,8 +1,8 @@
 ﻿namespace Match_3.GameTypes;
 
-public record Level(int MAX_TILES_PER_MATCH,int ID, int GameBeginAt, int GameOverScreenCountdown,
-    int GridWidth, int GridHeight, int TileSize,
-    byte[] MapLayout)
+public record Level(int ID, 
+    int GameBeginAt, int GameOverScreenCountdown,
+    int GridWidth, int GridHeight, int TileSize)
 {
     public const int MAX_TILES_PER_MATCH = 3;
     public int WindowHeight => GridWidth * TileSize;

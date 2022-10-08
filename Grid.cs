@@ -39,13 +39,13 @@ namespace Match_3
                     Vector2 current = new(x, y);
                     float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
                     _bitmap[x, y] = Bakery.CreateTile(current, noise);
-                    var kind = _bitmap[x, y] is Tile { Body: TileShape c } ? c.TileType : Type.Empty;
+                    var kind = _bitmap[x, y] is { Body: TileShape c } ? c.TileType : Type.Empty;
                     //Console.WriteLine(( _bitmap[x, y] as Tile).TileState);
                     counts[(int)kind]++;
                 }
             }
-            Game.State.TotalCountPerType = counts.ToArray();
-            NotifyOnGridCreationDone(Game.State);
+            Game.Quest.TotalAmountPerType = counts.ToArray();
+            NotifyOnGridCreationDone(Game.Quest);
         }
 
         public Grid(Level current)

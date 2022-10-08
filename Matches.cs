@@ -124,6 +124,7 @@ public class MatchX
             map[match.GridCell] = Bakery.AsEnemy(match);
             EnemyTile e = (EnemyTile)map[match.GridCell]!;
             e.BlockSurroundingTiles(map, true);
+           // e.Pulsate();
             list.Add(e, map);
         }
         return list;

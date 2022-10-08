@@ -46,56 +46,64 @@ public static class Bakery
                 TileType = Type.Green,
                 AtlasLocation = new Vector2(0f, 0f) * Tile.Size, 
                 Form = ShapeKind.Circle, 
-                Layer = Coat.A
+                Layer = Coat.A,
+                Scale = 1f,
             },
             Type.Purple => new()
             {
                 TileType = Type.Purple,
                 AtlasLocation = new Vector2(1f, 0f) * Tile.Size,
                 Form = ShapeKind.Circle,
-                Layer = Coat.B
+                Layer = Coat.B,
+                Scale = 1f,
             },
             Type.Orange => new()
             {
                 TileType = Type.Orange,
                 AtlasLocation = new Vector2(2f, 0f) * Tile.Size,
                 Form = ShapeKind.Circle, 
-                Layer = Coat.C
+                Layer = Coat.C,
+                Scale = 1f,
             },
             Type.Yellow => new()
             {
                 TileType = Type.Yellow,
                 AtlasLocation = new Vector2(3f, 0f) * Tile.Size,
                 Form = ShapeKind.Circle, 
-                Layer = Coat.D
+                Layer = Coat.D,
+                Scale = 1f,
             },
             Type.Red => new()
             {
                 TileType = Type.Red,
                 AtlasLocation = new Vector2(0f, 1f) * Tile.Size,
                 Form = ShapeKind.Circle, 
-                Layer = Coat.E
+                Layer = Coat.E,
+                Scale = 1f,
             },
             Type.Blue => new()
             {
                 TileType = Type.Blue,
                 AtlasLocation = new Vector2(1f, 1f) * Tile.Size,
                 Form = ShapeKind.Circle, 
-                Layer = Coat.F
+                Layer = Coat.F,
+                Scale = 1f,
             },
             Type.Brown => new()
             {
                 TileType = Type.Brown,
                 AtlasLocation = new Vector2(2f, 1f) * Tile.Size,
                 Form = ShapeKind.Circle, 
-                Layer = Coat.G
+                Layer = Coat.G,
+                Scale = 1f,
             },
             Type.Violet => new()
             {
                 TileType = Type.Violet,
                 AtlasLocation = new Vector2(3f, 1f) * Tile.Size, 
                 Form = ShapeKind.Circle, 
-                Layer = Coat.H
+                Layer = Coat.H,
+                Scale = 1f,
             },
          
             //DEFAULTS.......
@@ -126,6 +134,7 @@ public static class Bakery
             CoordsB4Swap = matchTile.GridCell,
             Body = new TileShape
             {
+                Scale = 1f,
                 Form = ShapeKind.Trapez,
                 AtlasLocation = matchTile.Body.AtlasLocation,
                 TileType = matchTile.Body is TileShape c0 ? c0.TileType : Type.Empty,
