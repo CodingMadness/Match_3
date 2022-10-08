@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Numerics;
+using Match_3.GameTypes;
 using Raylib_CsLo;
 
 namespace Match_3;
@@ -8,15 +9,12 @@ public class MatchX
 {
     protected readonly ISet<Tile> Matches;
     private IOrderedEnumerable<Tile>? _orderedSet;
-    private Vector2 _first = -Vector2.One;
     private bool _wasRow;
-    private Vector2 _placeHere;
-    public readonly int AllowedMatchCount;
     private Rectangle _worldRect;
-    
+
     public bool IsRowBased => _wasRow;
     public int Count => Matches.Count;
-    public bool IsMatch => Count == AllowedMatchCount;
+    public bool IsMatch => Count == Matches.Count;
     public TileShape? Body { get; private set; }
     public Rectangle WorldBox
     {
@@ -26,7 +24,7 @@ public class MatchX
                 return _worldRect;
 
             if (Matches.Count == 0)
-                throw new ArgumentException("empty matchlist, add tiles to it b4 u call a member!");
+                return new(0f, 0f, 0f, 0f);
             
             _orderedSet ??= Matches.Order(CellComparer.Singleton);
             
@@ -37,70 +35,33 @@ public class MatchX
             return _worldRect;
         }
     }
-    public Vector2 WorldPos
-    {
-        get
-        {
-            if (!_worldRect.IsEmpty())
-            {
-                return _worldRect.GetBeginInWorld();
-            }
-            if (_orderedSet is null || Matches.Count == 0)
-            {
-                return Utils.INVALID_CELL;
-            }
-            else
-            {
-                var result = _orderedSet ??= Matches.Order(CellComparer.Singleton);
-                return result.ElementAt(0).WorldCell;
-            }
-        }
-    }
-    public MatchX(int allowedMatchCount)
+
+    public Vector2 WorldPos { get; private set; } = -Vector2.One;
+
+    public MatchX()
     {
         _worldRect = default;
-        AllowedMatchCount = allowedMatchCount;
-        Matches = new HashSet<Tile>(allowedMatchCount);
+        Matches = new HashSet<Tile>(Level.MAX_TILES_PER_MATCH);
     }
 
     /// <summary>
     /// Reorder the Match if it has a structure like: (x0,x1,y2) or similar
     /// </summary>
-    public void Add(Tile matchTile, Grid grid)
+    public void Add(Tile matchTile)
     {
-        //this entire algorithm only works for a Match3.. rework at some later stag
-        void ForceMatchAxisAligned()
-        {
-            var current = matchTile.GridCell;
-            _first = _first == -Vector2.One ? current : _first;
-
-            if (_first != current && _placeHere == default)
-            {
-                _placeHere = _first.GetOpposite(current);
-            }
-
-            if (Count == AllowedMatchCount) 
-            {
-                if (_first.CompletelyDifferent(current) || _first != (current))
-                {
-                    //DOES NOT WORK YET!......
-                    grid[_placeHere] = grid[current];
-                    grid[current] = Bakery.CreateTile(current, 0.45f);
-                    //grid.Swap(grid[_placeHere], grid[current]);
-                }
-            }
-        }
-      
         if (Matches.Add(matchTile))
         {
+            WorldPos = WorldPos != -Vector2.One ? matchTile.WorldCell : WorldPos;
+            
             if (Count is > 1 and < 3)
             {
                 var cell0 = Matches.ElementAt(0).GridCell;
                 var cell1 = Matches.ElementAt(1).GridCell;
                 _wasRow = cell0.GetDirectionTo(cell1).isRow;
             }
+            
             Body ??= (matchTile.Body as TileShape)!.Clone() as TileShape;
-            Body.Color = Raylib.GREEN;
+            Body!.Color = Raylib.GREEN;
             Body.Color.AlphaSpeed = 0.5f;
         }
     }
@@ -108,14 +69,13 @@ public class MatchX
     {
         _worldRect = Utils.INVALID_RECT;
         _wasRow = false;
-        _first = -Vector2.One;
-        _placeHere = _first;
+        WorldPos = -Vector2.One;
         Matches.Clear();
         _orderedSet = null;
     }
     public EnemyMatches AsEnemies(Grid map)
     {
-        EnemyMatches list = new(Count);
+        EnemyMatches list = new();
 
         _orderedSet ??= Matches.Order(CellComparer.Singleton);
         
@@ -125,7 +85,7 @@ public class MatchX
             EnemyTile e = (EnemyTile)map[match.GridCell]!;
             e.BlockSurroundingTiles(map, true);
            // e.Pulsate();
-            list.Add(e, map);
+            list.Add(e);
         }
         return list;
     }
@@ -134,10 +94,6 @@ public class MatchX
 public class EnemyMatches : MatchX
 {
     private Rectangle _border;
-    public EnemyMatches(int allowedMatchCount) : base(allowedMatchCount)
-    {
-        //WorldBox = default;
-    }
     private Rectangle BuildBorder()
     {
         if (Matches.Count == 0)
