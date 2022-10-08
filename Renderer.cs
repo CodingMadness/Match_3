@@ -9,7 +9,8 @@ namespace Match_3;
 public static class Renderer
 {
     public static Texture Atlas;
-
+    public static Rectangle AtlasRect;
+    
     private static void DrawTile(Tile tile, float elapsedTime)
     {
         static void DrawCoordOnTop(Tile tile)
@@ -29,11 +30,18 @@ public static class Renderer
         }
 
         if (tile is EnemyTile enemy)
+        {
             enemy.TileState &= TileState.Selected;
-        
-        var body = tile.Body;
-        body.Color.ElapsedTime = elapsedTime;
-        DrawTextureRec(Atlas, tile.DestRect, tile.WorldCell, body.Color.Apply());
+            DrawTexturePro(Atlas, enemy.Body.AtlasRect, enemy.ScaleWorldBounds(elapsedTime), 
+                            Vector2.Zero, 0f, enemy.Body.Color);
+            return;
+        }
+
+        AtlasRect = new(0f, 0f, Atlas.width, Atlas.height);
+        var body = tile.Body as TileShape;
+        body!.Color.ElapsedTime = elapsedTime;
+        DrawTexturePro(Atlas, body.AtlasRect, tile.WorldBounds, Vector2.Zero, 0f, body.Color);
+        //DrawTextureRec(Atlas, body.AtlasRect, tile.WorldCell, body.Color);
         DrawCoordOnTop(tile);
     }
     
