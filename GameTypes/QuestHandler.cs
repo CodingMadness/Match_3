@@ -2,17 +2,20 @@ namespace Match_3.GameTypes;
 
 public struct Numbers
 {
-    public (int Count, int CountDown) Click;
-    public (int AllowedSwaps, int CountDown) Swaps;
-    public int Changes;
-    public (int Count, float Time) Match;
+    /// <summary>
+    /// Count-Clicks, with maxTime inbetween them
+    /// </summary>
+    public (int Count, float maxTime) Click;
+    public (int AllowedSwaps, float maxTime) Swaps;
+    public (int Count, float maxTime) Match;
 }
 
-public sealed class QuestState
+public sealed class GameState
 {
     public bool WasSwapped;
     public float ElapsedTime;
-    public Type A, MatchTrigger;
+    public Type Current;
+    public Type? B;
     public IDictionary<Type, Numbers> EventData { get; init; }
     public bool EnemiesStillPresent;
     public int[] TotalAmountPerType;
@@ -28,22 +31,23 @@ public abstract class QuestHandler
         public IDictionary<Type, Numbers> EventData;
     }
 
-    protected GoalPerType _goalPerType { get; private set; }
+    protected GoalPerType _goalPerType { get; }
 
     //For instance:
     //Collect N-Type1, N-Type2, N-Type3 up to maxTilesActive
     //----->within a TimeSpan of X-sec
     //----->without any miss-swap!
     //the goal is to make per new Level the Quests harder!!
-
     protected QuestHandler()
     {
-        _goalPerType = new();
-        _goalPerType.EventData = new Dictionary<Type, Numbers>((int)Type.Length);
+        _goalPerType = new()
+        {
+            EventData = new Dictionary<Type, Numbers>((int)Type.Length)
+        };
     }
 
-    protected abstract void DefineGoals(QuestState? inventory);
-    protected abstract void HandleMatch(QuestState inventory);
+    protected abstract void DefineGoals(GameState? inventory);
+    protected abstract void HandleEvent(GameState inventory);
 
     public static void InitAllQuestHandlers(int levelID)
     {
@@ -55,7 +59,7 @@ public abstract class QuestHandler
 
 public class SwapQuestHandler : QuestHandler
 {
-    protected override void DefineGoals(QuestState? inventory)
+    protected override void DefineGoals(GameState? inventory)
     {
         Numbers eventData = default;
 
@@ -65,19 +69,19 @@ public class SwapQuestHandler : QuestHandler
             {
                 case 0:
                     eventData.Swaps.AllowedSwaps = Utils.Randomizer.Next(6, 8);
-                    eventData.Swaps.CountDown = (int)(Game.Level.GameBeginAt / 6f);
+                    eventData.Swaps.maxTime = (int)(Game.Level.GameBeginAt / 6f);
                     break;
                 case 1:
                     eventData.Swaps.AllowedSwaps = Utils.Randomizer.Next(4, 6);
-                    eventData.Swaps.CountDown = (int)(Game.Level.GameBeginAt / 4f);
+                    eventData.Swaps.maxTime = (int)(Game.Level.GameBeginAt / 4f);
                     break;
                 case 2:
                     eventData.Swaps.AllowedSwaps = Utils.Randomizer.Next(3, 5);
-                    eventData.Swaps.CountDown = (int)(Game.Level.GameBeginAt / 3f);
+                    eventData.Swaps.maxTime = (int)(Game.Level.GameBeginAt / 3f);
                     break;
                 case 3:
                     eventData.Swaps.AllowedSwaps = Utils.Randomizer.Next(1, 2);
-                    eventData.Swaps.CountDown = (int)(Game.Level.GameBeginAt / 10f);
+                    eventData.Swaps.maxTime = (int)(Game.Level.GameBeginAt / 10f);
                     break;
             }
 
@@ -87,16 +91,16 @@ public class SwapQuestHandler : QuestHandler
 
     public SwapQuestHandler()
     {
-        Game.OnTileSwapped += HandleMatch;
+        Game.OnTileSwapped += HandleEvent;
     }
 
-    protected override void HandleMatch(QuestState inventory)
+    protected override void HandleEvent(GameState inventory)
     {
         for (Type i = 0; i < Type.Length; i++)
         {
             _goalPerType.EventData.TryGetValue(i, out var goalData);
             //The Game notifies the QuestHandler, when something happens to the tile!
-            //Game -------> QuestHandler--->takes "QuestState" does == with _goalPerType and based on the comparison, it decides what to do!
+            //Game -------> QuestHandler--->takes "GameState" does == with _goalPerType and based on the comparison, it decides what to do!
 
             bool success = inventory.EventData.TryGetValue(i, out var inventoryData);
 
@@ -116,10 +120,10 @@ public class MatchQuestHandler : QuestHandler
     public MatchQuestHandler()
     {
         Grid.NotifyOnGridCreationDone += DefineGoals;
-        Game.OnMatchFound += HandleMatch;
+        Game.OnMatchFound += HandleEvent;
     }
 
-    protected override void DefineGoals(QuestState? inventory)
+    protected override void DefineGoals(GameState? inventory)
     {
         if (inventory is null)
             throw new ArgumentException("Inventory has to have values or we cannot build the QUestHandler");
@@ -148,79 +152,83 @@ public class MatchQuestHandler : QuestHandler
             _goalPerType.EventData.TryAdd(i, _numbers);
         }
     }
-
-    private Numbers GetGoalMatchData(QuestState inventory)
+    
+    private bool MatchGoalReached(GameState inventory)
     {
-        _goalPerType.EventData.TryGetValue(inventory.MatchTrigger, out var goal);
-        return goal;
-    }
-
-    private bool MatchGoalReached(QuestState inventory)
-    {
-        bool success = inventory.EventData.TryGetValue(inventory.MatchTrigger, out var existent);
-        var matchGoal = GetGoalMatchData(inventory);
-        return success && existent.Match == matchGoal.Match;
+        _goalPerType.EventData.TryGetValue(inventory.B!.Value, out var goal);
+        bool success = inventory.EventData.TryGetValue(inventory.B!.Value, out var existent);
+        return success && existent.Match == goal.Match;
     }
     
-    protected override void HandleMatch(QuestState inventory)
+    protected override void HandleEvent(GameState inventory)
     {
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
-        //Game -------> QuestHandler--->takes "QuestState" does == with _goalPerType and based on the comparison, it decides what to do!
+        //Game -------> QuestHandler--->takes "GameState" does == with _goalPerType and based on the comparison, it decides what to do!
 
         if (MatchGoalReached(inventory))
         {
             inventory.WasGameWonB4Timeout = _goalPerType.EventData.Count == 0;
-            _goalPerType.EventData.Remove(inventory.MatchTrigger);
-            Console.WriteLine("YEA YOU GOT A MATCH AND ARE REWARDED FOR IT !: ");
+            _goalPerType.EventData.Remove(inventory.B!.Value);
+            Console.WriteLine("YEA YOU GOT Current MATCH AND ARE REWARDED FOR IT !: ");
         }
     }
 }
 
-
 public class ClickQuestHandler : QuestHandler
 {
-    public ClickQuestHandler(int levelId) : base(levelId)
+    private Numbers _numbers;
+
+    public ClickQuestHandler()
     {
-        Game.OnTileClicked += HandleMatch;
+        Game.OnTileClicked += HandleEvent;
     }
 
-    protected override void DefineGoals(QuestState inventory)
+    private bool ClickGoalReached(GameState inventory)
     {
+        bool success = inventory.EventData.TryGetValue(inventory.Current, out var existent);
+        bool success2 = _goalPerType.EventData.TryGetValue(inventory.Current, out var goal);
+        return success && success2 && existent.Click == goal.Click;
+    }
+    
+    protected override void DefineGoals(GameState? inventory)
+    {
+        _numbers.Click = Game.Level.ID switch
+        {
+            //you have to click Count-times with only "maxTime" seconds in-between for the next click
+            0 => (4, 3f),
+            1 => (6, 2.5f),
+            2 => (7, 2f),
+            3 => (9, 4),
+            _ => _numbers.Click
+        };
         for (Type i = 0; i < Type.Length; i++)
         {
-            _goalPerType.EventData.TryAdd(i, _goalPerType.ClicksPerTileNeeded);
+            _goalPerType.EventData.TryAdd(i, _numbers);
         }
     }
 
-    private void CheckEnemy(Tile enemyTile)
-    {
-        if (enemyTile is EnemyTile e)
-        {
-        }
-    }
-
-    protected override void HandleMatch(QuestState inventory)
+    protected override void HandleEvent(GameState inventory)
     {
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
-        //Game -------> QuestHandler--->takes "QuestState" does == with _goalPerType and based on the comparison, it decides what to do!
-        _goalPerType.EventData.TryGetValue(inventory.CollectPair.ballType, out int clickCount);
+        //Game -------> QuestHandler--->takes "GameState" does == with _goalPerType and based on the comparison, it decides what to do!
 
-        if (inventory.TilesClicked.count == clickCount &&
-            (int)inventory.ElapsedTime >=
-            (int)_goalPerType.GoalTime)
+        if (ClickGoalReached(inventory))
         {
             if (inventory.EnemiesStillPresent)
             {
                 inventory.Enemy.Disable(true);
                 inventory.Enemy.BlockSurroundingTiles(inventory.Grid, false);
-                inventory.TilesClicked.count = 0;
+                if (inventory.EventData.TryGetValue(inventory.Current, out var existent))
+                {
+                       
+                }
             }
 
-            inventory.EnemiesStillPresent = _matchCounter < _level.MatchConstraint;
+            //inventory.EnemiesStillPresent = _matchCounter < _level.MatchConstraint;
             //inventory.WasGameWonB4Timeout = _goalPerType.EventData.Count == 0;
-            _goalPerType.EventData.Remove(inventory.TilesClicked.ballType);
+           // _goalPerType.EventData.Remove(inventory.TilesClicked.ballType);
             Console.WriteLine("YEA YOU DELETED THE EVIL-MATCH AND ARE REWARDED FOR IT !: ");
         }
     }
