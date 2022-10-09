@@ -8,9 +8,8 @@ namespace Match_3;
 
 public static class Renderer
 {
-    public static Texture Atlas;
-    public static Rectangle AtlasRect;
-    
+    private static Texture Atlas;
+
     private static void DrawTile(Tile tile, float elapsedTime)
     {
         static void DrawCoordOnTop(Tile tile)
@@ -37,7 +36,7 @@ public static class Renderer
             return;
         }
 
-        AtlasRect = new(0f, 0f, Atlas.width, Atlas.height);
+        
         var body = tile.Body as TileShape;
         body!.Color.ElapsedTime = elapsedTime;
         DrawTexturePro(Atlas, body.AtlasRect, tile.WorldBounds, Vector2.Zero, 0f, body.Color);
@@ -74,7 +73,7 @@ public static class Renderer
     
     public static void DrawInnerBox(MatchX? matches, float elapsedTime)
     {
-        if (matches?.IsMatch == true)
+        if (matches?.IsMatchActive == true)
         {
             matches.Body!.Color = RED;
             matches.Body!.Color.ElapsedTime = elapsedTime;
@@ -84,7 +83,7 @@ public static class Renderer
     
     public static void DrawOuterBox(EnemyMatches? matches, float elapsedTime)
     {
-        if (matches?.IsMatch == true)
+        if (matches?.IsMatchActive == true)
         {
             matches.Body!.Color.AlphaSpeed = 0.2f;
             matches.Body!.Color.ElapsedTime = elapsedTime;
@@ -126,15 +125,17 @@ public static class Renderer
         return isDone;
     }
 
-    public static void DrawBackground()
+    public static void DrawBackground(ref Background bg)
     {
-        DrawTexture(BgAtlas, 0, 0, WHITE);
+        Rectangle dest = bg.Body.AtlasRect.DoScale(bg.Body.Scale.GetFactor());
+        Rectangle screen = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
+        DrawTexturePro(BgAtlas, bg.Body.AtlasRect, screen, Vector2.Zero, 0f, bg.Body.Color);
     }
     
     /*
     public static void LogQuest(bool useConsole, QuestData current)
     {
-        foreach (var pair in current.BallCountPerLevel.Quest)
+        foreach (var pair in current.BallCountPerLevel.State)
         {
             if (useConsole)
             {
@@ -145,7 +146,7 @@ public static class Renderer
             {
                 var center = Utils.GetScreenCoord() * 0.5f;
                 string txt = $"You have to collect {pair.Value} {pair.Key}-tiles!";
-                Vector2 pos = center with {X = center.X * 1.5f, Y = 4 * Tile.Size };
+                Vector2 pos = center with {X = center.X * 1.5f, Y = 4 * Tile.ScaleFactor };
                 LogText.Begin = pos;
                 LogText.Text = txt;
                 LogText.Draw(null);                
