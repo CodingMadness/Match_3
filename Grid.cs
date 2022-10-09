@@ -21,7 +21,7 @@ namespace Match_3
         public readonly int TileWidth;
         public readonly int TileHeight;
 
-        public static event Action<QuestState> NotifyOnGridCreationDone;
+        public static event Action<GameState> NotifyOnGridCreationDone;
 
         private const int MaxDestroyableTiles = 3;
 
@@ -44,8 +44,8 @@ namespace Match_3
                     counts[(int)kind]++;
                 }
             }
-            Game.Quest.TotalAmountPerType = counts.ToArray();
-            NotifyOnGridCreationDone(Game.Quest);
+            Game.State.TotalAmountPerType = counts.ToArray();
+            NotifyOnGridCreationDone(Game.State);
         }
 
         public Grid(Level current)
@@ -92,8 +92,8 @@ namespace Match_3
                         if (matches.Count == MaxDestroyableTiles)
                             return false;
 
-                        matches.Add(first, this);
-                        matches.Add(next, this);
+                        matches.Add(first);
+                        matches.Add(next);
                         return true;
                     }
                 }

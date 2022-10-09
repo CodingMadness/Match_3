@@ -4,6 +4,7 @@ using Raylib_CsLo;
 using static Match_3.AssetManager;
 using static Match_3.Utils;
 using static Raylib_CsLo.Raylib;
+#pragma warning disable CS8618
 
 namespace Match_3;
 
@@ -15,7 +16,8 @@ internal static class Game
     private static MatchX? _matchesOf3;
     private static EnemyMatches? _enemyMatches;
     private static Tile? _secondClicked;
-    
+    private static Background bg;
+
     private static bool _enterGame;
     private static bool _shallCreateEnemies;
 
@@ -32,7 +34,7 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0,45, 4, 10, 10, 64);
+        Level = new(0,45, 4, 20, 20);
         State = new()
         {
             EventData = new Dictionary<Type, Numbers>((int)Type.Length)
@@ -42,11 +44,12 @@ internal static class Game
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
         LoadAssets();
-        QuestHandler.InitAllQuestHandlers();
+        bg = new(BgAtlas);
+        QuestHandler<Type>.InitAllQuestHandlers();
         _grid = new(Level);
     }
     
-    private static void CenterMouseToEnemyMatch()
+    private static void DragMouseToEnemies()
     {
         //we only fix the mouse point,
         //WHEN the cursor exceeds at a certain bounding box
@@ -99,10 +102,10 @@ internal static class Game
             
             State.Enemy = e;
             State.Grid = _grid;
-            State.Current = (TileShape)e.Body;
-            var existent = State.Load();
+            State.DefaultTile = e;
+            var existent = State.LoadData();
             existent.Click.Count++;
-            existent.Click.Time = elapsedSeconds;
+            existent.Click.Seconds = elapsedSeconds;
             State.Update();
             OnTileClicked(State);
         }
@@ -158,17 +161,14 @@ internal static class Game
         
         if (_grid.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!) /*&& !_shallCreateEnemies*/)
         {
-            if (_secondClicked?.Body is TileShape t)
-            {
-                State.EventData.TryGetValue(t.TileType, out var matchData);
-                matchData.Match.Count++;
-                matchData.Match.maxTime = Level.GameTimer.ElapsedSeconds;
-                State.EventData.TryAdd(t.TileType, matchData);
-                OnMatchFound(State);
-            }
-
+            State.DefaultTile = _secondClicked;
+            var matchData = State.LoadData();
+            matchData.Match.Count++;
+            State.Update();
+            State.Matches = _matchesOf3;
+            OnMatchFound(State);
             State.EnemiesStillPresent = _shallCreateEnemies = true;
-            CreateEnemiesIfNeeded();
+            //CreateEnemiesIfNeeded();
         }
         else
             _matchesOf3!.Clear();
@@ -198,7 +198,7 @@ internal static class Game
         {
             BeginDrawing();
             ClearBackground(WHITE);
-            Renderer.DrawBackground();
+            Renderer.DrawBackground( ref bg);
 
             if (!_enterGame)
             {
@@ -234,7 +234,7 @@ internal static class Game
                 {
                     float elapsedTime = Level.GameTimer.ElapsedSeconds;
                     Renderer.DrawTimer(elapsedTime);
-                    CenterMouseToEnemyMatch();
+                    DragMouseToEnemies();
                     ProcessSelectedTiles();
                     ComputeMatches();
                     Renderer.DrawOuterBox(_enemyMatches,elapsedTime);  //works!
@@ -244,6 +244,7 @@ internal static class Game
                 }
                 _enterGame = true;
             }
+          
             EndDrawing();
         }
     }

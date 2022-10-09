@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.IO.Compression;
 
 namespace Match_3.GameTypes;
 
@@ -7,28 +8,28 @@ public struct Numbers
     /// <summary>
     /// Count-Clicks, with maxTime inbetween them
     /// </summary>
-    public (int Count, float Intervall) Click;
-    public (int AllowedSwaps, float Intervall) Swaps;
-    public (int Count, float Intervall) Match;
+    public (int Count, float Seconds) Click;
+    public (int AllowedSwaps, float Seconds) Swaps;
+    public (int Count, float? Seconds) Match;
 }
 
 public sealed class GameState
 {
     public bool WasSwapped;
-    public float ElapsedTime;
-    public TileShape Current;
-    public TileShape? B;
+    public Tile? DefaultTile { get; set; }
+    public Type CurrentType => (DefaultTile.Body as TileShape)!.TileType;
     public IDictionary<Type, Numbers> EventData { get; init; }
+    public MatchX? Matches { get; set; }
 
     private Numbers _numbers;
 
-    public ref readonly Numbers Load()
+    public ref readonly Numbers LoadData()
     {
-        EventData.TryGetValue(Current.TileType, out _numbers);
+        EventData.TryGetValue((DefaultTile.Body as TileShape)!.TileType, out _numbers);
         return ref _numbers;
     }
 
-    public void Update() => EventData.TryAdd((Current as TileShape)!.TileType, _numbers);
+    public void Update() => EventData.TryAdd((DefaultTile!.Body as TileShape)!.TileType, _numbers);
     public bool EnemiesStillPresent;
     public int[] TotalAmountPerType;
     public bool WasGameWonB4Timeout;
@@ -36,25 +37,28 @@ public sealed class GameState
     public Grid Grid;
 }
 
-public abstract class QuestHandler<T>
+public abstract class QuestHandler<T> where T:notnull
 {
-    protected sealed record GoalPer<T>
+    protected sealed record GoalPer
     {
         public readonly IDictionary<T, Numbers> EventData =
             new Dictionary<T, Numbers>((int)Type.Length);
 
         private Numbers _numbers;
 
-        public ref readonly Numbers LoadBy(T Key)
+        public ref readonly Numbers LoadBy(T key)
         {
-            EventData.TryGetValue(Key, out _numbers);
+            if (EqualityComparer<T>.Default.Equals(default))
+                return ref _numbers;
+            
+            EventData.TryGetValue(key, out _numbers);
             return ref _numbers;
         }
-
-        public void Update(T current) => EventData.TryAdd(current, _numbers);
+        
+        public void UpdateBy(T current) => EventData.TryAdd(current, _numbers);
     }
 
-    protected GoalPer<T> _goal { get; }
+    protected GoalPer _goal { get; }
 
     //For instance:
     //Collect N-Type1, N-Type2, N-Type3 up to maxTilesActive
@@ -90,23 +94,23 @@ public class SwapQuestHandler : QuestHandler<Type>
             {
                 case 0:
                     eventData.Swaps.AllowedSwaps = Utils.Randomizer.Next(6, 8);
-                    eventData.Swaps.Intervall = (int)(Game.Level.GameBeginAt / 6f);
+                    eventData.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 6f);
                     break;
                 case 1:
                     eventData.Swaps.AllowedSwaps = Utils.Randomizer.Next(4, 6);
-                    eventData.Swaps.Intervall = (int)(Game.Level.GameBeginAt / 4f);
+                    eventData.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 4f);
                     break;
                 case 2:
                     eventData.Swaps.AllowedSwaps = Utils.Randomizer.Next(3, 5);
-                    eventData.Swaps.Intervall = (int)(Game.Level.GameBeginAt / 3f);
+                    eventData.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 3f);
                     break;
                 case 3:
                     eventData.Swaps.AllowedSwaps = Utils.Randomizer.Next(1, 2);
-                    eventData.Swaps.Intervall = (int)(Game.Level.GameBeginAt / 10f);
+                    eventData.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 10f);
                     break;
             }
 
-            _goal.Update(i, eventData);
+            _goal.UpdateBy(i);
         }
     }
 
@@ -145,16 +149,19 @@ public class MatchQuestHandler : QuestHandler<Type>
     protected override void DefineGoals(GameState? inventory)
     {
         if (inventory is null)
-            throw new ArgumentException("Inventory has to have values or we cannot build the QUestHandler");
+            throw new ArgumentException("Inventory has to have values or we cannot build the QuestHandler");
 
-        Numbers _numbers = _goal.LoadBy(inventory.Current.TileType);
+        Numbers _numbers = _goal.LoadBy(Type.Empty);
         
         _numbers.Match = Game.Level.ID switch
         {
-            0 => (4, 4),
-            1 => (6, 3),
-            2 => (7, 2),
-            3 => (9, 4),
+            //at some later point I will decide how if and how to check if a 
+            //certain match was finished in an intervall! but for now we only check 
+            //until gameover, if the needed matchtypes were collected
+            0 => (4, null),
+            1 => (6, null),
+            2 => (7, null),
+            3 => (9, null),
             _ => _numbers.Match
         };
         
@@ -170,14 +177,15 @@ public class MatchQuestHandler : QuestHandler<Type>
             else
                 _numbers.Match.Count = maxAllowed / Level.MAX_TILES_PER_MATCH;
 
-            _goal.Update(i);
+            _goal.UpdateBy(i);
         }
     }
     
-    private bool MatchGoalPerTypeReached(GameState inventory)
+    private bool MatchGoalReached(GameState inventory)
     {
-        var goal = _goal.LoadBy(inventory.Current.TileType);
-        var existent = inventory.Load();
+        var goal = _goal.LoadBy(inventory.CurrentType);
+        var existent = inventory.LoadData();
+
         return existent.Match == goal.Match;
     }
     
@@ -186,11 +194,10 @@ public class MatchQuestHandler : QuestHandler<Type>
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
-
-        if (MatchGoalPerTypeReached(inventory))
+        if (MatchGoalReached(inventory))
         {
             inventory.WasGameWonB4Timeout = _goal.EventData.Count == 0;
-            //_goal.EventData.Remove((inventory.B as TileShape)!.TileType);
+            inventory.Matches!.Clear();
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
         }
     }
@@ -198,8 +205,6 @@ public class MatchQuestHandler : QuestHandler<Type>
 
 public class ClickQuestHandler : QuestHandler<Tile>
 {
-    private Numbers _numbers;
-
     public ClickQuestHandler()
     {
         Game.OnTileClicked += HandleEvent;
@@ -207,13 +212,15 @@ public class ClickQuestHandler : QuestHandler<Tile>
 
     private bool ClickGoalReached(GameState inventory)
     {
-        bool success = inventory.Load()
-        bool success2 = _goal.EventData.TryGetValue(inventory.Current, out var goal);
-        return success && success2 && existent.Click == goal.Click;
+        var existent = inventory.LoadData();
+        var goal = _goal.LoadBy(inventory.DefaultTile);
+        return existent.Click == goal.Click;
     }
     
     protected override void DefineGoals(GameState? inventory)
     {
+        Numbers _numbers = default;
+        
         _numbers.Click = Game.Level.ID switch
         {
             //you have to click Count-times with only "maxTime" seconds in-between for the next click
@@ -223,10 +230,7 @@ public class ClickQuestHandler : QuestHandler<Tile>
             3 => (9, 4),
             _ => _numbers.Click
         };
-        for (Type i = 0; i < Type.Length; i++)
-        {
-            _goal.EventData.TryAdd(i, _numbers);
-        }
+        _goal.UpdateBy(inventory.DefaultTile);
     }
 
     protected override void HandleEvent(GameState inventory)
@@ -241,11 +245,8 @@ public class ClickQuestHandler : QuestHandler<Tile>
             {
                 inventory.Enemy.Disable(true);
                 inventory.Enemy.BlockSurroundingTiles(inventory.Grid, false);
-               
-                if (inventory.EventData.TryGetValue(inventory.Current, out var existent))
-                {
-                       
-                }
+
+                var existent = inventory.LoadData();
             }
 
             //inventory.EnemiesStillPresent = _matchCounter < _level.MatchConstraint;

@@ -1,9 +1,14 @@
-﻿using System.Numerics;
+﻿using System.Drawing;
+using System.Numerics;
+using Match_3.GameTypes;
+using Raylib_CsLo;
+using static Match_3.AssetManager;
 
 namespace Match_3;
 
 public static class Bakery
 {
+    
     private static Type GetTileTypeTypeByNoise(float noise)
     {
         noise = noise.Trunc(2);
@@ -32,7 +37,7 @@ public static class Bakery
         return result.Item1;
     }
 
-    private static TileShape DefineFrame(float noise)
+    public static TileShape DefineFrame(float noise)
     {
         TileShape tmp = new()
         {
@@ -45,6 +50,7 @@ public static class Bakery
             {
                 TileType = Type.Green,
                 AtlasLocation = new Vector2(0f, 0f) * Tile.Size, 
+                Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.A,
                 Scale = 1f,
@@ -53,6 +59,7 @@ public static class Bakery
             {
                 TileType = Type.Purple,
                 AtlasLocation = new Vector2(1f, 0f) * Tile.Size,
+                Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle,
                 Layer = Coat.B,
                 Scale = 1f,
@@ -61,6 +68,7 @@ public static class Bakery
             {
                 TileType = Type.Orange,
                 AtlasLocation = new Vector2(2f, 0f) * Tile.Size,
+                Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.C,
                 Scale = 1f,
@@ -69,6 +77,7 @@ public static class Bakery
             {
                 TileType = Type.Yellow,
                 AtlasLocation = new Vector2(3f, 0f) * Tile.Size,
+                Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.D,
                 Scale = 1f,
@@ -77,6 +86,7 @@ public static class Bakery
             {
                 TileType = Type.Red,
                 AtlasLocation = new Vector2(0f, 1f) * Tile.Size,
+                Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.E,
                 Scale = 1f,
@@ -85,6 +95,7 @@ public static class Bakery
             {
                 TileType = Type.Blue,
                 AtlasLocation = new Vector2(1f, 1f) * Tile.Size,
+                Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.F,
                 Scale = 1f,
@@ -93,6 +104,7 @@ public static class Bakery
             {
                 TileType = Type.Brown,
                 AtlasLocation = new Vector2(2f, 1f) * Tile.Size,
+                Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.G,
                 Scale = 1f,
@@ -101,6 +113,7 @@ public static class Bakery
             {
                 TileType = Type.Violet,
                 AtlasLocation = new Vector2(3f, 1f) * Tile.Size, 
+                Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.H,
                 Scale = 1f,
@@ -150,4 +163,5 @@ public static class Bakery
         blockTile.Body.Color.AlphaSpeed = 0f;
         return blockTile;
     }
+    
 }

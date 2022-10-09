@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Match_3.GameTypes;
@@ -45,12 +46,12 @@ public static unsafe class AssetManager
         byte* first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         welcomeFont = LoadFontFromMemory(".otf", first, buffer.Length, 20, null, 0);
 
-        buffer = GetEmbeddedResource("Atlas.bg.png");
+        buffer = GetEmbeddedResource("Atlas.bg2.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         Image bg = LoadImageFromMemory(".png", first, buffer.Length);
         BgAtlas = LoadTextureFromImage(bg);
         
-        buffer = GetEmbeddedResource("Atlas.set1.png");
+        buffer = GetEmbeddedResource("Atlas.set1_small.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         Image ballImg = LoadImageFromMemory(".png", first, buffer.Length);
         DefaultTileAtlas = LoadTextureFromImage(ballImg);
@@ -60,4 +61,6 @@ public static unsafe class AssetManager
         ballImg = LoadImageFromMemory(".png", first, buffer.Length);
         EnemyAtlas = LoadTextureFromImage(ballImg);
     }
+
+    
 }

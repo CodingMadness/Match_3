@@ -57,6 +57,14 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <Compile Remove="QuestHandler.cs" />
+    <None Remove="Assets\Atlas\set1 Kopie.png" />
+    <EmbeddedResource Include="Assets\Atlas\set1_small.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\Atlas\bg2.png" />
+    <EmbeddedResource Include="Assets\Atlas\bg2.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\Fonts\font1.otf">
