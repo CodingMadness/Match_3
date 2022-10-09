@@ -1,7 +1,10 @@
-﻿using System.Numerics;
+﻿using System.Drawing;
+using System.Numerics;
 using System.Runtime.CompilerServices;
-using Raylib_CsLo;
+using Match_3.GameTypes;
 using static Raylib_CsLo.Raylib;
+using Color = Raylib_CsLo.Color;
+using Rectangle = Raylib_CsLo.Rectangle;
 
 namespace Match_3;
 
@@ -21,14 +24,14 @@ public struct Scale
         _maxScale = maxScale;
          Speed = 0f;
         _direction = -1f;
-        _finalScaleFactor = 1f;
+        _finalScaleFactor = minScale.Equals(maxScale, 0.1f) ? minScale : _finalScaleFactor;
     }
     
-    public float DoScale()
+    public float GetFactor()
     {
         if (ElapsedTime <= 0f)
             return _finalScaleFactor;
-
+        
         if (_finalScaleFactor.Equals(_minScale, 0.1f) || 
             _finalScaleFactor.Equals(_maxScale, 0.1f))
         {
@@ -43,7 +46,8 @@ public struct Scale
     
     public static implicit operator Scale(float size) => new(size, size)
     {
-        _direction = 0,
+        ElapsedTime = 0f,
+        //_direction = 0,
     };
 }
 
@@ -150,7 +154,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
 }
 
 /// <summary>
-/// A hardcoded type which is created from a look into the AngryBallsTexture!
+/// DefaultTile hardcoded type which is created from a look into the AngryBallsTexture!
 /// </summary>
 public enum Type
 {
@@ -172,11 +176,12 @@ public enum Coat
     A, B, C, D, E, F, G, H
 }
 
-public abstract class Shape
+public class Shape
 {
     public virtual ShapeKind Form { get; set; }
     public virtual Vector2 AtlasLocation { get; init; }
-    public Rectangle AtlasRect => new(AtlasLocation.X, AtlasLocation.Y, Tile.Size, Tile.Size);
+    public Size Size { get; init; }
+    public Rectangle AtlasRect => new(AtlasLocation.X, AtlasLocation.Y, Size.Width, Size.Height);
     public Scale Scale;
     public FadeableColor Color;
     
@@ -261,7 +266,6 @@ public class Tile
     private TileState _current;
     
     public virtual Options Options { get; set; }
-    
     public TileState TileState 
     {
         get => _current;
@@ -345,8 +349,8 @@ public class Tile
     public bool IsDeleted => (TileState & TileState.Deleted) == TileState.Deleted;
     public Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
     public Rectangle WorldBounds => GridBounds.ToWorldBox();
-
-    public const int Size = 64;
+    
+    public const int Size = Level.TILE_SIZE;
     public static bool IsOnlyDefaultTile(Tile? current) =>
         current is not null and not EnemyTile;
     public Tile()
@@ -356,7 +360,6 @@ public class Tile
         Body = null!;
     }
     public override string ToString() => $"GridCell: {GridCell}; ---- {Body}";
-    
     public void Select()
     {
         Body.Color = GREEN;
@@ -386,7 +389,6 @@ public class Tile
 public class EnemyTile : Tile
 {
     public override Options Options => Options.UnMovable;
-    private float speed = 0.25f;
     
     public Rectangle Pulsate(float elapsedTime)
     {
@@ -396,7 +398,7 @@ public class EnemyTile : Tile
         if (Body.Scale.Speed == 0f)
             Body.Scale.Speed = 20.25f;
         
-        var rect = Body.AtlasRect.DoScale(Body.Scale.DoScale());
+        var rect = Body.AtlasRect.DoScale(Body.Scale.GetFactor());
                 
         Body.Scale.ElapsedTime = elapsedTime;
         return rect with { X = WorldCell.X, Y = WorldCell.Y };
