@@ -9,7 +9,7 @@ namespace Match_3;
 
 internal static class Game
 {
-    public static QuestState Quest { get; private set; }
+    public static GameState State { get; private set; }
     public static Level Level { get; private set; }
     private static Grid _grid;
     private static MatchX? _matchesOf3;
@@ -19,11 +19,9 @@ internal static class Game
     private static bool _enterGame;
     private static bool _shallCreateEnemies;
 
-    public static event Action<QuestState> OnMatchFound;
-    public static event Action<QuestState> OnTileClicked;
-    public static event Action<QuestState> OnTileSwapped;
-    
-    public static event Action<QuestState> OnEnemyTileClicked;
+    public static event Action<GameState> OnMatchFound;
+    public static event Action<GameState> OnTileClicked;
+    public static event Action<GameState> OnTileSwapped;
     
     private static void Main()
     {
@@ -35,16 +33,16 @@ internal static class Game
     private static void InitGame()
     {
         Level = new(0,45, 4, 10, 10, 64);
-        Quest = new()
+        State = new()
         {
             EventData = new Dictionary<Type, Numbers>((int)Type.Length)
         };
-        _matchesOf3 = new(Level.MAX_TILES_PER_MATCH);
+        _matchesOf3 = new();
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
         LoadAssets();
-        QuestHandler.InitAllQuestHandlers(Level.ID);
+        QuestHandler.InitAllQuestHandlers();
         _grid = new(Level);
     }
     
@@ -56,12 +54,12 @@ internal static class Game
         {
             bool outsideRect = !CheckCollisionPointRec(GetMousePosition(), _enemyMatches.Border);
 
-            if (outsideRect && Quest.EnemiesStillPresent)
+            if (outsideRect && State.EnemiesStillPresent)
             {
                 /*the player has to get these enemies out of the way b4 he can pass!*/
                 SetMouseToWorldPos(_enemyMatches.WorldPos, 1);
             }
-            else if (!Quest.EnemiesStillPresent && _enemyMatches.IsMatch)
+            else if (!State.EnemiesStillPresent && _enemyMatches.IsMatchActive)
             {
                 //we set this to null, because we cant make any swaps after this, cause 
                 //_secondClicked has a value! so we then can repeat the entire cycle!
@@ -95,11 +93,18 @@ internal static class Game
             return;
 
         //Enemy tile was clicked on , ofc after a matchX happened!
-        if (firstClickedTile is EnemyTile e)
+        if (_enemyMatches?.IsMatchActive == true && firstClickedTile is EnemyTile e)
         {
-            Quest.Enemy = e;
-            Quest.Grid = _grid;
-            OnEnemyTileClicked(Quest);
+            var elapsedSeconds = (TimeOnly.FromDateTime(DateTime.Now) - _enemyMatches.CreatedAt).Seconds;
+            
+            State.Enemy = e;
+            State.Grid = _grid;
+            State.Current = (TileShape)e.Body;
+            var existent = State.Load();
+            existent.Click.Count++;
+            existent.Click.Time = elapsedSeconds;
+            State.Update();
+            OnTileClicked(State);
         }
         
         firstClickedTile!.Select();
@@ -128,15 +133,15 @@ internal static class Game
 
             if (_grid.Swap(firstClickedTile, _secondClicked))
             {
-                Quest.WasSwapped = true;
-                OnTileSwapped(Quest);
+                State.WasSwapped = true;
+                OnTileSwapped(State);
             }
         }
     }
     
     static void ComputeMatches()
     {
-        if (!Quest.WasSwapped)
+        if (!State.WasSwapped)
             return;
 
         bool ShallTransformMatchesToEnemyMatches() => Randomizer.NextSingle() <= 0.5f;
@@ -155,20 +160,20 @@ internal static class Game
         {
             if (_secondClicked?.Body is TileShape t)
             {
-                Quest.EventData.TryGetValue(t.TileType, out var matchData);
+                State.EventData.TryGetValue(t.TileType, out var matchData);
                 matchData.Match.Count++;
-                matchData.Match.Time = Level.GameTimer.ElapsedSeconds;
-                Quest.EventData.TryAdd(t.TileType, matchData);
-                OnMatchFound(Quest);
+                matchData.Match.maxTime = Level.GameTimer.ElapsedSeconds;
+                State.EventData.TryAdd(t.TileType, matchData);
+                OnMatchFound(State);
             }
 
-            Quest.EnemiesStillPresent = _shallCreateEnemies = true;
+            State.EnemiesStillPresent = _shallCreateEnemies = true;
             CreateEnemiesIfNeeded();
         }
         else
             _matchesOf3!.Clear();
         
-        Quest.WasSwapped = false;
+        State.WasSwapped = false;
         _secondClicked = null;
     }
     
@@ -180,9 +185,9 @@ internal static class Game
             _shallCreateEnemies = true;
             _matchesOf3?.Clear();
             _enemyMatches?.Clear();
-            Quest.EnemiesStillPresent = false;
+            State.EnemiesStillPresent = false;
             _secondClicked = null;
-            Quest.WasSwapped = false;
+            State.WasSwapped = false;
             Console.Clear();
         }
     }
@@ -216,12 +221,12 @@ internal static class Game
                         return;
                     }
                 }
-                else if (Quest.WasGameWonB4Timeout)
+                else if (State.WasGameWonB4Timeout)
                 {
                     if (Renderer.OnGameOver(Level.GameTimer.Done(), true))
                     {
                         InitGame();
-                        Quest.WasGameWonB4Timeout = false;
+                        State.WasGameWonB4Timeout = false;
                         continue;
                     }
                 }
