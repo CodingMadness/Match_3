@@ -31,7 +31,7 @@ public static class Renderer
         if (tile is EnemyTile enemy)
         {
             enemy.TileState &= TileState.Selected;
-            DrawTexturePro(Atlas, enemy.Body.AtlasRect, enemy.Pulsate(elapsedTime), 
+            DrawTexturePro(Atlas, enemy.Body.TextureRect, enemy.Pulsate(elapsedTime), 
                             Vector2.Zero, 0f, enemy.Body.Color);
             return;
         }
@@ -39,8 +39,8 @@ public static class Renderer
         
         var body = tile.Body as TileShape;
         body!.Color.ElapsedTime = elapsedTime;
-        DrawTexturePro(Atlas, body.AtlasRect, tile.WorldBounds, Vector2.Zero, 0f, body.Color);
-        //DrawTextureRec(Atlas, body.AtlasRect, tile.WorldCell, body.Color);
+        DrawTexturePro(Atlas, body.TextureRect, tile.WorldBounds, Vector2.Zero, 0f, body.Color);
+        //DrawTextureRec(Atlas, body.TextureRect, tile.WorldCell, body.Color);
         DrawCoordOnTop(tile);
     }
     
@@ -127,9 +127,8 @@ public static class Renderer
 
     public static void DrawBackground(ref Background bg)
     {
-        Rectangle dest = bg.Body.AtlasRect.DoScale(bg.Body.Scale.GetFactor());
         Rectangle screen = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
-        DrawTexturePro(BgAtlas, bg.Body.AtlasRect, screen, Vector2.Zero, 0f, bg.Body.Color);
+        DrawTexturePro(bg.Texture, bg.Body.TextureRect, screen.DoScale(bg.Body.Scale), Vector2.Zero, 0f, bg.Body.Color);
     }
     
     /*

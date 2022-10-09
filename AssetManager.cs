@@ -9,7 +9,8 @@ namespace Match_3;
 
 public static unsafe class AssetManager
 {
-    public static Texture BgAtlas;
+    public static Texture IngameTexture1, IngameTexture2;
+    public static Texture WelcomeTexture;
     public static Texture DefaultTileAtlas;
     public static Texture EnemyAtlas;
     
@@ -49,8 +50,18 @@ public static unsafe class AssetManager
         buffer = GetEmbeddedResource("Atlas.bg2.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         Image bg = LoadImageFromMemory(".png", first, buffer.Length);
-        BgAtlas = LoadTextureFromImage(bg);
-        
+        WelcomeTexture = LoadTextureFromImage(bg);
+
+        buffer = GetEmbeddedResource("Atlas.bg_3.png");
+        first = (byte*)Unsafe.AsPointer(ref buffer[0]); 
+        bg = LoadImageFromMemory(".png", first, buffer.Length);
+        IngameTexture1 = LoadTextureFromImage(bg);
+
+        buffer = GetEmbeddedResource("Atlas.image.png");
+        first = (byte*)Unsafe.AsPointer(ref buffer[0]); 
+        bg = LoadImageFromMemory(".png", first, buffer.Length);
+        IngameTexture2 = LoadTextureFromImage(bg);
+
         buffer = GetEmbeddedResource("Atlas.set1_small.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         Image ballImg = LoadImageFromMemory(".png", first, buffer.Length);
@@ -61,6 +72,4 @@ public static unsafe class AssetManager
         ballImg = LoadImageFromMemory(".png", first, buffer.Length);
         EnemyAtlas = LoadTextureFromImage(ballImg);
     }
-
-    
 }

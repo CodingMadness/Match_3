@@ -16,7 +16,7 @@ internal static class Game
     private static MatchX? _matchesOf3;
     private static EnemyMatches? _enemyMatches;
     private static Tile? _secondClicked;
-    private static Background bg;
+    private static Background bg1, bgIngame1, bgIngame2;
 
     private static bool _enterGame;
     private static bool _shallCreateEnemies;
@@ -34,7 +34,7 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0,45, 4, 20, 20);
+        Level = new(0,45*3, 4, 10, 10);
         State = new()
         {
             EventData = new Dictionary<Type, Numbers>((int)Type.Length)
@@ -44,8 +44,11 @@ internal static class Game
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
         LoadAssets();
-        bg = new(BgAtlas);
+        bg1 = new(WelcomeTexture);
+        bgIngame1 = new(IngameTexture1);
+        bgIngame2 = new(IngameTexture2);
         QuestHandler<Type>.InitAllQuestHandlers();
+        SetTextureFilter(IngameTexture1, TextureFilter.TEXTURE_FILTER_BILINEAR);
         _grid = new(Level);
     }
     
@@ -198,7 +201,7 @@ internal static class Game
         {
             BeginDrawing();
             ClearBackground(WHITE);
-            Renderer.DrawBackground( ref bg);
+            Renderer.DrawBackground(ref bg1);
 
             if (!_enterGame)
             {
@@ -232,6 +235,8 @@ internal static class Game
                 }
                 else
                 {
+                    bgIngame1.Body.Scale = 1f;
+                    Renderer.DrawBackground(ref bgIngame2);
                     float elapsedTime = Level.GameTimer.ElapsedSeconds;
                     Renderer.DrawTimer(elapsedTime);
                     DragMouseToEnemies();

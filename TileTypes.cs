@@ -181,7 +181,7 @@ public class Shape
     public virtual ShapeKind Form { get; set; }
     public virtual Vector2 AtlasLocation { get; init; }
     public Size Size { get; init; }
-    public Rectangle AtlasRect => new(AtlasLocation.X, AtlasLocation.Y, Size.Width, Size.Height);
+    public Rectangle TextureRect => new(AtlasLocation.X, AtlasLocation.Y, Size.Width, Size.Height);
     public Scale Scale;
     public FadeableColor Color;
     
@@ -393,12 +393,12 @@ public class EnemyTile : Tile
     public Rectangle Pulsate(float elapsedTime)
     {
         if (elapsedTime <= 0f)
-            return Body.AtlasRect;
+            return Body.TextureRect;
 
         if (Body.Scale.Speed == 0f)
             Body.Scale.Speed = 20.25f;
         
-        var rect = Body.AtlasRect.DoScale(Body.Scale.GetFactor());
+        var rect = Body.TextureRect.DoScale(Body.Scale.GetFactor());
                 
         Body.Scale.ElapsedTime = elapsedTime;
         return rect with { X = WorldCell.X, Y = WorldCell.Y };

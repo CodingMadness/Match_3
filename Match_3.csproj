@@ -65,6 +65,16 @@
     <EmbeddedResource Include="Assets\Atlas\bg2.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Remove="Assets\Atlas\bg3.png" />
+    <None Remove="Assets\Atlas\bg_3.png" />
+    <EmbeddedResource Include="Assets\Atlas\bg_3.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\Atlas\bg4.png" />
+    <None Remove="Assets\Atlas\image.png" />
+    <EmbeddedResource Include="Assets\Atlas\image.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\Fonts\font1.otf">

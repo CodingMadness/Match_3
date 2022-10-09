@@ -113,10 +113,10 @@ public static class Utils
             worldRect.width / Tile.Size,
             worldRect.height / Tile.Size);
     }
-    public static Rectangle DoScale(this Rectangle rayRect, float factor)
+    public static Rectangle DoScale(this Rectangle rayRect, Scale factor)
     {
         //rayrect 
-        return new(rayRect.x, rayRect.y, rayRect.width * factor, rayRect.height * factor);
+        return new(rayRect.x, rayRect.y, rayRect.width * factor.GetFactor(), rayRect.height * factor.GetFactor());
     }
     public static Rectangle SliceBy(this Rectangle rayRect, int factor)
     {
