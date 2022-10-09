@@ -8,7 +8,6 @@ namespace Match_3;
 
 public static class Bakery
 {
-    
     private static Type GetTileTypeTypeByNoise(float noise)
     {
         noise = noise.Trunc(2);
@@ -37,7 +36,7 @@ public static class Bakery
         return result.Item1;
     }
 
-    public static TileShape DefineFrame(float noise)
+    private static TileShape DefineFrame(float noise)
     {
         TileShape tmp = new()
         {
