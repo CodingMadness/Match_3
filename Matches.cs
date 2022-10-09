@@ -10,7 +10,7 @@ public class MatchX
     private IOrderedEnumerable<Tile>? _orderedSet;
     private bool _wasRow;
     private Rectangle _worldRect;
-
+    public TimeOnly DeletedAt { get; private set; }
     public TimeOnly CreatedAt { get; private set; }
     public bool IsRowBased => _wasRow;
     public int Count => Matches.Count;
@@ -65,7 +65,7 @@ public class MatchX
             Body.Color.AlphaSpeed = 0.5f;
         }
         else if (!IsMatchActive)
-            CreatedAt = TimeOnly.FromDateTime(DateTime.Now);
+            CreatedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
     }
     public void Clear()
     {
@@ -73,6 +73,7 @@ public class MatchX
         _wasRow = false;
         WorldPos = -Vector2.One;
         Matches.Clear();
+        DeletedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
         _orderedSet = null;
     }
     public EnemyMatches AsEnemies(Grid map)
