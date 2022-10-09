@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Numerics;
 using Match_3.GameTypes;
 using Raylib_CsLo;
@@ -12,9 +11,10 @@ public class MatchX
     private bool _wasRow;
     private Rectangle _worldRect;
 
+    public TimeOnly CreatedAt { get; private set; }
     public bool IsRowBased => _wasRow;
     public int Count => Matches.Count;
-    public bool IsMatch => Count == Matches.Count;
+    public bool IsMatchActive => Count == Level.MAX_TILES_PER_MATCH;
     public TileShape? Body { get; private set; }
     public Rectangle WorldBox
     {
@@ -49,7 +49,7 @@ public class MatchX
     /// </summary>
     public void Add(Tile matchTile)
     {
-        if (Matches.Add(matchTile))
+        if (Matches.Add(matchTile) && !IsMatchActive)
         {
             WorldPos = WorldPos != -Vector2.One ? matchTile.WorldCell : WorldPos;
             
@@ -64,6 +64,8 @@ public class MatchX
             Body!.Color = Raylib.GREEN;
             Body.Color.AlphaSpeed = 0.5f;
         }
+        else if (!IsMatchActive)
+            CreatedAt = TimeOnly.FromDateTime(DateTime.Now);
     }
     public void Clear()
     {
