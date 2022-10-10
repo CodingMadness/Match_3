@@ -1,3 +1,4 @@
+using System.Data;
 using System.Numerics;
 using Match_3.GameTypes;
 using Raylib_CsLo;
@@ -16,6 +17,17 @@ public class MatchX
     public int Count => Matches.Count;
     public bool IsMatchActive => Count == Level.MAX_TILES_PER_MATCH;
     public TileShape? Body { get; private set; }
+
+    private IEnumerable<Tile> OrderedSet()
+    {
+        return _orderedSet = (_orderedSet is null || _orderedSet.Count() < Count)
+            ? Matches.Order(CellComparer.Singleton)
+            : _orderedSet;
+    }
+
+    /// <summary>
+    /// We have to only order the matches if it never happened b4 this call and if new items came into the matches
+    /// </summary>
     public Rectangle WorldBox
     {
         get
@@ -25,10 +37,8 @@ public class MatchX
 
             if (Matches.Count == 0)
                 return new(0f, 0f, 0f, 0f);
-            
-            _orderedSet ??= Matches.Order(CellComparer.Singleton);
-            
-            foreach (var tile in _orderedSet)
+
+            foreach (var tile in OrderedSet())
             {
                 _worldRect.Add(tile.WorldBounds);
             }
@@ -36,18 +46,18 @@ public class MatchX
         }
     }
 
-    public Vector2 Move(int i=1)
+    
+    public Vector2 Move(int i)
     {
-        if (i == 0)
-            return WorldPos;
+        var pos = WorldBox.GetWorldPos();
         
         if (IsRowBased)
         {
-            return WorldPos with { X = WorldPos.X + (i * Tile.Size) };
+            return pos with { X = pos.X + (i * Tile.Size) };
         }
         else
         {
-            return WorldPos with { Y = WorldPos.Y * + (i * Tile.Size)};
+            return pos with { Y = pos.Y + (i * Tile.Size)};
         }
     }
     
@@ -82,6 +92,7 @@ public class MatchX
         else if (!IsMatchActive)
             CreatedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
     }
+    
     public void Clear()
     {
         _worldRect = Utils.INVALID_RECT;
@@ -90,14 +101,6 @@ public class MatchX
         Matches.Clear();
         DeletedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
         _orderedSet = null;
-    }
-
-    public void Disable(Grid map)
-    {
-        foreach (var item in Matches)
-        {
-            map[item.GridCell]?.Disable(true);
-        }
     }
     
     public EnemyMatches AsEnemies(Grid map)
