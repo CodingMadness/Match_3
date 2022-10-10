@@ -47,6 +47,8 @@ public static class Utils
         ;
     }
 
+    public static Rectangle ScreenRect = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
+
     public static Vector2 GetScreenCoord() => new(GetScreenWidth(), GetScreenHeight());
 
     public static Rectangle Union(this Rectangle rayRect, Rectangle otherRayRect)
