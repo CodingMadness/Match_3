@@ -21,6 +21,7 @@ public sealed class GameState
     public IDictionary<Type, Numbers> EventData { get; init; }
     public MatchX? Matches { get; set; }
 
+    
     private Numbers _numbers;
 
     public ref readonly Numbers LoadData()
@@ -181,7 +182,7 @@ public class MatchQuestHandler : QuestHandler<Type>
         }
     }
     
-    private bool MatchGoalReached(GameState inventory)
+    private bool IsMatchGoalReached(GameState inventory)
     {
         var goal = _goal.LoadBy(inventory.CurrentType);
         var existent = inventory.LoadData();
@@ -194,9 +195,10 @@ public class MatchQuestHandler : QuestHandler<Type>
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
-        if (MatchGoalReached(inventory))
+        if (IsMatchGoalReached(inventory))
         {
             inventory.WasGameWonB4Timeout = _goal.EventData.Count == 0;
+            inventory.Grid.Delete(inventory.Matches);
             inventory.Matches!.Clear();
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
         }

@@ -4,6 +4,8 @@ using Raylib_CsLo;
 using static Match_3.AssetManager;
 using static Match_3.Utils;
 using static Raylib_CsLo.Raylib;
+using static rlImGui.rlImGui;
+
 #pragma warning disable CS8618
 
 namespace Match_3;
@@ -34,7 +36,7 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0,45*3, 4, 10, 10);
+        Level = new(0,45*5, 4, 10, 10);
         State = new()
         {
             EventData = new Dictionary<Type, Numbers>((int)Type.Length)
@@ -50,6 +52,7 @@ internal static class Game
         QuestHandler<Type>.InitAllQuestHandlers();
         SetTextureFilter(IngameTexture1, TextureFilter.TEXTURE_FILTER_BILINEAR);
         _grid = new(Level);
+        State.Grid = _grid;
     }
     
     private static void DragMouseToEnemies()
@@ -135,12 +138,16 @@ internal static class Game
         /*Different tile selected ==> swap*/
         else
         {
-            firstClickedTile.TileState |= TileState.Selected;
-
+            firstClickedTile.DeSelect();
+            
             if (_grid.Swap(firstClickedTile, _secondClicked))
             {
                 State.WasSwapped = true;
                 OnTileSwapped(State);
+            }
+            else
+            {
+                _secondClicked.DeSelect();
             }
         }
     }
@@ -167,11 +174,10 @@ internal static class Game
             State.DefaultTile = _secondClicked;
             var matchData = State.LoadData();
             matchData.Match.Count++;
-            State.Update();
             State.Matches = _matchesOf3;
-            OnMatchFound(State);
             State.EnemiesStillPresent = _shallCreateEnemies = true;
-            //CreateEnemiesIfNeeded();
+            State.Update();
+            OnMatchFound(State);
         }
         else
             _matchesOf3!.Clear();
@@ -197,12 +203,16 @@ internal static class Game
 
     private static void MainGameLoop()
     {
+        Setup(false);	// sets up ImGui with ether a dark or light default theme
+        float slider = 1f;
+         
         while (!WindowShouldClose())
         {
             BeginDrawing();
+            Begin();
             ClearBackground(WHITE);
             Renderer.DrawBackground(ref bg1);
-
+            
             if (!_enterGame)
             {
                 Renderer.ShowWelcomeScreen();
@@ -249,13 +259,16 @@ internal static class Game
                 }
                 _enterGame = true;
             }
-          
+        
+            End();
             EndDrawing();
+            
         }
     }
 
     private static void CleanUp()
     {
+        Shutdown();
         UnloadTexture(DefaultTileAtlas);
         CloseWindow();
     }

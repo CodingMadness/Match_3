@@ -342,6 +342,7 @@ public class Tile
     /// WorldCell in WorldCoordinates
     /// </summary>
     public Vector2 WorldCell => (GridCell * Size);
+    
     /// <summary>
     /// End in WorldCoordinates
     /// </summary>
@@ -362,7 +363,7 @@ public class Tile
     public override string ToString() => $"GridCell: {GridCell}; ---- {Body}";
     public void Select()
     {
-        Body.Color = GREEN;
+        Body.Color = WHITE;
         TileState |= TileState.Selected;
     }
     public void DeSelect()
