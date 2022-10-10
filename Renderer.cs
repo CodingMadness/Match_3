@@ -1,6 +1,7 @@
 using System.Numerics;
 using Match_3.GameTypes;
 using Raylib_CsLo;
+
 using static Match_3.AssetManager;
 using static Raylib_CsLo.Raylib;
 
@@ -8,9 +9,7 @@ namespace Match_3;
 
 public static class Renderer
 {
-    private static Texture Atlas;
-
-    private static void DrawTile(Tile tile, float elapsedTime)
+    private static void DrawTile(ref Texture atlas, Tile tile, float elapsedTime)
     {
         static void DrawCoordOnTop(Tile tile)
         {
@@ -31,13 +30,14 @@ public static class Renderer
         if (tile is EnemyTile enemy)
         {
             //enemy.TileState &= TileState.Selected;
-            DrawTexturePro(Atlas, enemy.Body.TextureRect, enemy.Pulsate(elapsedTime), 
+            DrawTexturePro(atlas, enemy.Body.TextureRect, enemy.Pulsate(elapsedTime), 
                     Vector2.Zero, 0f, enemy.Body.Color);
             return;
         }
+        
         var body = tile.Body as TileShape;
         body!.Color.ElapsedTime = elapsedTime;
-        DrawTexturePro(Atlas, body.TextureRect, tile.WorldBounds, Vector2.Zero, 0f, body.Color);
+        DrawTexturePro(atlas, body.TextureRect, tile.WorldBounds, Vector2.Zero, 0f, body.Color);
        // DrawCoordOnTop(tile);
     }
     
@@ -55,11 +55,11 @@ public static class Renderer
                     
                 if (basicTile is not null && !basicTile.IsDeleted)
                 {
-                    Atlas = (basicTile is EnemyTile)
+                    var atlas = (basicTile is EnemyTile)
                         ? EnemyAtlas
                         : DefaultTileAtlas;
 
-                    DrawTile(basicTile, elapsedTime);
+                    DrawTile(ref atlas, basicTile, elapsedTime);
                 }
             }
         }

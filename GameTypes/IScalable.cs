@@ -1,5 +1,3 @@
-using System.Drawing;
-
 namespace Match_3.GameTypes;
 
 public interface IScalable
