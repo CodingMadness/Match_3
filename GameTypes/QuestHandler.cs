@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace Match_3.GameTypes;
 
 public struct Numbers
@@ -13,30 +15,32 @@ public struct Numbers
 public sealed class GameState
 {
     public bool WasSwapped;
-    public Tile? DefaultTile { get; set; }
+    public Tile DefaultTile { get; set; }
     public Type CurrentType => (DefaultTile.Body as TileShape)!.TileType;
-    public IDictionary<Type, Numbers> EventData { get; init; }
+    private IDictionary<Type, Numbers> _eventData { get; }
     public MatchX? Matches { get; set; }
-
-    private Numbers _numbers;
-
-    public ref Numbers LoadData()
+    
+    public ref Numbers FromRef()
     {
-        bool s = EventData.TryGetValue(CurrentType, out var numbers);
-        
-        if (s)
-            _numbers = numbers;
-        
-        return ref _numbers;
+        if (EqualityComparer<Type>.Default.Equals(default))
+            return ref _current;
+            
+        ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<Type, Numbers>)_eventData, CurrentType, out bool success);
+        _current = current;
+        return ref _current;
     }
-
-    public void Update() => EventData[CurrentType] = _numbers;
-
+    
     public bool EnemiesStillPresent;
     public int[] TotalAmountPerType;
     public bool WasGameWonB4Timeout;
     public EnemyTile Enemy;
     public Grid Grid;
+    private Numbers _current;
+
+    public GameState(int initSize)
+    {
+        _eventData = new Dictionary<Type, Numbers>(initSize);
+    }
 }
 
 public abstract class QuestHandler<T> where T:notnull
@@ -48,18 +52,17 @@ public abstract class QuestHandler<T> where T:notnull
 
         private Numbers _num;
         
-        public ref Numbers LoadBy(T key)
+        public ref Numbers FromRef(T key)
         {
             if (EqualityComparer<T>.Default.Equals(default))
                 return ref _num;
             
-            if (EventData.TryGetValue(key, out var numbers))
-                _num = numbers;
+            _num = CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<T, Numbers>)EventData, key, out bool success);
             
             return ref _num;
         }
-
-        public void UpdateBy(T current) => EventData[current] = _num;
+        
+        public void Add(T current) => EventData[current] = _num;
     }
 
     protected GoalPer _goal { get; }
@@ -97,7 +100,7 @@ public class SwapQuestHandler : QuestHandler<Type>
     {
         for (Type i = 0; i < Type.Length; i++)
         {
-            ref Numbers numbers = ref _goal.LoadBy(i);
+            ref Numbers numbers = ref _goal.FromRef(i);
 
             switch (Game.Level.ID)
             {
@@ -119,7 +122,7 @@ public class SwapQuestHandler : QuestHandler<Type>
                     break;
             }
 
-            _goal.UpdateBy(i);
+            _goal.Add(i);
         }
     }
 
@@ -132,13 +135,12 @@ public class SwapQuestHandler : QuestHandler<Type>
     {
         for (Type i = 0; i < Type.Length; i++)
         {
-            _goal.EventData.TryGetValue(i, out var goalData);
+            ref Numbers numbers = ref _goal.FromRef(i);
             //The Game notifies the QuestHandler, when something happens to the tile!
             //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
-
-            bool success = state.EventData.TryGetValue(i, out var inventoryData);
-
-            if (success && inventoryData.Swaps == goalData.Swaps)
+            ref var currSwaps = ref state.FromRef().Swaps;
+            
+            if (currSwaps == numbers.Swaps)
             {
                 //EventData.Remove(state.CollectPair.ballType);
                 Console.WriteLine("NOW YOU CAN DO SMTH WITH THE INFO THAT HE SWAPPED TILE X AND Y");
@@ -156,7 +158,7 @@ public class MatchQuestHandler : QuestHandler<Type>
 
     protected override void DefineGoals(GameState state)
     {
-        ref Numbers _numbers = ref _goal.LoadBy(Type.Empty);
+        ref Numbers _numbers = ref _goal.FromRef(Type.Empty);
         
         _numbers.Match = Game.Level.ID switch
         {
@@ -182,14 +184,14 @@ public class MatchQuestHandler : QuestHandler<Type>
             else
                 _numbers.Match.Count = maxAllowed / Level.MAX_TILES_PER_MATCH;
 
-            _goal.UpdateBy(i);
+            _goal.Add(i);
         }
     }
     
     private bool IsMatchGoalReached(GameState state)
     {
-        var goal = _goal.LoadBy(state.CurrentType);
-        var existent = state.LoadData();
+        ref var goal = ref _goal.FromRef(state.CurrentType);
+        ref var existent = ref state.FromRef();
 
         var goalMatch = goal.Match;
         var currMatch = existent.Match;
@@ -222,7 +224,7 @@ public class ClickQuestHandler : QuestHandler<Type>
     {
         for (Type i = 0; i < Type.Length; i++)
         {
-            ref Numbers _numbers = ref _goal.LoadBy(i);
+            ref Numbers _numbers = ref _goal.FromRef(i);
 
             _numbers.Click = Game.Level.ID switch
             {
@@ -233,18 +235,16 @@ public class ClickQuestHandler : QuestHandler<Type>
                 3 => (9, 4),
                 _ => _numbers.Click
             };
-            _goal.UpdateBy(i);
+            _goal.Add(i);
         }
     }
     
     private bool ClickGoalReached(GameState inventory)
     {
-        ref var existent = ref inventory.LoadData();
-        var goal = _goal.LoadBy(inventory.CurrentType);
-        var goalClicks = goal.Click;
-        var currClicks = existent.Click;
+        ref var currClick = ref inventory.FromRef().Click;
+        ref var goalClick = ref _goal.FromRef(inventory.CurrentType).Click;
 
-        bool reached = goalClicks.Count == currClicks.Count;
+        bool reached = currClick.Count == goalClick.Count;
                        //&& goalClicks.Seconds > currClicks.Seconds;
 
         return reached;
@@ -262,9 +262,8 @@ public class ClickQuestHandler : QuestHandler<Type>
             state.Enemy.BlockSurroundingTiles(state.Grid, false);
             Console.WriteLine("YEA goal was reached, deleted the evil match!");
 
-            ref var clicks = ref state.LoadData().Click;
+            ref var clicks = ref state.FromRef().Click;
             clicks = (0, 0);
-            state.Update();
 
             state.EnemiesStillPresent = ++_matchXCounter < state.Matches!.Count;
             _matchXCounter = (byte)(state.EnemiesStillPresent ? _matchXCounter : 0);
@@ -272,7 +271,7 @@ public class ClickQuestHandler : QuestHandler<Type>
         }
         else
         {
-            //Console.WriteLine($"SADLY YOU STILL NEED {_goal.LoadBy(state.CurrentType).Click.Count}");
+            //Console.WriteLine($"SADLY YOU STILL NEED {_goal.FromRef(state.CurrentType).Click.Count}");
         }
     }
 }
