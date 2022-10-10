@@ -88,7 +88,7 @@ public class MatchX
             Body ??= (matchTile.Body as TileShape)!.Clone() as TileShape;
        
         }
-        else if (!IsMatchActive)
+        else if (IsMatchActive)
             CreatedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
     }
     
