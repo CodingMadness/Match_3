@@ -67,7 +67,7 @@ public static unsafe class AssetManager
         Image ballImg = LoadImageFromMemory(".png", first, buffer.Length);
         DefaultTileAtlas = LoadTextureFromImage(ballImg);
         
-        buffer = GetEmbeddedResource("Atlas.set2.png");
+        buffer = GetEmbeddedResource("Atlas.set2_small.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         ballImg = LoadImageFromMemory(".png", first, buffer.Length);
         EnemyAtlas = LoadTextureFromImage(ballImg);
