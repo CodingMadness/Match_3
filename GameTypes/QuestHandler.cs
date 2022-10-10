@@ -198,8 +198,6 @@ public class MatchQuestHandler : QuestHandler<Type>
         if (IsMatchGoalReached(inventory))
         {
             inventory.WasGameWonB4Timeout = _goal.EventData.Count == 0;
-            inventory.Grid.Delete(inventory.Matches);
-            inventory.Matches!.Clear();
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
         }
     }
