@@ -168,22 +168,30 @@ internal static class Game
                 (_enemyMatches is null || _enemyMatches.Count == 0) &&
                 _matchesOf3?.Count > 0)
             {
-                _enemyMatches = _matchesOf3.AsEnemies(_grid);
+                _enemyMatches = Bakery.AsEnemies(_grid, _matchesOf3);
             }
         }
         
-        if (_grid.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!) /*&& !_shallCreateEnemies*/)
+        if (_grid.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!) && !_shallCreateEnemies)
         {
+            _grid.Delete(_matchesOf3!);
             State.DefaultTile = _secondClicked;
             var matchData = State.LoadData();
             matchData.Match.Count++;
             State.Matches = _matchesOf3;
-            State.EnemiesStillPresent = _shallCreateEnemies = true;
+            State.EnemiesStillPresent = _shallCreateEnemies = ShallTransformMatchesToEnemyMatches();
             State.Update();
             OnMatchFound(State);
         }
-        else
-            _matchesOf3!.Clear();
+        else switch (_shallCreateEnemies)
+        {
+            case true:
+                CreateEnemiesIfNeeded();
+                break;
+            case false:
+                _matchesOf3!.Clear();
+                break;
+        }
         
         State.WasSwapped = false;
         _secondClicked = null;
@@ -207,8 +215,7 @@ internal static class Game
     private static void MainGameLoop()
     {
         Setup(false);	// sets up ImGui with ether a dark or light default theme
-        float slider = 1f;
-         
+
         while (!WindowShouldClose())
         {
             BeginDrawing();
