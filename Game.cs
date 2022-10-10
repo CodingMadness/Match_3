@@ -37,10 +37,7 @@ internal static class Game
     private static void InitGame()
     {
         Level = new(0,45*5, 4, 10, 10);
-        State = new()
-        {
-            EventData = new Dictionary<Type, Numbers>((int)Type.Length)
-        };
+        State = new((int)Type.Length);
         _matchesOf3 = new();
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
@@ -112,10 +109,9 @@ internal static class Game
             State.Grid = _grid;
             State.DefaultTile = e;
             State.Matches = _enemyMatches;
-            ref var existent = ref State.LoadData();
+            ref var existent = ref State.FromRef();
             existent.Click.Count++;
             existent.Click.Seconds = elapsedSeconds;
-            State.Update();
             OnTileClicked(State);
         }
         else
@@ -147,7 +143,7 @@ internal static class Game
                 if (_grid.Swap(firstClickedTile, _secondClicked))
                 {
                     State.WasSwapped = true;
-                    OnTileSwapped(State);
+                    //OnTileSwapped(State);
                     _secondClicked.DeSelect();
                 }
                 else
@@ -162,14 +158,12 @@ internal static class Game
     {
         if (!State.WasSwapped)
             return;
-
-        bool ShallCreateEnemies() => Randomizer.NextSingle() <= 0.5f;
-
+        
         void CreateEnemiesIfNeeded()
         {
             if (_shallCreateEnemies && 
                 (_enemyMatches is null || _enemyMatches.Count == 0) &&
-                _matchesOf3?.Count > 0)
+                _matchesOf3?.IsMatchActive == true)
             {
                 _enemyMatches = Bakery.AsEnemies(_grid, _matchesOf3);
                 State.EnemiesStillPresent = true;
@@ -178,13 +172,12 @@ internal static class Game
         
         if (_grid.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!) && !_shallCreateEnemies)
         {
+            Console.WriteLine(_matchesOf3.Count);
             _grid.Delete(_matchesOf3!);
-            State.DefaultTile = _secondClicked;
-            var matchData = State.LoadData();
-            matchData.Match.Count++;
+            State.DefaultTile = _secondClicked!;
+            ref var matchData = ref State.FromRef().Match;
+            matchData.Count++;
             State.Matches = _matchesOf3;
-            //State.EnemiesStillPresent = _shallCreateEnemies = ShallCreateEnemies();
-            State.Update();
             OnMatchFound(State);
         }
         else switch (_shallCreateEnemies)
@@ -196,7 +189,10 @@ internal static class Game
                  _grid.Delete(_matchesOf3!);
                 break;
         }
-        _shallCreateEnemies = ShallCreateEnemies();
+
+        Console.WriteLine(_matchesOf3!.Count);
+        _shallCreateEnemies = RollADice();
+        Console.WriteLine(_shallCreateEnemies);
         State.WasSwapped = false;
         _secondClicked = null;
     }
