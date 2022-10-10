@@ -1,6 +1,3 @@
-using System.Collections.Concurrent;
-using System.IO.Compression;
-
 namespace Match_3.GameTypes;
 
 public struct Numbers
@@ -21,16 +18,20 @@ public sealed class GameState
     public IDictionary<Type, Numbers> EventData { get; init; }
     public MatchX? Matches { get; set; }
 
-    
     private Numbers _numbers;
 
-    public ref readonly Numbers LoadData()
+    public ref Numbers LoadData()
     {
-        EventData.TryGetValue((DefaultTile.Body as TileShape)!.TileType, out _numbers);
+        bool s = EventData.TryGetValue(CurrentType, out var numbers);
+        
+        if (s)
+            _numbers = numbers;
+        
         return ref _numbers;
     }
 
-    public void Update() => EventData.TryAdd((DefaultTile!.Body as TileShape)!.TileType, _numbers);
+    public void Update() => EventData[CurrentType] = _numbers;
+    
     public bool EnemiesStillPresent;
     public int[] TotalAmountPerType;
     public bool WasGameWonB4Timeout;
@@ -45,18 +46,20 @@ public abstract class QuestHandler<T> where T:notnull
         public readonly IDictionary<T, Numbers> EventData =
             new Dictionary<T, Numbers>((int)Type.Length);
 
-        private Numbers _numbers;
-
-        public ref readonly Numbers LoadBy(T key)
+        private Numbers _num;
+        
+        public ref Numbers LoadBy(T key)
         {
             if (EqualityComparer<T>.Default.Equals(default))
-                return ref _numbers;
+                return ref _num;
             
-            EventData.TryGetValue(key, out _numbers);
-            return ref _numbers;
+            if (EventData.TryGetValue(key, out var numbers))
+                _num = numbers;
+            
+            return ref _num;
         }
-        
-        public void UpdateBy(T current) => EventData.TryAdd(current, _numbers);
+
+        public void UpdateBy(T current) => EventData[current] = _num;
     }
 
     protected GoalPer _goal { get; }
@@ -69,10 +72,15 @@ public abstract class QuestHandler<T> where T:notnull
     protected QuestHandler()
     {
         _goal = new();
+        Grid.NotifyOnGridCreationDone += DefineGoals;
     }
 
-    protected abstract void DefineGoals(GameState? inventory);
-    protected abstract void HandleEvent(GameState inventory);
+    /// <summary>
+    /// This will be called automatically when Grid is done with its bitmap creation!
+    /// </summary>
+    /// <param name="state">The current State of the game, with all needed Data</param>
+    protected abstract void DefineGoals(GameState state);
+    protected abstract void HandleEvent(GameState state);
 
     public static void InitAllQuestHandlers()
     {
@@ -85,29 +93,29 @@ public abstract class QuestHandler<T> where T:notnull
 
 public class SwapQuestHandler : QuestHandler<Type>
 {
-    protected override void DefineGoals(GameState? inventory)
+    protected override void DefineGoals(GameState? state)
     {
         for (Type i = 0; i < Type.Length; i++)
         {
-            Numbers eventData = _goal.LoadBy(i);
+            ref Numbers numbers = ref _goal.LoadBy(i);
 
             switch (Game.Level.ID)
             {
                 case 0:
-                    eventData.Swaps.AllowedSwaps = Utils.Randomizer.Next(6, 8);
-                    eventData.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 6f);
+                    numbers.Swaps.AllowedSwaps = Utils.Randomizer.Next(6, 8);
+                    numbers.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 6f);
                     break;
                 case 1:
-                    eventData.Swaps.AllowedSwaps = Utils.Randomizer.Next(4, 6);
-                    eventData.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 4f);
+                    numbers.Swaps.AllowedSwaps = Utils.Randomizer.Next(4, 6);
+                    numbers.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 4f);
                     break;
                 case 2:
-                    eventData.Swaps.AllowedSwaps = Utils.Randomizer.Next(3, 5);
-                    eventData.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 3f);
+                    numbers.Swaps.AllowedSwaps = Utils.Randomizer.Next(3, 5);
+                    numbers.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 3f);
                     break;
                 case 3:
-                    eventData.Swaps.AllowedSwaps = Utils.Randomizer.Next(1, 2);
-                    eventData.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 10f);
+                    numbers.Swaps.AllowedSwaps = Utils.Randomizer.Next(1, 2);
+                    numbers.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 10f);
                     break;
             }
 
@@ -120,7 +128,7 @@ public class SwapQuestHandler : QuestHandler<Type>
         Game.OnTileSwapped += HandleEvent;
     }
 
-    protected override void HandleEvent(GameState inventory)
+    protected override void HandleEvent(GameState state)
     {
         for (Type i = 0; i < Type.Length; i++)
         {
@@ -128,11 +136,11 @@ public class SwapQuestHandler : QuestHandler<Type>
             //The Game notifies the QuestHandler, when something happens to the tile!
             //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
 
-            bool success = inventory.EventData.TryGetValue(i, out var inventoryData);
+            bool success = state.EventData.TryGetValue(i, out var inventoryData);
 
             if (success && inventoryData.Swaps == goalData.Swaps)
             {
-                //EventData.Remove(inventory.CollectPair.ballType);
+                //EventData.Remove(state.CollectPair.ballType);
                 Console.WriteLine("NOW YOU CAN DO SMTH WITH THE INFO THAT HE SWAPPED TILE X AND Y");
             }
         }
@@ -143,16 +151,12 @@ public class MatchQuestHandler : QuestHandler<Type>
 {
     public MatchQuestHandler()
     {
-        Grid.NotifyOnGridCreationDone += DefineGoals;
         Game.OnMatchFound += HandleEvent;
     }
 
-    protected override void DefineGoals(GameState? inventory)
+    protected override void DefineGoals(GameState state)
     {
-        if (inventory is null)
-            throw new ArgumentException("Inventory has to have values or we cannot build the QuestHandler");
-
-        Numbers _numbers = _goal.LoadBy(Type.Empty);
+        ref Numbers _numbers = ref _goal.LoadBy(Type.Empty);
         
         _numbers.Match = Game.Level.ID switch
         {
@@ -171,7 +175,7 @@ public class MatchQuestHandler : QuestHandler<Type>
             int matchesNeeded = _numbers.Match.Count;
 
             int matchSum = matchesNeeded * Level.MAX_TILES_PER_MATCH;
-            int maxAllowed = inventory.TotalAmountPerType[(int)i];
+            int maxAllowed = state.TotalAmountPerType[(int)i];
 
             if (matchSum < maxAllowed)
                 _numbers.Match.Count = matchesNeeded;
@@ -182,77 +186,91 @@ public class MatchQuestHandler : QuestHandler<Type>
         }
     }
     
-    private bool IsMatchGoalReached(GameState inventory)
+    private bool IsMatchGoalReached(GameState state)
     {
-        var goal = _goal.LoadBy(inventory.CurrentType);
-        var existent = inventory.LoadData();
+        var goal = _goal.LoadBy(state.CurrentType);
+        var existent = state.LoadData();
 
-        return existent.Match == goal.Match;
+        var goalMatch = goal.Match;
+        var currMatch = existent.Match;
+        return goalMatch.Count == currMatch.Count;
     }
     
-    protected override void HandleEvent(GameState inventory)
+    protected override void HandleEvent(GameState state)
     {
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
-        if (IsMatchGoalReached(inventory))
+        if (IsMatchGoalReached(state))
         {
-            inventory.WasGameWonB4Timeout = _goal.EventData.Count == 0;
+            state.WasGameWonB4Timeout = _goal.EventData.Count == 0;
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
         }
     }
 }
 
-public class ClickQuestHandler : QuestHandler<Tile>
+public class ClickQuestHandler : QuestHandler<Type>
 {
     public ClickQuestHandler()
     {
         Game.OnTileClicked += HandleEvent;
     }
 
-    private bool ClickGoalReached(GameState inventory)
+    protected override void DefineGoals(GameState state)
     {
-        var existent = inventory.LoadData();
-        var goal = _goal.LoadBy(inventory.DefaultTile);
-        return existent.Click == goal.Click;
+        for (Type i = 0; i < Type.Length; i++)
+        {
+            ref Numbers _numbers = ref _goal.LoadBy(i);
+
+            _numbers.Click = Game.Level.ID switch
+            {
+                //you have to click Count-times with only "maxTime" seconds in-between for the next click
+                0 => (4, 3f),
+                1 => (6, 2.5f),
+                2 => (7, 2f),
+                3 => (9, 4),
+                _ => _numbers.Click
+            };
+            _goal.UpdateBy(i);
+        }
     }
     
-    protected override void DefineGoals(GameState? inventory)
+    private bool ClickGoalReached(GameState inventory)
     {
-        Numbers _numbers = default;
-        
-        _numbers.Click = Game.Level.ID switch
-        {
-            //you have to click Count-times with only "maxTime" seconds in-between for the next click
-            0 => (4, 3f),
-            1 => (6, 2.5f),
-            2 => (7, 2f),
-            3 => (9, 4),
-            _ => _numbers.Click
-        };
-        _goal.UpdateBy(inventory.DefaultTile);
-    }
+        ref var existent = ref inventory.LoadData();
+        var goal = _goal.LoadBy(inventory.CurrentType);
+        var goalClicks = goal.Click;
+        var currClicks = existent.Click;
 
-    protected override void HandleEvent(GameState inventory)
+        bool reached = goalClicks.Count == currClicks.Count;
+                       //&& goalClicks.Seconds > currClicks.Seconds;
+
+        return reached;
+    }
+    
+    protected override void HandleEvent(GameState state)
     {
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
 
-        if (ClickGoalReached(inventory))
+        if (ClickGoalReached(state))
         {
-            if (inventory.EnemiesStillPresent)
+            if (state.EnemiesStillPresent)
             {
-                inventory.Enemy.Disable(true);
-                inventory.Enemy.BlockSurroundingTiles(inventory.Grid, false);
-
-                var existent = inventory.LoadData();
+                state.Enemy.Disable(true);
+                state.Enemy.BlockSurroundingTiles(state.Grid, false);
+                Console.WriteLine("YEA goal was reached, deleted the evil match!");
+                state.Grid.Delete(state.Matches);
             }
 
-            //inventory.EnemiesStillPresent = _matchCounter < _level.MatchConstraint;
-            //inventory.WasGameWonB4Timeout = _goal.EventData.Count == 0;
-           // _goal.EventData.Remove(inventory.TilesClicked.ballType);
-            Console.WriteLine("YEA YOU DELETED THE EVIL-MATCH AND ARE REWARDED FOR IT !: ");
+            //state.EnemiesStillPresent = _matchCounter < _level.MatchConstraint;
+            //state.WasGameWonB4Timeout = _goal.EventData.Count == 0;
+            //_goal.EventData.Remove(state.TilesClicked.ballType);
+        }
+        else
+        {
+            Console.WriteLine($"SADLY YOU STILL NEED {_goal.LoadBy(state.CurrentType).Click.Count}");
         }
     }
 }
