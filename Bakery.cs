@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.Numerics;
+using System.Text.RegularExpressions;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Match_3.AssetManager;
@@ -152,15 +153,32 @@ public static class Bakery
                 },
                 Form = ShapeKind.Trapez,
                 AtlasLocation = matchTile.Body.AtlasLocation,
+                Size = new(Tile.Size, Tile.Size),
                 TileType = matchTile.Body is TileShape c0 ? c0.TileType : Type.Empty,
                 Layer = matchTile.Body is TileShape c1 ? c1.Layer : (Coat)(-1)
             },
             TileState = TileState.Clean,
             Options = Options.UnMovable | Options.UnShapeable,
         };
-        Console.WriteLine(blockTile.Body.Scale);
-        blockTile.Body.Color.AlphaSpeed = 0f;
+        //Console.WriteLine(blockTile.Body.Scale);
+    
         return blockTile;
     }
     
+    public static EnemyMatches AsEnemies(Grid map, MatchX match)
+    {
+        EnemyMatches list = new();
+
+        for (int i = 0; i <  match.Count; i++)
+        {
+            var begin = match.Move(i);
+            var gridCell = begin / Tile.Size;
+            var tile1 = map[gridCell];
+            map[gridCell] = AsEnemy(tile1!);
+            EnemyTile e = (EnemyTile)map[gridCell]!;
+            e.BlockSurroundingTiles(map, true);
+            list.Add(e);
+        }
+        return list;
+    }
 }
