@@ -363,7 +363,7 @@ public class Tile
     public override string ToString() => $"GridCell: {GridCell}; ---- {Body}";
     public void Select()
     {
-        Body.Color = WHITE;
+        Body.Color = BLACK;
         TileState |= TileState.Selected;
     }
     public void DeSelect()

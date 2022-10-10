@@ -101,6 +101,8 @@ internal static class Game
         if (!TileClicked(out var firstClickedTile))
             return;
 
+        //Console.WriteLine(firstClickedTile.GridCell);
+        
         //Enemy tile was clicked on , ofc after a matchX happened!
         if (_enemyMatches?.IsMatchActive == true && firstClickedTile is EnemyTile e)
         {
@@ -144,6 +146,7 @@ internal static class Game
             {
                 State.WasSwapped = true;
                 OnTileSwapped(State);
+                _secondClicked.DeSelect();
             }
             else
             {

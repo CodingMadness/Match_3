@@ -76,8 +76,8 @@ public static class Utils
             return;
         }
     
-        Vector2 first = a.GetBeginInWorld();
-        Vector2 other = b.GetBeginInWorld();
+        Vector2 first = a.GetWorldPos();
+        Vector2 other = b.GetWorldPos();
         (Vector2 Direction, bool isRow) pair = first.GetDirectionTo(other);
         float width = a.width;
         float height = a.height;
@@ -228,8 +228,8 @@ public static class Utils
         return  ((int)a.X != (int)b.X && (int)a.Y != (int)b.Y) ;
     }
     
-    public static Vector2 GetBeginInWorld(this Rectangle a) => new((int)a.x, (int)a.y);
-    public static Vector2 GetBeginInGrid(this Rectangle a) => GetBeginInWorld(a) / Tile.Size;
+    public static Vector2 GetWorldPos(this Rectangle a) => new((int)a.x, (int)a.y);
+    public static Vector2 GetBeginInGrid(this Rectangle a) => GetWorldPos(a) / Tile.Size;
     public static void SetMouseToWorldPos(Vector2 position, int scale = Tile.Size)
     {
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);

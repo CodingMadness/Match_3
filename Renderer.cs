@@ -14,34 +14,31 @@ public static class Renderer
     {
         static void DrawCoordOnTop(Tile tile)
         {
-            Font copy = GetFontDefault() with { baseSize = 1024 };
+            Font copy = GetFontDefault() with { baseSize = 800 };
             var begin = tile.End;
             float halfSize = Tile.Size * 0.5f;
-            begin = begin with { X = begin.X - halfSize - 0, Y = begin.Y - halfSize - (halfSize * 0.3f) };
-            GameText coordText = new(copy, (tile.GridCell).ToString(), 11.5f)
+            begin = begin with { X = begin.X - halfSize - 0, Y = begin.Y - halfSize - 20f };
+            GameText coordText = new(copy, (tile.GridCell).ToString(), 10.5f)
             {
                 Begin = begin,
                 Color = tile.TileState == TileState.Selected ? RED : BLACK,
             };
             coordText.Color.AlphaSpeed = 0f;
             coordText.ScaleText();
-            coordText.Draw(2f);
+            coordText.Draw(1f);
         }
 
         if (tile is EnemyTile enemy)
         {
             enemy.TileState &= TileState.Selected;
             DrawTexturePro(Atlas, enemy.Body.TextureRect, enemy.Pulsate(elapsedTime), 
-                            Vector2.Zero, 0f, enemy.Body.Color);
+                    Vector2.Zero, 0f, enemy.Body.Color);
             return;
         }
-
-        
         var body = tile.Body as TileShape;
         body!.Color.ElapsedTime = elapsedTime;
         DrawTexturePro(Atlas, body.TextureRect, tile.WorldBounds, Vector2.Zero, 0f, body.Color);
-        //DrawTextureRec(Atlas, body.TextureRect, tile.WorldCell, body.Color);
-        DrawCoordOnTop(tile);
+       // DrawCoordOnTop(tile);
     }
     
     public static void DrawGrid(Grid map, float elapsedTime)
