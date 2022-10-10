@@ -294,11 +294,6 @@ public class Tile
             }
             if ((value & TileState.Selected) == TileState.Selected)
             {
-                
-                Body.Color.CurrentAlpha = 1f;
-                Body.Color.AlphaSpeed = 0.65f;
-                Body.Color.TargetAlpha = 0.35f;
-                
                 //if a tile is selected it must also be clean/alive
                 _current |= TileState.Clean;
             }
@@ -332,6 +327,7 @@ public class Tile
                 Body.Color.AlphaSpeed = 0.0f;
                 //Body.Color.TargetAlpha = 1f;
             }
+          
             _current = value;
         }
     }
@@ -346,8 +342,10 @@ public class Tile
     /// <summary>
     /// End in WorldCoordinates
     /// </summary>
-    public Vector2 End => WorldCell + (Vector2.One * Size); 
+    public Vector2 End => WorldCell + (Vector2.One * Size);
+
     public bool IsDeleted => (TileState & TileState.Deleted) == TileState.Deleted;
+    
     public Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
     public Rectangle WorldBounds => GridBounds.ToWorldBox();
     
@@ -363,25 +361,23 @@ public class Tile
     public override string ToString() => $"GridCell: {GridCell}; ---- {Body}";
     public void Select()
     {
-        Body.Color = BLACK;
+        Body.ChangeColor(BLACK, 0f, 1f);
         TileState |= TileState.Selected;
     }
     public void DeSelect()
     {
-        Body.Color = WHITE;
+        Body.ChangeColor(WHITE, 0f, 1f);
         TileState &= TileState.Selected;
-        Body.Color.AlphaSpeed = 0f;
     }
     public void Disable(bool shallDelete)
     {
-        //Body.ChangeColor(BLACK, 0f, 1f);
+        Body.ChangeColor(BLACK, 0f, 1f);
         Options = Options.UnMovable | Options.UnShapeable;
         TileState = !shallDelete ? TileState.Disabled : TileState.Deleted;
     }
     public void Enable()
     {
-        //draw from whatever was the 1. sprite-atlas 
-        //Body.ChangeColor(WHITE, 0f, 1f);
+        Body.ChangeColor(WHITE, 0f, 1f);
         Options = Options.Movable | Options.Shapeable;
         TileState = TileState.Clean;
     }
@@ -455,25 +451,22 @@ public class EnemyTile : Tile
                 i = 0;
             }
         }
-        
-        //if (map[GridCell] is not null)
+
+        for (Grid.Direction i = 0; i < lastDir; i++)
         {
-            for (Grid.Direction i = 0; i < lastDir; i++)
+            RepeatLoop(ref i, false);
+
+            Vector2 next = NextCell(i);
+
+            if (IsOnlyDefaultTile(map[next]))
             {
-                RepeatLoop(ref i, false);
-                
-                Vector2 next = NextCell(i);
+                var t = map[next];
 
-                if (IsOnlyDefaultTile(map[next]))
-                {
-                    var t = map[next];
+                if (disable)
+                    t!.Disable(false);
 
-                    if (disable)
-                        t!.Disable(false);
-                    
-                    else
-                        t!.Enable();
-                }
+                else
+                    t!.Enable();
             }
         }
     }
