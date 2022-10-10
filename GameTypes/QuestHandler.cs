@@ -31,7 +31,7 @@ public sealed class GameState
     }
 
     public void Update() => EventData[CurrentType] = _numbers;
-    
+
     public bool EnemiesStillPresent;
     public int[] TotalAmountPerType;
     public bool WasGameWonB4Timeout;
@@ -216,6 +216,8 @@ public class ClickQuestHandler : QuestHandler<Type>
         Game.OnTileClicked += HandleEvent;
     }
 
+    private byte _matchXCounter;
+    
     protected override void DefineGoals(GameState state)
     {
         for (Type i = 0; i < Type.Length; i++)
@@ -256,21 +258,21 @@ public class ClickQuestHandler : QuestHandler<Type>
 
         if (ClickGoalReached(state))
         {
-            if (state.EnemiesStillPresent)
-            {
-                state.Enemy.Disable(true);
-                state.Enemy.BlockSurroundingTiles(state.Grid, false);
-                Console.WriteLine("YEA goal was reached, deleted the evil match!");
-                state.Grid.Delete(state.Matches);
-            }
+            state.Enemy.Disable(true);
+            state.Enemy.BlockSurroundingTiles(state.Grid, false);
+            Console.WriteLine("YEA goal was reached, deleted the evil match!");
 
-            //state.EnemiesStillPresent = _matchCounter < _level.MatchConstraint;
-            //state.WasGameWonB4Timeout = _goal.EventData.Count == 0;
-            //_goal.EventData.Remove(state.TilesClicked.ballType);
+            ref var clicks = ref state.LoadData().Click;
+            clicks = (0, 0);
+            state.Update();
+
+            state.EnemiesStillPresent = ++_matchXCounter < state.Matches!.Count;
+            _matchXCounter = (byte)(state.EnemiesStillPresent ? _matchXCounter : 0);
+            Console.WriteLine(nameof(state.EnemiesStillPresent) + ": " + state.EnemiesStillPresent);
         }
         else
         {
-            Console.WriteLine($"SADLY YOU STILL NEED {_goal.LoadBy(state.CurrentType).Click.Count}");
+            //Console.WriteLine($"SADLY YOU STILL NEED {_goal.LoadBy(state.CurrentType).Click.Count}");
         }
     }
 }
