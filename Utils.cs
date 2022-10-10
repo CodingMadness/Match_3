@@ -1,6 +1,7 @@
 ﻿using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using static Raylib_CsLo.Raylib;
 using Rectangle = Raylib_CsLo.Rectangle;
 
@@ -8,25 +9,7 @@ namespace Match_3;
 
 public static class Utils
 {
-    /// <summary>
-    /// Rounds a random number to a value which has no remainder
-    /// </summary>
-    /// <param name="rnd"></param>
-    /// <param name="r"></param>
-    /// <param name="divisor"></param>
-    /// <returns></returns>
-    public static int Round(Random rnd, Range r, int divisor)
-    {
-        if (r.Start.Value > r.End.Value)
-        {
-            r = new Range(r.End, r.Start);
-        }
-
-        int value = rnd.Next(r.Start.Value, r.End.Value);
-        value = value % divisor == 0 ? value : ((int)MathF.Round(value / divisor)) * divisor;
-        return value;
-    }
-
+    
     public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
     private static readonly FastNoiseLite noiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
 
@@ -59,6 +42,11 @@ public static class Utils
         return new Rectangle(union.X, union.Y, union.Width, union.Height);
     }
 
+    public static bool RollADice()
+    {
+        var val = Randomizer.NextSingle();
+        return val.GreaterOrEqual(0.50f, 0.001f);
+    }
     
     public  static bool IsEmpty(this Rectangle rayRect) => 
        /* rayRect.x == 0 && rayRect.y == 0 &&*/ rayRect.width == 0 && rayRect.height == 0;
@@ -151,6 +139,13 @@ public static class Utils
         var diff = MathF.Abs(x - y);
         return diff <= tolerance ||
                diff <= MathF.Max(MathF.Abs(x), MathF.Abs(y)) * tolerance;
+    }
+
+    public static bool GreaterOrEqual(this float x, float y, float tolerance)
+    {
+        var diff = MathF.Abs(x - y);
+        return diff > tolerance ||
+               diff > MathF.Max(MathF.Abs(x), MathF.Abs(y)) * tolerance;
     }
     
     public static int CompareTo(this Vector2 a, Vector2 b)
@@ -248,12 +243,5 @@ public static class Utils
             (int)begin.Y * Tile.Size,
             width * Tile.Size,
             height* Tile.Size);
-    }
-
-    public static bool IsRowBased(this ISet<Tile> items) 
-    {
-        Tile cmpr = items.ElementAt(0);
-        var isColumnBased = items.Count(x => (int)x.GridCell.Y == (int)cmpr.GridCell.Y) == items.Count;
-        return isColumnBased;
     }
 }

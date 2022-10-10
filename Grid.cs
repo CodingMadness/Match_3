@@ -34,7 +34,7 @@ namespace Match_3
 
             for (int x = 0; x < TileWidth; x++)
             {
-                for (int y = TileHeight/3; y < TileHeight; y++)
+                for (int y = 0; y < TileHeight; y++)
                 {
                     Vector2 current = new(x, y);
                     float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
@@ -50,11 +50,10 @@ namespace Match_3
         public Grid(Level current)
         {
             TileWidth = current.GridWidth;
-            TileHeight = current.GridHeight-3;
+            TileHeight = current.GridHeight;
             _bitmap = new Tile[TileWidth, TileHeight];
             CreateMap();
         }
-        
         
         public Tile? this[Vector2 coord]
         {
@@ -66,7 +65,7 @@ namespace Match_3
                 {
                     //its within bounds!
                     tmp = _bitmap[(int)coord.X, (int)coord.Y];
-                    tmp = tmp is null || tmp.IsDeleted ? null : tmp;
+                    tmp = tmp.IsDeleted ? null : tmp;
                 }
 
                 return tmp;
@@ -133,7 +132,7 @@ namespace Match_3
                 }
             }
             //if he could not get a match by the 2.tile which was clicked, try the 1.clicked tile!
-            if (matches.Count < MaxDestroyableTiles && ++_match3FuncCounter <= 1)
+            if (!matches.IsMatchActive && ++_match3FuncCounter <= 1)
             {
                 matches.Clear();
                 return WasAMatchInAnyDirection(this[LastMatchTrigger.CoordsB4Swap]!, matches);
@@ -143,7 +142,7 @@ namespace Match_3
             {
                 _match3FuncCounter = 0;
             }
-            return matches.Count == MaxDestroyableTiles;
+            return matches.IsMatchActive;
         }
         
         public bool Swap(Tile? a, Tile? b)
