@@ -160,25 +160,25 @@ public static class Bakery
             TileState = TileState.Clean,
             Options = Options.UnMovable | Options.UnShapeable,
         };
-        //Console.WriteLine(blockTile.Body.Scale);
-    
         return blockTile;
     }
     
     public static EnemyMatches AsEnemies(Grid map, MatchX match)
     {
         EnemyMatches list = new();
-
+        
         for (int i = 0; i <  match.Count; i++)
         {
             var begin = match.Move(i);
             var gridCell = begin / Tile.Size;
-            var tile1 = map[gridCell];
-            map[gridCell] = AsEnemy(tile1!);
+            map[gridCell] = AsEnemy(map[gridCell]!);
             EnemyTile e = (EnemyTile)map[gridCell]!;
             e.BlockSurroundingTiles(map, true);
             list.Add(e);
         }
+        match.Clear(); 
+        //now match has become an enemy match and we dont need the other
+        //one anymore
         return list;
     }
 }

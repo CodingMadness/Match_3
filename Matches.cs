@@ -45,7 +45,6 @@ public class MatchX
             return _worldRect;
         }
     }
-
     
     public Vector2 Move(int i)
     {
@@ -80,6 +79,7 @@ public class MatchX
             
             if (Count is > 1 and < 3)
             {
+                //INSPECT THIS, so that I can use Move(x) instead of ElementAt(0)
                 var cell0 = Matches.ElementAt(0).GridCell;
                 var cell1 = Matches.ElementAt(1).GridCell;
                 _wasRow = cell0.GetDirectionTo(cell1).isRow;
