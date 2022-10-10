@@ -172,6 +172,7 @@ namespace Match_3
                 var begin = match.Move(i);
                 this[begin / Tile.Size]?.Disable(true);
             }
+            match.Clear();
         }
     }
 }

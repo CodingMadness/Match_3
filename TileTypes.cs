@@ -24,7 +24,7 @@ public struct Scale
         _maxScale = maxScale;
          Speed = 0f;
         _direction = -1f;
-        _finalScaleFactor = minScale.Equals(maxScale, 0.1f) ? minScale : _finalScaleFactor;
+        _finalScaleFactor = minScale.Equals(maxScale, 0.1f) ? minScale : 1f;
     }
     
     public float GetFactor()
@@ -113,7 +113,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
     public FadeableColor Apply()
     {
         _Lerp();
-        return this with { _toWrap = ColorAlpha(_toWrap, CurrentAlpha) };
+        return this with { _toWrap = Fade(_toWrap, CurrentAlpha) };
     }
 
     public static implicit operator FadeableColor(Color color)

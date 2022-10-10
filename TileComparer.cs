@@ -1,5 +1,3 @@
-using System.Numerics;
-
 namespace Match_3;
 
 public sealed class StateAndBodyComparer : EqualityComparer<Tile>

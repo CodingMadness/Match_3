@@ -86,8 +86,7 @@ public class MatchX
             }
             
             Body ??= (matchTile.Body as TileShape)!.Clone() as TileShape;
-            Body!.Color = Raylib.GREEN;
-            Body.Color.AlphaSpeed = 0.5f;
+       
         }
         else if (!IsMatchActive)
             CreatedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
@@ -101,22 +100,6 @@ public class MatchX
         Matches.Clear();
         DeletedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
         _orderedSet = null;
-    }
-    
-    public EnemyMatches AsEnemies(Grid map)
-    {
-        EnemyMatches list = new();
-
-        _orderedSet ??= Matches.Order(CellComparer.Singleton);
-        
-        foreach (var match in _orderedSet)
-        {
-            map[match.GridCell] = Bakery.AsEnemy(match);
-            EnemyTile e = (EnemyTile)map[match.GridCell]!;
-            e.BlockSurroundingTiles(map, true);
-            list.Add(e);
-        }
-        return list;
     }
 }
 
