@@ -76,8 +76,6 @@ internal static class Game
                 //enemies were created from the matchesOf3, so we have to
                 //delete all of them, because else we will reference always the base-matches internally which is bad!
                 _enemyMatches.Clear(); 
-                _matchesOf3?.Clear();
-                //move freely
             }
         }
     }
@@ -101,6 +99,8 @@ internal static class Game
         if (!TileClicked(out var firstClickedTile))
             return;
 
+        if (firstClickedTile!.IsDeleted)
+            return;
         //Console.WriteLine(firstClickedTile.GridCell);
         
         //Enemy tile was clicked on , ofc after a matchX happened!
@@ -118,40 +118,42 @@ internal static class Game
             State.Update();
             OnTileClicked(State);
         }
-        
-        firstClickedTile!.Select();
-        
-        /*No tile selected yet*/
-        if (_secondClicked is null)
-        {
-            //prepare for next round, so we store first in second!
-            _secondClicked = firstClickedTile;
-            //_secondClicked.Select();
-            return;
-        }
-
-        /*Same tile selected => deselect*/
-        if (StateAndBodyComparer.Singleton.Equals(firstClickedTile, _secondClicked))
-        {
-            Console.Clear();
-            //Console.WriteLine($"{tmpFirst.GridCell} was clicked AGAIN!");
-            _secondClicked.DeSelect();
-            _secondClicked = null;
-        }
-        /*Different tile selected ==> swap*/
         else
         {
-            firstClickedTile.DeSelect();
-            
-            if (_grid.Swap(firstClickedTile, _secondClicked))
+            firstClickedTile!.Select();
+
+            /*No tile selected yet*/
+            if (_secondClicked is null)
             {
-                State.WasSwapped = true;
-                OnTileSwapped(State);
-                _secondClicked.DeSelect();
+                //prepare for next round, so we store first in second!
+                _secondClicked = firstClickedTile;
+                //_secondClicked.Select();
+                return;
             }
+
+            /*Same tile selected => deselect*/
+            if (StateAndBodyComparer.Singleton.Equals(firstClickedTile, _secondClicked))
+            {
+                Console.Clear();
+                //Console.WriteLine($"{tmpFirst.GridCell} was clicked AGAIN!");
+                _secondClicked.DeSelect();
+                _secondClicked = null;
+            }
+            /*Different tile selected ==> swap*/
             else
             {
-                _secondClicked.DeSelect();
+                firstClickedTile.DeSelect();
+
+                if (_grid.Swap(firstClickedTile, _secondClicked))
+                {
+                    State.WasSwapped = true;
+                    OnTileSwapped(State);
+                    _secondClicked.DeSelect();
+                }
+                else
+                {
+                    _secondClicked.DeSelect();
+                }
             }
         }
     }
@@ -161,7 +163,7 @@ internal static class Game
         if (!State.WasSwapped)
             return;
 
-        bool ShallTransformMatchesToEnemyMatches() => Randomizer.NextSingle() <= 0.5f;
+        bool ShallCreateEnemies() => Randomizer.NextSingle() <= 0.5f;
 
         void CreateEnemiesIfNeeded()
         {
@@ -170,6 +172,7 @@ internal static class Game
                 _matchesOf3?.Count > 0)
             {
                 _enemyMatches = Bakery.AsEnemies(_grid, _matchesOf3);
+                State.EnemiesStillPresent = true;
             }
         }
         
@@ -180,7 +183,7 @@ internal static class Game
             var matchData = State.LoadData();
             matchData.Match.Count++;
             State.Matches = _matchesOf3;
-            State.EnemiesStillPresent = _shallCreateEnemies = ShallTransformMatchesToEnemyMatches();
+            //State.EnemiesStillPresent = _shallCreateEnemies = ShallCreateEnemies();
             State.Update();
             OnMatchFound(State);
         }
@@ -190,10 +193,10 @@ internal static class Game
                 CreateEnemiesIfNeeded();
                 break;
             case false:
-                _grid.Delete(_matchesOf3!);
+                 _grid.Delete(_matchesOf3!);
                 break;
         }
-        
+        _shallCreateEnemies = ShallCreateEnemies();
         State.WasSwapped = false;
         _secondClicked = null;
     }
@@ -203,10 +206,11 @@ internal static class Game
         if (IsKeyDown(KeyboardKey.KEY_A))
         {
             _grid = new Grid(Level);
-            _shallCreateEnemies = true;
+            _shallCreateEnemies = false;
             _matchesOf3?.Clear();
             _enemyMatches?.Clear();
             State.EnemiesStillPresent = false;
+            _shallCreateEnemies = false;
             _secondClicked = null;
             State.WasSwapped = false;
             Console.Clear();
