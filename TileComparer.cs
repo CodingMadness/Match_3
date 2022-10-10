@@ -6,26 +6,16 @@ public sealed class StateAndBodyComparer : EqualityComparer<Tile>
 {
     public override bool Equals(Tile? x, Tile? y)
     {
-        if (x is not { } x1) return false;
-        if (y is not { } y1) return false;
-        if (ReferenceEquals(x1, y1)) return true;
-        if (ReferenceEquals(x1, null)) return false;
-        if (ReferenceEquals(y1, null)) return false;
-        if (x1.GetType() != y1.GetType()) return false;
-
-        TileState xGoodTileState = (x1.TileState & TileState.Clean) == TileState.Clean ||
-                          (x1.TileState & TileState.Hidden) == TileState.Hidden
-            ? x1.TileState
-            : TileState.Deleted;
-        TileState yGoodTileState = (y1.TileState & TileState.Clean) == TileState.Clean ||
-                           (y1.TileState & TileState.Hidden) == TileState.Hidden
-            ? y1.TileState
-            : TileState.Deleted;
+        if (x is not { }) return false;
+        if (y is not { }) return false;
+        if (ReferenceEquals(x, y)) return true;
+        if (ReferenceEquals(x, null)) return false;
+        if (ReferenceEquals(y, null)) return false;
+        if (x.GetType() != y.GetType()) return false;
+        if ((x.TileState & TileState.Deleted) == TileState.Deleted ||
+            (x.TileState & TileState.Disabled) == TileState.Disabled) return false;
         
-        bool xHasY = (xGoodTileState & yGoodTileState) == yGoodTileState;
-        bool yHasX = (yGoodTileState & xGoodTileState) == xGoodTileState;
-        
-        return (xHasY ||yHasX)  && ((TileShape)x1.Body).Equals(y1.Body as TileShape);
+        return ((TileShape)x.Body).Equals(y.Body as TileShape);
     }
     public override int GetHashCode(Tile obj)
     {
