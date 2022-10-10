@@ -36,6 +36,21 @@ public class MatchX
         }
     }
 
+    public Vector2 Move(int i=1)
+    {
+        if (i == 0)
+            return WorldPos;
+        
+        if (IsRowBased)
+        {
+            return WorldPos with { X = WorldPos.X + (i * Tile.Size) };
+        }
+        else
+        {
+            return WorldPos with { Y = WorldPos.Y * + (i * Tile.Size)};
+        }
+    }
+    
     public Vector2 WorldPos { get; private set; } = -Vector2.One;
 
     public MatchX()
@@ -51,7 +66,7 @@ public class MatchX
     {
         if (Matches.Add(matchTile) && !IsMatchActive)
         {
-            WorldPos = WorldPos != -Vector2.One ? matchTile.WorldCell : WorldPos;
+            WorldPos = WorldPos == -Vector2.One ? matchTile.WorldCell : WorldPos;
             
             if (Count is > 1 and < 3)
             {
@@ -76,6 +91,15 @@ public class MatchX
         DeletedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
         _orderedSet = null;
     }
+
+    public void Disable(Grid map)
+    {
+        foreach (var item in Matches)
+        {
+            map[item.GridCell]?.Disable(true);
+        }
+    }
+    
     public EnemyMatches AsEnemies(Grid map)
     {
         EnemyMatches list = new();
@@ -87,7 +111,6 @@ public class MatchX
             map[match.GridCell] = Bakery.AsEnemy(match);
             EnemyTile e = (EnemyTile)map[match.GridCell]!;
             e.BlockSurroundingTiles(map, true);
-           // e.Pulsate();
             list.Add(e);
         }
         return list;
