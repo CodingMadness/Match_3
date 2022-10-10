@@ -106,12 +106,13 @@ internal static class Game
         //Enemy tile was clicked on , ofc after a matchX happened!
         if (_enemyMatches?.IsMatchActive == true && firstClickedTile is EnemyTile e)
         {
-            var elapsedSeconds = (TimeOnly.FromDateTime(DateTime.Now) - _enemyMatches.CreatedAt).Seconds;
+            var elapsedSeconds = (TimeOnly.FromDateTime(DateTime.UtcNow) - _enemyMatches.CreatedAt).Seconds;
             
             State.Enemy = e;
             State.Grid = _grid;
             State.DefaultTile = e;
-            var existent = State.LoadData();
+            State.Matches = _enemyMatches;
+            ref var existent = ref State.LoadData();
             existent.Click.Count++;
             existent.Click.Seconds = elapsedSeconds;
             State.Update();
@@ -189,7 +190,7 @@ internal static class Game
                 CreateEnemiesIfNeeded();
                 break;
             case false:
-                _matchesOf3!.Clear();
+                _grid.Delete(_matchesOf3!);
                 break;
         }
         
