@@ -11,31 +11,34 @@ public struct Numbers
     public (int AllowedSwaps, float Seconds) Swaps;
     public (int Count, float? Seconds) Match;
 }
+public ref struct Ref<T> where T : unmanaged
+{
+    public ref T _ref;
+
+    public Ref(ref T @ref)
+    {
+        _ref = ref @ref;
+    }
+}
 
 public sealed class GameState
 {
+    public ref Numbers FromRef()
+    {
+        return ref new Ref<Numbers>(ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<Type, Numbers>)_eventData, CurrentType, out _))._ref;
+    }
+
     public bool WasSwapped;
     public Tile DefaultTile { get; set; }
     public Type CurrentType => (DefaultTile.Body as TileShape)!.TileType;
     private IDictionary<Type, Numbers> _eventData { get; }
     public MatchX? Matches { get; set; }
-    
-    public ref Numbers FromRef()
-    {
-        if (EqualityComparer<Type>.Default.Equals(default))
-            return ref _current;
-            
-        ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<Type, Numbers>)_eventData, CurrentType, out bool success);
-        _current = current;
-        return ref _current;
-    }
-    
+
     public bool EnemiesStillPresent;
     public int[] TotalAmountPerType;
     public bool WasGameWonB4Timeout;
     public EnemyTile Enemy;
     public Grid Grid;
-    private Numbers _current;
 
     public GameState(int initSize)
     {
@@ -45,27 +48,14 @@ public sealed class GameState
 
 public abstract class QuestHandler<T> where T:notnull
 {
-    protected sealed record GoalPer
+    private IDictionary<T, Numbers> _goal { get; }
+    
+    protected ref Numbers FromRef(T key)
     {
-        public readonly IDictionary<T, Numbers> EventData =
-            new Dictionary<T, Numbers>((int)Type.Length);
-
-        private Numbers _num;
-        
-        public ref Numbers FromRef(T key)
-        {
-            if (EqualityComparer<T>.Default.Equals(default))
-                return ref _num;
-            
-            _num = CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<T, Numbers>)EventData, key, out bool success);
-            
-            return ref _num;
-        }
-        
-        public void Add(T current) => EventData[current] = _num;
+        return ref new Ref<Numbers>(ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<T, Numbers>)_goal, key, out _))._ref;
     }
 
-    protected GoalPer _goal { get; }
+    protected int Count => _goal.Count;
 
     //For instance:
     //Collect N-Type1, N-Type2, N-Type3 up to maxTilesActive
@@ -74,7 +64,8 @@ public abstract class QuestHandler<T> where T:notnull
     //the goal is to make per new Level the Quests harder!!
     protected QuestHandler()
     {
-        _goal = new();
+        _goal = new Dictionary<T, Numbers>((int)Type.Length * 5);
+
         Grid.NotifyOnGridCreationDone += DefineGoals;
     }
 
@@ -100,7 +91,7 @@ public class SwapQuestHandler : QuestHandler<Type>
     {
         for (Type i = 0; i < Type.Length; i++)
         {
-            ref Numbers numbers = ref _goal.FromRef(i);
+            ref Numbers numbers = ref FromRef(i);
 
             switch (Game.Level.ID)
             {
@@ -121,8 +112,6 @@ public class SwapQuestHandler : QuestHandler<Type>
                     numbers.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 10f);
                     break;
             }
-
-            _goal.Add(i);
         }
     }
 
@@ -135,7 +124,7 @@ public class SwapQuestHandler : QuestHandler<Type>
     {
         for (Type i = 0; i < Type.Length; i++)
         {
-            ref Numbers numbers = ref _goal.FromRef(i);
+            ref Numbers numbers = ref FromRef(i);
             //The Game notifies the QuestHandler, when something happens to the tile!
             //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
             ref var currSwaps = ref state.FromRef().Swaps;
@@ -158,7 +147,7 @@ public class MatchQuestHandler : QuestHandler<Type>
 
     protected override void DefineGoals(GameState state)
     {
-        ref Numbers _numbers = ref _goal.FromRef(Type.Empty);
+        ref Numbers _numbers = ref FromRef(Type.Empty);
         
         _numbers.Match = Game.Level.ID switch
         {
@@ -183,19 +172,14 @@ public class MatchQuestHandler : QuestHandler<Type>
                 _numbers.Match.Count = matchesNeeded;
             else
                 _numbers.Match.Count = maxAllowed / Level.MAX_TILES_PER_MATCH;
-
-            _goal.Add(i);
         }
     }
     
     private bool IsMatchGoalReached(GameState state)
     {
-        ref var goal = ref _goal.FromRef(state.CurrentType);
-        ref var existent = ref state.FromRef();
-
-        var goalMatch = goal.Match;
-        var currMatch = existent.Match;
-        return goalMatch.Count == currMatch.Count;
+        ref var goal = ref FromRef(state.CurrentType).Match;
+        ref var current = ref state.FromRef().Match;
+        return goal.Count == current.Count;
     }
     
     protected override void HandleEvent(GameState state)
@@ -205,7 +189,7 @@ public class MatchQuestHandler : QuestHandler<Type>
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
         if (IsMatchGoalReached(state))
         {
-            state.WasGameWonB4Timeout = _goal.EventData.Count == 0;
+            state.WasGameWonB4Timeout = Count == 0;
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
         }
     }
@@ -224,7 +208,7 @@ public class ClickQuestHandler : QuestHandler<Type>
     {
         for (Type i = 0; i < Type.Length; i++)
         {
-            ref Numbers _numbers = ref _goal.FromRef(i);
+            ref Numbers _numbers = ref FromRef(i);
 
             _numbers.Click = Game.Level.ID switch
             {
@@ -235,14 +219,13 @@ public class ClickQuestHandler : QuestHandler<Type>
                 3 => (9, 4),
                 _ => _numbers.Click
             };
-            _goal.Add(i);
         }
     }
     
     private bool ClickGoalReached(GameState inventory)
     {
         ref var currClick = ref inventory.FromRef().Click;
-        ref var goalClick = ref _goal.FromRef(inventory.CurrentType).Click;
+        ref var goalClick = ref FromRef(inventory.CurrentType).Click;
 
         bool reached = currClick.Count == goalClick.Count;
                        //&& goalClicks.Seconds > currClicks.Seconds;

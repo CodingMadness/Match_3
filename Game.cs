@@ -172,13 +172,13 @@ internal static class Game
         
         if (_grid.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!) && !_shallCreateEnemies)
         {
-            Console.WriteLine(_matchesOf3.Count);
-            _grid.Delete(_matchesOf3!);
             State.DefaultTile = _secondClicked!;
-            ref var matchData = ref State.FromRef().Match;
-            matchData.Count++;
+            ref Numbers matchData = ref State.FromRef(); 
+            matchData.Match.Seconds = (_matchesOf3!.CreatedAt - _matchesOf3.DeletedAt).Seconds;
+            matchData.Match.Count++;
             State.Matches = _matchesOf3;
             OnMatchFound(State);
+            _grid.Delete(_matchesOf3!);
         }
         else switch (_shallCreateEnemies)
         {
@@ -190,7 +190,7 @@ internal static class Game
                 break;
         }
 
-        Console.WriteLine(_matchesOf3!.Count);
+        //Console.WriteLine(_matchesOf3!.Count);
         _shallCreateEnemies = RollADice();
         Console.WriteLine(_shallCreateEnemies);
         State.WasSwapped = false;
