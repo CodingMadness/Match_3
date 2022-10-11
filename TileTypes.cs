@@ -55,19 +55,29 @@ public struct FadeableColor : IEquatable<FadeableColor>
 {
     private Color _toWrap;
     public float CurrentAlpha, TargetAlpha;
-    public float ElapsedTime;
+    private float _elapsedTime;
     /// <summary>
     /// The greater this Value, the faster it fades!
     /// </summary>
     public float AlphaSpeed;
 
+    public void AddTime(float elapsedTime)
+    {
+        if (!elapsedTime.Equals(0f, 0.001f))
+            _elapsedTime = elapsedTime;
+        else
+        {
+            _elapsedTime = 1f;
+        }
+    }
+    
     private FadeableColor(Color color)
     {
         _toWrap = color;
         AlphaSpeed = 0.5f; 
         CurrentAlpha = 1.0f;
         TargetAlpha = 0.0f;
-        ElapsedTime = 1f;
+        _elapsedTime = 1f;
     }
     
     private static readonly Dictionary<Color, string> Strings = new()
@@ -98,9 +108,9 @@ public struct FadeableColor : IEquatable<FadeableColor>
         
         //if u wana maybe stop fading at 0.5f so we explicitly check if currALpha > targetalpha
         if (CurrentAlpha > TargetAlpha)  
-            CurrentAlpha -= AlphaSpeed * (1f / ElapsedTime);
+            CurrentAlpha -= AlphaSpeed * (1f / _elapsedTime);
 
-       // CurrentAlpha = CurrentAlpha < 0f ? 0f : CurrentAlpha;
+        // CurrentAlpha = CurrentAlpha < 0f ? 0f : CurrentAlpha;
     }
 
     public string? ToReadableString()
@@ -183,42 +193,50 @@ public class Shape
     public Size Size { get; init; }
     public Rectangle TextureRect => new(AtlasLocation.X, AtlasLocation.Y, Size.Width, Size.Height);
     public Scale Scale;
-    public FadeableColor Color;
-    
-    public void ChangeColor(Color c, float alphaSpeed, float targetAlpha)
+
+    private FadeableColor _color; 
+    public ref readonly  FadeableColor Color => ref _color;
+    public ref readonly FadeableColor Fade(Color c, float targetAlpha, float elapsedTime)
     {
-        Color = c;
-        Color.AlphaSpeed = alphaSpeed;
-        Color.TargetAlpha = targetAlpha;
+        _color = c;
+        _color.AlphaSpeed = 0.5f;
+        _color.TargetAlpha = targetAlpha;
+        _color.AddTime(elapsedTime);
+        _color = _color.Apply();
+        return ref _color;
     }
+    public ref readonly FadeableColor Fade(Color c, float elapsedTime)
+    {
+        return ref Fade(c, 0f, elapsedTime);
+    }
+    public ref readonly FadeableColor NoFadeBy(Color c)
+    {
+        return ref Fade(c, 0f, 1f);
+    }
+    public ref readonly FadeableColor FIXED_WHITE => ref NoFadeBy(WHITE);
 }
 
 public class TileShape : Shape, IEquatable<TileShape>, ICloneable
 {
-    public TileShape()
-    {
-       ChangeColor(WHITE,0f, 1f);
-    }
     public Type TileType { get; init; }
     public Coat Layer { get; init; }
     public override ShapeKind Form { get; set; }
     public override Vector2 AtlasLocation { get; init; }
+   
     public bool Equals(TileShape? other) =>
         other is not null && TileType == other.TileType && Layer == other.Layer;
     public override int GetHashCode()
     {
-        return HashCode.Combine(Color, TileType);
+        return HashCode.Combine(FIXED_WHITE, TileType);
     }
-
     public override string ToString() =>
-        $"Tile type: <{TileType}> with Tint: <{Color}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
+        $"Tile type: <{TileType}> with Tint: <{FIXED_WHITE}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
 
     public object Clone()
     {
         TileShape clone = new()
         {
             TileType = TileType,
-            Color = Color ,
             Form = Form,
             Layer = Layer,
             AtlasLocation = AtlasLocation,
@@ -278,10 +296,7 @@ public class Tile
                 _current &= TileState.Disabled;
                 _current &= TileState.Deleted;
                 _current &= TileState.Hidden;
-
-                Body.Color.CurrentAlpha = 1f;
-                Body.Color.TargetAlpha = 1f;
-                Body.Color.AlphaSpeed = 0f;
+                Body.NoFadeBy(WHITE);
             }
             if ((value & TileState.Pulsate) == TileState.Pulsate)
             {
@@ -289,8 +304,6 @@ public class Tile
                 _current &= TileState.Disabled;
                 _current &= TileState.Deleted;
                 _current &= TileState.Hidden;
-
-                
             }
             if ((value & TileState.Selected) == TileState.Selected)
             {
@@ -311,23 +324,15 @@ public class Tile
                 _current &= TileState.Clean; 
                 _current &= TileState.Selected; //remove clean flag from set
                 _current &= TileState.Disabled;
-                Body.Color = WHITE;
-                Body.Color.CurrentAlpha = 0f;
-                //Body.Color.AlphaSpeed = 0.75f;
-                //Body.Color.TargetAlpha = 1f;
+                Body.NoFadeBy(WHITE);
             }
             else if ((value & TileState.Disabled) == TileState.Disabled)
             {
                 _current &= TileState.Clean; //remove clean flag from set
                 _current &= TileState.Selected; //remove clean flag from set
                 _current &= TileState.Deleted; //deleted is reserved as Disabled AND Hidden, so u cannot be both at same time
-                
-                Body.Color = BLACK;
-                Body.Color.CurrentAlpha = 1f;
-                Body.Color.AlphaSpeed = 0.0f;
-                //Body.Color.TargetAlpha = 1f;
+                Body.NoFadeBy(BLACK);
             }
-          
             _current = value;
         }
     }
@@ -359,25 +364,16 @@ public class Tile
         Body = null!;
     }
     public override string ToString() => $"GridCell: {GridCell}; ---- {Body}";
-    public void Select()
-    {
-        Body.ChangeColor(BLACK, 0f, 1f);
-        TileState |= TileState.Selected;
-    }
-    public void DeSelect()
-    {
-        Body.ChangeColor(WHITE, 0f, 1f);
-        TileState &= TileState.Selected;
-    }
+
     public void Disable(bool shallDelete)
     {
-        Body.ChangeColor(BLACK, 0f, 1f);
+        Body.Fade(BLACK, 0f, 1f);
         Options = Options.UnMovable | Options.UnShapeable;
         TileState = !shallDelete ? TileState.Disabled : TileState.Deleted;
     }
     public void Enable()
     {
-        Body.ChangeColor(WHITE, 0f, 1f);
+        Body.Fade(WHITE, 0f, 1f);
         Options = Options.Movable | Options.Shapeable;
         TileState = TileState.Clean;
     }

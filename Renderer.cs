@@ -36,8 +36,7 @@ public static class Renderer
         }
         
         var body = tile.Body as TileShape;
-        body!.Color.ElapsedTime = elapsedTime;
-        DrawTexturePro(atlas, body.TextureRect, tile.WorldBounds, Vector2.Zero, 0f, body.Color);
+        DrawTexturePro(atlas, body.TextureRect, tile.WorldBounds, Vector2.Zero, 0f, body.Fade(WHITE, elapsedTime));
        // DrawCoordOnTop(tile);
     }
     
@@ -72,9 +71,7 @@ public static class Renderer
     {
         if (matches?.IsMatchActive == true)
         {
-            matches.Body!.Color = RED;
-            matches.Body!.Color.ElapsedTime = elapsedTime;
-            DrawRectangleRec(matches.WorldBox, matches.Body!.Color.Apply());
+            DrawRectangleRec(matches.WorldBox, matches.Body.NoFadeBy(RED).Apply());
         }
     }
     
@@ -82,9 +79,11 @@ public static class Renderer
     {
         if (matches?.IsMatchActive == true)
         {
+            /*
             matches.Body!.Color.AlphaSpeed = 0.2f;
             matches.Body!.Color.ElapsedTime = elapsedTime;
-            DrawRectangleRec(matches.Border, matches.Body!.Color.Apply());
+            */
+            DrawRectangleRec(matches.Border, matches.Body.Fade(WHITE, 0.2f, 0f).Apply());
         }
     }
     
@@ -125,7 +124,7 @@ public static class Renderer
     public static void DrawBackground(ref Background bg)
     {
         Rectangle screen = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
-        DrawTexturePro(bg.Texture, bg.Body.TextureRect, screen.DoScale(bg.Body.Scale), Vector2.Zero, 0f, bg.Body.Color);
+        DrawTexturePro(bg.Texture, bg.Body.TextureRect, screen.DoScale(bg.Body.Scale), Vector2.Zero, 0f, bg.Body.NoFadeBy(WHITE));
     }
     
     /*

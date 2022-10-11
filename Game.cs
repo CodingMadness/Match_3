@@ -116,7 +116,7 @@ internal static class Game
         }
         else
         {
-            firstClickedTile!.Select();
+            firstClickedTile.TileState |= TileState.Selected;
 
             /*No tile selected yet*/
             if (_secondClicked is null)
@@ -132,23 +132,23 @@ internal static class Game
             {
                 Console.Clear();
                 //Console.WriteLine($"{tmpFirst.GridCell} was clicked AGAIN!");
-                _secondClicked.DeSelect();
+                _secondClicked.TileState &= TileState.Selected;
                 _secondClicked = null;
             }
             /*Different tile selected ==> swap*/
             else
             {
-                firstClickedTile.DeSelect();
+                firstClickedTile.TileState &= TileState.Selected;
 
                 if (_grid.Swap(firstClickedTile, _secondClicked))
                 {
                     State.WasSwapped = true;
                     //OnTileSwapped(State);
-                    _secondClicked.DeSelect();
+                    _secondClicked.TileState &= TileState.Selected;
                 }
                 else
                 {
-                    _secondClicked.DeSelect();
+                    _secondClicked.TileState &= TileState.Selected;
                 }
             }
         }
