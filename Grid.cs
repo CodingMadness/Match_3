@@ -88,7 +88,7 @@ namespace Match_3
                 {
                     if (StateAndBodyComparer.Singleton.Equals(first, next))
                     {
-                        if (matches.Count == MaxDestroyableTiles)
+                        if (matches.Count == Level.MAX_TILES_PER_MATCH)
                             return false;
 
                         matches.Add(first);
@@ -168,9 +168,18 @@ namespace Match_3
         {
             for (int i = 0; i <  match.Count; i++)
             {
-                var begin = match.Move(i);
-                this[begin / Tile.Size]?.Disable(true);
+                //var gridCell0 = match.Move(i) ?? throw new Exception("why am i even thrown?"); //works not at al.... investigate
+                var gridCell1 = match.Matches.ElementAt(i).GridCell; //works good!
+                Console.WriteLine(this[gridCell1]);
+                this[gridCell1]?.Disable(true);
             }
+            /*
+            Console.WriteLine();
+            foreach (var VARIABLE in match.Matches)
+            {
+                Console.WriteLine(VARIABLE);
+            }
+            */
             match.Clear();
         }
     }
