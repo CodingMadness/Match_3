@@ -61,20 +61,23 @@ public static class Renderer
             }
     }
 
-    public static void DrawMatches(MatchX? current, Grid map, float elapsedTime, bool shallCreateEnemies)
+    public static void DrawMatches(MatchX? match, Grid map, float elapsedTime, bool shallCreateEnemies)
     {
         if (!shallCreateEnemies)
             return;
         
-        if (current is null)
+        if (match is null)
             return;
         
-        Texture matchTexture = (current is MatchX and not EnemyMatches) ? ref DefaultTileAtlas : ref EnemyAtlas;
+        Texture matchTexture = (match is MatchX and not EnemyMatches) ? ref DefaultTileAtlas : ref EnemyAtlas;
 
-        for (int i = 0; i < current.Count; i++)
+        for (int i = 0; i < match.Count; i++)
         {
-            var gridCell = current.Matches.ElementAt(i).GridCell;
-            DrawTile(ref matchTexture, map[gridCell], elapsedTime);
+            var gridCell = match[(i)].GridCell;
+            var tile = map[gridCell];
+            if (tile is null)
+                continue;
+            DrawTile(ref matchTexture, tile, elapsedTime);
         }
     }
     
@@ -139,9 +142,9 @@ public static class Renderer
     }
     
     /*
-    public static void LogQuest(bool useConsole, QuestData current)
+    public static void LogQuest(bool useConsole, QuestData match)
     {
-        foreach (var pair in current.BallCountPerLevel.State)
+        foreach (var pair in match.BallCountPerLevel.State)
         {
             if (useConsole)
             {

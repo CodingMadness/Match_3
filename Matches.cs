@@ -1,28 +1,23 @@
+using System.Collections;
 using System.Numerics;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 
 namespace Match_3;
 
-public class MatchX
+public class MatchX : IEnumerable<Tile>
 {
-    public readonly SortedSet<Tile> Matches;
+    protected readonly SortedSet<Tile> Matches;
 
     private Vector2 _direction;
     private Rectangle _worldRect;
     public TimeOnly DeletedAt { get; private set; }
     public TimeOnly CreatedAt { get; private set; }
     public bool IsRowBased { get; private set; }
-    
     public int Count => Matches.Count;
     public bool IsMatchActive => Count == Level.MAX_TILES_PER_MATCH;
     public TileShape? Body { get; private set; }
-
-    /// <summary>
-    /// We have to only order the matches if it never happened b4 this call and if new items came into the matches
-    /// </summary>
     public Rectangle WorldBox => _worldRect;
-
     public Vector2 WorldPos { get; private set; }
 
     public MatchX()
@@ -30,6 +25,13 @@ public class MatchX
         Matches = new(CellComparer.Singleton);
     }
 
+    public Tile this[int index] => Matches.ElementAt(index);
+    public Tile this[Index index] => Matches.ElementAt(index);
+    /// <summary>
+    /// investigate this function cause this shall be the one at how i will iterate thru the tiles!
+    /// </summary>
+    /// <param name="i"></param>
+    /// <returns></returns>
     public Vector2? Move(int i = 0)
     {
         if (i < 0 || i > Count-1 || _worldRect.IsEmpty())
@@ -91,6 +93,19 @@ public class MatchX
         IsRowBased = false;
         Matches.Clear();
         DeletedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
+    }
+
+    public IEnumerator<Tile> GetEnumerator()
+    {
+        foreach (var item in Matches)
+        {
+            yield return item;
+        }
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
     }
 }
 
