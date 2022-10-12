@@ -326,7 +326,9 @@ public sealed class ColorByClickQuestHandler : ClickQuestHandler
 
         if (ClickGoalReached(state))
         {
-            state.DefaultTile.Body.ToConstColor(rndColors[Utils.Randomizer.Next(0,rndColors.Length-1)]);
+            //state.DefaultTile.Body.ToConstColor(rndColors[Utils.Randomizer.Next(0,rndColors.Length-1)]);
+            var tile = Bakery.CreateTile(state.DefaultTile.GridCell, Utils.Randomizer.NextSingle());
+            state.Grid[tile.GridCell] = tile;
             current = default;
         }
         else
