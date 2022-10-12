@@ -23,6 +23,8 @@ internal static class Game
     private static bool _enterGame;
     private static bool _shallCreateEnemies;
 
+    private static (int size, int time) shaderLoc;
+    
     public static event Action<GameState> OnMatchFound;
     public static event Action<GameState> OnTileClicked;
     public static event Action<GameState> OnTileSwapped;
@@ -36,7 +38,7 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0,45*5, 4, 10, 10);
+        Level = new(0,45*5, 4, 8, 7);
         State = new((int)Type.Length);
         _matchesOf3 = new();
         SetTargetFPS(60);
@@ -50,6 +52,7 @@ internal static class Game
         SetTextureFilter(IngameTexture1, TextureFilter.TEXTURE_FILTER_BILINEAR);
         _grid = new(Level);
         State.Grid = _grid;
+        shaderLoc = InitShader();
     }
     
     private static void DragMouseToEnemies()
@@ -109,7 +112,7 @@ internal static class Game
             State.Grid = _grid;
             State.DefaultTile = e;
             State.Matches = _enemyMatches;
-            ref var existent = ref State.FromRef();
+            ref var existent = ref State.GetData();
             existent.Click.Count++;
             existent.Click.Seconds = elapsedSeconds;
             OnTileClicked(State);
@@ -172,13 +175,14 @@ internal static class Game
         
         if (_grid.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!) && !_shallCreateEnemies)
         {
+            Console.WriteLine($"HAD A MATCH! with {_matchesOf3.Count} elements in it!");
             State.DefaultTile = _secondClicked!;
-            ref Numbers matchData = ref State.FromRef(); 
+            ref Numbers matchData = ref State.GetData(); 
             matchData.Match.Seconds = (_matchesOf3!.CreatedAt - _matchesOf3.DeletedAt).Seconds;
             matchData.Match.Count++;
             State.Matches = _matchesOf3;
             OnMatchFound(State);
-            _grid.Delete(_matchesOf3!);
+            _grid.Delete(_matchesOf3);
         }
         else switch (_shallCreateEnemies)
         {
@@ -186,13 +190,13 @@ internal static class Game
                 CreateEnemiesIfNeeded();
                 break;
             case false:
-                 _grid.Delete(_matchesOf3!);
+                 _matchesOf3!.Clear();
                 break;
         }
 
         //Console.WriteLine(_matchesOf3!.Count);
         _shallCreateEnemies = RollADice();
-        Console.WriteLine(_shallCreateEnemies);
+        //Console.WriteLine(_shallCreateEnemies);
         State.WasSwapped = false;
         _secondClicked = null;
     }
@@ -216,17 +220,29 @@ internal static class Game
     private static void MainGameLoop()
     {
         Setup(false);	// sets up ImGui with ether a dark or light default theme
-
+        //float seconds = 0.0f;
+  
         while (!WindowShouldClose())
         {
+            //seconds += GetFrameTime();
+            float elapsedTime = Level.GameTimer.ElapsedSeconds;
+
             BeginDrawing();
             Begin();
+
+            if (_enemyMatches is not null)
+            {
+                var size = GetScreenCoord();
+                SetShaderValue(WobbleShader, shaderLoc.size, size , ShaderUniformDataType.SHADER_UNIFORM_VEC2);
+                SetShaderValue(WobbleShader, shaderLoc.time, elapsedTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+            }
+
             ClearBackground(WHITE);
-            Renderer.DrawBackground(ref bg1);
+            //Renderer.DrawBackground(ref bg1);
             
             if (!_enterGame)
             {
-                Renderer.ShowWelcomeScreen();
+                //Renderer.ShowWelcomeScreen();
                 //Renderer.LogQuest(false, Level);
             }
             if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
@@ -256,30 +272,32 @@ internal static class Game
                 }
                 else
                 {
-                    bgIngame1.Body.Scale = 1f;
-                    Renderer.DrawBackground(ref bgIngame2);
-                    float elapsedTime = Level.GameTimer.ElapsedSeconds;
+                   // Renderer.DrawBackground(ref bgIngame2);
                     Renderer.DrawTimer(elapsedTime);
                     DragMouseToEnemies();
                     ProcessSelectedTiles();
                     ComputeMatches();
-                    Renderer.DrawOuterBox(_enemyMatches,elapsedTime);  //works!
-                    Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;  //works!
-                    Renderer.DrawGrid(_grid, elapsedTime);
+                    //Console.WriteLine(_matchesOf3.Count);
+                    //Renderer.DrawOuterBox(_enemyMatches, elapsedTime);  
+                    Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;  
+                    Renderer.DrawGrid(_grid, elapsedTime, shaderLoc);
+                    BeginShaderMode(WobbleShader);
+                    Renderer.DrawMatches(_enemyMatches, _grid, elapsedTime, _shallCreateEnemies);
+                    EndShaderMode();
                     HardReset();
                 }
                 _enterGame = true;
             }
-        
+            
             End();
             EndDrawing();
-            
         }
     }
 
     private static void CleanUp()
     {
         Shutdown();
+        UnloadShader(WobbleShader);
         UnloadTexture(DefaultTileAtlas);
         CloseWindow();
     }
