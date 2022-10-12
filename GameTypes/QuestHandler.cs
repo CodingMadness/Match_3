@@ -1,4 +1,6 @@
 using System.Runtime.InteropServices;
+using Raylib_CsLo;
+using static Raylib_CsLo.Raylib;
 
 namespace Match_3.GameTypes;
 
@@ -7,10 +9,11 @@ public struct Numbers
     /// <summary>
     /// Count-Clicks, with maxTime inbetween them
     /// </summary>
-    public (int Count, float Seconds) Click;
-    public (int AllowedSwaps, float Seconds) Swaps;
+    public (int Count, float? Seconds) Click;
+    public (int AllowedSwaps, float? Seconds) Swaps;
     public (int Count, float? Seconds) Match;
 }
+
 public ref struct Ref<T> where T : unmanaged
 {
     public ref T _ref;
@@ -30,7 +33,7 @@ public sealed class GameState
 
     public bool WasSwapped;
     public Tile DefaultTile { get; set; }
-    public Type CurrentType => (DefaultTile.Body as TileShape)!.TileType;
+    public Type CurrentType => DefaultTile.Body.TileType;
     private IDictionary<Type, Numbers> _eventData { get; }
     public MatchX? Matches { get; set; }
 
@@ -46,9 +49,16 @@ public sealed class GameState
     }
 }
 
-public abstract class QuestHandler<T> where T:notnull
+public abstract class SingletonBase<T> where T : SingletonBase<T>
 {
-    private IDictionary<T, Numbers> _goal { get; }
+    private static readonly Lazy<T> Lazy = 
+        new(() => Activator.CreateInstance(typeof(T), true) as T);
+    public static T Instance => Lazy.Value;
+}
+
+public abstract class QuestHandler<T>  : SingletonBase<QuestHandler<T>> where T:notnull
+{
+    private readonly IDictionary<T, Numbers> _goal;
     
     protected ref Numbers GetData(T key)
     {
@@ -65,7 +75,6 @@ public abstract class QuestHandler<T> where T:notnull
     protected QuestHandler()
     {
         _goal = new Dictionary<T, Numbers>((int)Type.Length * 5);
-
         Grid.NotifyOnGridCreationDone += DefineGoals;
     }
 
@@ -75,13 +84,15 @@ public abstract class QuestHandler<T> where T:notnull
     /// <param name="state">The current State of the game, with all needed Data</param>
     protected abstract void DefineGoals(GameState state);
     protected abstract void HandleEvent(GameState state);
-
+    
+    public abstract void UnSubscribe();
     public static void InitAllQuestHandlers()
     {
         // INIT all Sub_QuestHandlers here!...
         _ = new SwapQuestHandler();
         _ = new MatchQuestHandler();
-        _ = new ClickQuestHandler();
+        _ = new DestroyByClickQuestHandler();
+        _ = new ColorByClickQuestHandler();
     }
 }
 
@@ -114,7 +125,7 @@ public class SwapQuestHandler : QuestHandler<Type>
             }
         }
     }
-
+    
     public SwapQuestHandler()
     {
         Game.OnTileSwapped += HandleEvent;
@@ -136,9 +147,11 @@ public class SwapQuestHandler : QuestHandler<Type>
             }
         }
     }
+
+    public override void UnSubscribe() => Game.OnTileSwapped -= HandleEvent;
 }
 
-public class MatchQuestHandler : QuestHandler<Type>
+public sealed class MatchQuestHandler : QuestHandler<Type>
 {
     public MatchQuestHandler()
     {
@@ -193,16 +206,16 @@ public class MatchQuestHandler : QuestHandler<Type>
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
         }
     }
+
+    public override void UnSubscribe() => Game.OnMatchFound -= HandleEvent;
 }
 
-public class ClickQuestHandler : QuestHandler<Type>
+public abstract class ClickQuestHandler : QuestHandler<Type>
 {
-    public ClickQuestHandler()
+    protected ClickQuestHandler()
     {
         Game.OnTileClicked += HandleEvent;
     }
-
-    private byte _matchXCounter;
     
     protected override void DefineGoals(GameState state)
     {
@@ -222,7 +235,7 @@ public class ClickQuestHandler : QuestHandler<Type>
         }
     }
     
-    private bool ClickGoalReached(GameState inventory)
+    protected bool ClickGoalReached(GameState inventory)
     {
         ref var currClick = ref inventory.GetData().Click;
         ref var goalClick = ref GetData(inventory.CurrentType).Click;
@@ -232,7 +245,13 @@ public class ClickQuestHandler : QuestHandler<Type>
 
         return reached;
     }
-    
+
+    public override void UnSubscribe() => Game.OnTileClicked -= HandleEvent;
+}
+
+public sealed class DestroyByClickQuestHandler : ClickQuestHandler
+{
+    private byte _matchXCounter;
     protected override void HandleEvent(GameState state)
     {
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
@@ -255,6 +274,34 @@ public class ClickQuestHandler : QuestHandler<Type>
         else
         {
             //Console.WriteLine($"SADLY YOU STILL NEED {_goal.GetData(state.CurrentType).Click.Count}");
+        }
+    }
+}
+
+public sealed class ColorByClickQuestHandler : ClickQuestHandler
+{
+    private static readonly Color[] rndColors = 
+    {
+        RED, WHITE, YELLOW, BLUE, GREEN, PURPLE, VIOLET
+    };
+    
+    protected override void HandleEvent(GameState state)
+    {
+        //The Game notifies the QuestHandler, when smth happened to a tile on the map!
+        //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
+        ref readonly var goal = ref state.GetData().Click;
+        ref var current = ref state.GetData().Click;
+
+        if (ClickGoalReached(state))
+        {
+            var before =state.DefaultTile.Body.Color; 
+            state.DefaultTile.Body.ToConstColor(rndColors[current.Count]);
+            var after =state.DefaultTile.Body.Color;
+        }
+        else
+        {
+            
+            Console.WriteLine($"SADLY YOU STILL NEED {goal.Count - current.Count} more clicks!");
         }
     }
 }
