@@ -23,7 +23,7 @@ public ref struct Ref<T> where T : unmanaged
 
 public sealed class GameState
 {
-    public ref Numbers FromRef()
+    public ref Numbers GetData()
     {
         return ref new Ref<Numbers>(ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<Type, Numbers>)_eventData, CurrentType, out _))._ref;
     }
@@ -50,7 +50,7 @@ public abstract class QuestHandler<T> where T:notnull
 {
     private IDictionary<T, Numbers> _goal { get; }
     
-    protected ref Numbers FromRef(T key)
+    protected ref Numbers GetData(T key)
     {
         return ref new Ref<Numbers>(ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<T, Numbers>)_goal, key, out _))._ref;
     }
@@ -91,7 +91,7 @@ public class SwapQuestHandler : QuestHandler<Type>
     {
         for (Type i = 0; i < Type.Length; i++)
         {
-            ref Numbers numbers = ref FromRef(i);
+            ref Numbers numbers = ref GetData(i);
 
             switch (Game.Level.ID)
             {
@@ -124,10 +124,10 @@ public class SwapQuestHandler : QuestHandler<Type>
     {
         for (Type i = 0; i < Type.Length; i++)
         {
-            ref Numbers numbers = ref FromRef(i);
+            ref Numbers numbers = ref GetData(i);
             //The Game notifies the QuestHandler, when something happens to the tile!
             //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
-            ref var currSwaps = ref state.FromRef().Swaps;
+            ref var currSwaps = ref state.GetData().Swaps;
             
             if (currSwaps == numbers.Swaps)
             {
@@ -147,7 +147,7 @@ public class MatchQuestHandler : QuestHandler<Type>
 
     protected override void DefineGoals(GameState state)
     {
-        ref Numbers _numbers = ref FromRef(Type.Empty);
+        ref Numbers _numbers = ref GetData(Type.Empty);
         
         _numbers.Match = Game.Level.ID switch
         {
@@ -177,8 +177,8 @@ public class MatchQuestHandler : QuestHandler<Type>
     
     private bool IsMatchGoalReached(GameState state)
     {
-        ref var goal = ref FromRef(state.CurrentType).Match;
-        ref var current = ref state.FromRef().Match;
+        ref var goal = ref GetData(state.CurrentType).Match;
+        ref var current = ref state.GetData().Match;
         return goal.Count == current.Count;
     }
     
@@ -208,7 +208,7 @@ public class ClickQuestHandler : QuestHandler<Type>
     {
         for (Type i = 0; i < Type.Length; i++)
         {
-            ref Numbers _numbers = ref FromRef(i);
+            ref Numbers _numbers = ref GetData(i);
 
             _numbers.Click = Game.Level.ID switch
             {
@@ -224,8 +224,8 @@ public class ClickQuestHandler : QuestHandler<Type>
     
     private bool ClickGoalReached(GameState inventory)
     {
-        ref var currClick = ref inventory.FromRef().Click;
-        ref var goalClick = ref FromRef(inventory.CurrentType).Click;
+        ref var currClick = ref inventory.GetData().Click;
+        ref var goalClick = ref GetData(inventory.CurrentType).Click;
 
         bool reached = currClick.Count == goalClick.Count;
                        //&& goalClicks.Seconds > currClicks.Seconds;
@@ -245,7 +245,7 @@ public class ClickQuestHandler : QuestHandler<Type>
             state.Enemy.BlockSurroundingTiles(state.Grid, false);
             Console.WriteLine("YEA goal was reached, deleted the evil match!");
 
-            ref var clicks = ref state.FromRef().Click;
+            ref var clicks = ref state.GetData().Click;
             clicks = (0, 0);
 
             state.EnemiesStillPresent = ++_matchXCounter < state.Matches!.Count;
@@ -254,7 +254,7 @@ public class ClickQuestHandler : QuestHandler<Type>
         }
         else
         {
-            //Console.WriteLine($"SADLY YOU STILL NEED {_goal.FromRef(state.CurrentType).Click.Count}");
+            //Console.WriteLine($"SADLY YOU STILL NEED {_goal.GetData(state.CurrentType).Click.Count}");
         }
     }
 }

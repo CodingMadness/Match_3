@@ -81,6 +81,14 @@
     <EmbeddedResource Include="Assets\Atlas\set2_small.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Remove="Wobble_Shader.frag" />
+    <EmbeddedResource Include="Wobble_Shader.frag">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\Shaders\wobble.frag" />
+    <EmbeddedResource Include="Assets\Shaders\wobble.frag">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\Fonts\font1.otf">

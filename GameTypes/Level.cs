@@ -5,7 +5,7 @@ public record Level(int ID,
     int GridWidth, int GridHeight)
 {
     public const int MAX_TILES_PER_MATCH = 3;
-    public const int TILE_SIZE = 64 / 2;
+    public const int TILE_SIZE = 64 / 1;
     public int WindowHeight => GridWidth * TILE_SIZE;
     public int WindowWidth => GridHeight * TILE_SIZE;
 

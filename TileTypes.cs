@@ -103,16 +103,6 @@ public struct FadeableColor : IEquatable<FadeableColor>
         {YELLOW, "Yellow"}
     };
     
-    private void _Lerp()
-    {
-        
-        //if u wana maybe stop fading at 0.5f so we explicitly check if currALpha > targetalpha
-        if (CurrentAlpha > TargetAlpha)  
-            CurrentAlpha -= AlphaSpeed * (1f / _elapsedTime);
-
-        // CurrentAlpha = CurrentAlpha < 0f ? 0f : CurrentAlpha;
-    }
-
     public string? ToReadableString()
     {
         Color compare = _toWrap;
@@ -120,6 +110,13 @@ public struct FadeableColor : IEquatable<FadeableColor>
         return Strings.TryGetValue(compare, out var value) ? value : _toWrap.ToString();
     }
 
+    private void _Lerp()
+    {
+        //if u wanna maybe stop fading at 0.5f so we explicitly check if currAlpha > Target-Alpha
+        if (CurrentAlpha > TargetAlpha)  
+            CurrentAlpha -= AlphaSpeed * (1f / _elapsedTime);
+    }
+    
     public FadeableColor Apply()
     {
         _Lerp();
@@ -199,6 +196,7 @@ public class Shape
     public ref readonly FadeableColor Fade(Color c, float targetAlpha, float elapsedTime)
     {
         _color = c;
+        _color.CurrentAlpha = 1f;
         _color.AlphaSpeed = 0.5f;
         _color.TargetAlpha = targetAlpha;
         _color.AddTime(elapsedTime);
@@ -211,7 +209,7 @@ public class Shape
     }
     public ref readonly FadeableColor NoFadeBy(Color c)
     {
-        return ref Fade(c, 0f, 1f);
+        return ref Fade(c, 1f, 1f);
     }
     public ref readonly FadeableColor FIXED_WHITE => ref NoFadeBy(WHITE);
 }
@@ -338,7 +336,7 @@ public class Tile
     }
     public Vector2 GridCell { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
-    public Shape Body { get; init; }
+    public TileShape Body { get; init; }
     /// <summary>
     /// WorldCell in WorldCoordinates
     /// </summary>

@@ -225,7 +225,7 @@ public static class Utils
     }
     
     public static Vector2 GetWorldPos(this Rectangle a) => new((int)a.x, (int)a.y);
-    public static Vector2 GetBeginInGrid(this Rectangle a) => GetWorldPos(a) / Tile.Size;
+    public static Vector2 GetCellPos(this Rectangle a) => GetWorldPos(a) / Tile.Size;
     public static void SetMouseToWorldPos(Vector2 position, int scale = Tile.Size)
     {
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);
