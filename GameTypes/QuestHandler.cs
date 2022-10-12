@@ -49,22 +49,39 @@ public sealed class GameState
     }
 }
 
-public abstract class SingletonBase<T> where T : SingletonBase<T>
+public static class SingletonManager
 {
-    private static readonly Lazy<T> Lazy = 
-        new(() => Activator.CreateInstance(typeof(T), true) as T);
-    public static T Instance => Lazy.Value;
+    private static readonly Dictionary<System.Type, object> _storage = new();
+
+    public static T GetOrCreateInstance<T>() where T : QuestHandler, new()
+    {
+        lock(_storage)
+        {
+            if (_storage.TryGetValue(typeof(T), out var toReturn))
+            {
+                return (T)toReturn;
+                //got val to return
+            }
+            else
+            {
+                toReturn = new T();
+                _storage.Add(typeof(T), toReturn);
+            }
+
+            return (T)toReturn;
+        }
+    }
 }
 
-public abstract class QuestHandler<T>  : SingletonBase<QuestHandler<T>> where T:notnull
+public abstract class QuestHandler 
 {
-    private readonly IDictionary<T, Numbers> _goal;
+    private readonly IDictionary<Type, Numbers> _goal;
     
-    protected ref Numbers GetData(T key)
+    protected ref Numbers GetData(Type key)
     {
-        return ref new Ref<Numbers>(ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<T, Numbers>)_goal, key, out _))._ref;
+        return ref new Ref<Numbers>(ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<Type, Numbers>)_goal, key, out _))._ref;
     }
-
+     
     protected int Count => _goal.Count;
 
     //For instance:
@@ -74,7 +91,7 @@ public abstract class QuestHandler<T>  : SingletonBase<QuestHandler<T>> where T:
     //the goal is to make per new Level the Quests harder!!
     protected QuestHandler()
     {
-        _goal = new Dictionary<T, Numbers>((int)Type.Length * 5);
+        _goal = new Dictionary<Type, Numbers>((int)Type.Length * 5);
         Grid.NotifyOnGridCreationDone += DefineGoals;
     }
 
@@ -96,7 +113,7 @@ public abstract class QuestHandler<T>  : SingletonBase<QuestHandler<T>> where T:
     }
 }
 
-public class SwapQuestHandler : QuestHandler<Type>
+public class SwapQuestHandler : QuestHandler
 {
     protected override void DefineGoals(GameState? state)
     {
@@ -125,6 +142,8 @@ public class SwapQuestHandler : QuestHandler<Type>
             }
         }
     }
+
+    public static SwapQuestHandler Instance => SingletonManager.GetOrCreateInstance<SwapQuestHandler>();
     
     public SwapQuestHandler()
     {
@@ -151,7 +170,7 @@ public class SwapQuestHandler : QuestHandler<Type>
     public override void UnSubscribe() => Game.OnTileSwapped -= HandleEvent;
 }
 
-public sealed class MatchQuestHandler : QuestHandler<Type>
+public sealed class MatchQuestHandler : QuestHandler
 {
     public MatchQuestHandler()
     {
@@ -210,7 +229,7 @@ public sealed class MatchQuestHandler : QuestHandler<Type>
     public override void UnSubscribe() => Game.OnMatchFound -= HandleEvent;
 }
 
-public abstract class ClickQuestHandler : QuestHandler<Type>
+public abstract class ClickQuestHandler : QuestHandler
 {
     protected ClickQuestHandler()
     {

@@ -48,7 +48,7 @@ internal static class Game
         bg1 = new(WelcomeTexture);
         bgIngame1 = new(IngameTexture1);
         bgIngame2 = new(IngameTexture2);
-        QuestHandler<Type>.InitAllQuestHandlers();
+        QuestHandler.InitAllQuestHandlers();
         SetTextureFilter(IngameTexture1, TextureFilter.TEXTURE_FILTER_BILINEAR);
         _grid = new(Level);
         State.Grid = _grid;
@@ -102,7 +102,7 @@ internal static class Game
         if (firstClickedTile!.IsDeleted)
             return;
 
-        DestroyByClickQuestHandler.Instance.UnSubscribe();
+        SwapQuestHandler.Instance.UnSubscribe();
         State.DefaultTile = firstClickedTile;
         ref var current = ref State.GetData();
         current.Click.Count++;
