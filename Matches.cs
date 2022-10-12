@@ -6,67 +6,46 @@ namespace Match_3;
 
 public class MatchX
 {
-    protected readonly ISet<Tile> Matches;
-    private IOrderedEnumerable<Tile>? _orderedSet;
-    private bool _wasRow;
+    public readonly SortedSet<Tile> Matches;
+
+    private Vector2 _direction;
     private Rectangle _worldRect;
     public TimeOnly DeletedAt { get; private set; }
     public TimeOnly CreatedAt { get; private set; }
-    public bool IsRowBased => _wasRow;
+    public bool IsRowBased { get; private set; }
+    
     public int Count => Matches.Count;
     public bool IsMatchActive => Count == Level.MAX_TILES_PER_MATCH;
     public TileShape? Body { get; private set; }
 
-    private IEnumerable<Tile> OrderedSet()
-    {
-        return _orderedSet = (_orderedSet is null || _orderedSet.Count() < Count)
-            ? Matches.Order(CellComparer.Singleton)
-            : _orderedSet;
-    }
-
     /// <summary>
     /// We have to only order the matches if it never happened b4 this call and if new items came into the matches
     /// </summary>
-    public Rectangle WorldBox
-    {
-        get
-        {
-            if (!_worldRect.IsEmpty())
-                return _worldRect;
+    public Rectangle WorldBox => _worldRect;
 
-            if (Matches.Count == 0)
-                return new(0f, 0f, 0f, 0f);
-
-            foreach (var tile in OrderedSet())
-            {
-                _worldRect.Add(tile.WorldBounds);
-            }
-            return _worldRect;
-        }
-    }
-    
-    public Vector2 Move(int i)
-    {
-        var pos = WorldBox.GetWorldPos();
-        
-        if (IsRowBased)
-        {
-            return pos with { X = pos.X + (i * Tile.Size) };
-        }
-        else
-        {
-            return pos with { Y = pos.Y + (i * Tile.Size)};
-        }
-    }
-    
-    public Vector2 WorldPos { get; private set; } = -Vector2.One;
+    public Vector2 WorldPos { get; private set; }
 
     public MatchX()
     {
-        _worldRect = default;
-        Matches = new HashSet<Tile>(Level.MAX_TILES_PER_MATCH);
+        Matches = new(CellComparer.Singleton);
     }
 
+    public Vector2? Move(int i = 0)
+    {
+        if (i < 0 || i > Count-1 || _worldRect.IsEmpty())
+            return null;
+
+        var pos = WorldPos / Tile.Size;
+        
+        if (IsRowBased)
+        {
+            return pos with { X = pos.X + (i  *  _direction).X };
+        }
+        else
+        {
+            return pos with { Y = pos.Y + (i  *  _direction).Y };
+        }
+    }
     /// <summary>
     /// Reorder the Match if it has a structure like: (x0,x1,y2) or similar
     /// </summary>
@@ -74,31 +53,44 @@ public class MatchX
     {
         if (Matches.Add(matchTile) && !IsMatchActive)
         {
-            WorldPos = WorldPos == -Vector2.One ? matchTile.WorldCell : WorldPos;
-            
             if (Count is > 1 and < 3)
             {
                 //INSPECT THIS, so that I can use Move(x) instead of ElementAt(0)
                 var cell0 = Matches.ElementAt(0).GridCell;
                 var cell1 = Matches.ElementAt(1).GridCell;
-                _wasRow = cell0.GetDirectionTo(cell1).isRow;
+                var dir = cell0.GetDirectionTo(cell1);
+                _direction = dir.Direction;
+                IsRowBased = dir.isRow;
             }
             
-            Body ??= (matchTile.Body as TileShape)!.Clone() as TileShape;
-       
+            Body ??= matchTile.Body.Clone() as TileShape;
+            _worldRect.Add(matchTile.WorldBounds);
         }
+       
         else if (IsMatchActive)
+        {
+            var cell0 = Matches.ElementAt(0);
+            var cellLast = Matches.ElementAt(^1);
+            
+            if (IsRowBased)
+                if (cell0.GridCell != cellLast.GridCell)
+                {
+                    var cellRight = cell0.GridCell - Vector2.UnitX;
+                    
+                }
+            
+            WorldPos = cell0.WorldCell;
+
             CreatedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
+        }
     }
     
     public void Clear()
     {
         _worldRect = Utils.INVALID_RECT;
-        _wasRow = false;
-        WorldPos = -Vector2.One;
+        IsRowBased = false;
         Matches.Clear();
         DeletedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
-        _orderedSet = null;
     }
 }
 
@@ -110,11 +102,11 @@ public class EnemyMatches : MatchX
         if (Matches.Count == 0)
             throw new MethodAccessException($"This method is accessed even tho {WorldBox} seems to be empty");
 
-        Vector2 next;
         int match3RectWidth;
         int match3RectHeight;
-        var firstSlot = WorldBox.GetBeginInGrid();
-        next = firstSlot - Vector2.One;
+        var firstSlot = WorldBox.GetCellPos();
+        var next = firstSlot - Vector2.One;
+        
         if (IsRowBased)
         {
             //its row based rectangle
