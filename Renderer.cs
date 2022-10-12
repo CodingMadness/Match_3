@@ -16,11 +16,11 @@ public static class Renderer
             Font copy = GetFontDefault() with { baseSize = 800 };
             var begin = tile.End;
             float halfSize = Tile.Size * 0.5f;
-            begin = begin with { X = begin.X - halfSize - 0, Y = begin.Y - halfSize - 20f };
+            begin = begin with { X = begin.X - halfSize + halfSize/1.5f, Y = begin.Y - halfSize - halfSize/3 };
             GameText coordText = new(copy, (tile.GridCell).ToString(), 10.5f)
             {
                 Begin = begin,
-                Color = tile.TileState == TileState.Selected ? RED : BLACK,
+                Color = (tile.TileState & TileState.Selected)==TileState.Selected ? RED : BLACK,
             };
             coordText.Color.AlphaSpeed = 0f;
             coordText.ScaleText();
@@ -29,6 +29,7 @@ public static class Renderer
 
         if (tile is EnemyTile enemy)
         {
+            enemy.Body.Scale = 1f;
             //enemy.TileState &= TileState.Selected;
             DrawTexturePro(atlas, enemy.Body.TextureRect, enemy.Pulsate(elapsedTime), 
                     Vector2.Zero, 0f, enemy.Body.Color);
@@ -36,42 +37,52 @@ public static class Renderer
         }
         
         var body = tile.Body as TileShape;
-        DrawTexturePro(atlas, body.TextureRect, tile.WorldBounds, Vector2.Zero, 0f, body.Fade(WHITE, elapsedTime));
-       // DrawCoordOnTop(tile);
+        DrawTexturePro(atlas, body.TextureRect, tile.WorldBounds, Vector2.Zero, 0f, body.Color);
+        DrawCoordOnTop(tile);
     }
     
-    public static void DrawGrid(Grid map, float elapsedTime)
+    public static void DrawGrid(Grid map, float elapsedTime,(int size, int speed) shaderLoc)
     {
-        //Do this DrawGrid second per second ONLY ONCE
-        for (int x = 0; x < map.TileWidth; x++)
-        {
-            for (int y = 0; y < map.TileHeight; y++)
+        Vector2 size = Utils.GetScreenCoord();
+       
+        
+            for (int x = 0; x < map.TileWidth; x++)
             {
-                Vector2 current = new(x, y);
-                //the indexer can return a NULL when a tile is marked as
-                //Disabled and the "IsDeleted" returns true
-                Tile? basicTile = map[current];
-                    
-                if (basicTile is not null && !basicTile.IsDeleted)
+                for (int y = 0; y < map.TileHeight; y++)
                 {
-                    var atlas = (basicTile is EnemyTile)
-                        ? EnemyAtlas
-                        : DefaultTileAtlas;
-
-                    DrawTile(ref atlas, basicTile, elapsedTime);
+                    Vector2 current = new(x, y);
+                    Tile? basicTile = map[current];
+                        
+                    if (basicTile is not null && !basicTile.IsDeleted && basicTile is not EnemyTile)
+                    {
+                        DrawTile(ref DefaultTileAtlas, basicTile, elapsedTime);
+                    }
                 }
             }
-        }
+    }
 
-        //isDrawn = true;
-        //Console.WriteLine("ITERATION OVER FOR THIS DRAW-CALL!");
+    public static void DrawMatches(MatchX? current, Grid map, float elapsedTime, bool shallCreateEnemies)
+    {
+        if (!shallCreateEnemies)
+            return;
+        
+        if (current is null)
+            return;
+        
+        Texture matchTexture = (current is MatchX and not EnemyMatches) ? ref DefaultTileAtlas : ref EnemyAtlas;
+
+        for (int i = 0; i < current.Count; i++)
+        {
+            var gridCell = current.Matches.ElementAt(i).GridCell;
+            DrawTile(ref matchTexture, map[gridCell], elapsedTime);
+        }
     }
     
     public static void DrawInnerBox(MatchX? matches, float elapsedTime)
     {
         if (matches?.IsMatchActive == true)
         {
-            DrawRectangleRec(matches.WorldBox, matches.Body.NoFadeBy(RED).Apply());
+            DrawRectangleRec(matches.WorldBox, matches.Body.NoFadeBy(RED));
         }
     }
     
@@ -83,7 +94,7 @@ public static class Renderer
             matches.Body!.Color.AlphaSpeed = 0.2f;
             matches.Body!.Color.ElapsedTime = elapsedTime;
             */
-            DrawRectangleRec(matches.Border, matches.Body.Fade(WHITE, 0.2f, 0f).Apply());
+            DrawRectangleRec(matches.Border, matches.Body.NoFadeBy(RED));
         }
     }
     
@@ -123,8 +134,8 @@ public static class Renderer
 
     public static void DrawBackground(ref Background bg)
     {
-        Rectangle screen = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
-        DrawTexturePro(bg.Texture, bg.Body.TextureRect, screen.DoScale(bg.Body.Scale), Vector2.Zero, 0f, bg.Body.NoFadeBy(WHITE));
+        DrawTexturePro(bg.Texture, bg.Body.TextureRect, Utils.ScreenRect.DoScale(bg.Body.Scale), 
+            Vector2.Zero, 0f, bg.Body.FIXED_WHITE);
     }
     
     /*
