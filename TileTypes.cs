@@ -207,11 +207,11 @@ public class Shape
     {
         return ref Fade(c, 0f, elapsedTime);
     }
-    public ref readonly FadeableColor NoFadeBy(Color c)
+    public ref readonly FadeableColor ToConstColor(Color c)
     {
         return ref Fade(c, 1f, 1f);
     }
-    public ref readonly FadeableColor FIXED_WHITE => ref NoFadeBy(WHITE);
+    public ref readonly FadeableColor FIXED_WHITE => ref ToConstColor(WHITE);
 }
 
 public class TileShape : Shape, IEquatable<TileShape>, ICloneable
@@ -294,7 +294,7 @@ public class Tile
                 _current &= TileState.Disabled;
                 _current &= TileState.Deleted;
                 _current &= TileState.Hidden;
-                Body.NoFadeBy(WHITE);
+                Body.ToConstColor(WHITE);
             }
             if ((value & TileState.Pulsate) == TileState.Pulsate)
             {
@@ -322,14 +322,14 @@ public class Tile
                 _current &= TileState.Clean; 
                 _current &= TileState.Selected; //remove clean flag from set
                 _current &= TileState.Disabled;
-                Body.NoFadeBy(WHITE);
+                Body.ToConstColor(WHITE);
             }
             else if ((value & TileState.Disabled) == TileState.Disabled)
             {
                 _current &= TileState.Clean; //remove clean flag from set
                 _current &= TileState.Selected; //remove clean flag from set
                 _current &= TileState.Deleted; //deleted is reserved as Disabled AND Hidden, so u cannot be both at same time
-                Body.NoFadeBy(BLACK);
+                Body.ToConstColor(BLACK);
             }
             _current = value;
         }

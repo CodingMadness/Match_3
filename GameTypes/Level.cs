@@ -9,6 +9,6 @@ public record Level(int ID,
     public int WindowHeight => GridWidth * TILE_SIZE;
     public int WindowWidth => GridHeight * TILE_SIZE;
 
-    private GameTime _gameTime = GameTime.GetTimer(GameBeginAt);
-    public ref GameTime GameTimer => ref _gameTime;
+    private readonly GameTime _gameTime = GameTime.GetTimer(GameBeginAt);
+    public ref readonly GameTime GameTimer => ref _gameTime;
 }

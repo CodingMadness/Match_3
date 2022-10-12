@@ -85,7 +85,7 @@ public static class Renderer
     {
         if (matches?.IsMatchActive == true)
         {
-            DrawRectangleRec(matches.WorldBox, matches.Body.NoFadeBy(RED));
+            DrawRectangleRec(matches.WorldBox, matches.Body.ToConstColor(RED));
         }
     }
     
@@ -97,7 +97,7 @@ public static class Renderer
             matches.Body!.Color.AlphaSpeed = 0.2f;
             matches.Body!.Color.ElapsedTime = elapsedTime;
             */
-            DrawRectangleRec(matches.Border, matches.Body.NoFadeBy(RED));
+            DrawRectangleRec(matches.Border, matches.Body.ToConstColor(RED));
         }
     }
     
@@ -108,7 +108,7 @@ public static class Renderer
         TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
         TimerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 0f };
         TimerText.ScaleText();
-        TimerText.Draw(null);
+        TimerText.Draw(1f);
     }
     
     public static void ShowWelcomeScreen()

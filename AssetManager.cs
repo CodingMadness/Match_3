@@ -18,7 +18,7 @@ public static unsafe class AssetManager
     private static Font welcomeFont = GetFontDefault();
     public static readonly GameText WelcomeText = new(welcomeFont, "Welcome young man!!", 7f);
     public static readonly GameText GameOverText = new( welcomeFont, "!!", 7f);
-    public static readonly GameText TimerText = new( welcomeFont with { baseSize = 512 * 2 }, "Welcome young man!!", 7f);
+    public static readonly GameText TimerText = new( welcomeFont with { baseSize = 512 * 2 }, "Welcome young man!!", 11f);
     public static readonly GameText LogText = new(welcomeFont, "", 20f); 
 
     /// <summary>
