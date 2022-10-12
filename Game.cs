@@ -101,7 +101,12 @@ internal static class Game
 
         if (firstClickedTile!.IsDeleted)
             return;
-        //Console.WriteLine(firstClickedTile.GridCell);
+
+        DestroyByClickQuestHandler.Instance.UnSubscribe();
+        State.DefaultTile = firstClickedTile;
+        ref var current = ref State.GetData();
+        current.Click.Count++;
+        OnTileClicked(State);
         
         //Enemy tile was clicked on , ofc after a matchX happened!
         if (_enemyMatches?.IsMatchActive == true && firstClickedTile is EnemyTile e)
@@ -109,12 +114,11 @@ internal static class Game
             var elapsedSeconds = (TimeOnly.FromDateTime(DateTime.UtcNow) - _enemyMatches.CreatedAt).Seconds;
             
             State.Enemy = e;
-            State.Grid = _grid;
             State.DefaultTile = e;
             State.Matches = _enemyMatches;
-            ref var existent = ref State.GetData();
-            existent.Click.Count++;
-            existent.Click.Seconds = elapsedSeconds;
+            current = ref State.GetData();
+            current.Click.Count++;
+            current.Click.Seconds = elapsedSeconds;
             OnTileClicked(State);
         }
         else
@@ -230,64 +234,64 @@ internal static class Game
             BeginDrawing();
             Begin();
 
-            if (_enemyMatches is not null)
-            {
-                var size = GetScreenCoord();
-                SetShaderValue(WobbleShader, shaderLoc.size, size , ShaderUniformDataType.SHADER_UNIFORM_VEC2);
-                SetShaderValue(WobbleShader, shaderLoc.time, elapsedTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-            }
+                if (_enemyMatches is not null)
+                {
+                    var size = GetScreenCoord();
+                    SetShaderValue(WobbleShader, shaderLoc.size, size , ShaderUniformDataType.SHADER_UNIFORM_VEC2);
+                    SetShaderValue(WobbleShader, shaderLoc.time, elapsedTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+                }
 
-            ClearBackground(WHITE);
-            //Renderer.DrawBackground(ref bg1);
-            
-            if (!_enterGame)
-            {
-                //Renderer.ShowWelcomeScreen();
-                //Renderer.LogQuest(false, Level);
-            }
-            if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
-            {
-                Level.GameTimer.Run();
+                ClearBackground(WHITE);
+                //Renderer.DrawBackground(ref bg1);
                 
-                bool isGameOver = Level.GameTimer.Done();
+                if (!_enterGame)
+                {
+                    //Renderer.ShowWelcomeScreen();
+                    //Renderer.LogQuest(false, Level);
+                }
+                if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
+                {
+                    Level.GameTimer.Run();
+                    
+                    bool isGameOver = Level.GameTimer.Done();
 
-               // Console.WriteLine("TIME  : "+Level.GameTimer.ElapsedSeconds);
-                
-                if (isGameOver)
-                {
-                    if (Renderer.OnGameOver(Level.GameTimer.Done(),false))
+                   // Console.WriteLine("TIME  : "+Level.GameTimer.ElapsedSeconds);
+                    
+                    if (isGameOver)
                     {
-                        //leave Gameloop and hence end the game
-                        return;
+                        if (Renderer.OnGameOver(Level.GameTimer.Done(),false))
+                        {
+                            //leave Gameloop and hence end the game
+                            return;
+                        }
                     }
-                }
-                else if (State.WasGameWonB4Timeout)
-                {
-                    if (Renderer.OnGameOver(Level.GameTimer.Done(), true))
+                    else if (State.WasGameWonB4Timeout)
                     {
-                        InitGame();
-                        State.WasGameWonB4Timeout = false;
-                        continue;
+                        if (Renderer.OnGameOver(Level.GameTimer.Done(), true))
+                        {
+                            InitGame();
+                            State.WasGameWonB4Timeout = false;
+                            continue;
+                        }
                     }
+                    else
+                    {
+                        Renderer.DrawBackground(ref bgIngame2);
+                        Renderer.DrawTimer(elapsedTime);
+                        DragMouseToEnemies();
+                        ProcessSelectedTiles();
+                        ComputeMatches();
+                        //Console.WriteLine(_matchesOf3.Count);
+                        //Renderer.DrawOuterBox(_enemyMatches, elapsedTime);  
+                        Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;  
+                        Renderer.DrawGrid(_grid, elapsedTime, shaderLoc);
+                        BeginShaderMode(WobbleShader);
+                        Renderer.DrawMatches(_enemyMatches, _grid, elapsedTime, _shallCreateEnemies);
+                        EndShaderMode();
+                        HardReset();
+                    }
+                    _enterGame = true;
                 }
-                else
-                {
-                   // Renderer.DrawBackground(ref bgIngame2);
-                    Renderer.DrawTimer(elapsedTime);
-                    DragMouseToEnemies();
-                    ProcessSelectedTiles();
-                    ComputeMatches();
-                    //Console.WriteLine(_matchesOf3.Count);
-                    //Renderer.DrawOuterBox(_enemyMatches, elapsedTime);  
-                    Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;  
-                    Renderer.DrawGrid(_grid, elapsedTime, shaderLoc);
-                    BeginShaderMode(WobbleShader);
-                    Renderer.DrawMatches(_enemyMatches, _grid, elapsedTime, _shallCreateEnemies);
-                    EndShaderMode();
-                    HardReset();
-                }
-                _enterGame = true;
-            }
             
             End();
             EndDrawing();
