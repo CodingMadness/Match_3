@@ -164,8 +164,8 @@ public static class Bakery
         
         for (int i = 0; i <  match.Count; i++)
         {
-            var begin = match.Move(i);
-            var gridCell = begin / Tile.Size;
+            //var gridCell = match.Move(i) ?? throw new ArgumentOutOfRangeException("bla bla");
+            var gridCell = match.Matches.ElementAt(i).GridCell;
             map[gridCell] = AsEnemy(map[gridCell]!);
             EnemyTile e = (EnemyTile)map[gridCell]!;
             e.BlockSurroundingTiles(map, true);
