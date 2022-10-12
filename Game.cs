@@ -102,7 +102,7 @@ internal static class Game
         if (firstClickedTile!.IsDeleted)
             return;
 
-        SwapQuestHandler.Instance.UnSubscribe();
+        DestroyByClickQuestHandler.Instance.UnSubscribe();
         State.DefaultTile = firstClickedTile;
         ref var current = ref State.GetData();
         current.Click.Count++;

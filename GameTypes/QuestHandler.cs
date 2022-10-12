@@ -81,7 +81,10 @@ public abstract class QuestHandler
     {
         return ref new Ref<Numbers>(ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<Type, Numbers>)_goal, key, out _))._ref;
     }
-     
+
+    protected static THandler GetInstance<THandler>() 
+        where THandler : QuestHandler, new() => SingletonManager.GetOrCreateInstance<THandler>();
+
     protected int Count => _goal.Count;
 
     //For instance:
@@ -103,14 +106,17 @@ public abstract class QuestHandler
     protected abstract void HandleEvent(GameState state);
     
     public abstract void UnSubscribe();
+   
+  
     public static void InitAllQuestHandlers()
     {
         // INIT all Sub_QuestHandlers here!...
         _ = new SwapQuestHandler();
         _ = new MatchQuestHandler();
-        _ = new DestroyByClickQuestHandler();
+        //_ = new DestroyByClickQuestHandler();
         _ = new ColorByClickQuestHandler();
     }
+   
 }
 
 public class SwapQuestHandler : QuestHandler
@@ -143,7 +149,7 @@ public class SwapQuestHandler : QuestHandler
         }
     }
 
-    public static SwapQuestHandler Instance => SingletonManager.GetOrCreateInstance<SwapQuestHandler>();
+    public static SwapQuestHandler Instance => GetInstance<SwapQuestHandler>();
     
     public SwapQuestHandler()
     {
@@ -177,6 +183,8 @@ public sealed class MatchQuestHandler : QuestHandler
         Game.OnMatchFound += HandleEvent;
     }
 
+    public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
+    
     protected override void DefineGoals(GameState state)
     {
         ref Numbers _numbers = ref GetData(Type.Empty);
@@ -235,7 +243,7 @@ public abstract class ClickQuestHandler : QuestHandler
     {
         Game.OnTileClicked += HandleEvent;
     }
-    
+
     protected override void DefineGoals(GameState state)
     {
         for (Type i = 0; i < Type.Length; i++)
@@ -295,10 +303,15 @@ public sealed class DestroyByClickQuestHandler : ClickQuestHandler
             //Console.WriteLine($"SADLY YOU STILL NEED {_goal.GetData(state.CurrentType).Click.Count}");
         }
     }
+    
+    public static DestroyByClickQuestHandler Instance => GetInstance<DestroyByClickQuestHandler>();
+
 }
 
 public sealed class ColorByClickQuestHandler : ClickQuestHandler
 {
+    public static ColorByClickQuestHandler Instance => GetInstance<ColorByClickQuestHandler>();
+    
     private static readonly Color[] rndColors = 
     {
         RED, WHITE, YELLOW, BLUE, GREEN, PURPLE, VIOLET
@@ -313,13 +326,11 @@ public sealed class ColorByClickQuestHandler : ClickQuestHandler
 
         if (ClickGoalReached(state))
         {
-            var before =state.DefaultTile.Body.Color; 
-            state.DefaultTile.Body.ToConstColor(rndColors[current.Count]);
-            var after =state.DefaultTile.Body.Color;
+            state.DefaultTile.Body.ToConstColor(rndColors[Utils.Randomizer.Next(0,rndColors.Length-1)]);
+            current = default;
         }
         else
         {
-            
             Console.WriteLine($"SADLY YOU STILL NEED {goal.Count - current.Count} more clicks!");
         }
     }
