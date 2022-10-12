@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Match_3.GameTypes;
@@ -12,6 +13,7 @@ public static unsafe class AssetManager
     public static Texture WelcomeTexture;
     public static Texture DefaultTileAtlas;
     public static Texture EnemyAtlas;
+    public static Shader WobbleShader;
     
     private static Font welcomeFont = GetFontDefault();
     public static readonly GameText WelcomeText = new(welcomeFont, "Welcome young man!!", 7f);
@@ -61,14 +63,48 @@ public static unsafe class AssetManager
         bg = LoadImageFromMemory(".png", first, buffer.Length);
         IngameTexture2 = LoadTextureFromImage(bg);
 
-        buffer = GetEmbeddedResource("Atlas.set1_small.png");
+        buffer = GetEmbeddedResource("Atlas.set1.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         Image ballImg = LoadImageFromMemory(".png", first, buffer.Length);
         DefaultTileAtlas = LoadTextureFromImage(ballImg);
         
-        buffer = GetEmbeddedResource("Atlas.set2_small.png");
+        buffer = GetEmbeddedResource("Atlas.set2.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         ballImg = LoadImageFromMemory(".png", first, buffer.Length);
         EnemyAtlas = LoadTextureFromImage(ballImg);
+        
+        buffer = GetEmbeddedResource("Shaders.wobble.frag");
+        using Stream rsStream = new MemoryStream(buffer, 0, buffer.Length);
+        using var reader = new StreamReader(rsStream);
+        WobbleShader = LoadShaderFromMemory(null, reader.ReadToEnd());
+    }
+    
+    public static (int sizeLoc, int timeLoc) InitShader()
+    {
+        int sizeLoc = GetShaderLocation(WobbleShader, "size");
+        int secondsLoc = GetShaderLocation(WobbleShader, "seconds");
+        int freqXLoc = GetShaderLocation(WobbleShader, "freqX");
+        int freqYLoc = GetShaderLocation(WobbleShader, "freqY");
+        int ampXLoc = GetShaderLocation(WobbleShader, "ampX");
+        int ampYLoc = GetShaderLocation(WobbleShader, "ampY");
+        int speedXLoc = GetShaderLocation(WobbleShader, "speedX");
+        int speedYLoc = GetShaderLocation(WobbleShader, "speedY");
+
+        // Shader uniform values that can be updated at any time
+        float freqX = 34.0f;
+        float freqY = 50.0f;
+        float ampX = 5.0f;
+        float ampY = 5.0f;
+        float speedX = 8.0f;
+        float speedY = 8.0f;
+        
+        SetShaderValue(WobbleShader, freqXLoc, ref freqX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        SetShaderValue(WobbleShader, freqYLoc, ref freqY,ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        SetShaderValue(WobbleShader, ampXLoc, ref ampX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        SetShaderValue(WobbleShader, ampYLoc, ref ampY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        SetShaderValue(WobbleShader, speedXLoc, ref speedX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        SetShaderValue(WobbleShader, speedYLoc, ref speedY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+
+        return (sizeLoc, secondsLoc);
     }
 }
