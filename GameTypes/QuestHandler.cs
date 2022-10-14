@@ -21,6 +21,7 @@ public ref struct Ref<T> where T : unmanaged
     public Ref(ref T @ref)
     {
         _ref = ref @ref;
+    
     }
 }
 
@@ -49,9 +50,9 @@ public sealed class GameState
     }
 }
 
-public static class SingletonManager
+file static class SingletonManager
 {
-    private static readonly Dictionary<System.Type, object> _storage = new();
+    public static readonly Dictionary<System.Type, QuestHandler> _storage = new();
 
     public static T GetOrCreateInstance<T>() where T : QuestHandler, new()
     {
@@ -73,13 +74,14 @@ public static class SingletonManager
     }
 }
 
-public abstract class QuestHandler 
+public abstract class QuestHandler
 {
     private readonly IDictionary<Type, Numbers> _goal;
     
     protected ref Numbers GetData(Type key)
     {
-        return ref new Ref<Numbers>(ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<Type, Numbers>)_goal, key, out _))._ref;
+        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<Type, Numbers>)_goal, key, out _);
+        return ref new Ref<Numbers>(ref tmp)._ref;
     }
 
     protected static THandler GetInstance<THandler>() 
@@ -95,7 +97,6 @@ public abstract class QuestHandler
     protected QuestHandler()
     {
         _goal = new Dictionary<Type, Numbers>((int)Type.Length * 5);
-        Grid.NotifyOnGridCreationDone += DefineGoals;
     }
 
     /// <summary>
@@ -105,18 +106,25 @@ public abstract class QuestHandler
     protected abstract void DefineGoals(GameState state);
     protected abstract void HandleEvent(GameState state);
     
-    public abstract void UnSubscribe();
-   
-  
-    public static void InitAllQuestHandlers()
+    private void Init() => Grid.NotifyOnGridCreationDone += DefineGoals;
+
+    public static void InitAll()
     {
-        // INIT all Sub_QuestHandlers here!...
-        _ = new SwapQuestHandler();
-        _ = new MatchQuestHandler();
-        //_ = new DestroyByClickQuestHandler();
-        _ = new ColorByClickQuestHandler();
+        DestroyOnClickHandler.Instance.Init();
+        TileReplacerOnClickHandler.Instance.Init();
+        MatchQuestHandler.Instance.Init();
+        SwapQuestHandler.Instance.Init();
     }
-   
+
+    public void Subscribe()
+    {
+        bool success = SingletonManager._storage.TryAdd(this.GetType(), this);
+ 
+    }
+    public void UnSubscribe()
+    {
+        bool success = SingletonManager._storage.Remove(this.GetType());
+    }
 }
 
 public class SwapQuestHandler : QuestHandler
@@ -172,8 +180,6 @@ public class SwapQuestHandler : QuestHandler
             }
         }
     }
-
-    public override void UnSubscribe() => Game.OnTileSwapped -= HandleEvent;
 }
 
 public sealed class MatchQuestHandler : QuestHandler
@@ -233,8 +239,6 @@ public sealed class MatchQuestHandler : QuestHandler
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
         }
     }
-
-    public override void UnSubscribe() => Game.OnMatchFound -= HandleEvent;
 }
 
 public abstract class ClickQuestHandler : QuestHandler
@@ -243,7 +247,6 @@ public abstract class ClickQuestHandler : QuestHandler
     {
         Game.OnTileClicked += HandleEvent;
     }
-
     protected override void DefineGoals(GameState state)
     {
         for (Type i = 0; i < Type.Length; i++)
@@ -261,7 +264,6 @@ public abstract class ClickQuestHandler : QuestHandler
             };
         }
     }
-    
     protected bool ClickGoalReached(GameState inventory)
     {
         ref var currClick = ref inventory.GetData().Click;
@@ -272,13 +274,12 @@ public abstract class ClickQuestHandler : QuestHandler
 
         return reached;
     }
-
-    public override void UnSubscribe() => Game.OnTileClicked -= HandleEvent;
 }
 
-public sealed class DestroyByClickQuestHandler : ClickQuestHandler
+public sealed class DestroyOnClickHandler : ClickQuestHandler
 {
     private byte _matchXCounter;
+   
     protected override void HandleEvent(GameState state)
     {
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
@@ -304,13 +305,12 @@ public sealed class DestroyByClickQuestHandler : ClickQuestHandler
         }
     }
     
-    public static DestroyByClickQuestHandler Instance => GetInstance<DestroyByClickQuestHandler>();
-
+    public static DestroyOnClickHandler Instance => GetInstance<DestroyOnClickHandler>();
 }
 
-public sealed class ColorByClickQuestHandler : ClickQuestHandler
+public sealed class TileReplacerOnClickHandler : ClickQuestHandler
 {
-    public static ColorByClickQuestHandler Instance => GetInstance<ColorByClickQuestHandler>();
+    public static TileReplacerOnClickHandler Instance => GetInstance<TileReplacerOnClickHandler>();
     
     private static readonly Color[] rndColors = 
     {
