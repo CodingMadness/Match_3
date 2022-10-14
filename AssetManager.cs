@@ -15,6 +15,8 @@ public static unsafe class AssetManager
     public static Texture EnemyAtlas;
     public static Shader WobbleShader;
     
+    public static Sound Splash;
+
     private static Font welcomeFont = GetFontDefault();
     public static readonly GameText WelcomeText = new(welcomeFont, "Welcome young man!!", 7f);
     public static readonly GameText GameOverText = new( welcomeFont, "!!", 7f);
@@ -44,8 +46,14 @@ public static unsafe class AssetManager
 
     public static void LoadAssets()
     {
-        var buffer = GetEmbeddedResource("Fonts.font4.otf");
-        byte* first = (byte*)Unsafe.AsPointer(ref buffer[0]);
+        InitAudioDevice();
+        var buffer = GetEmbeddedResource("Sound.splash.mp3");
+        var first = (byte*)Unsafe.AsPointer(ref buffer[0]);
+        var wave = LoadWaveFromMemory(".mp3", first, buffer.Length);
+        Splash = LoadSoundFromWave(wave);
+
+        buffer = GetEmbeddedResource("Fonts.font4.otf");
+        first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         welcomeFont = LoadFontFromMemory(".otf", first, buffer.Length, 20, null, 0);
 
         buffer = GetEmbeddedResource("Atlas.bg2.png");

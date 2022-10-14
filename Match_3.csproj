@@ -90,6 +90,9 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+   <EmbeddedResource Include="Assets\Sound\splash.mp3">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="Assets\Fonts\font1.otf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
