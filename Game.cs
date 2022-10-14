@@ -4,7 +4,6 @@ using Raylib_CsLo;
 using static Match_3.AssetManager;
 using static Match_3.Utils;
 using static Raylib_CsLo.Raylib;
-using static rlImGui.rlImGui;
 
 #pragma warning disable CS8618
 
@@ -48,11 +47,12 @@ internal static class Game
         bg1 = new(WelcomeTexture);
         bgIngame1 = new(IngameTexture1);
         bgIngame2 = new(IngameTexture2);
-        QuestHandler.InitAllQuestHandlers();
         SetTextureFilter(IngameTexture1, TextureFilter.TEXTURE_FILTER_BILINEAR);
+        QuestHandler.InitAll();
         _grid = new(Level);
         State.Grid = _grid;
         shaderLoc = InitShader();
+        System.Console.WriteLine("HEY INIIIT!!!");
     }
     
     private static void DragMouseToEnemies()
@@ -102,27 +102,36 @@ internal static class Game
         if (firstClickedTile!.IsDeleted)
             return;
 
-        DestroyByClickQuestHandler.Instance.UnSubscribe();
-        State.DefaultTile = firstClickedTile;
-        ref var current = ref State.GetData();
-        current.Click.Count++;
-        OnTileClicked(State);
-        
         //Enemy tile was clicked on , ofc after a matchX happened!
-        if (_enemyMatches?.IsMatchActive == true && firstClickedTile is EnemyTile e)
+        if (_enemyMatches?.IsMatchActive == true && 
+            EnemyTile.IsOnlyEnemyTile(firstClickedTile, out var enemy))
         {
+            TileReplacerOnClickHandler.Instance.UnSubscribe();
+            DestroyOnClickHandler.Instance.Subscribe();
+            Console.WriteLine("Enemy tile was clicked !!");
             var elapsedSeconds = (TimeOnly.FromDateTime(DateTime.UtcNow) - _enemyMatches.CreatedAt).Seconds;
-            
-            State.Enemy = e;
-            State.DefaultTile = e;
+            State.Enemy = enemy ?? (firstClickedTile as EnemyTile)!;
+            State.DefaultTile = (enemy as Tile)!;
             State.Matches = _enemyMatches;
-            current = ref State.GetData();
+            ref var current = ref State.GetData();
             current.Click.Count++;
             current.Click.Seconds = elapsedSeconds;
             OnTileClicked(State);
         }
         else
         {
+            if (Tile.IsOnlyDefaultTile(firstClickedTile))
+            {
+                Console.WriteLine("Normal tile was clicked !!");
+                //Only when a default tile is clicked, we wanna allow it to change
+                //and since both event classes are active, we will unsub the one who destroys on clicks
+                DestroyOnClickHandler.Instance.UnSubscribe();
+                TileReplacerOnClickHandler.Instance.Subscribe();
+                State.DefaultTile = firstClickedTile;
+                ref var clicks = ref State.GetData().Click;
+                clicks.Count++;
+                OnTileClicked(State);
+            }
             firstClickedTile.TileState |= TileState.Selected;
 
             /*No tile selected yet*/
@@ -223,7 +232,6 @@ internal static class Game
 
     private static void MainGameLoop()
     {
-        Setup(false);	// sets up ImGui with ether a dark or light default theme
         //float seconds = 0.0f;
   
         while (!WindowShouldClose())
@@ -232,7 +240,6 @@ internal static class Game
             float elapsedTime = Level.GameTimer.ElapsedSeconds;
 
             BeginDrawing();
-            Begin();
 
                 if (_enemyMatches is not null)
                 {
@@ -293,14 +300,12 @@ internal static class Game
                     _enterGame = true;
                 }
             
-            End();
             EndDrawing();
         }
     }
 
     private static void CleanUp()
     {
-        Shutdown();
         UnloadShader(WobbleShader);
         UnloadTexture(DefaultTileAtlas);
         CloseWindow();
