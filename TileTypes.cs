@@ -464,4 +464,18 @@ public class EnemyTile : Tile
             }
         }
     }
+
+    public static bool IsOnlyEnemyTile(Tile? enemy, out EnemyTile? e)
+    {
+       if (enemy is Tile e0 && !e0.IsDeleted)
+       {
+            if (e0 is EnemyTile e1 && !e1.IsDeleted)
+            {
+                e = e1;
+                return true;
+            } 
+        }
+        e = null;
+        return false;
+    }
 }
