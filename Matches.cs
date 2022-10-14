@@ -115,8 +115,8 @@ public class EnemyMatches : MatchX
     private Rectangle BuildBorder()
     {
         if (Matches.Count == 0)
-            throw new MethodAccessException($"This method is accessed even tho {WorldBox} seems to be empty");
-
+            return new(0f,0f,0f,0f);
+            
         int match3RectWidth;
         int match3RectHeight;
         var firstSlot = WorldBox.GetCellPos();

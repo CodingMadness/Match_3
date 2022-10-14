@@ -108,6 +108,7 @@ internal static class Game
         {
             TileReplacerOnClickHandler.Instance.UnSubscribe();
             DestroyOnClickHandler.Instance.Subscribe();
+            var count = Game.OnTileClicked.GetInvocationList().Length;
             Console.WriteLine("Enemy tile was clicked !!");
             var elapsedSeconds = (TimeOnly.FromDateTime(DateTime.UtcNow) - _enemyMatches.CreatedAt).Seconds;
             State.Enemy = enemy ?? (firstClickedTile as EnemyTile)!;
@@ -120,13 +121,15 @@ internal static class Game
         }
         else
         {
-            if (Tile.IsOnlyDefaultTile(firstClickedTile))
+            if (Tile.IsOnlyDefaultTile(firstClickedTile) && !EnemyTile.IsOnlyEnemyTile(firstClickedTile, out _))
             {
                 Console.WriteLine("Normal tile was clicked !!");
                 //Only when a default tile is clicked, we wanna allow it to change
                 //and since both event classes are active, we will unsub the one who destroys on clicks
                 DestroyOnClickHandler.Instance.UnSubscribe();
                 TileReplacerOnClickHandler.Instance.Subscribe();
+                var count = Game.OnTileClicked.GetInvocationList().Length;
+
                 State.DefaultTile = firstClickedTile;
                 ref var clicks = ref State.GetData().Click;
                 clicks.Count++;
