@@ -37,7 +37,7 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0,45*5, 4, 8, 7);
+        Level = new(0,45*5, 4, 10, 8);
         State = new((int)Type.Length);
         _matchesOf3 = new();
         SetTargetFPS(60);
@@ -121,15 +121,14 @@ internal static class Game
         }
         else
         {
-            if (Tile.IsOnlyDefaultTile(firstClickedTile) && !EnemyTile.IsOnlyEnemyTile(firstClickedTile, out _))
+            if (Tile.IsOnlyDefaultTile(firstClickedTile) && 
+                !EnemyTile.IsOnlyEnemyTile(firstClickedTile, out _))
             {
                 Console.WriteLine("Normal tile was clicked !!");
                 //Only when a default tile is clicked, we wanna allow it to change
                 //and since both event classes are active, we will unsub the one who destroys on clicks
                 DestroyOnClickHandler.Instance.UnSubscribe();
                 TileReplacerOnClickHandler.Instance.Subscribe();
-                var count = Game.OnTileClicked.GetInvocationList().Length;
-
                 State.DefaultTile = firstClickedTile;
                 ref var clicks = ref State.GetData().Click;
                 clicks.Count++;

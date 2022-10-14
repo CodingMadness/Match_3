@@ -32,7 +32,7 @@ namespace Match_3
         private void CreateMap()
         {
             Span<int> counts = stackalloc int[(int)Type.Length];
-
+                    
             for (int x = 0; x < TileWidth; x++)
             {
                 for (int y = 1; y < TileHeight; y++)

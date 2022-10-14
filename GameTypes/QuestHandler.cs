@@ -21,7 +21,6 @@ public ref struct Ref<T> where T : unmanaged
     public Ref(ref T @ref)
     {
         _ref = ref @ref;
-    
     }
 }
 
@@ -50,7 +49,7 @@ public sealed class GameState
     }
 }
 
-file static class SingletonManager
+static file class SingletonManager
 {
     public static readonly Dictionary<System.Type, QuestHandler> _storage = new();
 
@@ -114,7 +113,7 @@ public abstract class QuestHandler
         MatchQuestHandler.Instance.Init();
         SwapQuestHandler.Instance.Init();
         TileReplacerOnClickHandler.Instance.Init();
-        DestroyOnClickHandler.Instance.Init();
+        //DestroyOnClickHandler.Instance.Init();
     }
     public void Subscribe()
     {
@@ -259,29 +258,30 @@ public abstract class ClickQuestHandler : QuestHandler
     {
         _tileGoal = new(((int)Type.Length));
         Game.OnTileClicked += HandleEvent;
-        Grid.OnTileCreated += DefineGoals;
     }
     protected override void Init() => Grid.OnTileCreated += DefineGoals;
     protected ref Numbers GetData(Tile key)
     {
-         ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault(_tileGoal, key, out _);
+        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault(_tileGoal, key, out _);
         return ref new Ref<Numbers>(ref tmp)._ref;
     }
     protected override void DefineGoals()
     {
         GameState state = Game.State;
 
-        ref Numbers _numbers = ref GetData(state.DefaultTile);
+        ref Numbers goal = ref GetData(state.DefaultTile);
 
-        _numbers.Click = Game.Level.ID switch
+        goal.Click = Game.Level.ID switch
         {
             //you have to click Count-times with only "maxTime" seconds in-between for the next click
             0 => (Utils.Randomizer.Next(1, 4), 3f),
             1 => (Utils.Randomizer.Next(5, 7), 2.5f),
             2 => (Utils.Randomizer.Next(7, 9), 3.5f),
             3 => (Utils.Randomizer.Next(9, 12), 4f),
-            _ => _numbers.Click
+            _ => goal.Click
         };
+        System.Console.WriteLine($"{state.DefaultTile.GridCell} + {goal.Click.Count}");
+        //System.Console.WriteLine($"{state.DefaultTile.GridCell}");
     }
     protected bool ClickGoalReached()
     {
@@ -339,20 +339,26 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
 
         if (!IsActive)
             return;
+
         //The Game notifies the QuestHandler, when smth happened to a tile on the map!
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
         ref var currClick = ref state.GetData().Click;
         ref var goalClick = ref GetData(state.DefaultTile).Click;
-
-        if (ClickGoalReached())
+        
+        if (ClickGoalReached() && !IsSoundPlaying(AssetManager.Splash))
         {
             //state.DefaultTile.Body.ToConstColor(rndColors[Utils.Randomizer.Next(0,rndColors.Length-1)]);
             var tile = Bakery.CreateTile(state.DefaultTile.GridCell, Utils.Randomizer.NextSingle());
             state.Grid[tile.GridCell] = tile;
+            PlaySound(AssetManager.Splash);
+            state.DefaultTile = tile;
+            DefineGoals();
             currClick = default;
+            System.Console.WriteLine("Nice, you got a new tile!");
         }
         else
         {
+            //System.Console.WriteLine($"GOAL_CLICKS:  {goalClick.Count} at Cell: {state.DefaultTile.GridCell}" );
             Console.WriteLine($"SADLY YOU STILL NEED {goalClick.Count - currClick.Count} more clicks!");
         }
     }
