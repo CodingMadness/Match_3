@@ -52,7 +52,7 @@ internal static class Game
         _grid = new(Level);
         State.Grid = _grid;
         shaderLoc = InitShader();
-        System.Console.WriteLine("HEY INIIIT!!!");
+        System.Console.WriteLine("ARE WE STILL IN THE SAME PROJECT????!!!");
     }
     
     private static void DragMouseToEnemies()
@@ -251,11 +251,11 @@ internal static class Game
                 }
 
                 ClearBackground(WHITE);
-                //Renderer.DrawBackground(ref bg1);
+                Renderer.DrawBackground(ref bg1);
                 
                 if (!_enterGame)
                 {
-                    //Renderer.ShowWelcomeScreen();
+                    Renderer.ShowWelcomeScreen();
                     //Renderer.LogQuest(false, Level);
                 }
                 if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
@@ -309,7 +309,7 @@ internal static class Game
     private static void CleanUp()
     {
         UnloadShader(WobbleShader);
-        UnloadTexture(DefaultTileAtlas);
+        UnloadTexture(DefaultTileSprite);
         CloseWindow();
     }
 }

@@ -55,7 +55,7 @@ public static class Renderer
                         
                     if (basicTile is not null && !basicTile.IsDeleted && basicTile is not EnemyTile)
                     {
-                        DrawTile(ref DefaultTileAtlas, basicTile, elapsedTime);
+                        DrawTile(ref DefaultTileSprite, basicTile, elapsedTime);
                     }
                 }
             }
@@ -69,7 +69,7 @@ public static class Renderer
         if (match is null)
             return;
         
-        Texture matchTexture = (match is MatchX and not EnemyMatches) ? ref DefaultTileAtlas : ref EnemyAtlas;
+        Texture matchTexture = (match is MatchX and not EnemyMatches) ? ref DefaultTileSprite : ref EnemySprite;
 
         for (int i = 0; i < match.Count; i++)
         {

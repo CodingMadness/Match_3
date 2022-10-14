@@ -11,8 +11,8 @@ public static unsafe class AssetManager
 {
     public static Texture IngameTexture1, IngameTexture2;
     public static Texture WelcomeTexture;
-    public static Texture DefaultTileAtlas;
-    public static Texture EnemyAtlas;
+    public static Texture DefaultTileSprite;
+    public static Texture EnemySprite;
     public static Shader WobbleShader;
     
     public static Sound Splash;
@@ -56,30 +56,30 @@ public static unsafe class AssetManager
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         welcomeFont = LoadFontFromMemory(".otf", first, buffer.Length, 20, null, 0);
 
-        buffer = GetEmbeddedResource("Atlas.bg2.png");
+        buffer = GetEmbeddedResource("Sprite.bg2.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         Image bg = LoadImageFromMemory(".png", first, buffer.Length);
         WelcomeTexture = LoadTextureFromImage(bg);
 
-        buffer = GetEmbeddedResource("Atlas.bg_3.png");
+        buffer = GetEmbeddedResource("Sprite.bg_3.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]); 
         bg = LoadImageFromMemory(".png", first, buffer.Length);
         IngameTexture1 = LoadTextureFromImage(bg);
 
-        buffer = GetEmbeddedResource("Atlas.image.png");
+        buffer = GetEmbeddedResource("Sprite.image.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]); 
         bg = LoadImageFromMemory(".png", first, buffer.Length);
         IngameTexture2 = LoadTextureFromImage(bg);
 
-        buffer = GetEmbeddedResource("Atlas.set1.png");
+        buffer = GetEmbeddedResource("Sprite.set1.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         Image ballImg = LoadImageFromMemory(".png", first, buffer.Length);
-        DefaultTileAtlas = LoadTextureFromImage(ballImg);
+        DefaultTileSprite = LoadTextureFromImage(ballImg);
         
-        buffer = GetEmbeddedResource("Atlas.set2.png");
+        buffer = GetEmbeddedResource("Sprite.set2.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         ballImg = LoadImageFromMemory(".png", first, buffer.Length);
-        EnemyAtlas = LoadTextureFromImage(ballImg);
+        EnemySprite = LoadTextureFromImage(ballImg);
         
         buffer = GetEmbeddedResource("Shaders.wobble.frag");
         using Stream rsStream = new MemoryStream(buffer, 0, buffer.Length);
