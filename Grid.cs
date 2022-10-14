@@ -21,8 +21,9 @@ namespace Match_3
         public readonly int TileWidth;
         public readonly int TileHeight;
 
-        public static event Action<GameState> NotifyOnGridCreationDone;
-
+        public static event Action NotifyOnGridCreationDone;
+        public static event Action OnTileCreated;
+        
         private const int MaxDestroyableTiles = 3;
 
         public static Tile LastMatchTrigger { get; private set; }
@@ -39,12 +40,14 @@ namespace Match_3
                     Vector2 current = new(x, y);
                     float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
                     _bitmap[x, y] = Bakery.CreateTile(current, noise);
+                    Game.State.DefaultTile = _bitmap[x, y];
+                    OnTileCreated();
                     var kind = _bitmap[x, y] is { Body: { } c } ? c.TileType : Type.Empty;
                     counts[(int)kind]++;
                 }
             }
             Game.State.TotalAmountPerType = counts.ToArray();
-            NotifyOnGridCreationDone(Game.State);
+            NotifyOnGridCreationDone();
         }
 
         public Grid(Level current)
