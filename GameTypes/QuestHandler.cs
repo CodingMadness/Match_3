@@ -65,6 +65,7 @@ file static class SingletonManager
             }
             else
             {
+
                 toReturn = new T();
                 _storage.Add(typeof(T), toReturn);
             }
@@ -76,7 +77,9 @@ file static class SingletonManager
 
 public abstract class QuestHandler
 {
-    private readonly IDictionary<Type, Numbers> _goal;
+    public bool IsActive {get; set;}
+
+    private static readonly IDictionary<Type, Numbers> _goal = new Dictionary<Type, Numbers>((int)Type.Length * 5);
     
     protected ref Numbers GetData(Type key)
     {
@@ -96,7 +99,6 @@ public abstract class QuestHandler
     //the goal is to make per new Level the Quests harder!!
     protected QuestHandler()
     {
-        _goal = new Dictionary<Type, Numbers>((int)Type.Length * 5);
     }
 
     /// <summary>
@@ -119,11 +121,15 @@ public abstract class QuestHandler
     public void Subscribe()
     {
         bool success = SingletonManager._storage.TryAdd(this.GetType(), this);
- 
+        IsActive = true;
     }
     public void UnSubscribe()
     {
-        bool success = SingletonManager._storage.Remove(this.GetType());
+        if (IsActive)
+        {
+            bool success = SingletonManager._storage.Remove(this.GetType());
+            IsActive = false;
+        }
     }
 }
 
@@ -285,6 +291,8 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
+        if (!IsActive)
+            return;
 
         if (ClickGoalReached(state))
         {
@@ -306,6 +314,7 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
     }
     
     public static DestroyOnClickHandler Instance => GetInstance<DestroyOnClickHandler>();
+
 }
 
 public sealed class TileReplacerOnClickHandler : ClickQuestHandler
@@ -319,6 +328,9 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
     
     protected override void HandleEvent(GameState state)
     {
+        if (!IsActive)
+            return;
+
         //The Game notifies the QuestHandler, when smth happened to a tile on the map!
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
         ref readonly var goal = ref state.GetData().Click;
@@ -333,7 +345,7 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         }
         else
         {
-            Console.WriteLine($"SADLY YOU STILL NEED {goal.Count - current.Count} more clicks!");
+           // Console.WriteLine($"SADLY YOU STILL NEED {goal.Count - current.Count} more clicks!");
         }
     }
 }
