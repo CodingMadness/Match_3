@@ -24,9 +24,9 @@ internal static class Game
 
     private static (int size, int time) shaderLoc;
     
-    public static event Action<GameState> OnMatchFound;
-    public static event Action<GameState> OnTileClicked;
-    public static event Action<GameState> OnTileSwapped;
+    public static event Action OnMatchFound;
+    public static event Action OnTileClicked;
+    public static event Action OnTileSwapped;
     
     private static void Main()
     {
@@ -48,7 +48,7 @@ internal static class Game
         bgIngame1 = new(IngameTexture1);
         bgIngame2 = new(IngameTexture2);
         SetTextureFilter(IngameTexture1, TextureFilter.TEXTURE_FILTER_BILINEAR);
-        QuestHandler.InitAll();
+        QuestHandler.InitGoal();
         _grid = new(Level);
         State.Grid = _grid;
         shaderLoc = InitShader();
@@ -117,7 +117,7 @@ internal static class Game
             ref var current = ref State.GetData();
             current.Click.Count++;
             current.Click.Seconds = elapsedSeconds;
-            OnTileClicked(State);
+            OnTileClicked();
         }
         else
         {
@@ -133,7 +133,7 @@ internal static class Game
                 State.DefaultTile = firstClickedTile;
                 ref var clicks = ref State.GetData().Click;
                 clicks.Count++;
-                OnTileClicked(State);
+                OnTileClicked();
             }
             firstClickedTile.TileState |= TileState.Selected;
 
@@ -197,7 +197,7 @@ internal static class Game
             matchData.Match.Seconds = (_matchesOf3!.CreatedAt - _matchesOf3.DeletedAt).Seconds;
             matchData.Match.Count++;
             State.Matches = _matchesOf3;
-            OnMatchFound(State);
+            OnMatchFound();
             _grid.Delete(_matchesOf3);
         }
         else switch (_shallCreateEnemies)
