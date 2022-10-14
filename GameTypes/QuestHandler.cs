@@ -79,18 +79,19 @@ public abstract class QuestHandler
 {
     public bool IsActive {get; set;}
 
-    private static readonly IDictionary<Type, Numbers> _goal = new Dictionary<Type, Numbers>((int)Type.Length * 5);
+    private static readonly IDictionary<Type, Numbers> _goal = 
+            new Dictionary<Type, Numbers>((int)Type.Length * 5);
     
-    protected ref Numbers GetData(Type key)
+    protected ref Numbers GetData<T>(T key) where T: notnull
     {
-        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<Type, Numbers>)_goal, key, out _);
+        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<T, Numbers>)_goal, key, out _);
         return ref new Ref<Numbers>(ref tmp)._ref;
     }
 
     protected static THandler GetInstance<THandler>() 
         where THandler : QuestHandler, new() => SingletonManager.GetOrCreateInstance<THandler>();
 
-    protected int Count => _goal.Count;
+    protected virtual int Count => _goal.Count;
 
     //For instance:
     //Collect N-Type1, N-Type2, N-Type3 up to maxTilesActive
@@ -105,19 +106,16 @@ public abstract class QuestHandler
     /// This will be called automatically when Grid is done with its bitmap creation!
     /// </summary>
     /// <param name="state">The current State of the game, with all needed Data</param>
-    protected abstract void DefineGoals(GameState state);
-    protected abstract void HandleEvent(GameState state);
-    
-    private void Init() => Grid.NotifyOnGridCreationDone += DefineGoals;
-
-    public static void InitAll()
+    protected abstract void DefineGoals();
+    protected abstract void HandleEvent();
+    protected virtual void Init() => Grid.NotifyOnGridCreationDone += DefineGoals;
+    public static void InitGoal()
     {
-        DestroyOnClickHandler.Instance.Init();
-        TileReplacerOnClickHandler.Instance.Init();
         MatchQuestHandler.Instance.Init();
         SwapQuestHandler.Instance.Init();
+        TileReplacerOnClickHandler.Instance.Init();
+        DestroyOnClickHandler.Instance.Init();
     }
-
     public void Subscribe()
     {
         bool success = SingletonManager._storage.TryAdd(this.GetType(), this);
@@ -135,7 +133,7 @@ public abstract class QuestHandler
 
 public class SwapQuestHandler : QuestHandler
 {
-    protected override void DefineGoals(GameState? state)
+    protected override void DefineGoals()
     {
         for (Type i = 0; i < Type.Length; i++)
         {
@@ -170,8 +168,10 @@ public class SwapQuestHandler : QuestHandler
         Game.OnTileSwapped += HandleEvent;
     }
 
-    protected override void HandleEvent(GameState state)
+    protected override void HandleEvent()
     {
+        GameState state = Game.State;
+
         for (Type i = 0; i < Type.Length; i++)
         {
             ref Numbers numbers = ref GetData(i);
@@ -197,10 +197,11 @@ public sealed class MatchQuestHandler : QuestHandler
 
     public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
     
-    protected override void DefineGoals(GameState state)
+    protected override void DefineGoals()
     {
         ref Numbers _numbers = ref GetData(Type.Empty);
-        
+        GameState state = Game.State;
+
         _numbers.Match = Game.Level.ID switch
         {
             //at some later point I will decide how if and how to check if a 
@@ -227,19 +228,22 @@ public sealed class MatchQuestHandler : QuestHandler
         }
     }
     
-    private bool IsMatchGoalReached(GameState state)
+    private bool IsMatchGoalReached()
     {
+        GameState state = Game.State;
         ref var goal = ref GetData(state.CurrentType).Match;
         ref var current = ref state.GetData().Match;
         return goal.Count == current.Count;
     }
     
-    protected override void HandleEvent(GameState state)
+    protected override void HandleEvent()
     {
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
-        if (IsMatchGoalReached(state))
+        GameState state = Game.State;
+
+        if (IsMatchGoalReached())
         {
             state.WasGameWonB4Timeout = Count == 0;
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
@@ -249,31 +253,41 @@ public sealed class MatchQuestHandler : QuestHandler
 
 public abstract class ClickQuestHandler : QuestHandler
 {
+    protected readonly Dictionary<Tile, Numbers> _tileGoal;
+    protected override int Count => _tileGoal.Count;
     protected ClickQuestHandler()
     {
+        _tileGoal = new(((int)Type.Length));
         Game.OnTileClicked += HandleEvent;
+        Grid.OnTileCreated += DefineGoals;
     }
-    protected override void DefineGoals(GameState state)
+    protected override void Init() => Grid.OnTileCreated += DefineGoals;
+    protected ref Numbers GetData(Tile key)
     {
-        for (Type i = 0; i < Type.Length; i++)
-        {
-            ref Numbers _numbers = ref GetData(i);
+         ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault(_tileGoal, key, out _);
+        return ref new Ref<Numbers>(ref tmp)._ref;
+    }
+    protected override void DefineGoals()
+    {
+        GameState state = Game.State;
 
-            _numbers.Click = Game.Level.ID switch
-            {
-                //you have to click Count-times with only "maxTime" seconds in-between for the next click
-                0 => (4, 3f),
-                1 => (6, 2.5f),
-                2 => (7, 2f),
-                3 => (9, 4),
-                _ => _numbers.Click
-            };
-        }
+        ref Numbers _numbers = ref GetData(state.DefaultTile);
+
+        _numbers.Click = Game.Level.ID switch
+        {
+            //you have to click Count-times with only "maxTime" seconds in-between for the next click
+            0 => (Utils.Randomizer.Next(1, 4), 3f),
+            1 => (Utils.Randomizer.Next(5, 7), 2.5f),
+            2 => (Utils.Randomizer.Next(7, 9), 3.5f),
+            3 => (Utils.Randomizer.Next(9, 12), 4f),
+            _ => _numbers.Click
+        };
     }
-    protected bool ClickGoalReached(GameState inventory)
+    protected bool ClickGoalReached()
     {
-        ref var currClick = ref inventory.GetData().Click;
-        ref var goalClick = ref GetData(inventory.CurrentType).Click;
+        GameState state = Game.State;
+        ref var currClick = ref state.GetData().Click;
+        ref var goalClick = ref GetData(state.DefaultTile).Click;
 
         bool reached = currClick.Count == goalClick.Count;
                        //&& goalClicks.Seconds > currClicks.Seconds;
@@ -285,24 +299,25 @@ public abstract class ClickQuestHandler : QuestHandler
 public sealed class DestroyOnClickHandler : ClickQuestHandler
 {
     private byte _matchXCounter;
-   
-    protected override void HandleEvent(GameState state)
+
+    protected override void HandleEvent()
     {
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
+        GameState state = Game.State;
+
         if (!IsActive)
             return;
 
-        if (ClickGoalReached(state))
+        if (ClickGoalReached())
         {
             state.Enemy.Disable(true);
             state.Enemy.BlockSurroundingTiles(state.Grid, false);
             Console.WriteLine("YEA goal was reached, deleted the evil match!");
 
-            ref var clicks = ref state.GetData().Click;
-            clicks = (0, 0);
-
+            ref var currClicks = ref state.GetData().Click;
+            currClicks = (0, 0);
             state.EnemiesStillPresent = ++_matchXCounter < state.Matches!.Count;
             _matchXCounter = (byte)(state.EnemiesStillPresent ? _matchXCounter : 0);
             Console.WriteLine(nameof(state.EnemiesStillPresent) + ": " + state.EnemiesStillPresent);
@@ -312,40 +327,36 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
             //Console.WriteLine($"SADLY YOU STILL NEED {_goal.GetData(state.CurrentType).Click.Count}");
         }
     }
-    
-    public static DestroyOnClickHandler Instance => GetInstance<DestroyOnClickHandler>();
 
+    public static DestroyOnClickHandler Instance => GetInstance<DestroyOnClickHandler>();
 }
 
 public sealed class TileReplacerOnClickHandler : ClickQuestHandler
-{
-    public static TileReplacerOnClickHandler Instance => GetInstance<TileReplacerOnClickHandler>();
-    
-    private static readonly Color[] rndColors = 
+{        
+    protected override void HandleEvent()
     {
-        RED, WHITE, YELLOW, BLUE, GREEN, PURPLE, VIOLET
-    };
-    
-    protected override void HandleEvent(GameState state)
-    {
+        GameState state = Game.State;
+
         if (!IsActive)
             return;
-
         //The Game notifies the QuestHandler, when smth happened to a tile on the map!
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
-        ref readonly var goal = ref state.GetData().Click;
-        ref var current = ref state.GetData().Click;
+        ref var currClick = ref state.GetData().Click;
+        ref var goalClick = ref GetData(state.DefaultTile).Click;
 
-        if (ClickGoalReached(state))
+        if (ClickGoalReached())
         {
             //state.DefaultTile.Body.ToConstColor(rndColors[Utils.Randomizer.Next(0,rndColors.Length-1)]);
             var tile = Bakery.CreateTile(state.DefaultTile.GridCell, Utils.Randomizer.NextSingle());
             state.Grid[tile.GridCell] = tile;
-            current = default;
+            currClick = default;
         }
         else
         {
-           // Console.WriteLine($"SADLY YOU STILL NEED {goal.Count - current.Count} more clicks!");
+            Console.WriteLine($"SADLY YOU STILL NEED {goalClick.Count - currClick.Count} more clicks!");
         }
     }
+    
+    public static TileReplacerOnClickHandler Instance => 
+                        GetInstance<TileReplacerOnClickHandler>();
 }
