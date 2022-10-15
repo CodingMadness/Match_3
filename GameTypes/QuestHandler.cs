@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
-
+using System;
 namespace Match_3.GameTypes;
 
 public struct Numbers
@@ -36,7 +36,6 @@ public sealed class GameState
     public Type CurrentType => DefaultTile.Body.TileType;
     private IDictionary<Type, Numbers> _eventData { get; }
     public MatchX? Matches { get; set; }
-
     public bool EnemiesStillPresent;
     public int[] TotalAmountPerType;
     public bool WasGameWonB4Timeout;
@@ -113,7 +112,7 @@ public abstract class QuestHandler
         MatchQuestHandler.Instance.Init();
         SwapQuestHandler.Instance.Init();
         TileReplacerOnClickHandler.Instance.Init();
-        //DestroyOnClickHandler.Instance.Init();
+        DestroyOnClickHandler.Instance.Init();
     }
     public void Subscribe()
     {
@@ -130,7 +129,7 @@ public abstract class QuestHandler
     }
 }
 
-public class SwapQuestHandler : QuestHandler
+public sealed class SwapQuestHandler : QuestHandler
 {
     protected override void DefineGoals()
     {
@@ -252,19 +251,14 @@ public sealed class MatchQuestHandler : QuestHandler
 
 public abstract class ClickQuestHandler : QuestHandler
 {
-    protected readonly Dictionary<Tile, Numbers> _tileGoal;
+    private readonly Dictionary<Tile, Numbers> _tileGoal;
     protected override int Count => _tileGoal.Count;
     protected ClickQuestHandler()
     {
-        _tileGoal = new(((int)Type.Length));
+        _tileGoal = new(100);
         Game.OnTileClicked += HandleEvent;
     }
     protected override void Init() => Grid.OnTileCreated += DefineGoals;
-    protected ref Numbers GetData(Tile key)
-    {
-        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault(_tileGoal, key, out _);
-        return ref new Ref<Numbers>(ref tmp)._ref;
-    }
     protected override void DefineGoals()
     {
         GameState state = Game.State;
@@ -280,8 +274,13 @@ public abstract class ClickQuestHandler : QuestHandler
             3 => (Utils.Randomizer.Next(9, 12), 4f),
             _ => goal.Click
         };
-        System.Console.WriteLine($"{state.DefaultTile.GridCell} + {goal.Click.Count}");
+        //System.Console.WriteLine($"{state.DefaultTile.GridCell} + {goal.Click.Count}");
         //System.Console.WriteLine($"{state.DefaultTile.GridCell}");
+    }
+    protected ref Numbers GetData(Tile key)
+    {
+        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault(_tileGoal, key, out _);
+        return ref new Ref<Numbers>(ref tmp)._ref;
     }
     protected bool ClickGoalReached()
     {
@@ -305,22 +304,22 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
         //or about other events
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
-        GameState state = Game.State;
-
         if (!IsActive)
             return;
+
+        GameState state = Game.State;
 
         if (ClickGoalReached())
         {
             state.Enemy.Disable(true);
             state.Enemy.BlockSurroundingTiles(state.Grid, false);
-            Console.WriteLine("YEA goal was reached, deleted the evil match!");
+            //Console.WriteLine("YEA goal was reached, deleted the evil match!");
 
             ref var currClicks = ref state.GetData().Click;
-            currClicks = (0, 0);
+            currClicks = default;
             state.EnemiesStillPresent = ++_matchXCounter < state.Matches!.Count;
             _matchXCounter = (byte)(state.EnemiesStillPresent ? _matchXCounter : 0);
-            Console.WriteLine(nameof(state.EnemiesStillPresent) + ": " + state.EnemiesStillPresent);
+            //Console.WriteLine(nameof(state.EnemiesStillPresent) + ": " + state.EnemiesStillPresent);
         }
         else
         {

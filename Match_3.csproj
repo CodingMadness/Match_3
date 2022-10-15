@@ -45,30 +45,23 @@
     <Compile Remove="Extension.cs" />
     <Compile Remove="ProbabilityPool.cs" />
     <Compile Remove="FadeableColour.cs" />
-    <None Remove="Assets\spritesheets\shapes.png" />
+    <Compile Remove="QuestHandler.cs" />
+
     <Compile Remove="Assets\SpriteSheets\Easter_UI\**" />
     <EmbeddedResource Remove="Assets\SpriteSheets\Easter_UI\**" />
     <Compile Remove="Assets\SpriteSheets\Super_Match3_Bundle\**" />
     <EmbeddedResource Remove="Assets\SpriteSheets\Super_Match3_Bundle\**" />
-    
-    <EmbeddedResource Include="Assets\Sprites\Background\bg_3.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-      
-    <Compile Remove="QuestHandler.cs" />
-   
-    <None Remove="Assets\Sprites\Background\bg_3.png" />
-    
+    <None Remove="Assets\Sprites\Background\bg1.png" />
+    <None Remove="Assets\Sprites\Background\bg2.png" />
+    <None Remove="Assets\Sprites\Background\bg3.png" />
+       
+
     <None Remove="Wobble_Shader.frag" />
     <EmbeddedResource Include="Wobble_Shader.frag">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <None Remove="Assets\Shaders\wobble.frag" />
     <EmbeddedResource Include="Assets\Shaders\wobble.frag">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Assets\Sprites\Background\image.png" />
-    <EmbeddedResource Include="Assets\Sprites\Background\image.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <None Remove="Assets\Sprites\Tiles\set1.png" />
@@ -87,6 +80,22 @@
     <EmbeddedResource Include="Assets\Sounds\splash.mp3">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Remove="Assets\Sprites\Background\bgIngame1.png" />
+    <EmbeddedResource Include="Assets\Sprites\Background\bgIngame1.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\Sprites\Background\bgIngame2.png" />
+    <EmbeddedResource Include="Assets\Sprites\Background\bgIngame2.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\Sprites\Background\bgWelcome1.png" />
+    <EmbeddedResource Include="Assets\Sprites\Background\bgWelcome1.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\Sprites\Background\bgWelcome2.png" />
+    <EmbeddedResource Include="Assets\Sprites\Background\bgWelcome2.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\Fonts\font1.otf">
@@ -103,3 +112,5 @@
     </EmbeddedResource>
   </ItemGroup>
 </Project>
+
+    

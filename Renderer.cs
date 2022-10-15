@@ -97,7 +97,7 @@ public static class Renderer
             matches.Body!.Color.AlphaSpeed = 0.2f;
             matches.Body!.Color.ElapsedTime = elapsedTime;
             */
-            DrawRectangleRec(matches.Border, matches.Body.ToConstColor(RED));
+            DrawRectangleRec(matches.Border, matches.Body!.ToConstColor(RED));
         }
     }
     
@@ -138,7 +138,9 @@ public static class Renderer
 
     public static void DrawBackground(ref Background bg)
     {
-        DrawTexturePro(bg.Texture, bg.Body.TextureRect, Utils.ScreenRect.DoScale(bg.Body.Scale), 
+        Rectangle screen = new(0f,0f, GetScreenWidth(), GetScreenHeight());
+
+        DrawTexturePro(bg.Texture, bg.Body.TextureRect, screen.DoScale(bg.Body.Scale), 
             Vector2.Zero, 0f, bg.Body.FIXED_WHITE);
     }
     

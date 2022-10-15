@@ -38,7 +38,7 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0,45, 4, 10, 8);
+        Level = new(0,45*2, 4, 10, 8);
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         State = new((int)Type.Length);
         _matchesOf3 = new();
@@ -53,7 +53,7 @@ internal static class Game
         _grid = new(Level);
         State.Grid = _grid;
         shaderLoc = InitShader();
-        System.Console.WriteLine("ARE WE STILL IN THE SAME PROJECT????!!!");
+        //System.Console.WriteLine("ARE WE STILL IN THE SAME PROJECT????!!!");
     }
     
     private static void DragMouseToEnemies()
@@ -107,11 +107,14 @@ internal static class Game
         if (_enemyMatches?.IsMatchActive == true && 
             EnemyTile.IsOnlyEnemyTile(firstClickedTile, out var enemy))
         {
+            bool isDefault = Tile.IsOnlyDefaultTile(firstClickedTile);
             TileReplacerOnClickHandler.Instance.UnSubscribe();
             DestroyOnClickHandler.Instance.Subscribe();
             var elapsedSeconds = (TimeOnly.FromDateTime(DateTime.UtcNow) - _enemyMatches.CreatedAt).Seconds;
             State.Enemy = enemy ?? (firstClickedTile as EnemyTile)!;
-            State.DefaultTile = (enemy as Tile)!;
+            // we store the defaultTile here, in order to get back the goal-Data which was
+            //originally created for def.Tiles only!
+            State.DefaultTile = firstClickedTile; 
             State.Matches = _enemyMatches;
             ref var current = ref State.GetData();
             current.Click.Count++;
@@ -123,7 +126,7 @@ internal static class Game
             if (Tile.IsOnlyDefaultTile(firstClickedTile) && 
                 !EnemyTile.IsOnlyEnemyTile(firstClickedTile, out _))
             {
-                Console.WriteLine("Normal tile was clicked !!");
+                //Console.WriteLine("Normal tile was clicked !!");
                 //Only when a default tile is clicked, we wanna allow it to change
                 //and since both event classes are active, we will unsub the one who destroys on clicks
                 DestroyOnClickHandler.Instance.UnSubscribe();
@@ -143,7 +146,6 @@ internal static class Game
                 //_secondClicked.Select();
                 return;
             }
-
             /*Same tile selected => deselect*/
             if (StateAndBodyComparer.Singleton.Equals(firstClickedTile, _secondClicked))
             {
@@ -208,9 +210,7 @@ internal static class Game
                 break;
         }
 
-        //Console.WriteLine(_matchesOf3!.Count);
         _shallCreateEnemies = RollADice();
-        //Console.WriteLine(_shallCreateEnemies);
         State.WasSwapped = false;
         _secondClicked = null;
     }

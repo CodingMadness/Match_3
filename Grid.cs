@@ -35,7 +35,7 @@ namespace Match_3
                     
             for (int x = 0; x < TileWidth; x++)
             {
-                for (int y = 1; y < TileHeight; y++)
+                for (int y = 0; y < TileHeight; y++)
                 {
                     Vector2 current = new(x, y);
                     float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
@@ -53,7 +53,7 @@ namespace Match_3
         public Grid(Level current)
         {
             TileWidth = current.GridWidth;
-            TileHeight = current.GridHeight-1;
+            TileHeight = current.GridHeight;
             _bitmap = new Tile[TileWidth, TileHeight];
             CreateMap();
         }

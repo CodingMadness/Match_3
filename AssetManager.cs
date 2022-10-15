@@ -56,12 +56,12 @@ public static unsafe class AssetManager
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         welcomeFont = LoadFontFromMemory(".otf", first, buffer.Length, 20, null, 0);
 
-        buffer = GetEmbeddedResource(@"Sprites.Background.bg_3.png");
+        buffer = GetEmbeddedResource(@"Sprites.Background.bgWelcome1.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         Image bg = LoadImageFromMemory(".png", first, buffer.Length);
         WelcomeTexture = LoadTextureFromImage(bg);
 
-        buffer = GetEmbeddedResource(@"Sprites.Background.image.png");
+        buffer = GetEmbeddedResource(@"Sprites.Background.bgIngame1.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]); 
         bg = LoadImageFromMemory(".png", first, buffer.Length);
         IngameTexture1 = LoadTextureFromImage(bg);
