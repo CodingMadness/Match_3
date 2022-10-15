@@ -11,7 +11,6 @@
   </PropertyGroup>
   <PropertyGroup>
     <PublishTrimmed>true</PublishTrimmed>
-    <PublishSingleFile>true</PublishSingleFile>
     <PublishSelfContained>true</PublishSelfContained>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
@@ -30,14 +29,12 @@
     <None Remove="Microsoft.Extensions.Logging.Abstractions" />
     <None Remove="Assets\SpriteSheets\Easter_UI\**" />
     <None Remove="Assets\SpriteSheets\Super_Match3_Bundle\**" />
-    <None Remove="Assets\Sprite\set1.png" />
+    
     <None Remove="Assets\Fonts\font1.otf" />
     <None Remove="Assets\Fonts\font2.otf" />
     <None Remove="Assets\Fonts\font3.otf" />
     <None Remove="Assets\Fonts\font4.otf" />
-    <None Remove="Assets\Sprite\set1.png" />
-    <None Remove="Assets\Sprite\set2.png" />
-    <None Remove="Assets\Sprite\set3.png" />
+  
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" />
@@ -53,33 +50,15 @@
     <EmbeddedResource Remove="Assets\SpriteSheets\Easter_UI\**" />
     <Compile Remove="Assets\SpriteSheets\Super_Match3_Bundle\**" />
     <EmbeddedResource Remove="Assets\SpriteSheets\Super_Match3_Bundle\**" />
-    <None Remove="Assets\Sprite\bg.png" />
-    <EmbeddedResource Include="Assets\Sprite\bg.png">
+    
+    <EmbeddedResource Include="Assets\Sprites\Background\bg_3.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+      
     <Compile Remove="QuestHandler.cs" />
-    <None Remove="Assets\Sprite\set1 Kopie.png" />
-    <EmbeddedResource Include="Assets\Sprite\set1_small.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Assets\Sprite\bg2.png" />
-    <EmbeddedResource Include="Assets\Sprite\bg2.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Assets\Sprite\bg3.png" />
-    <None Remove="Assets\Sprite\bg_3.png" />
-    <EmbeddedResource Include="Assets\Sprite\bg_3.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Assets\Sprite\bg4.png" />
-    <None Remove="Assets\Sprite\image.png" />
-    <EmbeddedResource Include="Assets\Sprite\image.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Assets\Sprite\set2_small.png" />
-    <EmbeddedResource Include="Assets\Sprite\set2_small.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
+   
+    <None Remove="Assets\Sprites\Background\bg_3.png" />
+    
     <None Remove="Wobble_Shader.frag" />
     <EmbeddedResource Include="Wobble_Shader.frag">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -88,11 +67,28 @@
     <EmbeddedResource Include="Assets\Shaders\wobble.frag">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-   <EmbeddedResource Include="Assets\Sound\splash.mp3">
+    <None Remove="Assets\Sprites\Background\image.png" />
+    <EmbeddedResource Include="Assets\Sprites\Background\image.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Remove="Assets\Sprites\Tiles\set1.png" />
+    <EmbeddedResource Include="Assets\Sprites\Tiles\set1.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\Sprites\Tiles\set2.png" />
+    <EmbeddedResource Include="Assets\Sprites\Tiles\set2.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\Sprites\Tiles\set3.png" />
+    <EmbeddedResource Include="Assets\Sprites\Tiles\set3.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\Sounds\splash.mp3" />
+    <EmbeddedResource Include="Assets\Sounds\splash.mp3">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="Assets\Fonts\font1.otf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
@@ -103,15 +99,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Assets\Fonts\font4.otf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Assets\Sprite\set1.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Assets\Sprite\set2.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Assets\Sprite\set3.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>

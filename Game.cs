@@ -17,7 +17,8 @@ internal static class Game
     private static MatchX? _matchesOf3;
     private static EnemyMatches? _enemyMatches;
     private static Tile? _secondClicked;
-    private static Background bg1, bgIngame1, bgIngame2;
+    private static Background bgWelcome, bgIngame1, bgIngame2;
+    private static GameTime _gameTimer ;
 
     private static bool _enterGame;
     private static bool _shallCreateEnemies;
@@ -37,16 +38,16 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0,45*5, 4, 10, 8);
+        Level = new(0,45, 4, 10, 8);
+        _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         State = new((int)Type.Length);
         _matchesOf3 = new();
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
         LoadAssets();
-        bg1 = new(WelcomeTexture);
+        bgWelcome = new(WelcomeTexture);
         bgIngame1 = new(IngameTexture1);
-        bgIngame2 = new(IngameTexture2);
         SetTextureFilter(IngameTexture1, TextureFilter.TEXTURE_FILTER_BILINEAR);
         QuestHandler.InitGoal();
         _grid = new(Level);
@@ -108,8 +109,6 @@ internal static class Game
         {
             TileReplacerOnClickHandler.Instance.UnSubscribe();
             DestroyOnClickHandler.Instance.Subscribe();
-            var count = Game.OnTileClicked.GetInvocationList().Length;
-            Console.WriteLine("Enemy tile was clicked !!");
             var elapsedSeconds = (TimeOnly.FromDateTime(DateTime.UtcNow) - _enemyMatches.CreatedAt).Seconds;
             State.Enemy = enemy ?? (firstClickedTile as EnemyTile)!;
             State.DefaultTile = (enemy as Tile)!;
@@ -239,7 +238,7 @@ internal static class Game
         while (!WindowShouldClose())
         {
             //seconds += GetFrameTime();
-            float elapsedTime = Level.GameTimer.ElapsedSeconds;
+            float elapsedTime = _gameTimer.ElapsedSeconds;
 
             BeginDrawing();
 
@@ -251,7 +250,7 @@ internal static class Game
                 }
 
                 ClearBackground(WHITE);
-                Renderer.DrawBackground(ref bg1);
+                Renderer.DrawBackground(ref bgWelcome);
                 
                 if (!_enterGame)
                 {
@@ -260,15 +259,15 @@ internal static class Game
                 }
                 if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
                 {
-                    Level.GameTimer.Run();
+                    _gameTimer.Run();
                     
-                    bool isGameOver = Level.GameTimer.Done();
+                    bool isGameOver = _gameTimer.Done();
 
-                   // Console.WriteLine("TIME  : "+Level.GameTimer.ElapsedSeconds);
+                   // Console.WriteLine("TIME  : "+_gameTimer.ElapsedSeconds);
                     
                     if (isGameOver)
                     {
-                        if (Renderer.OnGameOver(Level.GameTimer.Done(),false))
+                        if (Renderer.OnGameOver(_gameTimer.Done(),false))
                         {
                             //leave Gameloop and hence end the game
                             return;
@@ -276,7 +275,7 @@ internal static class Game
                     }
                     else if (State.WasGameWonB4Timeout)
                     {
-                        if (Renderer.OnGameOver(Level.GameTimer.Done(), true))
+                        if (Renderer.OnGameOver(_gameTimer.Done(), true))
                         {
                             InitGame();
                             State.WasGameWonB4Timeout = false;
@@ -285,13 +284,13 @@ internal static class Game
                     }
                     else
                     {
-                        Renderer.DrawBackground(ref bgIngame2);
+                        Renderer.DrawBackground(ref bgIngame1);
                         Renderer.DrawTimer(elapsedTime);
                         DragMouseToEnemies();
                         ProcessSelectedTiles();
                         ComputeMatches();
                         //Console.WriteLine(_matchesOf3.Count);
-                        //Renderer.DrawOuterBox(_enemyMatches, elapsedTime);  
+                        Renderer.DrawOuterBox(_enemyMatches, elapsedTime);  
                         Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;  
                         Renderer.DrawGrid(_grid, elapsedTime, shaderLoc);
                         BeginShaderMode(WobbleShader);

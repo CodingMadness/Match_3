@@ -103,6 +103,7 @@ public static class Renderer
     
     public static void DrawTimer(float elapsedSeconds)
     {
+        //horrible performance: use a stringbuilder to reuse values!
         TimerText.Text = ((int)elapsedSeconds).ToString();
         FadeableColor color = elapsedSeconds > 0f ? BLUE : WHITE;
         TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
