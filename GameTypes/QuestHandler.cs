@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
-using Raylib_CsLo;
 using static Raylib_CsLo.Raylib;
-using System;
+using System.Runtime.CompilerServices;
+
 namespace Match_3.GameTypes;
 
 public struct Numbers
@@ -14,13 +14,24 @@ public struct Numbers
     public (int Count, float? Seconds) Match;
 }
 
-public ref struct Ref<T> where T : unmanaged
+public ref struct RefTuple<T> where T : unmanaged
 {
-    public ref T _ref;
+    public ref T item1;
+    private ref T item2;
 
-    public Ref(ref T @ref)
+    public RefTuple(ref T item1)
     {
-        _ref = ref @ref;
+        this.item1 = ref item1;
+    }
+
+    public ref T Next()
+    {
+        unsafe
+        {
+            ref var tmp = ref Unsafe.Add(ref item1, sizeof(T));
+            var first = (T*)Unsafe.AsPointer(ref tmp);
+            return ref *first;
+        }
     }
 }
 
@@ -28,7 +39,7 @@ public sealed class GameState
 {
     public ref Numbers GetData()
     {
-        return ref new Ref<Numbers>(ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<Type, Numbers>)_eventData, CurrentType, out _))._ref;
+        return ref new RefTuple<Numbers>(ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<Type, Numbers>)_eventData, CurrentType, out _)).item1;
     }
 
     public bool WasSwapped;
@@ -48,7 +59,7 @@ public sealed class GameState
     }
 }
 
-static file class SingletonManager
+file static class SingletonManager
 {
     public static readonly Dictionary<System.Type, QuestHandler> _storage = new();
 
@@ -77,13 +88,13 @@ public abstract class QuestHandler
 {
     public bool IsActive {get; set;}
 
-    private static readonly IDictionary<Type, Numbers> _goal = 
-            new Dictionary<Type, Numbers>((int)Type.Length * 5);
+    protected static readonly IDictionary<Type, Numbers> _goal = 
+            new Dictionary<Type, Numbers>((int)Type.Length * Level.MAX_TILES_PER_MATCH);
     
     protected ref Numbers GetData<T>(T key) where T: notnull
     {
         ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<T, Numbers>)_goal, key, out _);
-        return ref new Ref<Numbers>(ref tmp)._ref;
+        return ref new RefTuple<Numbers>(ref tmp).item1;
     }
 
     protected static THandler GetInstance<THandler>() 
@@ -128,6 +139,7 @@ public abstract class QuestHandler
         }
     }
 }
+
 
 public sealed class SwapQuestHandler : QuestHandler
 {
@@ -243,6 +255,8 @@ public sealed class MatchQuestHandler : QuestHandler
 
         if (IsMatchGoalReached())
         {
+            ref var current = ref state.GetData().Match;
+            current = default;
             state.WasGameWonB4Timeout = Count == 0;
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
         }
@@ -283,12 +297,8 @@ public abstract class ClickQuestHandler : QuestHandler
     }
     protected ref Numbers GetData(Tile key)
     {
-        if (key is EnemyTile et)
-        {
-            int a = 10;
-        }
         ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault<Tile, Numbers>(_tileGoal, key, out _);
-        return ref new Ref<Numbers>(ref tmp)._ref;
+        return ref new RefTuple<Numbers>(ref tmp).item1;
     }
     protected bool ClickGoalReached()
     {
