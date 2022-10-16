@@ -17,11 +17,12 @@ public static unsafe class AssetManager
     
     public static Sound Splash;
 
-    private static Font welcomeFont = GetFontDefault();
-    public static readonly GameText WelcomeText = new(welcomeFont, "Welcome young man!!", 7f);
-    public static readonly GameText GameOverText = new( welcomeFont, "!!", 7f);
-    public static readonly GameText TimerText = new( welcomeFont with { baseSize = 512 * 2 }, "Welcome young man!!", 11f);
-    public static readonly GameText LogText = new(welcomeFont, "", 20f); 
+    private static Font GameFont;
+
+    public static GameText WelcomeText = new(GameFont, "Welcome young man!!", 7f);
+    public static GameText GameOverText = new( GameFont, "!!", 7f);
+    public static GameText TimerText = new( GameFont with { baseSize = 512 * 2 }, "Welcome young man!!", 11f);
+    public static GameText QuestLogText = new(GameFont, "", 20f); 
 
     /// <summary>
     /// 
@@ -52,9 +53,9 @@ public static unsafe class AssetManager
         var wave = LoadWaveFromMemory(".mp3", first, buffer.Length);
         Splash = LoadSoundFromWave(wave);
 
-        buffer = GetEmbeddedResource("Fonts.font4.otf");
+        buffer = GetEmbeddedResource("Fonts.candy font.ttf");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
-        welcomeFont = LoadFontFromMemory(".otf", first, buffer.Length, 20, null, 0);
+        GameFont = LoadFontFromMemory(".ttf", first, buffer.Length, 200, null, 0);
 
         buffer = GetEmbeddedResource(@"Sprites.Background.bgWelcome1.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
@@ -80,6 +81,8 @@ public static unsafe class AssetManager
         using Stream rsStream = new MemoryStream(buffer, 0, buffer.Length);
         using var reader = new StreamReader(rsStream);
         WobbleShader = LoadShaderFromMemory(null, reader.ReadToEnd());
+
+        GameText.Src = GameFont;
     }
     
     public static (int sizeLoc, int timeLoc) InitShader()
