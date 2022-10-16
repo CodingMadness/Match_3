@@ -17,7 +17,7 @@ internal static class Game
     private static MatchX? _matchesOf3;
     private static EnemyMatches? _enemyMatches;
     private static Tile? _secondClicked;
-    private static Background bgWelcome, bgIngame1, bgIngame2;
+    private static Background bgGameOver, bgWelcome, bgIngame1, bgIngame2;
     private static GameTime _gameTimer ;
 
     private static bool _enterGame;
@@ -38,17 +38,20 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0,10, 4, 10, 8);
+        Level = new(0,600, 6, 11, 9);
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         State = new((int)Type.Length);
         _matchesOf3 = new();
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
+        SetTextureFilter(IngameTexture1, TextureFilter.TEXTURE_FILTER_BILINEAR);
         LoadAssets();
+        InitGameOverTxt();
+        InitWelcomeTxt();
         bgWelcome = new(WelcomeTexture);
         bgIngame1 = new(IngameTexture1);
-        SetTextureFilter(IngameTexture1, TextureFilter.TEXTURE_FILTER_BILINEAR);
+        bgGameOver = new(GameOverTexture);
         QuestHandler.InitGoal();
         _grid = new(Level);
         State.Grid = _grid;
@@ -134,7 +137,7 @@ internal static class Game
                 State.DefaultTile = firstClickedTile;
                 ref var clicks = ref State.GetData().Click;
                 clicks.Count++;
-                OnTileClicked();
+                //OnTileClicked();
             }
             firstClickedTile.TileState |= TileState.Selected;
 
@@ -267,7 +270,9 @@ internal static class Game
                     if (isGameOver)
                     {
                         gameOverTimer.Run();
+                        Renderer.DrawBackground(ref bgGameOver);
                         Renderer.DrawTimer(gameOverTimer.ElapsedSeconds);
+                        //Renderer.ShowWelcomeScreen();
                         
                         if (Renderer.DrawGameOverResult(gameOverTimer.Done(), State.WasGameWonB4Timeout))
                             return;

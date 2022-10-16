@@ -92,6 +92,10 @@
     <EmbeddedResource Include="Assets\Sprites\Background\bgWelcome1.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Remove="Assets\Sprites\Background\bgGameOver.png" />
+    <EmbeddedResource Include="Assets\Sprites\Background\bgGameOver.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <None Remove="Assets\Sprites\Background\bgWelcome2.png" />
     <EmbeddedResource Include="Assets\Sprites\Background\bgWelcome2.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
