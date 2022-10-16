@@ -10,6 +10,7 @@ namespace Match_3;
 public static unsafe class AssetManager
 {
     public static Texture WelcomeTexture;
+    public static Texture GameOverTexture;
     public static Texture DefaultTileSprite;
     public static Texture EnemySprite;
     public static Texture IngameTexture1, IngameTexture2;
@@ -20,8 +21,8 @@ public static unsafe class AssetManager
     private static Font GameFont;
 
     public static GameText WelcomeText = new(GameFont, "Welcome young man!!", 7f);
-    public static GameText GameOverText = new( GameFont, "!!", 7f);
-    public static GameText TimerText = new( GameFont with { baseSize = 512 * 2 }, "Welcome young man!!", 11f);
+    public static GameText GameOverText = new(GameFont, "", 7f);
+    public static GameText TimerText = new( GameFont with { baseSize = 512 * 2 }, "", 11f);
     public static GameText QuestLogText = new(GameFont, "", 20f); 
 
     /// <summary>
@@ -53,7 +54,7 @@ public static unsafe class AssetManager
         var wave = LoadWaveFromMemory(".mp3", first, buffer.Length);
         Splash = LoadSoundFromWave(wave);
 
-        buffer = GetEmbeddedResource("Fonts.candy font.ttf");
+        buffer = GetEmbeddedResource("Fonts.font4.otf");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         GameFont = LoadFontFromMemory(".ttf", first, buffer.Length, 200, null, 0);
 
@@ -66,6 +67,11 @@ public static unsafe class AssetManager
         first = (byte*)Unsafe.AsPointer(ref buffer[0]); 
         bg = LoadImageFromMemory(".png", first, buffer.Length);
         IngameTexture1 = LoadTextureFromImage(bg);
+
+        buffer = GetEmbeddedResource(@"Sprites.Background.bgGameOver.png");
+        first = (byte*)Unsafe.AsPointer(ref buffer[0]); 
+        bg = LoadImageFromMemory(".png", first, buffer.Length);
+        GameOverTexture = LoadTextureFromImage(bg);
 
         buffer = GetEmbeddedResource(@"Sprites.Tiles.set1.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
@@ -82,7 +88,10 @@ public static unsafe class AssetManager
         using var reader = new StreamReader(rsStream);
         WobbleShader = LoadShaderFromMemory(null, reader.ReadToEnd());
 
-        GameText.Src = GameFont;
+        WelcomeText.Src = GameFont;
+        GameOverText.Src = GameFont;
+        TimerText.Src = GameFont;
+        QuestLogText.Src = GameFont;
     }
     
     public static (int sizeLoc, int timeLoc) InitShader()
@@ -112,5 +121,20 @@ public static unsafe class AssetManager
         SetShaderValue(WobbleShader, speedYLoc, ref speedY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
 
         return (sizeLoc, secondsLoc);
+    }
+
+    public static void InitGameOverTxt()
+    {
+        GameOverText.InitSize *= 1f;
+        GameOverText.ScaleText(null);
+        GameOverText.Color = RED;
+        GameOverText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
+    }
+
+    public static void InitWelcomeTxt()
+    {
+        WelcomeText.Color = RED;
+        WelcomeText.ScaleText(null);
+        WelcomeText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
     }
 }
