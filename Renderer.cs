@@ -23,7 +23,7 @@ public static class Renderer
                 Color = (tile.TileState & TileState.Selected)==TileState.Selected ? RED : BLACK,
             };
             coordText.Color.AlphaSpeed = 0f;
-            coordText.ScaleText();
+            coordText.ScaleText(null);
             coordText.Draw(1f);
         }
 
@@ -105,18 +105,17 @@ public static class Renderer
     {
         //horrible performance: use a stringbuilder to reuse values!
         TimerText.Text = ((int)elapsedSeconds).ToString();
+        TimerText.Src.baseSize = 512*16;
         FadeableColor color = elapsedSeconds > 0f ? BLUE : WHITE;
         TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
         TimerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 0f };
-        TimerText.ScaleText();
+        TimerText.ScaleText(null);
         TimerText.Draw(1f);
     }
     
     public static void ShowWelcomeScreen()
     {
-        WelcomeText.Color = RED;
-        WelcomeText.ScaleText();
-        WelcomeText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
+        InitWelcomeTxt();
         WelcomeText.Draw(null);
     }
     
@@ -126,12 +125,8 @@ public static class Renderer
         {
             return false;
         }
-        
-        ClearBackground(WHITE);
-        GameText.Src.baseSize = 250;
-        GameOverText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
-        GameOverText.Text = gameWon.Value ? "YOU WON!" : "YOU LOST";
-        GameOverText.ScaleText();
+        InitGameOverTxt();
+        GameOverText.Text = gameWon.Value ? "YEA, YOU WON!" : "AHH, DONT WORRY, YOU WILL GET THERE";
         GameOverText.Draw(null);
         return isDone;
     }
