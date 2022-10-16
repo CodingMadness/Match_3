@@ -255,13 +255,13 @@ public abstract class ClickQuestHandler : QuestHandler
     protected override int Count => _tileGoal.Count;
     protected ClickQuestHandler()
     {
-        _tileGoal = new(100);
+        _tileGoal = new(Game.Level.GridWidth * Game.Level.GridHeight, CellComparer.Singleton);
         Game.OnTileClicked += HandleEvent;
     }
     protected override void Init() 
     {
         Grid.OnTileCreated += DefineGoals;
-        Bakery.OnEnemyTileCreated += DefineGoals;
+       
     }
     protected override void DefineGoals()
     {
@@ -283,7 +283,11 @@ public abstract class ClickQuestHandler : QuestHandler
     }
     protected ref Numbers GetData(Tile key)
     {
-        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault(_tileGoal, key, out _);
+        if (key is EnemyTile et)
+        {
+            int a = 10;
+        }
+        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault<Tile, Numbers>(_tileGoal, key, out _);
         return ref new Ref<Numbers>(ref tmp)._ref;
     }
     protected bool ClickGoalReached()
@@ -292,7 +296,7 @@ public abstract class ClickQuestHandler : QuestHandler
         ref var currClick = ref state.GetData().Click;
         ref var goalClick = ref GetData(state.DefaultTile).Click;
 
-        bool reached = currClick.Count == goalClick.Count;
+        bool reached = currClick.Count >= goalClick.Count;
                        //&& goalClicks.Seconds > currClicks.Seconds;
 
         return reached;
@@ -303,6 +307,11 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
 {
     private byte _matchXCounter;
 
+    public DestroyOnClickHandler()
+    {
+         Bakery.OnEnemyTileCreated += DefineGoals;
+    }
+
     protected override void HandleEvent()
     {
         //The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
@@ -312,21 +321,20 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
             return;
 
         GameState state = Game.State;
+        ref var currClicks = ref state.GetData();
 
         if (ClickGoalReached())
         {
             state.Enemy.Disable(true);
             state.Enemy.BlockSurroundingTiles(state.Grid, false);
-            //Console.WriteLine("YEA goal was reached, deleted the evil match!");
-
-            ref var currClicks = ref state.GetData().Click;
-            currClicks = default;
             state.EnemiesStillPresent = ++_matchXCounter < state.Matches!.Count;
             _matchXCounter = (byte)(state.EnemiesStillPresent ? _matchXCounter : 0);
-            //Console.WriteLine(nameof(state.EnemiesStillPresent) + ": " + state.EnemiesStillPresent);
+            currClicks.Click = default;
         }
         else
         {
+            System.Console.WriteLine(currClicks.Click);
+            //currClicks.Click = default;
             //Console.WriteLine($"SADLY YOU STILL NEED {_goal.GetData(state.CurrentType).Click.Count}");
         }
     }
