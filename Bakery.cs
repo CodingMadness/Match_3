@@ -158,16 +158,21 @@ public static class Bakery
         return blockTile;
     }
     
+    public static event Action OnEnemyTileCreated;
+
     public static EnemyMatches AsEnemies(Grid map, MatchX match)
     {
         EnemyMatches list = new();
-        
+         
         for (int i = 0; i <  match.Count; i++)
         {
             //var gridCell = match.Move(i) ?? throw new ArgumentOutOfRangeException("bla bla");
             var gridCell = match[(i)].GridCell;
+            //--!--
             map[gridCell] = AsEnemy(map[gridCell]!);
             EnemyTile e = (EnemyTile)map[gridCell]!;
+            Game.State.DefaultTile = e;
+            OnEnemyTileCreated();
             e.BlockSurroundingTiles(map, true);
             list.Add(e);
         }
