@@ -17,7 +17,7 @@ public class GameText
 
     public FadeableColor Color;
     
-    public static Font Src;
+    public Font Src;
         
     public string Text { get; set; }
         
@@ -25,10 +25,14 @@ public class GameText
         
     public Vector2 Begin { get; set; }
         
-    public void ScaleText()
+    public void ScaleText(int? scaleToThis)
     {
+        //default scale is always to screen
+        if (scaleToThis is null)
+            scaleToThis = GetScreenWidth();
+
         var pos = MeasureTextEx(Src, Text, InitSize, 1f);
-        float scaleX = MathF.Round(GetScreenWidth() / pos.X);
+        float scaleX = MathF.Round(scaleToThis.Value / pos.X);
         _scaledSize = InitSize * scaleX;
     }
         
