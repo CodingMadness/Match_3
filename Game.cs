@@ -38,7 +38,7 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0,45*2, 4, 10, 8);
+        Level = new(0,10, 4, 10, 8);
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         State = new((int)Type.Length);
         _matchesOf3 = new();
@@ -234,7 +234,8 @@ internal static class Game
     private static void MainGameLoop()
     {
         //float seconds = 0.0f;
-  
+        GameTime gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown);
+
         while (!WindowShouldClose())
         {
             //seconds += GetFrameTime();
@@ -250,10 +251,10 @@ internal static class Game
                 }
 
                 ClearBackground(WHITE);
-                Renderer.DrawBackground(ref bgWelcome);
                 
                 if (!_enterGame)
                 {
+                    Renderer.DrawBackground(ref bgWelcome);
                     Renderer.ShowWelcomeScreen();
                     //Renderer.LogQuest(false, Level);
                 }
@@ -263,19 +264,17 @@ internal static class Game
                     
                     bool isGameOver = _gameTimer.Done();
 
-                   // Console.WriteLine("TIME  : "+_gameTimer.ElapsedSeconds);
-                    
                     if (isGameOver)
                     {
-                        if (Renderer.OnGameOver(_gameTimer.Done(),false))
-                        {
-                            //leave Gameloop and hence end the game
+                        gameOverTimer.Run();
+                        Renderer.DrawTimer(gameOverTimer.ElapsedSeconds);
+                        
+                        if (Renderer.DrawGameOverResult(gameOverTimer.Done(), State.WasGameWonB4Timeout))
                             return;
-                        }
                     }
                     else if (State.WasGameWonB4Timeout)
                     {
-                        if (Renderer.OnGameOver(_gameTimer.Done(), true))
+                        if (Renderer.DrawGameOverResult(_gameTimer.Done(), true))
                         {
                             InitGame();
                             State.WasGameWonB4Timeout = false;
@@ -298,6 +297,7 @@ internal static class Game
                         EndShaderMode();
                         HardReset();
                     }
+                
                     _enterGame = true;
                 }
             
