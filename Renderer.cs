@@ -120,7 +120,7 @@ public static class Renderer
         WelcomeText.Draw(null);
     }
     
-    public static bool OnGameOver(bool isDone, bool? gameWon)
+    public static bool DrawGameOverResult(bool isDone, bool? gameWon)
     {
         if (gameWon is null)
         {
@@ -128,7 +128,7 @@ public static class Renderer
         }
         
         ClearBackground(WHITE);
-        GameOverText.Src.baseSize = 2;
+        GameText.Src.baseSize = 250;
         GameOverText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
         GameOverText.Text = gameWon.Value ? "YOU WON!" : "YOU LOST";
         GameOverText.ScaleText();

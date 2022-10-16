@@ -258,7 +258,11 @@ public abstract class ClickQuestHandler : QuestHandler
         _tileGoal = new(100);
         Game.OnTileClicked += HandleEvent;
     }
-    protected override void Init() => Grid.OnTileCreated += DefineGoals;
+    protected override void Init() 
+    {
+        Grid.OnTileCreated += DefineGoals;
+        Bakery.OnEnemyTileCreated += DefineGoals;
+    }
     protected override void DefineGoals()
     {
         GameState state = Game.State;
@@ -274,7 +278,7 @@ public abstract class ClickQuestHandler : QuestHandler
             3 => (Utils.Randomizer.Next(9, 12), 4f),
             _ => goal.Click
         };
-        //System.Console.WriteLine($"{state.DefaultTile.GridCell} + {goal.Click.Count}");
+        //ystem.Console.WriteLine($"{state.DefaultTile.GridCell} + {goal.Click.Count}");
         //System.Console.WriteLine($"{state.DefaultTile.GridCell}");
     }
     protected ref Numbers GetData(Tile key)

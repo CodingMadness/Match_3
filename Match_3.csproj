@@ -96,6 +96,10 @@
     <EmbeddedResource Include="Assets\Sprites\Background\bgWelcome2.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Remove="Assets\Fonts\candy font.ttf" />
+    <EmbeddedResource Include="Assets\Fonts\candy font.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\Fonts\font1.otf">

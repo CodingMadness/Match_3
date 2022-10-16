@@ -17,7 +17,7 @@ public class GameText
 
     public FadeableColor Color;
     
-    public Font Src;
+    public static Font Src;
         
     public string Text { get; set; }
         

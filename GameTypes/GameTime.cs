@@ -11,6 +11,8 @@ public struct GameTime
 
     public float ElapsedSeconds { get; set; }
 
+    public bool IsReset {get; private set;}
+
     public int MaxTimerValue { get; init; }
 
     public static GameTime GetTimer(int seconds)
@@ -42,6 +44,9 @@ public struct GameTime
         return done;
     }
 
-    public void Reset(float? newStart) =>
+    public void Reset(float? newStart)
+    {
         ElapsedSeconds = newStart ?? MaxTimerValue;
+        IsReset = true;
+    }
 }
