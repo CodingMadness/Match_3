@@ -100,6 +100,20 @@ public static class SingletonManager
 
 public abstract class QuestHandler
 {
+    private static readonly Dictionary<Tile, Numbers> TileData = new(Game.Level.GridWidth * Game.Level.GridHeight);
+    private static readonly Dictionary<TileType, Numbers> TypeData = new((int)TileType.Length);
+
+    protected internal ref Numbers DataBy(Tile key)
+    {
+        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault(TileData, key, out _);
+        return ref new RefTuple<Numbers>(ref tmp).item1;
+    }
+    protected internal ref Numbers DataByType(TileType key)
+    {
+        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeData, key, out _);
+        return ref new RefTuple<Numbers>(ref tmp).item1;
+    }
+    
     public bool IsActive {get; private set;}
     
     protected static THandler GetInstance<THandler>() 
@@ -111,20 +125,41 @@ public abstract class QuestHandler
     //----->without any miss-swap!
     //the goal is to make per new Level the Quests harder!!
 
-    protected bool IsSubGoalReached<T>(IDefineQuestData<T> handler, T key, EventType eventType) where  T: notnull
+    protected bool IsSubGoalReached<T>(T key, EventType eventType) where  T: notnull
     {
-        var state = Game.State;
-        ref var typeData = ref state.DataByType();
-        ref var goalData = ref handler.DataBy(key);
-        
-        return eventType switch
+        switch (key)
         {
-            EventType.Click => typeData.ClickCompare(ref goalData),
-            EventType.Swap => typeData.SwapsCompare(ref goalData),
-            EventType.Match => typeData.MatchCompare(ref goalData),
-            _ => false
-        };
-        
+            case Tile tile:
+            {
+                var state = Game.State;
+                ref var tileData = ref state.DataByTile();
+                ref var goalData = ref DataBy(tile);
+
+                return eventType switch
+                {
+                    EventType.Click => tileData.ClickCompare(ref goalData),
+                    EventType.Swap => tileData.SwapsCompare(ref goalData),
+                    EventType.Match => tileData.MatchCompare(ref goalData),
+                    _ => false
+                };
+            }
+            case TileType t:
+            {
+                var state = Game.State;
+                ref var typeData = ref state.DataByType();
+                ref var goalData = ref DataByType(t);
+
+                return eventType switch
+                {
+                    EventType.Click => typeData.ClickCompare(ref goalData),
+                    EventType.Swap => typeData.SwapsCompare(ref goalData),
+                    EventType.Match => typeData.MatchCompare(ref goalData),
+                    _ => false
+                };
+            }
+            default:
+                return false;
+        }
     }
     
     /// <summary>
@@ -156,35 +191,13 @@ public abstract class QuestHandler
     }
 }
 
-public interface IDefineQuestData<T> where T: notnull
+public sealed class SwapQuestHandler : QuestHandler
 {
-    protected internal Dictionary<T, Numbers> TypeData { get; set; }
-
-    protected internal void InitTypeData(int size) => TypeData = new(size);
-    
-    protected internal ref Numbers DataBy(T key)
-    {
-        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeData, key, out _);
-        return ref new RefTuple<Numbers>(ref tmp).item1;
-    }
-
-    protected internal int Count => TypeData.Count;
-}
-
-public sealed class SwapQuestHandler : QuestHandler, IDefineQuestData<TileType>
-{
-    private readonly IDefineQuestData<TileType> self;
-    Dictionary<TileType, Numbers> IDefineQuestData<TileType>.TypeData
-    {
-        get => self.TypeData;
-        set => self.TypeData = value;
-    }
-    
     protected override void DefineGoals()
     {
         for (TileType i = 0; i < TileType.Length; i++)
         {
-            ref Numbers numbers = ref self.DataBy(i);
+            ref Numbers numbers = ref DataByType(i);
 
             switch (Game.Level.ID)
             {
@@ -212,16 +225,14 @@ public sealed class SwapQuestHandler : QuestHandler, IDefineQuestData<TileType>
     
     public SwapQuestHandler()
     {
-        self = this;
-        self.InitTypeData((int)TileType.Length);
         Game.OnTileSwapped += HandleEvent;
     }
 
     private bool IsTmpSwapGoalReached()
     {
-        return IsSubGoalReached(self, Game.State.Current.Body.TileType, EventType.Swap);
+        return IsSubGoalReached(Game.State.Current.Body.TileType, EventType.Swap);
     }
-    
+
     protected override void HandleEvent()
     {
         GameState state = Game.State;
@@ -229,18 +240,10 @@ public sealed class SwapQuestHandler : QuestHandler, IDefineQuestData<TileType>
     }
 }
 
-public sealed class MatchQuestHandler : QuestHandler, IDefineQuestData<TileType>
+public sealed class MatchQuestHandler : QuestHandler
 {
-    private IDefineQuestData<TileType> self;
-    Dictionary<TileType, Numbers> IDefineQuestData<TileType>.TypeData
-    {
-        get => self.TypeData;
-        set => self.TypeData = value;
-    }
-    
     public MatchQuestHandler()
     {
-        self = this;
         Game.OnMatchFound += HandleEvent;
     }
 
@@ -252,7 +255,7 @@ public sealed class MatchQuestHandler : QuestHandler, IDefineQuestData<TileType>
 
         for (TileType i = 0; i < TileType.Length; i++)
         {
-            ref Numbers _numbers = ref self.DataBy(i);
+            ref Numbers _numbers = ref DataByType(i);
 
             _numbers.Match = Game.Level.ID switch
             {
@@ -298,18 +301,10 @@ public sealed class MatchQuestHandler : QuestHandler, IDefineQuestData<TileType>
     }
 }
 
-public abstract class ClickQuestHandler : QuestHandler, IDefineQuestData<Tile>
+public abstract class ClickQuestHandler : QuestHandler
 {
-    protected readonly IDefineQuestData<Tile> self;
-    Dictionary<Tile, Numbers> IDefineQuestData<Tile>.TypeData
-    {
-        get => self.TypeData;
-        set => self.TypeData = value;
-    }
     protected ClickQuestHandler()
     {
-        self = this;
-        self.InitTypeData(Game.Level.GridWidth * Game.Level.GridHeight);
         Game.OnTileClicked += HandleEvent;
     }
     protected override void Init()
@@ -320,7 +315,7 @@ public abstract class ClickQuestHandler : QuestHandler, IDefineQuestData<Tile>
     {
         GameState state = Game.State;
 
-        ref Numbers goal = ref self.DataBy(state.Current);
+        ref Numbers goal = ref DataBy(state.Current);
 
         goal.Click = Game.Level.ID switch
         {
@@ -334,7 +329,7 @@ public abstract class ClickQuestHandler : QuestHandler, IDefineQuestData<Tile>
     }
     protected bool IsTmpClickGoalReached()
     {
-        return IsSubGoalReached(self, Game.State.Current, EventType.Click);
+        return IsSubGoalReached(Game.State.Current, EventType.Click);
     }
 }
 
@@ -356,7 +351,7 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
             return;
 
         GameState state = Game.State;
-        ref var currClicks = ref state.DataByType();
+        ref var currClicks = ref state.DataByTile();
 
         if (IsTmpClickGoalReached())
         {
@@ -369,7 +364,7 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
         else
         {
             Console.WriteLine(currClicks.Click);
-            //Console.WriteLine($"SADLY YOU STILL NEED {_goal.DataBy(state.CurrentType).Click.Count}");
+            //Console.WriteLine($"SADLY YOU STILL NEED {_goal.DataByType(state.CurrentType).Click.Count}");
         }
     }
 
@@ -388,7 +383,7 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         //The Game notifies the QuestHandler, when smth happened to a tile on the map!
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
         ref var currClick = ref state.DataByType().Click;
-        ref var goalClick = ref self.DataBy(state.Current).Click;
+        ref var goalClick = ref DataBy(state.Current).Click;
         
         if (IsTmpClickGoalReached() && !IsSoundPlaying(AssetManager.Splash))
         {
