@@ -4,7 +4,7 @@ namespace Match_3;
 
 public static class Bakery
 {
-    private static Type GetTileTypeTypeByNoise(float noise)
+    private static TileType GetTileTypeTypeByNoise(float noise)
     {
         noise = noise.Trunc(2);
 
@@ -19,15 +19,15 @@ public static class Bakery
         
         var result = noise switch
         {
-            > 0.0f  and <= 0.15f =>  (Type.Brown, noise),
-            > 0.15f  and <= 0.25f => (Type.Red, noise),
-            > 0.25f and <= 0.35f =>  (Type.Orange, noise),
-            > 0.35f and <= 0.45f =>  (Type.Blue, noise),
-            > 0.45f and <= 0.55f =>  (Type.Green, noise),
-            > 0.55f and <= 0.65f =>  (Type.Purple, noise),
-            > 0.65f and <= 0.75f =>  (Type.Violet, noise),
-            > 0.75f and <= 1f =>     (Type.Yellow, noise),
-            _ => (Type.Empty, noise),
+            > 0.0f  and <= 0.15f =>  (TileType.Brown, noise),
+            > 0.15f  and <= 0.25f => (TileType.Red, noise),
+            > 0.25f and <= 0.35f =>  (TileType.Orange, noise),
+            > 0.35f and <= 0.45f =>  (TileType.Blue, noise),
+            > 0.45f and <= 0.55f =>  (TileType.Green, noise),
+            > 0.55f and <= 0.65f =>  (TileType.Purple, noise),
+            > 0.65f and <= 0.75f =>  (TileType.Violet, noise),
+            > 0.75f and <= 1f =>     (TileType.Yellow, noise),
+            _ => (TileType.Empty, noise),
         };
         return result.Item1;
     }
@@ -41,72 +41,72 @@ public static class Bakery
         
         return tmp.TileType switch
         {
-            Type.Green => new()
+            TileType.Green => new()
             {
-                TileType = Type.Green,
+                TileType = TileType.Green,
                 AtlasLocation = new Vector2(0f, 0f) * Tile.Size, 
                 Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.A,
                 Scale = 1f,
             },
-            Type.Purple => new()
+            TileType.Purple => new()
             {
-                TileType = Type.Purple,
+                TileType = TileType.Purple,
                 AtlasLocation = new Vector2(1f, 0f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle,
                 Layer = Coat.B,
                 Scale = 1f,
             },
-            Type.Orange => new()
+            TileType.Orange => new()
             {
-                TileType = Type.Orange,
+                TileType = TileType.Orange,
                 AtlasLocation = new Vector2(2f, 0f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.C,
                 Scale = 1f,
             },
-            Type.Yellow => new()
+            TileType.Yellow => new()
             {
-                TileType = Type.Yellow,
+                TileType = TileType.Yellow,
                 AtlasLocation = new Vector2(3f, 0f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.D,
                 Scale = 1f,
             },
-            Type.Red => new()
+            TileType.Red => new()
             {
-                TileType = Type.Red,
+                TileType = TileType.Red,
                 AtlasLocation = new Vector2(0f, 1f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.E,
                 Scale = 1f,
             },
-            Type.Blue => new()
+            TileType.Blue => new()
             {
-                TileType = Type.Blue,
+                TileType = TileType.Blue,
                 AtlasLocation = new Vector2(1f, 1f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.F,
                 Scale = 1f,
             },
-            Type.Brown => new()
+            TileType.Brown => new()
             {
-                TileType = Type.Brown,
+                TileType = TileType.Brown,
                 AtlasLocation = new Vector2(2f, 1f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
                 Layer = Coat.G,
                 Scale = 1f,
             },
-            Type.Violet => new()
+            TileType.Violet => new()
             {
-                TileType = Type.Violet,
+                TileType = TileType.Violet,
                 AtlasLocation = new Vector2(3f, 1f) * Tile.Size, 
                 Size = new(Tile.Size, Tile.Size),
                 Form = ShapeKind.Circle, 
@@ -115,8 +115,8 @@ public static class Bakery
             },
          
             //DEFAULTS.......
-            Type.Length => new() { AtlasLocation = -Vector2.One },
-            Type.Empty => new() { AtlasLocation = -Vector2.One },
+            TileType.Length => new() { AtlasLocation = -Vector2.One },
+            TileType.Empty => new() { AtlasLocation = -Vector2.One },
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -149,7 +149,7 @@ public static class Bakery
                 Form = ShapeKind.Trapez,
                 AtlasLocation = matchTile.Body.AtlasLocation,
                 Size = new(Tile.Size, Tile.Size),
-                TileType = matchTile.Body is TileShape c0 ? c0.TileType : Type.Empty,
+                TileType = matchTile.Body is TileShape c0 ? c0.TileType : TileType.Empty,
                 Layer = matchTile.Body is TileShape c1 ? c1.Layer : (Coat)(-1)
             },
             TileState = TileState.Clean,
@@ -171,7 +171,7 @@ public static class Bakery
             //--!--
             map[gridCell] = AsEnemy(map[gridCell]!);
             EnemyTile e = (EnemyTile)map[gridCell]!;
-            Game.State.DefaultTile = e;
+            Game.State.Current = e;
             OnEnemyTileCreated();
             e.BlockSurroundingTiles(map, true);
             list.Add(e);

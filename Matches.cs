@@ -5,7 +5,7 @@ using Raylib_CsLo;
 
 namespace Match_3;
 
-public class MatchX : IEnumerable<Tile>
+public class MatchX
 {
     protected readonly SortedSet<Tile> Matches;
 
@@ -94,19 +94,6 @@ public class MatchX : IEnumerable<Tile>
         Matches.Clear();
         DeletedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
     }
-
-    public IEnumerator<Tile> GetEnumerator()
-    {
-        foreach (var item in Matches)
-        {
-            yield return item;
-        }
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
 }
 
 public class EnemyMatches : MatchX
@@ -149,12 +136,15 @@ public class EnemyMatches : MatchX
     {
         get
         {
-            if (_border.x == 0 && _border.y == 0)
+            if (_border.IsEmpty())
             {
                 _border = BuildBorder();
+                return _border;
             }
-
-            return _border;
+            else
+            {
+                return _border;
+            }
         }
     }
 }

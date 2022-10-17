@@ -1,6 +1,6 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static Raylib_CsLo.Raylib;
-using System.Runtime.CompilerServices;
 
 namespace Match_3.GameTypes;
 
@@ -12,56 +12,70 @@ public struct Numbers
     public (int Count, float? Seconds) Click;
     public (int AllowedSwaps, float? Seconds) Swaps;
     public (int Count, float? Seconds) Match;
+
+    public bool ClickCompare(ref Numbers goal)
+    {
+        return Click.Count >= goal.Click.Count;
+    }
+    public bool SwapsCompare(ref Numbers goal) => Swaps == goal.Swaps;
+    public bool MatchCompare(ref Numbers goal) => Match == goal.Match;
 }
 
 public ref struct RefTuple<T> where T : unmanaged
 {
     public ref T item1;
-    private ref T item2;
+    public ref T item2;
 
     public RefTuple(ref T item1)
     {
         this.item1 = ref item1;
     }
-
-    public ref T Next()
+    public RefTuple(ref T item1, ref T item2) : this(ref item1)
     {
-        unsafe
-        {
-            ref var tmp = ref Unsafe.Add(ref item1, sizeof(T));
-            var first = (T*)Unsafe.AsPointer(ref tmp);
-            return ref *first;
-        }
+        this.item2 = ref item2;
     }
 }
 
 public sealed class GameState
 {
-    public ref Numbers GetData()
+    public ref Numbers DataByTile()
     {
-        return ref new RefTuple<Numbers>(ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<Type, Numbers>)_eventData, CurrentType, out _)).item1;
+        return ref new RefTuple<Numbers>(ref CollectionsMarshal.GetValueRefOrAddDefault(_tileData, Current, out _)).item1;
+    }
+    public ref Numbers DataByType()
+    {
+        return ref 
+            new RefTuple<Numbers>(
+                ref CollectionsMarshal.GetValueRefOrAddDefault
+                                    (_typeData, Current.Body.TileType , out _)).item1;
     }
 
     public bool WasSwapped;
-    public Tile DefaultTile { get; set; }
-    public Type CurrentType => DefaultTile.Body.TileType;
-    private IDictionary<Type, Numbers> _eventData { get; }
-    public MatchX? Matches { get; set; }
+    private Dictionary<TileType, Numbers> _typeData { get; }
+    private Dictionary<Tile, Numbers> _tileData { get; }
     public bool EnemiesStillPresent;
     public int[] TotalAmountPerType;
     public bool WasGameWonB4Timeout;
     public EnemyTile Enemy;
+    public Tile Current;
+    public MatchX? Matches;
     public Grid Grid;
 
-    public GameState(int initSize)
+    public GameState()
     {
-        _eventData = new Dictionary<Type, Numbers>(initSize);
+        _tileData = new (Game.Level.GridWidth * Game.Level.GridHeight);
+        _typeData = new((int)TileType.Length);
     }
 }
 
-file static class SingletonManager
+public enum EventType : byte
 {
-    public static readonly Dictionary<System.Type, QuestHandler> _storage = new();
+    Click, Swap, Match
+}
+
+public static class SingletonManager
+{
+    public static readonly Dictionary<Type, QuestHandler> _storage = new();
 
     public static T GetOrCreateInstance<T>() where T : QuestHandler, new()
     {
@@ -86,31 +100,33 @@ file static class SingletonManager
 
 public abstract class QuestHandler
 {
-    public bool IsActive {get; set;}
-
-    protected static readonly IDictionary<Type, Numbers> _goal = 
-            new Dictionary<Type, Numbers>((int)Type.Length * Level.MAX_TILES_PER_MATCH);
+    public bool IsActive {get; private set;}
     
-    protected ref Numbers GetData<T>(T key) where T: notnull
-    {
-        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault((Dictionary<T, Numbers>)_goal, key, out _);
-        return ref new RefTuple<Numbers>(ref tmp).item1;
-    }
-
     protected static THandler GetInstance<THandler>() 
         where THandler : QuestHandler, new() => SingletonManager.GetOrCreateInstance<THandler>();
-
-    protected virtual int Count => _goal.Count;
-
+    
     //For instance:
     //Collect N-Type1, N-Type2, N-Type3 up to maxTilesActive
     //----->within a TimeSpan of X-sec
     //----->without any miss-swap!
     //the goal is to make per new Level the Quests harder!!
-    protected QuestHandler()
-    {
-    }
 
+    protected bool IsSubGoalReached<T>(IDefineQuestData<T> handler, T key, EventType eventType) where  T: notnull
+    {
+        var state = Game.State;
+        ref var typeData = ref state.DataByType();
+        ref var goalData = ref handler.DataBy(key);
+        
+        return eventType switch
+        {
+            EventType.Click => typeData.ClickCompare(ref goalData),
+            EventType.Swap => typeData.SwapsCompare(ref goalData),
+            EventType.Match => typeData.MatchCompare(ref goalData),
+            _ => false
+        };
+        
+    }
+    
     /// <summary>
     /// This will be called automatically when Grid is done with its bitmap creation!
     /// </summary>
@@ -127,27 +143,48 @@ public abstract class QuestHandler
     }
     public void Subscribe()
     {
-        bool success = SingletonManager._storage.TryAdd(this.GetType(), this);
+        bool success = SingletonManager._storage.TryAdd(GetType(), this);
         IsActive = true;
     }
     public void UnSubscribe()
     {
         if (IsActive)
         {
-            bool success = SingletonManager._storage.Remove(this.GetType());
+            bool success = SingletonManager._storage.Remove(GetType());
             IsActive = false;
         }
     }
 }
 
-
-public sealed class SwapQuestHandler : QuestHandler
+public interface IDefineQuestData<T> where T: notnull
 {
+    protected internal Dictionary<T, Numbers> TypeData { get; set; }
+
+    protected internal void InitTypeData(int size) => TypeData = new(size);
+    
+    protected internal ref Numbers DataBy(T key)
+    {
+        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeData, key, out _);
+        return ref new RefTuple<Numbers>(ref tmp).item1;
+    }
+
+    protected internal int Count => TypeData.Count;
+}
+
+public sealed class SwapQuestHandler : QuestHandler, IDefineQuestData<TileType>
+{
+    private readonly IDefineQuestData<TileType> self;
+    Dictionary<TileType, Numbers> IDefineQuestData<TileType>.TypeData
+    {
+        get => self.TypeData;
+        set => self.TypeData = value;
+    }
+    
     protected override void DefineGoals()
     {
-        for (Type i = 0; i < Type.Length; i++)
+        for (TileType i = 0; i < TileType.Length; i++)
         {
-            ref Numbers numbers = ref GetData(i);
+            ref Numbers numbers = ref self.DataBy(i);
 
             switch (Game.Level.ID)
             {
@@ -175,33 +212,35 @@ public sealed class SwapQuestHandler : QuestHandler
     
     public SwapQuestHandler()
     {
+        self = this;
+        self.InitTypeData((int)TileType.Length);
         Game.OnTileSwapped += HandleEvent;
     }
 
+    private bool IsTmpSwapGoalReached()
+    {
+        return IsSubGoalReached(self, Game.State.Current.Body.TileType, EventType.Swap);
+    }
+    
     protected override void HandleEvent()
     {
         GameState state = Game.State;
-
-        for (Type i = 0; i < Type.Length; i++)
-        {
-            ref Numbers numbers = ref GetData(i);
-            //The Game notifies the QuestHandler, when something happens to the tile!
-            //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
-            ref var currSwaps = ref state.GetData().Swaps;
-            
-            if (currSwaps == numbers.Swaps)
-            {
-                //EventData.Remove(state.CollectPair.ballType);
-                Console.WriteLine("NOW YOU CAN DO SMTH WITH THE INFO THAT HE SWAPPED TILE X AND Y");
-            }
-        }
+        //... needs logic...//
     }
 }
 
-public sealed class MatchQuestHandler : QuestHandler
+public sealed class MatchQuestHandler : QuestHandler, IDefineQuestData<TileType>
 {
+    private IDefineQuestData<TileType> self;
+    Dictionary<TileType, Numbers> IDefineQuestData<TileType>.TypeData
+    {
+        get => self.TypeData;
+        set => self.TypeData = value;
+    }
+    
     public MatchQuestHandler()
     {
+        self = this;
         Game.OnMatchFound += HandleEvent;
     }
 
@@ -209,41 +248,37 @@ public sealed class MatchQuestHandler : QuestHandler
     
     protected override void DefineGoals()
     {
-        ref Numbers _numbers = ref GetData(Type.Empty);
         GameState state = Game.State;
 
-        _numbers.Match = Game.Level.ID switch
+        for (TileType i = 0; i < TileType.Length; i++)
         {
-            //at some later point I will decide how if and how to check if a 
-            //certain match was finished in an intervall! but for now we only check 
-            //until gameover, if the needed matchtypes were collected
-            0 => (4, null),
-            1 => (6, null),
-            2 => (7, null),
-            3 => (9, null),
-            _ => _numbers.Match
-        };
-        
-        for (Type i = 0; i < Type.Length; i++)
-        {
+            ref Numbers _numbers = ref self.DataBy(i);
+
+            _numbers.Match = Game.Level.ID switch
+            {
+                //at some later point I will decide how if and how to check if a 
+                //certain match was finished in an intervall! but for now we only check 
+                //until gameover, if the needed matchtypes were collected
+                0 => (4, null),
+                1 => (6, null),
+                2 => (7, null),
+                3 => (9, null),
+                _ => _numbers.Match
+            };
+            
             int matchesNeeded = _numbers.Match.Count;
 
             int matchSum = matchesNeeded * Level.MAX_TILES_PER_MATCH;
             int maxAllowed = state.TotalAmountPerType[(int)i];
 
             if (matchSum < maxAllowed)
-                _numbers.Match.Count = matchesNeeded;
-            else
                 _numbers.Match.Count = maxAllowed / Level.MAX_TILES_PER_MATCH;
         }
     }
     
     private bool IsMatchGoalReached()
     {
-        GameState state = Game.State;
-        ref var goal = ref GetData(state.CurrentType).Match;
-        ref var current = ref state.GetData().Match;
-        return goal.Count == current.Count;
+        return false;
     }
     
     protected override void HandleEvent()
@@ -255,33 +290,37 @@ public sealed class MatchQuestHandler : QuestHandler
 
         if (IsMatchGoalReached())
         {
-            ref var current = ref state.GetData().Match;
+            ref var current = ref state.DataByType().Match;
             current = default;
-            state.WasGameWonB4Timeout = Count == 0;
+            //state.WasGameWonB4Timeout = self.Count == 0;
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
         }
     }
 }
 
-public abstract class ClickQuestHandler : QuestHandler
+public abstract class ClickQuestHandler : QuestHandler, IDefineQuestData<Tile>
 {
-    private readonly Dictionary<Tile, Numbers> _tileGoal;
-    protected override int Count => _tileGoal.Count;
+    protected readonly IDefineQuestData<Tile> self;
+    Dictionary<Tile, Numbers> IDefineQuestData<Tile>.TypeData
+    {
+        get => self.TypeData;
+        set => self.TypeData = value;
+    }
     protected ClickQuestHandler()
     {
-        _tileGoal = new(Game.Level.GridWidth * Game.Level.GridHeight, CellComparer.Singleton);
+        self = this;
+        self.InitTypeData(Game.Level.GridWidth * Game.Level.GridHeight);
         Game.OnTileClicked += HandleEvent;
     }
-    protected override void Init() 
+    protected override void Init()
     {
         Grid.OnTileCreated += DefineGoals;
-       
     }
     protected override void DefineGoals()
     {
         GameState state = Game.State;
 
-        ref Numbers goal = ref GetData(state.DefaultTile);
+        ref Numbers goal = ref self.DataBy(state.Current);
 
         goal.Click = Game.Level.ID switch
         {
@@ -292,24 +331,10 @@ public abstract class ClickQuestHandler : QuestHandler
             3 => (Utils.Randomizer.Next(9, 12), 4f),
             _ => goal.Click
         };
-        //ystem.Console.WriteLine($"{state.DefaultTile.GridCell} + {goal.Click.Count}");
-        //System.Console.WriteLine($"{state.DefaultTile.GridCell}");
     }
-    protected ref Numbers GetData(Tile key)
+    protected bool IsTmpClickGoalReached()
     {
-        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault<Tile, Numbers>(_tileGoal, key, out _);
-        return ref new RefTuple<Numbers>(ref tmp).item1;
-    }
-    protected bool ClickGoalReached()
-    {
-        GameState state = Game.State;
-        ref var currClick = ref state.GetData().Click;
-        ref var goalClick = ref GetData(state.DefaultTile).Click;
-
-        bool reached = currClick.Count >= goalClick.Count;
-                       //&& goalClicks.Seconds > currClicks.Seconds;
-
-        return reached;
+        return IsSubGoalReached(self, Game.State.Current, EventType.Click);
     }
 }
 
@@ -331,9 +356,9 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
             return;
 
         GameState state = Game.State;
-        ref var currClicks = ref state.GetData();
+        ref var currClicks = ref state.DataByType();
 
-        if (ClickGoalReached())
+        if (IsTmpClickGoalReached())
         {
             state.Enemy.Disable(true);
             state.Enemy.BlockSurroundingTiles(state.Grid, false);
@@ -343,9 +368,8 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
         }
         else
         {
-            System.Console.WriteLine(currClicks.Click);
-            //currClicks.Click = default;
-            //Console.WriteLine($"SADLY YOU STILL NEED {_goal.GetData(state.CurrentType).Click.Count}");
+            Console.WriteLine(currClicks.Click);
+            //Console.WriteLine($"SADLY YOU STILL NEED {_goal.DataBy(state.CurrentType).Click.Count}");
         }
     }
 
@@ -356,26 +380,26 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
 {        
     protected override void HandleEvent()
     {
-        GameState state = Game.State;
-
         if (!IsActive)
             return;
 
+        GameState state = Game.State;
+
         //The Game notifies the QuestHandler, when smth happened to a tile on the map!
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
-        ref var currClick = ref state.GetData().Click;
-        ref var goalClick = ref GetData(state.DefaultTile).Click;
+        ref var currClick = ref state.DataByType().Click;
+        ref var goalClick = ref self.DataBy(state.Current).Click;
         
-        if (ClickGoalReached() && !IsSoundPlaying(AssetManager.Splash))
+        if (IsTmpClickGoalReached() && !IsSoundPlaying(AssetManager.Splash))
         {
             //state.DefaultTile.Body.ToConstColor(rndColors[Utils.Randomizer.Next(0,rndColors.Length-1)]);
-            var tile = Bakery.CreateTile(state.DefaultTile.GridCell, Utils.Randomizer.NextSingle());
+            var tile = Bakery.CreateTile(state.Current.GridCell, Utils.Randomizer.NextSingle());
             state.Grid[tile.GridCell] = tile;
             PlaySound(AssetManager.Splash);
-            state.DefaultTile = tile;
+            state.Current = tile;
             DefineGoals();
             currClick = default;
-            System.Console.WriteLine("Nice, you got a new tile!");
+            Console.WriteLine("Nice, you got a new tile!");
         }
         else
         {
@@ -384,6 +408,5 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         }
     }
     
-    public static TileReplacerOnClickHandler Instance => 
-                        GetInstance<TileReplacerOnClickHandler>();
+    public static TileReplacerOnClickHandler Instance => GetInstance<TileReplacerOnClickHandler>();
 }

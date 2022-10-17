@@ -40,7 +40,7 @@ internal static class Game
     {
         Level = new(0,600, 6, 11, 9);
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
-        State = new((int)Type.Length);
+        State = new();
         _matchesOf3 = new();
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
@@ -114,12 +114,12 @@ internal static class Game
             TileReplacerOnClickHandler.Instance.UnSubscribe();
             DestroyOnClickHandler.Instance.Subscribe();
             var elapsedSeconds = (TimeOnly.FromDateTime(DateTime.UtcNow) - _enemyMatches.CreatedAt).Seconds;
-            State.Enemy = enemy ?? (firstClickedTile as EnemyTile)!;
+            State.Enemy = enemy!;
             // we store the defaultTile here, in order to get back the goal-Data which was
             //originally created for def.Tiles only!
-            State.DefaultTile = firstClickedTile; 
+            State.Current = enemy!; 
             State.Matches = _enemyMatches;
-            ref var current = ref State.GetData();
+            ref var current = ref State.DataByTile();
             current.Click.Count++;
             current.Click.Seconds = elapsedSeconds;
             OnTileClicked();
@@ -134,8 +134,8 @@ internal static class Game
                 //and since both event classes are active, we will unsub the one who destroys on clicks
                 DestroyOnClickHandler.Instance.UnSubscribe();
                 TileReplacerOnClickHandler.Instance.Subscribe();
-                State.DefaultTile = firstClickedTile;
-                ref var clicks = ref State.GetData().Click;
+                State.Current = firstClickedTile;
+                ref var clicks = ref State.DataByTile().Click;
                 clicks.Count++;
                 //OnTileClicked();
             }
@@ -195,8 +195,8 @@ internal static class Game
         if (_grid.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!) && !_shallCreateEnemies)
         {
             Console.WriteLine($"HAD A MATCH! with {_matchesOf3.Count} elements in it!");
-            State.DefaultTile = _secondClicked!;
-            ref Numbers matchData = ref State.GetData(); 
+            State.Current = _secondClicked!;
+            ref Numbers matchData = ref State.DataByType(); 
             matchData.Match.Seconds = (_matchesOf3!.CreatedAt - _matchesOf3.DeletedAt).Seconds;
             matchData.Match.Count++;
             State.Matches = _matchesOf3;

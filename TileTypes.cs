@@ -163,7 +163,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
 /// <summary>
 /// DefaultTile hardcoded type which is created from a look into the AngryBallsTexture!
 /// </summary>
-public enum Type : short
+public enum TileType : short
 {
     Red, Blue, Green, Purple, Orange, Yellow, Brown, Violet,
     Length = Violet + 1, Empty = -1,
@@ -216,7 +216,7 @@ public class Shape
 
 public class TileShape : Shape, IEquatable<TileShape>, ICloneable
 {
-    public Type TileType { get; init; }
+    public TileType TileType { get; init; }
     public Coat Layer { get; init; }
     public override ShapeKind Form { get; set; }
     public override Vector2 AtlasLocation { get; init; }

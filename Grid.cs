@@ -31,7 +31,7 @@ namespace Match_3
 
         private void CreateMap()
         {
-            Span<int> counts = stackalloc int[(int)Type.Length];
+            Span<int> counts = stackalloc int[(int)TileType.Length];
                     
             for (int x = 0; x < TileWidth; x++)
             {
@@ -40,9 +40,9 @@ namespace Match_3
                     Vector2 current = new(x, y);
                     float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
                     _bitmap[x, y] = Bakery.CreateTile(current, noise);
-                    Game.State.DefaultTile = _bitmap[x, y];
+                    Game.State.Current = _bitmap[x, y];
                     OnTileCreated();
-                    var kind = _bitmap[x, y] is { Body: { } c } ? c.TileType : Type.Empty;
+                    var kind = _bitmap[x, y] is { Body: { } c } ? c.TileType : TileType.Empty;
                     counts[(int)kind]++;
                 }
             }
