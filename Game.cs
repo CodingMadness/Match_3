@@ -119,7 +119,7 @@ internal static class Game
             //originally created for def.Tiles only!
             State.Current = enemy!; 
             State.Matches = _enemyMatches;
-            ref var current = ref State.DataByTile().Click;
+            //ref  readonly var current = ref State.DataByTile();
             
             OnTileClicked();
         }
@@ -134,8 +134,8 @@ internal static class Game
                 DestroyOnClickHandler.Instance.UnSubscribe();
                 TileReplacerOnClickHandler.Instance.Subscribe();
                 State.Current = firstClickedTile;
-                ref var clicks = ref State.DataByTile().Click;
-                clicks.Count++;
+                ref readonly var clicks = ref State.DataByTile();
+                //clicks.Count++;
                 //OnTileClicked();
             }
             firstClickedTile.TileState |= TileState.Selected;
@@ -195,7 +195,7 @@ internal static class Game
         {
             //Console.WriteLine($"HAD A MATCH! with {_matchesOf3.Count} elements in it!");
             State.Current = _secondClicked!;
-            ref var matchData = ref State.DataByType().Match;
+            ref readonly var matchData = ref State.DataByType();
             //in State, i do know that the "matchData" will always have a value so i enforce it with "!"
   
             OnMatchFound();
