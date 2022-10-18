@@ -63,12 +63,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
 
     public void AddTime(float elapsedTime)
     {
-        if (!elapsedTime.Equals(0f, 0.001f))
-            _elapsedTime = elapsedTime;
-        else
-        {
-            _elapsedTime = 1f;
-        }
+        _elapsedTime = !elapsedTime.Equals(0f, 0.001f) ? elapsedTime : 1f;
     }
     
     private FadeableColor(Color color)

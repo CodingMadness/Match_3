@@ -172,8 +172,8 @@ namespace Match_3
             for (int i = 0; i <  match.Count; i++)
             {
                 //var gridCell0 = match.Move(i) ?? throw new Exception("why am i even thrown?"); //works not at al.... investigate
-                var gridCell1 = match[(i)].GridCell; //works good!
-                Console.WriteLine(this[gridCell1]);
+                var gridCell1 = match[i].GridCell; //works good!
+                //Console.WriteLine(this[gridCell1]);
                 this[gridCell1]?.Disable(true);
             }
             /*

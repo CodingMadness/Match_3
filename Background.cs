@@ -1,6 +1,6 @@
 using Raylib_CsLo;
 
-namespace Match_3.GameTypes;
+namespace Match_3;
 
 public class Background
 {
