@@ -4,21 +4,71 @@ using static Raylib_CsLo.Raylib;
 
 namespace Match_3.GameTypes;
 
+public struct EventData
+{
+    private readonly TimeOnly _current, _whenCountInc;
+
+    public int Count { get; set; }
+
+    public readonly float Interval => (_whenCountInc - _current).Seconds;
+}
+
 public struct Numbers
 {
     /// <summary>
     /// Count-Clicks, with maxTime inbetween them
     /// </summary>
-    public (int Count, float? Seconds) Click;
-    public (int AllowedSwaps, float? Seconds) Swaps;
-    public (int Count, float? Seconds) Match;
-
+    public (int Count, float Intervall)? Click;
+    public (int Count, float Intervall)? Swaps;
+    public (int Count, float Intervall)? Match;
+    public (int Count, float Intervall)? RePainted;
+    public Numbers()
+    {
+        Click = (0, 0f);
+        Swaps = (0, 0f);
+        Match = (0, 0f);
+        RePainted = (0, 0f);
+    }
+    
     public bool ClickCompare(ref Numbers goal)
     {
-        return Click.Count >= goal.Click.Count;
+        return Click?.Count >= goal.Click?.Count;
     }
     public bool SwapsCompare(ref Numbers goal) => Swaps == goal.Swaps;
-    public bool MatchCompare(ref Numbers goal) => Match == goal.Match;
+    public bool MatchCompare(ref Numbers goal) => Match?.Count >= goal.Match?.Count;
+
+    public void Modify(EventType type, float seconds)
+    {
+        switch (type)
+        {
+            case EventType.Click:
+                if (Click.HasValue)
+                {
+                    var tmp = Click!.Value;
+                    tmp = (tmp.Count++, seconds);
+                    Click = tmp;
+                }
+                break;
+            case EventType.Swap:
+                if (Swaps.HasValue)
+                {
+                    var tmp = Swaps!.Value;
+                    tmp = (tmp.Count++, seconds);
+                    Swaps = tmp;
+                }
+                break;
+            case EventType.Match:
+                if (Match.HasValue)
+                {
+                    var tmp = Match!.Value;
+                    tmp = (tmp.Count++, seconds);
+                    Match = tmp;
+                }
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+    }
 }
 
 public ref struct RefTuple<T> where T : unmanaged
@@ -70,18 +120,18 @@ public sealed class GameState
 
 public enum EventType : byte
 {
-    Click, Swap, Match
+    Click, Swap, Match, RePainted
 }
 
 public static class SingletonManager
 {
-    public static readonly Dictionary<Type, QuestHandler> _storage = new();
+    public static readonly Dictionary<Type, QuestHandler> Storage = new();
 
     public static T GetOrCreateInstance<T>() where T : QuestHandler, new()
     {
-        lock(_storage)
+        lock(Storage)
         {
-            if (_storage.TryGetValue(typeof(T), out var toReturn))
+            if (Storage.TryGetValue(typeof(T), out var toReturn))
             {
                 return (T)toReturn;
                 //got val to return
@@ -90,7 +140,7 @@ public static class SingletonManager
             {
 
                 toReturn = new T();
-                _storage.Add(typeof(T), toReturn);
+                Storage.Add(typeof(T), toReturn);
             }
 
             return (T)toReturn;
@@ -100,21 +150,21 @@ public static class SingletonManager
 
 public abstract class QuestHandler
 {
-    private static readonly Dictionary<Tile, Numbers> TileData = new(Game.Level.GridWidth * Game.Level.GridHeight);
-    private static readonly Dictionary<TileType, Numbers> TypeData = new((int)TileType.Length);
-
-    protected internal ref Numbers DataBy(Tile key)
+    protected static readonly Dictionary<Tile, Numbers> TileData = new(Game.Level.GridWidth * Game.Level.GridHeight);
+    protected static readonly Dictionary<TileType, Numbers> TypeData = new((int)TileType.Length);
+    protected int TypeCount => TypeData.Count;
+    protected int TileCount => TileData.Count;
+    protected ref Numbers GetGoalBy(Tile key)
     {
         ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault(TileData, key, out _);
         return ref new RefTuple<Numbers>(ref tmp).item1;
     }
-    protected internal ref Numbers DataByType(TileType key)
+    protected ref Numbers GetGoalBy(TileType key)
     {
-        ref var tmp = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeData, key, out _);
-        return ref new RefTuple<Numbers>(ref tmp).item1;
+        ref var found = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeData, key, out bool exists);
+        return ref new RefTuple<Numbers>(ref found).item1;
     }
-    
-    public bool IsActive {get; private set;}
+    protected bool IsActive {get; private set;}
     
     protected static THandler GetInstance<THandler>() 
         where THandler : QuestHandler, new() => SingletonManager.GetOrCreateInstance<THandler>();
@@ -133,8 +183,8 @@ public abstract class QuestHandler
             {
                 var state = Game.State;
                 ref var tileData = ref state.DataByTile();
-                ref var goalData = ref DataBy(tile);
-
+                ref var goalData = ref GetGoalBy(tile);
+                
                 return eventType switch
                 {
                     EventType.Click => tileData.ClickCompare(ref goalData),
@@ -147,15 +197,17 @@ public abstract class QuestHandler
             {
                 var state = Game.State;
                 ref var typeData = ref state.DataByType();
-                ref var goalData = ref DataByType(t);
+                ref var goalData = ref GetGoalBy(t);
+                //Console.WriteLine("current match: " + typeData.Match);
 
-                return eventType switch
+                bool result = eventType switch
                 {
                     EventType.Click => typeData.ClickCompare(ref goalData),
                     EventType.Swap => typeData.SwapsCompare(ref goalData),
                     EventType.Match => typeData.MatchCompare(ref goalData),
                     _ => false
                 };
+                return result;
             }
             default:
                 return false;
@@ -178,44 +230,47 @@ public abstract class QuestHandler
     }
     public void Subscribe()
     {
-        bool success = SingletonManager._storage.TryAdd(GetType(), this);
+        bool success = SingletonManager.Storage.TryAdd(GetType(), this);
         IsActive = true;
     }
     public void UnSubscribe()
     {
         if (IsActive)
         {
-            bool success = SingletonManager._storage.Remove(GetType());
+            bool success = SingletonManager.Storage.Remove(GetType());
             IsActive = false;
         }
     }
 }
 
 public sealed class SwapQuestHandler : QuestHandler
-{
+{ 
     protected override void DefineGoals()
     {
         for (TileType i = 0; i < TileType.Length; i++)
         {
-            ref Numbers numbers = ref DataByType(i);
+            ref var swaps = ref GetGoalBy(i).Swaps;
 
+            if (swaps is null)
+                continue;
+            
             switch (Game.Level.ID)
             {
                 case 0:
-                    numbers.Swaps.AllowedSwaps = Utils.Randomizer.Next(6, 8);
-                    numbers.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 6f);
+                    swaps.Value.Count= Utils.Randomizer.Next(6, 8);
+                    swaps.Seconds = (int)(Game.Level.GameBeginAt / 6f);
                     break;
                 case 1:
-                    numbers.Swaps.AllowedSwaps = Utils.Randomizer.Next(4, 6);
-                    numbers.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 4f);
+                    swaps.Swaps.Count = Utils.Randomizer.Next(4, 6);
+                    swaps.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 4f);
                     break;
                 case 2:
-                    numbers.Swaps.AllowedSwaps = Utils.Randomizer.Next(3, 5);
-                    numbers.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 3f);
+                    swaps.Swaps.Count = Utils.Randomizer.Next(3, 5);
+                    swaps.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 3f);
                     break;
                 case 3:
-                    numbers.Swaps.AllowedSwaps = Utils.Randomizer.Next(1, 2);
-                    numbers.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 10f);
+                    swaps.Swaps.Count = Utils.Randomizer.Next(1, 2);
+                    swaps.Swaps.Seconds = (int)(Game.Level.GameBeginAt / 10f);
                     break;
             }
         }
@@ -255,33 +310,37 @@ public sealed class MatchQuestHandler : QuestHandler
 
         for (TileType i = 0; i < TileType.Length; i++)
         {
-            ref Numbers _numbers = ref DataByType(i);
+            ref Numbers numbers = ref GetGoalBy(i);
 
-            _numbers.Match = Game.Level.ID switch
+            numbers.Match = Game.Level.ID switch
             {
                 //at some later point I will decide how if and how to check if a 
                 //certain match was finished in an intervall! but for now we only check 
                 //until gameover, if the needed matchtypes were collected
-                0 => (4, null),
+                0 => (2, null),
                 1 => (6, null),
                 2 => (7, null),
                 3 => (9, null),
-                _ => _numbers.Match
+                _ => numbers.Match
             };
-            
-            int matchesNeeded = _numbers.Match.Count;
+            var matchValue = numbers.Match!.Value;
 
-            int matchSum = matchesNeeded * Level.MAX_TILES_PER_MATCH;
+            int matchSum = matchValue.Count * Level.MAX_TILES_PER_MATCH;
             int maxAllowed = state.TotalAmountPerType[(int)i];
 
-            if (matchSum < maxAllowed)
-                _numbers.Match.Count = maxAllowed / Level.MAX_TILES_PER_MATCH;
+            if (matchSum > maxAllowed)
+            {
+                matchValue.Count = maxAllowed / Level.MAX_TILES_PER_MATCH;
+                numbers.Match = matchValue;
+            }
+
+            //Console.WriteLine(numbers.Match);
         }
     }
     
     private bool IsMatchGoalReached()
     {
-        return false;
+        return IsSubGoalReached(Game.State.Current.Body.TileType, EventType.Match);
     }
     
     protected override void HandleEvent()
@@ -290,14 +349,19 @@ public sealed class MatchQuestHandler : QuestHandler
         //or about other events
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
         GameState state = Game.State;
-
+        ref var current = ref state.DataByType().Match;
+        var type = state.Current.Body.TileType;
+        ref var goal = ref GetGoalBy(type).Match;
+        
         if (IsMatchGoalReached())
         {
-            ref var current = ref state.DataByType().Match;
-            current = default;
-            //state.WasGameWonB4Timeout = self.Count == 0;
+            //Update(type);
+            goal = null;
+            state.WasGameWonB4Timeout = TypeCount == 0;
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
         }
+
+        //Console.WriteLine(current?.Count);
     }
 }
 
@@ -315,7 +379,7 @@ public abstract class ClickQuestHandler : QuestHandler
     {
         GameState state = Game.State;
 
-        ref Numbers goal = ref DataBy(state.Current);
+        ref Numbers goal = ref GetGoalBy(state.Current);
 
         goal.Click = Game.Level.ID switch
         {
@@ -383,7 +447,7 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         //The Game notifies the QuestHandler, when smth happened to a tile on the map!
         //Game -------> QuestHandler--->takes "GameState" does == with _goal and based on the comparison, it decides what to do!
         ref var currClick = ref state.DataByType().Click;
-        ref var goalClick = ref DataBy(state.Current).Click;
+        ref var goalClick = ref GetGoalBy(state.Current).Click;
         
         if (IsTmpClickGoalReached() && !IsSoundPlaying(AssetManager.Splash))
         {

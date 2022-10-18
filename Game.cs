@@ -38,7 +38,7 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0,600, 6, 11, 9);
+        Level = new(0,60, 6, 11, 9);
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         State = new();
         _matchesOf3 = new();
@@ -119,9 +119,8 @@ internal static class Game
             //originally created for def.Tiles only!
             State.Current = enemy!; 
             State.Matches = _enemyMatches;
-            ref var current = ref State.DataByTile();
-            current.Click.Count++;
-            current.Click.Seconds = elapsedSeconds;
+            ref var current = ref State.DataByTile().Click;
+            
             OnTileClicked();
         }
         else
@@ -194,12 +193,11 @@ internal static class Game
         
         if (_grid.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!) && !_shallCreateEnemies)
         {
-            Console.WriteLine($"HAD A MATCH! with {_matchesOf3.Count} elements in it!");
+            //Console.WriteLine($"HAD A MATCH! with {_matchesOf3.Count} elements in it!");
             State.Current = _secondClicked!;
-            ref Numbers matchData = ref State.DataByType(); 
-            matchData.Match.Seconds = (_matchesOf3!.CreatedAt - _matchesOf3.DeletedAt).Seconds;
-            matchData.Match.Count++;
-            State.Matches = _matchesOf3;
+            ref var matchData = ref State.DataByType().Match;
+            //in State, i do know that the "matchData" will always have a value so i enforce it with "!"
+  
             OnMatchFound();
             _grid.Delete(_matchesOf3);
         }
@@ -213,7 +211,7 @@ internal static class Game
                 break;
         }
 
-        _shallCreateEnemies = RollADice();
+        _shallCreateEnemies = false;//RollADice();
         State.WasSwapped = false;
         _secondClicked = null;
     }
