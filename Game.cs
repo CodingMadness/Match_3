@@ -13,13 +13,12 @@ internal static class Game
 {
     public static GameState State { get; private set; }
     public static Level Level { get; private set; }
-    private static Grid _grid;
     private static MatchX? _matchesOf3;
     private static EnemyMatches? _enemyMatches;
     private static Tile? _secondClicked;
     private static Background bgGameOver, bgWelcome, bgIngame1, bgIngame2;
     private static GameTime _gameTimer ;
-
+    
     private static bool _enterGame;
     private static bool _shallCreateEnemies;
 
@@ -38,9 +37,8 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0,60, 6, 11, 9);
+        Level = new(0,60*3, 6, 11, 9);
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
-        State = new();
         _matchesOf3 = new();
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
@@ -53,8 +51,8 @@ internal static class Game
         bgIngame1 = new(IngameTexture1);
         bgGameOver = new(GameOverTexture);
         QuestHandler.InitGoal();
-        _grid = new(Level);
-        State.Grid = _grid;
+        State = new( );
+        Grid.Instance.Init(Level);
         shaderLoc = InitShader();
         //System.Console.WriteLine("ARE WE STILL IN THE SAME PROJECT????!!!");
     }
@@ -63,7 +61,7 @@ internal static class Game
     {
         //we only fix the mouse point,
         //WHEN the cursor exceeds at a certain bounding box
-        if (_enemyMatches is { } && _enemyMatches.WorldPos != INVALID_CELL)
+        if (_enemyMatches is { } && _enemyMatches.WorldPos != InvalidCell)
         {
             bool outsideRect = !CheckCollisionPointRec(GetMousePosition(), _enemyMatches.Border);
 
@@ -94,7 +92,7 @@ internal static class Game
         var mouseVec2 = GetMousePosition();
         Vector2 gridPos = new Vector2((int)mouseVec2.X, (int)mouseVec2.Y);
         gridPos /= Tile.Size;
-        tile = _grid[gridPos];
+        tile = Grid.Instance[gridPos];
         return tile is { };
     }
     
@@ -110,17 +108,10 @@ internal static class Game
         if (_enemyMatches?.IsMatchActive == true && 
             EnemyTile.IsOnlyEnemyTile(firstClickedTile, out var enemy))
         {
-            bool isDefault = Tile.IsOnlyDefaultTile(firstClickedTile);
             TileReplacerOnClickHandler.Instance.UnSubscribe();
             DestroyOnClickHandler.Instance.Subscribe();
-            var elapsedSeconds = (TimeOnly.FromDateTime(DateTime.UtcNow) - _enemyMatches.CreatedAt).Seconds;
-            State.Enemy = enemy!;
-            // we store the defaultTile here, in order to get back the goal-Data which was
-            //originally created for def.Tiles only!
             State.Current = enemy!; 
             State.Matches = _enemyMatches;
-            //ref  readonly var current = ref State.DataByTile();
-            
             OnTileClicked();
         }
         else
@@ -134,9 +125,7 @@ internal static class Game
                 DestroyOnClickHandler.Instance.UnSubscribe();
                 TileReplacerOnClickHandler.Instance.Subscribe();
                 State.Current = firstClickedTile;
-                ref readonly var clicks = ref State.DataByTile();
-                //clicks.Count++;
-                //OnTileClicked();
+                OnTileClicked();
             }
             firstClickedTile.TileState |= TileState.Selected;
 
@@ -161,7 +150,7 @@ internal static class Game
             {
                 firstClickedTile.TileState &= TileState.Selected;
 
-                if (_grid.Swap(firstClickedTile, _secondClicked))
+                if (Grid.Instance.Swap(firstClickedTile, _secondClicked))
                 {
                     State.WasSwapped = true;
                     //OnTileSwapped(State);
@@ -186,20 +175,18 @@ internal static class Game
                 (_enemyMatches is null || _enemyMatches.Count == 0) &&
                 _matchesOf3?.IsMatchActive == true)
             {
-                _enemyMatches = Bakery.AsEnemies(_grid, _matchesOf3);
+                _enemyMatches = Bakery.AsEnemies(Grid.Instance, _matchesOf3);
                 State.EnemiesStillPresent = true;
             }
         }
         
-        if (_grid.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!) && !_shallCreateEnemies)
+        if (Grid.Instance.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!) && !_shallCreateEnemies)
         {
             //Console.WriteLine($"HAD A MATCH! with {_matchesOf3.Count} elements in it!");
             State.Current = _secondClicked!;
-            ref readonly var matchData = ref State.DataByType();
-            //in State, i do know that the "matchData" will always have a value so i enforce it with "!"
-  
+            State.Matches = _matchesOf3;
             OnMatchFound();
-            _grid.Delete(_matchesOf3);
+            Grid.Instance.Delete(_matchesOf3!);
         }
         else switch (_shallCreateEnemies)
         {
@@ -220,7 +207,7 @@ internal static class Game
     {
         if (IsKeyDown(KeyboardKey.KEY_A))
         {
-            _grid = new Grid(Level);
+            //Grid.Instance = new Grid(Level);
             _shallCreateEnemies = false;
             _matchesOf3?.Clear();
             _enemyMatches?.Clear();
@@ -294,9 +281,9 @@ internal static class Game
                         //Console.WriteLine(_matchesOf3.Count);
                         Renderer.DrawOuterBox(_enemyMatches, elapsedTime);  
                         Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;  
-                        Renderer.DrawGrid(_grid, elapsedTime, shaderLoc);
+                        Renderer.DrawGrid(elapsedTime, shaderLoc);
                         BeginShaderMode(WobbleShader);
-                        Renderer.DrawMatches(_enemyMatches, _grid, elapsedTime, _shallCreateEnemies);
+                        Renderer.DrawMatches(_enemyMatches, elapsedTime, _shallCreateEnemies);
                         EndShaderMode();
                         HardReset();
                     }

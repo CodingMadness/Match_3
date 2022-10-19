@@ -1,7 +1,9 @@
 ﻿//using DotNext;
 
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Match_3.GameTypes;
+using Microsoft.Toolkit.HighPerformance;
 
 namespace Match_3
 {
@@ -15,20 +17,32 @@ namespace Match_3
             NegativeY = 3,
         }
       
-        private readonly Tile[,] _bitmap;
+        private Tile[,] _bitmap;
 
-        //public double Timer { get; private set; } = 10;
-        public readonly int TileWidth;
-        public readonly int TileHeight;
-
+        public int TileWidth;
+        public int TileHeight;
+        private static readonly Dictionary<TileType, Stats> TypeStats = new((int)TileType.Length);
+        
         public static event Action NotifyOnGridCreationDone;
         public static event Action OnTileCreated;
         
-        private const int MaxDestroyableTiles = 3;
-
         public static Tile LastMatchTrigger { get; private set; }
         private byte _match3FuncCounter;
 
+        public static RefTuple<Stats> GetStatsByType(TileType t)
+        {
+            return new RefTuple<Stats>(ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out _));
+        }
+
+        //public ref readonly Stats GetRef => ref GetStatsByType(TileType.Blue).Item1;
+
+        public static Grid Instance { get; } = new();
+
+        private Grid()
+        {
+            //Instance = new();
+        }
+        
         private void CreateMap()
         {
             Span<int> counts = stackalloc int[(int)TileType.Length];
@@ -39,18 +53,86 @@ namespace Match_3
                 {
                     Vector2 current = new(x, y);
                     float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
-                    _bitmap[x, y] = Bakery.CreateTile(current, noise);
-                    Game.State.Current = _bitmap[x, y];
+                    var tile = _bitmap[x, y] = Bakery.CreateTile(current, noise);
+                    Game.State.Current = tile;
                     OnTileCreated();
-                    var kind = _bitmap[x, y] is { Body: { } c } ? c.TileType : TileType.Empty;
-                    counts[(int)kind]++;
+                    counts[(int)tile.Body.TileType]++;
                 }
             }
             Game.State.TotalAmountPerType = counts.ToArray();
             NotifyOnGridCreationDone();
         }
+        
+        public ref Stats GetTileStatsBy<T>(T key) where T : notnull
+        {
+            var map = _bitmap.AsSpan();
+            ref var eventData = ref map[2].EventData;
+            var iterator = new SpanEnumerator<Tile>(map);
+            
+            foreach (var tile in iterator)
+            {
+                if (tile is null)
+                    continue;
+                
+                switch (key)
+                {
+                    case Tile x:
+                        if (x.Equals(tile))
+                            eventData = ref tile.EventData;
+                        break;
+                    case TileType type:
+                        if (tile.Body.TileType == type)
+                            eventData = ref tile.EventData;
+                        break;
+                    case Vector2 pos:
+                        if (tile.GridCell == pos)
+                            eventData = ref tile.EventData;
+                        break;
+                    case TileShape body:
+                        if (tile.Body == body)
+                            eventData = ref tile.EventData;
+                        break;
+                }
+            }
+            return ref eventData;
+        }
 
-        public Grid(Level current)
+        public ref readonly Goal GetTileGoalBy<T>(T key) where T : notnull
+        {
+            var map = _bitmap.AsSpan();
+            ref readonly var eventData = ref map[2].Goal;
+            var iterator = new SpanEnumerator<Tile>(map);
+
+            foreach (var tile in iterator)
+            {
+                if (tile is null)
+                    continue;
+
+                switch (key)
+                {
+                    case Tile x:
+                        if (x.Equals(tile))
+                            eventData = ref tile.Goal;
+                        break;
+                    case TileType type:
+                        if (tile.Body.TileType == type)
+                            eventData = ref tile.Goal;
+                        break;
+                    case Vector2 pos:
+                        if (tile.GridCell == pos)
+                            eventData = ref tile.Goal;
+                        break;
+                    case TileShape body:
+                        if (tile.Body == body)
+                            eventData = ref tile.Goal;
+                        break;
+                }
+            }
+
+            return ref eventData;
+        }
+        
+        public void Init(Level current)
         {
             TileWidth = current.GridWidth;
             TileHeight = current.GridHeight;
