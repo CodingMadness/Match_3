@@ -1,26 +1,66 @@
-﻿using System.Drawing;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using static Raylib_CsLo.Raylib;
 using Rectangle = Raylib_CsLo.Rectangle;
 
 namespace Match_3;
 
+
+public ref struct SpanEnumerator<ItemT>
+{
+    public ref ItemT CurrentItem;
+
+    public readonly ref ItemT LastItemOffsetByOne;
+
+    public SpanEnumerator(ReadOnlySpan<ItemT> Span) : this(ref MemoryMarshal.GetReference(Span), Span.Length)
+    {
+    }
+
+    public SpanEnumerator(Span<ItemT> Span) : this(ref MemoryMarshal.GetReference(Span), Span.Length)
+    {
+    }
+
+    public SpanEnumerator(ref ItemT Item, nint Length)
+    {
+        CurrentItem = ref Unsafe.Subtract(ref Item, 1);
+
+        LastItemOffsetByOne = ref Unsafe.Add(ref Item, Length);
+    }
+
+    [UnscopedRef] public ref ItemT Current => ref CurrentItem;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public bool MoveNext()
+    {
+        CurrentItem = ref Unsafe.Add(ref CurrentItem, 1);
+
+        return !Unsafe.AreSame(ref CurrentItem, ref LastItemOffsetByOne);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public SpanEnumerator<ItemT> GetEnumerator()
+    {
+        return this;
+    }
+}
+
+
 public static class Utils
 {
     
     public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
-    private static readonly FastNoiseLite noiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
+    public static readonly FastNoiseLite NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
 
     static Utils()
     {
-        noiseMaker.SetFrequency(25f);
-        noiseMaker.SetFractalType(FastNoiseLite.FractalType.Ridged);
-        noiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
+        NoiseMaker.SetFrequency(25f);
+        NoiseMaker.SetFractalType(FastNoiseLite.FractalType.Ridged);
+        NoiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
     }
-
-    public static FastNoiseLite NoiseMaker => noiseMaker;
-
+    
     public static float Trunc(this float value, int digits)
     {
         float mult = MathF.Pow(10.0f, digits);
@@ -50,8 +90,8 @@ public static class Utils
     public  static bool IsEmpty(this Rectangle rayRect) => 
        /* rayRect.x == 0 && rayRect.y == 0 &&*/ rayRect.width == 0 && rayRect.height == 0;
 
-    public static readonly Rectangle INVALID_RECT = new(-1f, -1f, 0f, 0f);
-    public static Vector2 INVALID_CELL => -Vector2.One;
+    public static readonly Rectangle InvalidRect = new(-1f, -1f, 0f, 0f);
+    public static Vector2 InvalidCell => -Vector2.One;
     
     public static void Add(ref this Rectangle a, Rectangle b)
     {
@@ -231,9 +271,9 @@ public static class Utils
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);
     }
     
-    public static unsafe nint GetAddrOfObject<ObjectT>(this ObjectT Object) where ObjectT: class
+    public static unsafe nint GetAddrOfObject<TObjectT>(this TObjectT @object) where TObjectT: class
     {
-        return (nint) Unsafe.AsPointer(ref Unsafe.As<StrongBox<byte>>(Object).Value);
+        return (nint) Unsafe.AsPointer(ref Unsafe.As<StrongBox<byte>>(@object).Value);
     }
 
     public static Rectangle NewWorldRect(Vector2 begin, int width, int height)
