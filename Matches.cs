@@ -49,7 +49,7 @@ public class MatchX
         }
     }
     /// <summary>
-    /// Reorder the Match if it has a structure like: (x0,x1,y2) or similar
+    /// Reorder the Matched if it has a structure like: (x0,x1,y2) or similar
     /// </summary>
     public void Add(Tile matchTile)
     {
@@ -89,7 +89,7 @@ public class MatchX
     
     public void Clear()
     {
-        _worldRect = Utils.INVALID_RECT;
+        _worldRect = Utils.InvalidRect;
         IsRowBased = false;
         Matches.Clear();
         DeletedAt = TimeOnly.FromDateTime(DateTime.UtcNow);

@@ -275,7 +275,11 @@ public enum TileState
 public class Tile
 {
     private TileState _current;
-    
+    private Stats _tmp = new();
+    private Goal _goal;
+    public ref Stats EventData => ref _tmp;
+    public ref readonly Goal Goal => ref _goal;
+  
     public virtual Options Options { get; set; }
     public TileState TileState 
     {
@@ -335,17 +339,17 @@ public class Tile
     /// <summary>
     /// WorldCell in WorldCoordinates
     /// </summary>
-    public Vector2 WorldCell => (GridCell * Size);
+    public Vector2 WorldCell => GridCell * Size;
     
     /// <summary>
     /// End in WorldCoordinates
     /// </summary>
-    public Vector2 End => WorldCell + (Vector2.One * Size);
-
+    public Vector2 End => WorldCell + Vector2.One * Size;
     public bool IsDeleted => (TileState & TileState.Deleted) == TileState.Deleted;
-    
     public Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
     public Rectangle WorldBounds => GridBounds.ToWorldBox();
+
+    public void SetGoal(in Goal aGoal) => _goal = aGoal;
     
     public const int Size = Level.TILE_SIZE;
     public static bool IsOnlyDefaultTile(Tile? current) =>
@@ -357,7 +361,6 @@ public class Tile
         Body = null!;
     }
     public override string ToString() => $"GridCell: {GridCell}; ---- {Body}";
-
     public void Disable(bool shallDelete)
     {
         Body.Fade(BLACK, 0f, 1f);
@@ -370,6 +373,8 @@ public class Tile
         Options = Options.Movable | Options.Shapeable;
         TileState = TileState.Clean;
     }
+
+    public bool Equals(Tile? other) => StateAndBodyComparer.Singleton.Equals(other, this);
 }
 
 public class EnemyTile : Tile

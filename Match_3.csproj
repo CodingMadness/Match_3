@@ -39,6 +39,7 @@
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" />
     <PackageReference Include="Microsoft.Experimental.Collections" Version="1.0.6-e190117-3" />
+    <PackageReference Include="NoAlloq" Version="0.1.0" />
     <PackageReference Include="Raylib-CsLo" Version="4.2.0.3" />
   </ItemGroup>
   <ItemGroup>
