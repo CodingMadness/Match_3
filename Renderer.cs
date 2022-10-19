@@ -41,17 +41,17 @@ public static class Renderer
         DrawCoordOnTop(tile);
     }
     
-    public static void DrawGrid(Grid map, float elapsedTime,(int size, int speed) shaderLoc)
+    public static void DrawGrid(float elapsedTime,(int size, int speed) shaderLoc)
     {
         Vector2 size = Utils.GetScreenCoord();
        
         
-            for (int x = 0; x < map.TileWidth; x++)
+            for (int x = 0; x < Grid.Instance.TileWidth; x++)
             {
-                for (int y = 0; y < map.TileHeight; y++)
+                for (int y = 0; y < Grid.Instance.TileHeight; y++)
                 {
                     Vector2 current = new(x, y);
-                    Tile? basicTile = map[current];
+                    Tile? basicTile = Grid.Instance[current];
                         
                     if (basicTile is not null && !basicTile.IsDeleted && basicTile is not EnemyTile)
                     {
@@ -61,7 +61,7 @@ public static class Renderer
             }
     }
 
-    public static void DrawMatches(MatchX? match, Grid map, float elapsedTime, bool shallCreateEnemies)
+    public static void DrawMatches(MatchX? match, float elapsedTime, bool shallCreateEnemies)
     {
         if (!shallCreateEnemies)
             return;
@@ -74,7 +74,7 @@ public static class Renderer
         for (int i = 0; i < match.Count; i++)
         {
             var gridCell = match[(i)].GridCell;
-            var tile = map[gridCell];
+            var tile = Grid.Instance[gridCell];
             if (tile is null)
                 continue;
             DrawTile(ref matchTexture, tile, elapsedTime);
