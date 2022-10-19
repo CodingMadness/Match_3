@@ -31,7 +31,14 @@ namespace Match_3
 
         public static RefTuple<Stats> GetStatsByType(TileType t)
         {
-            return new RefTuple<Stats>(ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out _));
+            ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out var existedB4);
+
+            if (!existedB4)
+            {
+                x = new();
+            }
+
+            return new(ref x);
         }
 
         //public ref readonly Stats GetRef => ref GetStatsByType(TileType.Blue).Item1;
