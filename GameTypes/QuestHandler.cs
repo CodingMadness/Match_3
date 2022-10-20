@@ -283,7 +283,6 @@ public abstract class QuestHandler
     protected int SubGoalCounter { get; set; }
 
     protected virtual bool IsMainGoalReached { get; set; }
-
     
     protected static bool IsSubGoalReached(EventType eventType, in Goal goal, in Stats stats, out int direction)
     {
@@ -353,12 +352,12 @@ public sealed class SwapQuestHandler : QuestHandler
         Game.OnTileSwapped += HandleEvent;
     }
 
-    private bool IsSwapGoalReached(out Goal goal, out Stats stats)
+    private bool IsSwapGoalReached(out Goal goal, out Stats stats, out int direction)
     {
         var type = Game.State.Current.Body.TileType;
         goal = Grid.Instance.GetTileGoalBy(Game.State.Current);
         stats = Grid.Instance.GetTileStatsBy(type);
-        return IsSubGoalReached(EventType.Swapped, goal, stats);
+        return IsSubGoalReached(EventType.Swapped, goal, stats, out direction);
     }
 
     protected override void HandleEvent()
@@ -418,17 +417,18 @@ public sealed class MatchQuestHandler : QuestHandler
         int x = 10;
     }
     
-    private static bool IsMatchGoalReached(out Goal? goal, in Stats stats)
+    private static bool IsMatchGoalReached(out Goal? goal, in Stats stats, out int direction)
     {
         if (stats.Match is null)
         {
             goal = null;
+            direction = -int.MaxValue;
             return false;
         }
 
         var type = Game.State.Current.Body.TileType;
         goal = GetGoalBy(type).Item1;
-        return IsSubGoalReached(EventType.Matched, goal.Value, stats);
+        return IsSubGoalReached(EventType.Matched, goal.Value, stats, out direction);
     }
 
     protected override bool IsMainGoalReached => SubGoalCounter == (int)TileType.Length;
@@ -440,16 +440,18 @@ public sealed class MatchQuestHandler : QuestHandler
         ref var stats = ref Grid.GetStatsByType(type).Item1;
         stats.Inc(EventType.Matched);
         
-        if (IsMatchGoalReached(out var goal, stats))
+        if (IsMatchGoalReached(out var goal, stats, out int direction))
         {
             stats.Null(EventType.Matched);
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
-            Console.WriteLine($"Still {MaxGoalCount - (SubGoalCounter)} matches to make, so hurry hurry");
             Console.Clear();
             state.Matches.Clear();
         }
         else
         {
+            if (direction == 0)
+                Console.WriteLine($"Still {MaxGoalCount - (++SubGoalCounter)} matches to make, so hurry hurry");
+
             if (IsMainGoalReached)
                 Console.WriteLine("NICE, YOU FINISHED THE ENTIRE MATCH-QUEST WELL DONE MAAAA BOOOY");
             
@@ -459,6 +461,8 @@ public sealed class MatchQuestHandler : QuestHandler
                 state.Matches.Clear();
                 return;
             }
+
+            Console.WriteLine(direction);
             //Console.BackgroundColor = ConsoleColor.Yellow;
             Console.WriteLine($"yea, we got {stats.Match!.Value.Count} match of type: {type} within");
             Console.WriteLine($"current match goal:  {goal?.Match}");
@@ -492,12 +496,12 @@ public abstract class ClickQuestHandler : QuestHandler
 
         state.Current.UpdateGoal(EventType.Clicked, goal);
     }
-    protected static bool IsClickGoalReached(out Goal goal, in Stats stats)
+    protected static bool IsClickGoalReached(out Goal goal, in Stats stats, out int direction)
     {
         var gameState = Game.State;
         var type = gameState.Current.Body.TileType;
         goal = Grid.Instance.GetTileGoalBy(type);
-        return IsSubGoalReached(EventType.Clicked, goal, stats);
+        return IsSubGoalReached(EventType.Clicked, goal, stats, out direction);
     }
 }
 
@@ -524,7 +528,7 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
 
         Console.WriteLine($"Ok, 1 of {state.Current.Body.TileType} tiles was clicked!");
       
-        if (IsClickGoalReached(out var goal, stats))
+        if (IsClickGoalReached(out var goal, stats, out int direction))
         {
             var enemy = state.Current as EnemyTile;
             enemy!.Disable(true);
@@ -552,7 +556,7 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         ref   var stats = ref Grid.GetStatsByType(type).Item1;
         stats.Inc(EventType.Clicked);
         
-        if (IsClickGoalReached(out var goal, stats) && !IsSoundPlaying(AssetManager.Splash))
+        if (IsClickGoalReached(out var goal, stats, out int direction) && !IsSoundPlaying(AssetManager.Splash))
         {
             var tile = state.Current = Bakery.CreateTile(state.Current.GridCell, Randomizer.NextSingle());
             Grid.Instance[tile.GridCell] = tile;
