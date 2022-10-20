@@ -279,9 +279,10 @@ public class Tile
     private Goal _goal;
     public ref Stats EventData => ref _tmp;
     public ref readonly Goal Goal => ref _goal;
-  
+
     public virtual Options Options { get; set; }
-    public TileState TileState 
+
+    public TileState TileState
     {
         get => _current;
 
@@ -295,6 +296,7 @@ public class Tile
                 _current &= TileState.Hidden;
                 Body.ToConstColor(WHITE);
             }
+
             if ((value & TileState.Pulsate) == TileState.Pulsate)
             {
                 _current &= TileState.Selected;
@@ -302,6 +304,7 @@ public class Tile
                 _current &= TileState.Deleted;
                 _current &= TileState.Hidden;
             }
+
             if ((value & TileState.Selected) == TileState.Selected)
             {
                 //if a tile is selected it must also be clean/alive
@@ -309,7 +312,7 @@ public class Tile
             }
             else if ((value & TileState.Hidden) == TileState.Hidden)
             {
-                _current &= TileState.Clean;    //remove clean flag from set
+                _current &= TileState.Clean; //remove clean flag from set
                 //_current |= TileState.Selected; //remove clean flag from set
                 //add disabled flag to set cause when smth is deleted it must be automatically disabled 
                 _current &= TileState.Disabled; //operations on that tile with this flag are still possible!
@@ -318,7 +321,7 @@ public class Tile
             else if ((value & TileState.Deleted) == TileState.Deleted)
             {
                 //remove all flags
-                _current &= TileState.Clean; 
+                _current &= TileState.Clean;
                 _current &= TileState.Selected; //remove clean flag from set
                 _current &= TileState.Disabled;
                 Body.ToConstColor(WHITE);
@@ -327,29 +330,45 @@ public class Tile
             {
                 _current &= TileState.Clean; //remove clean flag from set
                 _current &= TileState.Selected; //remove clean flag from set
-                _current &= TileState.Deleted; //deleted is reserved as Disabled AND Hidden, so u cannot be both at same time
+                _current &= TileState
+                    .Deleted; //deleted is reserved as Disabled AND Hidden, so u cannot be both at same time
                 Body.ToConstColor(BLACK);
             }
+
             _current = value;
         }
     }
+
     public Vector2 GridCell { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public TileShape Body { get; init; }
+
     /// <summary>
     /// WorldCell in WorldCoordinates
     /// </summary>
     public Vector2 WorldCell => GridCell * Size;
-    
+
     /// <summary>
     /// End in WorldCoordinates
     /// </summary>
     public Vector2 End => WorldCell + Vector2.One * Size;
+
     public bool IsDeleted => (TileState & TileState.Deleted) == TileState.Deleted;
     public Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
     public Rectangle WorldBounds => GridBounds.ToWorldBox();
 
-    public void SetGoal(in Goal aGoal) => _goal = aGoal;
+    public void UpdateGoal(EventType eventType, in Goal aGoal)
+    {
+        _goal = eventType switch
+        {
+            EventType.Clicked => _goal with { Click = aGoal.Click },
+            EventType.Swapped => _goal with { Swap = aGoal.Swap },
+            EventType.Matched => _goal with { Match = aGoal.Match },
+            EventType.RePainted => _goal with { RePaint = aGoal.RePaint },
+            EventType.Destroyed => _goal with { Destroyed = aGoal.Destroyed },
+            _ => throw new ArgumentOutOfRangeException(nameof(eventType), eventType, null)
+        };
+    }
     
     public const int Size = Level.TILE_SIZE;
     public static bool IsOnlyDefaultTile(Tile? current) =>
