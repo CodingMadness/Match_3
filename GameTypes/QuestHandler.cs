@@ -41,7 +41,7 @@ public struct Stats
     /// <summary>
     /// Count-Clicks, with maxTime inbetween them
     /// </summary>
-    public EventStats? Click;
+    public EventStats? statsClick;
     public EventStats? Swaps;
     public EventStats? Match;
     public EventStats? RePainted;
@@ -52,14 +52,14 @@ public struct Stats
         switch (type)
         {
             case EventType.Clicked:
-                if (Click.HasValue )
+                if (statsClick.HasValue )
                 {
-                    var tmp = Click.Value;
+                    var tmp = statsClick.Value;
                     tmp.Count++;
-                    Click = tmp;
+                    statsClick = tmp;
                 }
                 else 
-                    Click = null;
+                    statsClick = null;
                 break;
             case EventType.Swapped:
                 if (Swaps.HasValue )
@@ -111,7 +111,7 @@ public struct Stats
         switch (type)
         {
             case EventType.Clicked:
-                Click = null;
+                statsClick = null;
                 break;
             case EventType.Swapped:
                 Swaps = null;
@@ -133,7 +133,7 @@ public struct Stats
     {
         string output =
             $"Matches made ->(Count: {Match?.Count}  - Interval: {Match?.Interval}" +
-            $"Clicks made  ->(Count: {Click?.Count}  - Interval: {Click?.Interval}"+
+            $"Clicks made  ->(Count: {statsClick?.Count}  - Interval: {statsClick?.Interval}"+
             $"Swaps made  ->(Count: {Swaps?.Count}  - Interval: {Swaps?.Interval}"+
             $"Repaints made ->(Count: {RePainted?.Count}  - Interval: {RePainted?.Interval}";
         return output;
@@ -142,7 +142,7 @@ public struct Stats
     public Stats()
     {
         Destroyed = new(count:0);
-        Click = new(count: 0);
+        statsClick = new(count: 0);
         Swaps = new(count: 0);
         Match = new(count: 0);
         RePainted = new(count: 0);
@@ -153,44 +153,82 @@ public readonly record struct SubGoal(int Count, float Interval);
 
 public readonly record struct Goal(SubGoal? Click, SubGoal? Swap, SubGoal? Match, SubGoal? RePaint, SubGoal? Destroyed)
 {
-    public bool ClickCompare(in Stats? state) => state?.Click is not null && 
-                                                 Click?.Count < state.Value.Click.Value.Count;
-    public bool SwapsCompare(in Stats? state) => state?.Swaps is not null &&
-                                                 Swap?.Count < state.Value.Swaps.Value.Count;
-    public bool MatchCompare(in Stats? state) => state?.Match is not null &&
-                                                 Match?.Count < state.Value.Match.Value.Count;
-
-    public bool RePaintedCompare(in Stats? state) => state?.RePainted is not null &&
-                                                     RePaint?.Count < state.Value.RePainted.Value.Count;
-
-    public bool DestroyedCompare(in Stats? state) => state?.Destroyed is not null &&
-                                                     Destroyed?.Count < state.Value.Destroyed.Value.Count;
-
-    public void Deconstruct(out SubGoal? Click, out SubGoal? Swap, out SubGoal? Match, out SubGoal? RePaint, out SubGoal? Destroyed)
+    public int ClickCompare(in Stats? stats)
     {
-        Click = this.Click;
-        Swap = this.Swap;
-        Match = this.Match;
-        RePaint = this.RePaint;
-        Destroyed = this.Destroyed;
+        return stats switch
+        {
+            { statsClick: { } statsClick } when Click is { Count : var count } => count.CompareTo(
+                statsClick.Count),
+            null => 1,
+            { statsClick: null } => 1,
+            { statsClick: { } } when Click is null => -1,
+            _ => throw new ArgumentOutOfRangeException(nameof(stats), stats, null)
+        };
     }
+
+    public int SwapCompare(in Stats? stats)
+    {
+        return stats switch
+        {
+            { statsClick: { } statsClick } when Swap is { Count : var count } => count.CompareTo(statsClick.Count),
+            null => 1,
+            { statsClick: null } => 1,
+            { statsClick: { } } when Swap is null => -1,
+            _ => throw new ArgumentOutOfRangeException(nameof(stats), stats, null)
+        };
+    }
+
+    public int MatchCompare(in Stats? stats)
+    {
+        return stats switch
+        {
+            { statsClick: { } statsClick } when Match is { Count : var count } => count.CompareTo(statsClick.Count),
+            null => 1,
+            { statsClick: null } => 1,
+            { statsClick: { } } when Match is null => -1,
+            _ => throw new ArgumentOutOfRangeException(nameof(stats), stats, null)
+        };
+    }
+
+    public int DestroyCompare(in Stats? stats)
+    {
+        return stats switch
+        {
+            { statsClick: { } statsClick } when Destroyed is { Count : var count } => count.CompareTo(statsClick
+                .Count),
+            null => 1,
+            { statsClick: null } => 1,
+            { statsClick: { } } when Destroyed is null => -1,
+            _ => throw new ArgumentOutOfRangeException(nameof(stats), stats, null)
+        };
+    }
+
+    public int RepaintCompare(in Stats? stats)
+    {
+        return stats switch
+        {
+            { statsClick: { } statsClick } when RePaint is { Count : var count } => count.CompareTo(statsClick
+                .Count),
+            null => 1,
+            { statsClick: null } => 1,
+            { statsClick: { } } when RePaint is null => -1,
+            _ => throw new ArgumentOutOfRangeException(nameof(stats), stats, null)
+        };
+    }
+ 
 }
 
-public ref struct RefTuple<T> where T : struct 
+public unsafe ref struct RefTuple<T> where T : struct 
 {
-    public  ref   T Item1;
+    public  ref  T Item1;
+    //public ref readonly T Item2;
+   //Span<T> mem;
     public RefTuple(ref T item1)
     {
         Item1 =  ref item1;
+        //mem = new T[10];
+        //Item2 = ref mem[0];
     }
-
-    /*
-    public RefTuple(in T item1, int a=0)
-    {
-        Item1 = ref item1;
-    }
-    */
-    
 }
 
 public sealed class GameState
@@ -234,7 +272,7 @@ public static class SingletonManager
 /// Collect N-Type1, N-Type2, N-Type3 up to maxTilesActive
 ///----->within a TimeSpan of X-sec
 ///----->without any miss-swap!
-///the state is to make per new Level the Quests harder!!
+///the stats is to make per new Level the Quests harder!!
 /// </summary>
 public abstract class QuestHandler
 {
@@ -242,7 +280,7 @@ public abstract class QuestHandler
     protected static THandler GetInstance<THandler>() 
         where THandler : QuestHandler, new() => SingletonManager.GetOrCreateInstance<THandler>();
 
-    protected int GoalCounter { get; set; }
+    protected int SubGoalCounter { get; set; }
 
     protected virtual bool IsMainGoalReached { get; set; }
 
@@ -252,7 +290,7 @@ public abstract class QuestHandler
         return eventType switch
         {
             EventType.Clicked => goal.ClickCompare(stats),
-            EventType.Swapped => goal.SwapsCompare(stats),
+            EventType.Swapped => goal.SwapCompare(stats),
             EventType.Matched => goal.MatchCompare(stats),
             _ => false
         };
@@ -332,11 +370,13 @@ public sealed class MatchQuestHandler : QuestHandler
 {
     private static readonly Dictionary<TileType, Goal> TypeGoal = new((int)TileType.Length);
 
-    private RefTuple<Goal> GetGoalBy(TileType t)
+    private readonly int MaxGoalCount = (int)TileType.Length; 
+    
+    private static RefTuple<Goal> GetGoalBy(TileType t)
     {
         return new RefTuple<Goal>(ref CollectionsMarshal.GetValueRefOrAddDefault(TypeGoal, t, out _));
     }
-
+    
     public MatchQuestHandler()
     {
         Game.OnMatchFound += HandleEvent;
@@ -369,11 +409,14 @@ public sealed class MatchQuestHandler : QuestHandler
                 matchValue = matchValue with { Count = maxAllowed / Level.MAX_TILES_PER_MATCH };
                 goal = goal with { Match = matchValue };
             }
+
+            Console.WriteLine(goal.Match + "   for " + i + " tiles");
             TypeGoal.Add(i, goal);
         }
+        int x = 10;
     }
     
-    private bool IsMatchGoalReached(out Goal? goal, in Stats stats)
+    private static bool IsMatchGoalReached(out Goal? goal, in Stats stats)
     {
         if (stats.Match is null)
         {
@@ -386,7 +429,7 @@ public sealed class MatchQuestHandler : QuestHandler
         return IsSubGoalReached(EventType.Matched, goal.Value, stats);
     }
 
-    protected override bool IsMainGoalReached => GoalCounter == (int)TileType.Length;
+    protected override bool IsMainGoalReached => SubGoalCounter == (int)TileType.Length;
 
     protected override void HandleEvent()
     {
@@ -399,6 +442,7 @@ public sealed class MatchQuestHandler : QuestHandler
         {
             stats.Null(EventType.Matched);
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
+            Console.WriteLine($"Still {MaxGoalCount - (SubGoalCounter)} matches to make, so hurry hurry");
             Console.Clear();
             state.Matches.Clear();
         }
@@ -489,7 +533,7 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
         }
         else
         {
-            Console.WriteLine($"SADLY YOU STILL NEED {goal.Click?.Count - stats.Click?.Count}");
+            Console.WriteLine($"SADLY YOU STILL NEED {goal.Click?.Count - stats.statsClick?.Count}");
         }
     }
 }
@@ -517,8 +561,8 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         }
         else
         {
-            //System.Console.WriteLine($"GOAL_CLICKS:  {goalClick.Count} at Cell: {state.DefaultTile.GridCell}" );
-            Console.WriteLine($"SADLY YOU STILL NEED {goal.Click?.Count - stats.Click?.Count} more clicks!");
+            //System.Console.WriteLine($"GOAL_CLICKS:  {goalClick.Count} at Cell: {stats.DefaultTile.GridCell}" );
+            Console.WriteLine($"SADLY YOU STILL NEED {goal.Click?.Count - stats.statsClick?.Count} more clicks!");
         }
     }
     
