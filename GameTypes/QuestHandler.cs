@@ -106,6 +106,46 @@ public struct Stats
         }
     }
 
+    public void Reset(EventType type)
+    {
+        switch (type)
+        {
+            case EventType.Clicked:
+                if (Clicked.HasValue)
+                {
+                    Clicked = new(0);
+                }
+                break;
+            case EventType.Swapped:
+                if (Swapped.HasValue)
+                {
+                    Swapped =  new(0);
+                }
+                break;
+            case EventType.Matched:
+                if (Matched.HasValue)
+                {
+                    Matched = new(0);
+                }
+                break;
+            case EventType.RePainted:
+                if (RePainted.HasValue)
+                {
+                    
+                    RePainted = new(0);
+                }
+                break;
+            case EventType.Destroyed:
+                if (Destroyed.HasValue)
+                {
+                    Destroyed = new(0);
+                }
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+    }
+    
     public void Null(EventType type)
     {
         switch (type)
@@ -219,16 +259,12 @@ public readonly record struct Goal(SubGoal? Click, SubGoal? Swap, SubGoal? Match
  
 }
 
-public unsafe ref struct RefTuple<T> where T : struct 
+public ref struct RefTuple<T> where T : struct 
 {
     public  ref  T Item1;
-    //public ref readonly T Item2;
-   //Span<T> mem;
     public RefTuple(ref T item1)
     {
         Item1 =  ref item1;
-        //mem = new T[10];
-        //Item2 = ref mem[0];
     }
 }
 
@@ -496,8 +532,7 @@ public abstract class ClickQuestHandler : QuestHandler
     }
     protected static bool IsClickGoalReached(out Goal goal, in Stats stats, out int direction)
     {
-        var gameState = Game.State;
-        var type = gameState.Current.Body.TileType;
+        var type = Game.State.Current.Body.TileType;
         goal = Grid.Instance.GetTileGoalBy(type);
         return IsSubGoalReached(EventType.Clicked, goal, stats, out direction);
     }
@@ -543,7 +578,9 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
 }
 
 public sealed class TileReplacerOnClickHandler : ClickQuestHandler
-{        
+{
+    public static TileReplacerOnClickHandler Instance => GetInstance<TileReplacerOnClickHandler>();
+        
     protected override void HandleEvent()
     {
         if (!IsActive)
@@ -554,13 +591,14 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         ref   var stats = ref Grid.GetStatsByType(type).Item1;
         stats.Inc(EventType.Clicked);
         
-        if (IsClickGoalReached(out var goal, stats, out int direction) && !IsSoundPlaying(AssetManager.Splash))
+        if (IsClickGoalReached(out var goal, stats, out _) && !IsSoundPlaying(AssetManager.Splash))
         {
-            var tile = state.Current = Bakery.CreateTile(state.Current.GridCell, Randomizer.NextSingle());
+            var tile  = Bakery.CreateTile(state.Current.GridCell, Randomizer.NextSingle());
             Grid.Instance[tile.GridCell] = tile;
             PlaySound(AssetManager.Splash);
+            state.Current = tile;
             DefineGoals();
-            stats.Null(EventType.Clicked);
+            stats.Null(EventType.Clicked); //so u cannot replace the same tile over and over
             Console.WriteLine("Nice, you got a new tile!");
         }
         else
@@ -569,6 +607,4 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
             Console.WriteLine($"SADLY YOU STILL NEED {goal.Click?.Count - stats.Clicked?.Count} more clicks!");
         }
     }
-    
-    public static TileReplacerOnClickHandler Instance => GetInstance<TileReplacerOnClickHandler>();
 }
