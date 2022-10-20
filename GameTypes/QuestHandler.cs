@@ -384,12 +384,15 @@ public sealed class MatchQuestHandler : QuestHandler
         {
             stats.Inc(EventType.Matched, true);
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
+            Console.Clear();
+            state.Matches.Clear();
         }
         else
         {
             if (stats.Match is null)
             {
                 Console.WriteLine($"You already got ur goal finished for the {type} tiles!");
+                state.Matches.Clear();
                 return;
             }
             Console.BackgroundColor = ConsoleColor.Yellow;
