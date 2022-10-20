@@ -285,13 +285,15 @@ public abstract class QuestHandler
     protected virtual bool IsMainGoalReached { get; set; }
 
     
-    protected static bool IsSubGoalReached(EventType eventType, in Goal goal, in Stats stats)
+    protected static bool IsSubGoalReached(EventType eventType, in Goal goal, in Stats stats, out int direction)
     {
+        direction = -int.MaxValue;
+        
         return eventType switch
         {
-            EventType.Clicked => goal.ClickCompare(stats),
-            EventType.Swapped => goal.SwapCompare(stats),
-            EventType.Matched => goal.MatchCompare(stats),
+            EventType.Clicked => (direction = goal.ClickCompare(stats)) == 0,
+            EventType.Swapped => (direction = goal.SwapCompare(stats)) == 0,
+            EventType.Matched => (direction = goal.MatchCompare(stats))== 0,
             _ => false
         };
     }
