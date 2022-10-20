@@ -47,12 +47,12 @@ public struct Stats
     public EventStats? RePainted;
     public EventStats? Destroyed;
 
-    public void Inc(EventType type, bool setToNull = false)
+    public void Inc(EventType type)
     {
         switch (type)
         {
             case EventType.Clicked:
-                if (Click.HasValue && !setToNull)
+                if (Click.HasValue )
                 {
                     var tmp = Click.Value;
                     tmp.Count++;
@@ -62,7 +62,7 @@ public struct Stats
                     Click = null;
                 break;
             case EventType.Swapped:
-                if (Swaps.HasValue && !setToNull)
+                if (Swaps.HasValue )
                 {
                     var tmp = Swaps.Value;
                     tmp.Count++;
@@ -72,7 +72,7 @@ public struct Stats
                     Swaps = null;
                 break;
             case EventType.Matched:
-                if (Match.HasValue && !setToNull)
+                if (Match.HasValue )
                 {
                     var tmp = Match.Value;
                     tmp.Count++;
@@ -82,7 +82,7 @@ public struct Stats
                     Match = null;
                 break;
             case EventType.RePainted:
-                if (RePainted.HasValue && !setToNull)
+                if (RePainted.HasValue )
                 {
                     var tmp = RePainted.Value;
                     tmp.Count++;
@@ -92,7 +92,7 @@ public struct Stats
                     RePainted = null;
                 break;
             case EventType.Destroyed:
-                if (Destroyed.HasValue && !setToNull)
+                if (Destroyed.HasValue )
                 {
                     var tmp = Destroyed.Value;
                     tmp.Count++;
@@ -106,6 +106,29 @@ public struct Stats
         }
     }
 
+    public void Null(EventType type)
+    {
+        switch (type)
+        {
+            case EventType.Clicked:
+                Click = null;
+                break;
+            case EventType.Swapped:
+                Swaps = null;
+                break;
+            case EventType.Matched:
+                Match = null;
+                break;
+            case EventType.RePainted:
+                RePainted = null;
+                break;
+            case EventType.Destroyed:
+                Destroyed = null;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+    }
     public override string ToString()
     {
         string output =
@@ -128,35 +151,20 @@ public struct Stats
 
 public readonly record struct SubGoal(int Count, float Interval);
 
-public struct Goal
+public readonly record struct Goal(SubGoal? Click, SubGoal? Swap, SubGoal? Match, SubGoal? RePaint, SubGoal? Destroyed)
 {
-    public Goal(SubGoal? Click, SubGoal? Swap, SubGoal? Match, SubGoal? RePaint, SubGoal? Destroyed)
-    {
-        this.Click = Click;
-        this.Swap = Swap;
-        this.Match = Match;
-        this.RePaint = RePaint;
-        this.Destroyed = Destroyed;
-    }
-
-    public readonly bool ClickCompare(in Stats? state) => state?.Click is not null && 
-                                                          Click?.Count < state.Value.Click.Value.Count;
-    public readonly bool SwapsCompare(in Stats? state) => state?.Swaps is not null &&
-                                                          Swap?.Count < state.Value.Swaps.Value.Count;
-    public readonly bool MatchCompare(in Stats? state) => state?.Match is not null &&
-                                                          Match?.Count < state.Value.Match.Value.Count;
+    public bool ClickCompare(in Stats? state) => state?.Click is not null && 
+                                                 Click?.Count < state.Value.Click.Value.Count;
+    public bool SwapsCompare(in Stats? state) => state?.Swaps is not null &&
+                                                 Swap?.Count < state.Value.Swaps.Value.Count;
+    public bool MatchCompare(in Stats? state) => state?.Match is not null &&
+                                                 Match?.Count < state.Value.Match.Value.Count;
 
     public bool RePaintedCompare(in Stats? state) => state?.RePainted is not null &&
                                                      RePaint?.Count < state.Value.RePainted.Value.Count;
 
     public bool DestroyedCompare(in Stats? state) => state?.Destroyed is not null &&
                                                      Destroyed?.Count < state.Value.Destroyed.Value.Count;
-
-    public SubGoal? Click { get; init; }
-    public SubGoal? Swap { get; init; }
-    public SubGoal? Match { get; init; }
-    public SubGoal? RePaint { get; init; }
-    public SubGoal? Destroyed { get; init; }
 
     public void Deconstruct(out SubGoal? Click, out SubGoal? Swap, out SubGoal? Match, out SubGoal? RePaint, out SubGoal? Destroyed)
     {
@@ -382,7 +390,7 @@ public sealed class MatchQuestHandler : QuestHandler
         
         if (IsMatchGoalReached(out var goal, stats))
         {
-            stats.Inc(EventType.Matched, true);
+            stats.Null(EventType.Matched);
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
             Console.Clear();
             state.Matches.Clear();
@@ -395,7 +403,7 @@ public sealed class MatchQuestHandler : QuestHandler
                 state.Matches.Clear();
                 return;
             }
-            Console.BackgroundColor = ConsoleColor.Yellow;
+            //Console.BackgroundColor = ConsoleColor.Yellow;
             Console.WriteLine($"yea, we got {stats.Match!.Value.Count} match of type: {type} within");
             Console.WriteLine($"current match goal:  {goal?.Match}");
             Grid.Instance.Delete(state.Matches);
@@ -456,23 +464,22 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
         var state = Game.State;
         var type = state.Current.Body.TileType;
         ref   var stats = ref Grid.GetStatsByType(type).Item1;
+        stats.Inc(EventType.Destroyed);
 
         Console.WriteLine($"Ok, 1 of {state.Current.Body.TileType} tiles was clicked!");
       
-        if (IsClickGoalReached(out _, stats))
+        if (IsClickGoalReached(out var goal, stats))
         {
             var enemy = state.Current as EnemyTile;
             enemy!.Disable(true);
             enemy.BlockSurroundingTiles(Grid.Instance, false);
             state.EnemiesStillPresent = ++_matchXCounter < state.Matches!.Count;
             _matchXCounter = (byte)(state.EnemiesStillPresent ? _matchXCounter : 0);
-            stats.Inc(EventType.Clicked, true);
+            stats.Null(EventType.Clicked);
         }
         else
         {
-            stats.Inc(EventType.Destroyed);
-            stats.Inc(EventType.Clicked);
-            //Console.WriteLine($"SADLY YOU STILL NEED {_goal.DataByType(state.CurrentType).Clicked.Count}");
+            Console.WriteLine($"SADLY YOU STILL NEED {goal.Click?.Count - stats.Click?.Count}");
         }
     }
 }
@@ -488,14 +495,14 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         var type = state.Current.Body.TileType;
         ref   var stats = ref Grid.GetStatsByType(type).Item1;
         stats.Inc(EventType.Clicked);
+        
         if (IsClickGoalReached(out var goal, stats) && !IsSoundPlaying(AssetManager.Splash))
         {
-            var tile = Bakery.CreateTile(state.Current.GridCell, Randomizer.NextSingle());
+            var tile = state.Current = Bakery.CreateTile(state.Current.GridCell, Randomizer.NextSingle());
             Grid.Instance[tile.GridCell] = tile;
             PlaySound(AssetManager.Splash);
-            state.Current = tile;
             DefineGoals();
-            stats.Inc(EventType.Clicked, true);
+            stats.Null(EventType.Clicked);
             Console.WriteLine("Nice, you got a new tile!");
         }
         else

@@ -124,7 +124,7 @@ internal static class Game
                 DestroyOnClickHandler.Instance.UnSubscribe();
                 TileReplacerOnClickHandler.Instance.Subscribe();
                 State.Current = firstClickedTile;
-                OnTileClicked();
+                //OnTileClicked();
             }
             firstClickedTile.TileState |= TileState.Selected;
 
