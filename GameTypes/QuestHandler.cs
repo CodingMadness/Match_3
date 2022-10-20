@@ -79,7 +79,7 @@ public struct Stats
                     Match = tmp;
                 }
                 else
-                    Swaps = null;
+                    Match = null;
                 break;
             case EventType.RePainted:
                 if (RePainted.HasValue && !setToNull)
@@ -89,7 +89,7 @@ public struct Stats
                     RePainted = tmp;
                 }
                 else
-                    Swaps = null;
+                    RePainted = null;
                 break;
             case EventType.Destroyed:
                 if (Destroyed.HasValue && !setToNull)
@@ -99,8 +99,7 @@ public struct Stats
                     Destroyed = tmp;
                 }
                 else
-                    Swaps = null;
-
+                    Destroyed = null;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
@@ -119,63 +118,71 @@ public struct Stats
 
     public Stats()
     {
+        Destroyed = new(count:0);
         Click = new(count: 0);
         Swaps = new(count: 0);
         Match = new(count: 0);
         RePainted = new(count: 0);
     }
-    
-    /*
-    [UnscopedRef]
-    public ref readonly EventStats GetCountOf(EventType eventType)
-    {
-        switch (eventType)
-        {
-            case EventType.Clicked:
-                if (Clicked.HasValue)
-                {
-                    return ref new RefTuple<EventStats>(Nullable.GetValueRefOrDefaultRef(Clicked)).Item1;
-                }
-                break;
-            case EventType.Swapped:
-                break;
-            case EventType.Matched:
-                break;
-            case EventType.RePainted:
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(eventType), eventType, null);
-        }
-        throw new ArgumentOutOfRangeException(nameof(eventType), eventType, null); 
-    }
-*/
 }
 
 public readonly record struct SubGoal(int Count, float Interval);
 
-public  readonly record struct Goal(SubGoal? Click, SubGoal? Swap, SubGoal? Match, SubGoal? RePaint, SubGoal? Destroyed)
+public struct Goal
 {
-    public bool ClickCompare(in Stats? state) => state?.Click is not null && 
-                                                 Click?.Count < state.Value.Click.Value.Count;
-    public bool SwapsCompare(in Stats? state) => state?.Swaps is not null &&
-                                                 Swap?.Count < state.Value.Swaps.Value.Count;
-    public bool MatchCompare(in Stats? state) => state?.Match is not null &&
-                                                 Match?.Count < state.Value.Match.Value.Count;
+    public Goal(SubGoal? Click, SubGoal? Swap, SubGoal? Match, SubGoal? RePaint, SubGoal? Destroyed)
+    {
+        this.Click = Click;
+        this.Swap = Swap;
+        this.Match = Match;
+        this.RePaint = RePaint;
+        this.Destroyed = Destroyed;
+    }
+
+    public readonly bool ClickCompare(in Stats? state) => state?.Click is not null && 
+                                                          Click?.Count < state.Value.Click.Value.Count;
+    public readonly bool SwapsCompare(in Stats? state) => state?.Swaps is not null &&
+                                                          Swap?.Count < state.Value.Swaps.Value.Count;
+    public readonly bool MatchCompare(in Stats? state) => state?.Match is not null &&
+                                                          Match?.Count < state.Value.Match.Value.Count;
 
     public bool RePaintedCompare(in Stats? state) => state?.RePainted is not null &&
                                                      RePaint?.Count < state.Value.RePainted.Value.Count;
 
     public bool DestroyedCompare(in Stats? state) => state?.Destroyed is not null &&
                                                      Destroyed?.Count < state.Value.Destroyed.Value.Count;
+
+    public SubGoal? Click { get; init; }
+    public SubGoal? Swap { get; init; }
+    public SubGoal? Match { get; init; }
+    public SubGoal? RePaint { get; init; }
+    public SubGoal? Destroyed { get; init; }
+
+    public void Deconstruct(out SubGoal? Click, out SubGoal? Swap, out SubGoal? Match, out SubGoal? RePaint, out SubGoal? Destroyed)
+    {
+        Click = this.Click;
+        Swap = this.Swap;
+        Match = this.Match;
+        RePaint = this.RePaint;
+        Destroyed = this.Destroyed;
+    }
 }
 
-public ref struct RefTuple<T> where T : unmanaged 
+public ref struct RefTuple<T> where T : struct 
 {
-    public ref readonly T Item1;
+    public  ref   T Item1;
     public RefTuple(ref T item1)
     {
         Item1 =  ref item1;
     }
+
+    /*
+    public RefTuple(in T item1, int a=0)
+    {
+        Item1 = ref item1;
+    }
+    */
+    
 }
 
 public sealed class GameState
@@ -227,7 +234,7 @@ public abstract class QuestHandler
     protected static THandler GetInstance<THandler>() 
         where THandler : QuestHandler, new() => SingletonManager.GetOrCreateInstance<THandler>();
     
-    protected static bool IsSubGoalReached(EventType eventType, in Goal goal, ref Stats stats)
+    protected static bool IsSubGoalReached(EventType eventType, in Goal goal, in Stats stats)
     {
         return eventType switch
         {
@@ -282,7 +289,7 @@ public sealed class SwapQuestHandler : QuestHandler
                 3 => new Goal { Swap = new(Randomizer.Next(2, 3), 3.0f) },
                 _ => default
             };
-            state.Current.SetGoal(goal);
+            state.Current.UpdateGoal(EventType.Swapped, goal);
         }
     }
 
@@ -298,7 +305,7 @@ public sealed class SwapQuestHandler : QuestHandler
         var type = Game.State.Current.Body.TileType;
         goal = Grid.Instance.GetTileGoalBy(Game.State.Current);
         stats = Grid.Instance.GetTileStatsBy(type);
-        return IsSubGoalReached(EventType.Swapped, goal, ref stats);
+        return IsSubGoalReached(EventType.Swapped, goal, stats);
     }
 
     protected override void HandleEvent()
@@ -353,29 +360,42 @@ public sealed class MatchQuestHandler : QuestHandler
         }
     }
     
-    private bool IsMatchGoalReached(out Goal goal, out Stats stats)
+    private bool IsMatchGoalReached(out Goal? goal, in Stats stats)
     {
-        var gameState = Game.State;
-        var type = gameState.Current.Body.TileType;
+        if (stats.Match is null)
+        {
+            goal = null;
+            return false;
+        }
+
+        var type = Game.State.Current.Body.TileType;
         goal = GetGoalBy(type).Item1;
-        stats = Grid.GetStatsByType(type).Item1;
-        return IsSubGoalReached(EventType.Swapped, goal, ref stats);
+        return IsSubGoalReached(EventType.Matched, goal.Value, stats);
     }
     
     protected override void HandleEvent()
     {
         var state = Game.State;
+        var type = state.Matches.Body.TileType;
+        ref var stats = ref Grid.GetStatsByType(type).Item1;
+        stats.Inc(EventType.Matched);
         
-        if (IsMatchGoalReached(out var goal, out var stats))
+        if (IsMatchGoalReached(out var goal, stats))
         {
             stats.Inc(EventType.Matched, true);
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
         }
         else
         {
-            stats.Inc(EventType.Matched);
-            Console.WriteLine($"yea, we got {stats.Match!.Value.Count} match of type: {state!.Matches!.Body.TileType} within");
-            Console.WriteLine($"current match goal:  {goal.Match}");
+            if (stats.Match is null)
+            {
+                Console.WriteLine($"You already got ur goal finished for the {type} tiles!");
+                return;
+            }
+            Console.BackgroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"yea, we got {stats.Match!.Value.Count} match of type: {type} within");
+            Console.WriteLine($"current match goal:  {goal?.Match}");
+            Grid.Instance.Delete(state.Matches);
         }
     }
 }
@@ -396,22 +416,21 @@ public abstract class ClickQuestHandler : QuestHandler
 
         var goal = Game.Level.ID switch
         {
-           0 => new Goal { Swap = new(Randomizer.Next(1, 3), 5f) },
-           1 => new Goal { Swap = new(Randomizer.Next(3, 5), 4.5f) },
-           2 => new Goal { Swap = new(Randomizer.Next(5, 6), 3.0f) },
-           3 => new Goal { Swap = new(Randomizer.Next(7, 10), 2.0f) },
+           0 => new Goal { Click = new(Randomizer.Next(1, 3), 5f) },
+           1 => new Goal { Click = new(Randomizer.Next(3, 5), 4.5f) },
+           2 => new Goal { Click = new(Randomizer.Next(5, 6), 3.0f) },
+           3 => new Goal { Click = new(Randomizer.Next(7, 10), 2.0f) },
            _ => default
         };
-       
-        state.Current.SetGoal(goal);
+
+        state.Current.UpdateGoal(EventType.Clicked, goal);
     }
-    protected static bool IsClickGoalReached(out Goal goal, out Stats stats)
+    protected static bool IsClickGoalReached(out Goal goal, in Stats stats)
     {
         var gameState = Game.State;
         var type = gameState.Current.Body.TileType;
         goal = Grid.Instance.GetTileGoalBy(type);
-        stats = Grid.GetStatsByType(type).Item1;
-        return IsSubGoalReached(EventType.Swapped, goal, ref stats);
+        return IsSubGoalReached(EventType.Clicked, goal, stats);
     }
 }
 
@@ -432,9 +451,12 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
             return;
 
         var state = Game.State;
+        var type = state.Current.Body.TileType;
+        ref   var stats = ref Grid.GetStatsByType(type).Item1;
+
         Console.WriteLine($"Ok, 1 of {state.Current.Body.TileType} tiles was clicked!");
       
-        if (IsClickGoalReached(out _, out var stats))
+        if (IsClickGoalReached(out _, stats))
         {
             var enemy = state.Current as EnemyTile;
             enemy!.Disable(true);
@@ -459,9 +481,11 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         if (!IsActive)
             return;
 
-        GameState state = Game.State;
-        
-        if (IsClickGoalReached(out var goal, out var stats) && !IsSoundPlaying(AssetManager.Splash))
+        var state = Game.State;
+        var type = state.Current.Body.TileType;
+        ref   var stats = ref Grid.GetStatsByType(type).Item1;
+
+        if (IsClickGoalReached(out var goal, stats) && !IsSoundPlaying(AssetManager.Splash))
         {
             var tile = Bakery.CreateTile(state.Current.GridCell, Randomizer.NextSingle());
             Grid.Instance[tile.GridCell] = tile;
@@ -474,7 +498,7 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         else
         {
             //System.Console.WriteLine($"GOAL_CLICKS:  {goalClick.Count} at Cell: {state.DefaultTile.GridCell}" );
-            //Console.WriteLine($"SADLY YOU STILL NEED {goal.Clicked!.Value.Count - stats.GetCountOf(EventType.Clicked).Count} more clicks!");
+            Console.WriteLine($"SADLY YOU STILL NEED {goal.Click?.Count - stats.Click?.Count} more clicks!");
         }
     }
     
