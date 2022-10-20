@@ -487,7 +487,7 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         var state = Game.State;
         var type = state.Current.Body.TileType;
         ref   var stats = ref Grid.GetStatsByType(type).Item1;
-
+        stats.Inc(EventType.Clicked);
         if (IsClickGoalReached(out var goal, stats) && !IsSoundPlaying(AssetManager.Splash))
         {
             var tile = Bakery.CreateTile(state.Current.GridCell, Randomizer.NextSingle());

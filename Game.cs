@@ -37,7 +37,7 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0,60*3, 6, 11, 9);
+        Level = new(0,60*1, 6, 11, 9);
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         _matchesOf3 = new();
         SetTargetFPS(60);
@@ -124,7 +124,7 @@ internal static class Game
                 DestroyOnClickHandler.Instance.UnSubscribe();
                 TileReplacerOnClickHandler.Instance.Subscribe();
                 State.Current = firstClickedTile;
-                //OnTileClicked();
+                OnTileClicked();
             }
             firstClickedTile.TileState |= TileState.Selected;
 
