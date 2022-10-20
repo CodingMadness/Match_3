@@ -92,6 +92,7 @@ public class MatchX
         _worldRect = Utils.InvalidRect;
         IsRowBased = false;
         Matches.Clear();
+        Body = null;
         DeletedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
     }
 }

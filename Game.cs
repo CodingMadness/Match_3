@@ -54,7 +54,6 @@ internal static class Game
         State = new( );
         Grid.Instance.Init(Level);
         shaderLoc = InitShader();
-        //System.Console.WriteLine("ARE WE STILL IN THE SAME PROJECT????!!!");
     }
     
     private static void DragMouseToEnemies()
@@ -112,7 +111,7 @@ internal static class Game
             DestroyOnClickHandler.Instance.Subscribe();
             State.Current = enemy!; 
             State.Matches = _enemyMatches;
-            OnTileClicked();
+            //OnTileClicked();
         }
         else
         {
@@ -125,7 +124,7 @@ internal static class Game
                 DestroyOnClickHandler.Instance.UnSubscribe();
                 TileReplacerOnClickHandler.Instance.Subscribe();
                 State.Current = firstClickedTile;
-                OnTileClicked();
+                //OnTileClicked();
             }
             firstClickedTile.TileState |= TileState.Selected;
 
@@ -186,7 +185,6 @@ internal static class Game
             State.Current = _secondClicked!;
             State.Matches = _matchesOf3;
             OnMatchFound();
-            Grid.Instance.Delete(_matchesOf3!);
         }
         else switch (_shallCreateEnemies)
         {

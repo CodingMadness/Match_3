@@ -16,16 +16,16 @@ namespace Match_3
             PositiveY = 2,
             NegativeY = 3,
         }
-      
+
         private Tile[,] _bitmap;
 
         public int TileWidth;
         public int TileHeight;
         private static readonly Dictionary<TileType, Stats> TypeStats = new((int)TileType.Length);
-        
+
         public static event Action NotifyOnGridCreationDone;
         public static event Action OnTileCreated;
-        
+
         public static Tile LastMatchTrigger { get; private set; }
         private byte _match3FuncCounter;
 
@@ -40,8 +40,6 @@ namespace Match_3
 
             return new(ref x);
         }
-
-        //public ref readonly Stats GetRef => ref GetStatsByType(TileType.Blue).Item1;
 
         public static Grid Instance { get; } = new();
 
