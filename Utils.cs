@@ -9,28 +9,28 @@ using Rectangle = Raylib_CsLo.Rectangle;
 namespace Match_3;
 
 
-public ref struct SpanEnumerator<ItemT>
+public ref struct SpanEnumerator<TItem>
 {
-    public ref ItemT CurrentItem;
+    public ref TItem CurrentItem;
 
-    public readonly ref ItemT LastItemOffsetByOne;
+    public readonly ref TItem LastItemOffsetByOne;
 
-    public SpanEnumerator(ReadOnlySpan<ItemT> Span) : this(ref MemoryMarshal.GetReference(Span), Span.Length)
+    public SpanEnumerator(ReadOnlySpan<TItem> Span) : this(ref MemoryMarshal.GetReference(Span), Span.Length)
     {
     }
 
-    public SpanEnumerator(Span<ItemT> Span) : this(ref MemoryMarshal.GetReference(Span), Span.Length)
+    public SpanEnumerator(Span<TItem> Span) : this(ref MemoryMarshal.GetReference(Span), Span.Length)
     {
     }
 
-    public SpanEnumerator(ref ItemT Item, nint Length)
+    public SpanEnumerator(ref TItem Item, nint Length)
     {
         CurrentItem = ref Unsafe.Subtract(ref Item, 1);
 
         LastItemOffsetByOne = ref Unsafe.Add(ref Item, Length);
     }
 
-    [UnscopedRef] public ref ItemT Current => ref CurrentItem;
+    [UnscopedRef] public ref TItem Current => ref CurrentItem;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool MoveNext()
@@ -41,7 +41,7 @@ public ref struct SpanEnumerator<ItemT>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public SpanEnumerator<ItemT> GetEnumerator()
+    public SpanEnumerator<TItem> GetEnumerator()
     {
         return this;
     }
@@ -186,13 +186,12 @@ public static class Utils
         return diff > tolerance ||
                diff > MathF.Max(MathF.Abs(x), MathF.Abs(y)) * tolerance;
     }
-    
+
     public static int CompareTo(this Vector2 a, Vector2 b)
     {
         var pair = a.GetDirectionTo(b);
         return pair.isRow ? a.X.CompareTo(b.X) : a.Y.CompareTo(b.Y);
     }
-    
     public static (Vector2 Direction, bool isRow) GetDirectionTo(this Vector2 first, Vector2 next)
     {
         bool sameRow = (int)first.Y == (int)next.Y;
@@ -220,7 +219,6 @@ public static class Utils
 
         return (-Vector2.One, false);
     }
-
     public static Vector2 GetOpposite(this Vector2 a, Vector2 b)
     {
         var pair = a.GetDirectionTo(b);
@@ -258,24 +256,20 @@ public static class Utils
 
         throw new ArgumentException("this line should never be reached!");
     }
-
     public static bool CompletelyDifferent(this Vector2 a, Vector2 b)
     {
         return  ((int)a.X != (int)b.X && (int)a.Y != (int)b.Y) ;
     }
-    
     public static Vector2 GetWorldPos(this Rectangle a) => new((int)a.x, (int)a.y);
     public static Vector2 GetCellPos(this Rectangle a) => GetWorldPos(a) / Tile.Size;
     public static void SetMouseToWorldPos(Vector2 position, int scale = Tile.Size)
     {
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);
     }
-    
     public static unsafe nint GetAddrOfObject<TObjectT>(this TObjectT @object) where TObjectT: class
     {
         return (nint) Unsafe.AsPointer(ref Unsafe.As<StrongBox<byte>>(@object).Value);
     }
-
     public static Rectangle NewWorldRect(Vector2 begin, int width, int height)
     {
         return new((int)begin.X * Tile.Size,

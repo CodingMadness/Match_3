@@ -241,6 +241,11 @@ public abstract class QuestHandler
     protected bool IsActive { get; private set; }
     protected static THandler GetInstance<THandler>() 
         where THandler : QuestHandler, new() => SingletonManager.GetOrCreateInstance<THandler>();
+
+    protected int GoalCounter { get; set; }
+
+    protected virtual bool IsMainGoalReached { get; set; }
+
     
     protected static bool IsSubGoalReached(EventType eventType, in Goal goal, in Stats stats)
     {
@@ -331,7 +336,7 @@ public sealed class MatchQuestHandler : QuestHandler
     {
         return new RefTuple<Goal>(ref CollectionsMarshal.GetValueRefOrAddDefault(TypeGoal, t, out _));
     }
-    
+
     public MatchQuestHandler()
     {
         Game.OnMatchFound += HandleEvent;
@@ -380,11 +385,13 @@ public sealed class MatchQuestHandler : QuestHandler
         goal = GetGoalBy(type).Item1;
         return IsSubGoalReached(EventType.Matched, goal.Value, stats);
     }
-    
+
+    protected override bool IsMainGoalReached => GoalCounter == (int)TileType.Length;
+
     protected override void HandleEvent()
     {
         var state = Game.State;
-        var type = state.Matches.Body.TileType;
+        var type = state.Matches!.Body.TileType;
         ref var stats = ref Grid.GetStatsByType(type).Item1;
         stats.Inc(EventType.Matched);
         
@@ -397,6 +404,9 @@ public sealed class MatchQuestHandler : QuestHandler
         }
         else
         {
+            if (IsMainGoalReached)
+                Console.WriteLine("NICE, YOU FINISHED THE ENTIRE MATCH-QUEST WELL DONE MAAAA BOOOY");
+            
             if (stats.Match is null)
             {
                 Console.WriteLine($"You already got ur goal finished for the {type} tiles!");
