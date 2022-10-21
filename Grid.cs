@@ -32,8 +32,12 @@ namespace Match_3
         public static ref Stats GetStatsByType(TileType t)
         {
             ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out var existedB4);
-            if (!existedB4)
-                x = new();
+            switch (existedB4)
+            {
+                case false:
+                    x = new();
+                    break;
+            }
             return ref x; 
         }
 
@@ -47,7 +51,6 @@ namespace Match_3
 
         private Grid()
         {
-            //Instance = new();
         }
         
         private void CreateMap()
@@ -78,26 +81,31 @@ namespace Match_3
             
             foreach (var tile in iterator)
             {
-                if (tile is null)
-                    continue;
-                
-                switch (key)
+                switch (tile)
                 {
-                    case Tile x:
-                        if (x.Equals(tile))
-                            eventData = ref tile.EventData;
-                        break;
-                    case TileType type:
-                        if (tile.Body.TileType == type)
-                            eventData = ref tile.EventData;
-                        break;
-                    case Vector2 pos:
-                        if (tile.GridCell == pos)
-                            eventData = ref tile.EventData;
-                        break;
-                    case TileShape body:
-                        if (tile.Body == body)
-                            eventData = ref tile.EventData;
+                    case null:
+                        continue;
+                    default:
+                        switch (key)
+                        {
+                            case Tile x:
+                                if (x.Equals(tile))
+                                    eventData = ref tile.EventData;
+                                break;
+                            case TileType type:
+                                if (tile.Body.TileType == type)
+                                    eventData = ref tile.EventData;
+                                break;
+                            case Vector2 pos:
+                                if (tile.GridCell == pos)
+                                    eventData = ref tile.EventData;
+                                break;
+                            case TileShape body:
+                                if (tile.Body == body)
+                                    eventData = ref tile.EventData;
+                                break;
+                        }
+
                         break;
                 }
             }
@@ -112,26 +120,31 @@ namespace Match_3
 
             foreach (var tile in iterator)
             {
-                if (tile is null)
-                    continue;
-
-                switch (key)
+                switch (tile)
                 {
-                    case Tile x:
-                        if (x.Equals(tile))
-                            eventData = ref tile.Goal;
-                        break;
-                    case TileType type:
-                        if (tile.Body.TileType == type)
-                            eventData = ref tile.Goal;
-                        break;
-                    case Vector2 pos:
-                        if (tile.GridCell == pos)
-                            eventData = ref tile.Goal;
-                        break;
-                    case TileShape body:
-                        if (tile.Body == body)
-                            eventData = ref tile.Goal;
+                    case null:
+                        continue;
+                    default:
+                        switch (key)
+                        {
+                            case Tile x:
+                                if (x.Equals(tile))
+                                    eventData = ref tile.Goal;
+                                break;
+                            case TileType type:
+                                if (tile.Body.TileType == type)
+                                    eventData = ref tile.Goal;
+                                break;
+                            case Vector2 pos:
+                                if (tile.GridCell == pos)
+                                    eventData = ref tile.Goal;
+                                break;
+                            case TileShape body:
+                                if (tile.Body == body)
+                                    eventData = ref tile.Goal;
+                                break;
+                        }
+
                         break;
                 }
             }
@@ -152,23 +165,29 @@ namespace Match_3
             get
             {
                 Tile? tmp = null;
-                if (coord.X >= 0 && coord.X < TileWidth
-                                 && coord.Y >= 0 && coord.Y < TileHeight)
+                
+                switch (coord.X)
                 {
-                    //its within bounds!
-                    tmp = _bitmap[(int)coord.X, (int)coord.Y];
-                    tmp = tmp is { IsDeleted: true } ? null : tmp;
+                    case >= 0 when coord.X < TileWidth 
+                                   && coord.Y >= 0 && coord.Y < TileHeight:
+                    {
+                        //its within bounds!
+                        tmp = _bitmap[(int)coord.X, (int)coord.Y];
+                        tmp = tmp is { IsDeleted: true } ? null : tmp;
+                        break;
+                    }
                 }
 
                 return tmp;
             }
             set
             {
-                if (coord.X >= 0 && coord.Y >= 0 && coord.X < TileWidth && coord.Y < TileHeight)
+                _bitmap[(int)coord.X, (int)coord.Y] = coord.X switch
                 {
-                    _bitmap[(int)coord.X, (int)coord.Y] = value ?? throw new NullReferenceException(
-                        "You cannot store NULL inside the Grid anymore, use Grid.Delete(vector2) instead");
-                }
+                    >= 0 when coord.Y >= 0 && coord.X < TileWidth && coord.Y < TileHeight => 
+                        value ?? throw new NullReferenceException("You cannot store NULL inside the Grid anymore, use Grid.Delete(vector2) instead"),
+                    _ => _bitmap[(int)coord.X, (int)coord.Y]
+                };
             }
         }
 
@@ -180,8 +199,11 @@ namespace Match_3
                 {
                     if (StateAndBodyComparer.Singleton.Equals(first, next))
                     {
-                        if (matches.Count == Level.MAX_TILES_PER_MATCH)
-                            return false;
+                        switch (matches.Count)
+                        {
+                            case Level.MAX_TILES_PER_MATCH:
+                                return false;
+                        }
 
                         matches.Add(first);
                         matches.Add(next);
@@ -223,16 +245,20 @@ namespace Match_3
                     next = this[nextCoords];
                 }
             }
-            //if he could not get a match by the 2.tile which was clicked, try the 1.clicked tile!
-            if (!matches.IsMatchActive && ++_match3FuncCounter <= 1)
+
+            switch (matches.IsMatchActive)
             {
-                matches.Clear();
-                return WasAMatchInAnyDirection(this[LastMatchTrigger.CoordsB4Swap]!, matches);
+                //if he could not get a match by the 2.tile which was clicked, try the 1.clicked tile!
+                case false when ++_match3FuncCounter <= 1:
+                    matches.Clear();
+                    return WasAMatchInAnyDirection(this[LastMatchTrigger.CoordsB4Swap]!, matches);
             }
 
-            if (_match3FuncCounter >= 1)
+            switch (_match3FuncCounter)
             {
-                _match3FuncCounter = 0;
+                case >= 1:
+                    _match3FuncCounter = 0;
+                    break;
             }
             return matches.IsMatchActive;
         }

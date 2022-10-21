@@ -223,10 +223,10 @@ public abstract class QuestHandler
     protected static THandler GetInstance<THandler>() 
         where THandler : QuestHandler, new() => SingletonManager.GetOrCreateInstance<THandler>();
 
-    protected int SubGoalCounter { get; set; }
-
-    protected virtual bool IsMainGoalReached { get; set; }
-    
+    protected virtual int SubGoalCounter { get; set; }
+    protected virtual int GoalsToReach { get; set; }
+    protected int GoalsLeft => GoalsToReach - SubGoalCounter;
+    protected bool IsMainGoalReached => GoalsLeft == 0;
     protected static bool IsSubGoalReached(EventType eventType, in Goal goal, in Stats stats, out int direction)
     {
         direction = -int.MaxValue;
@@ -270,6 +270,8 @@ public abstract class QuestHandler
 
 public sealed class SwapQuestHandler : QuestHandler
 {
+    protected override int GoalsToReach { get; set; }
+
     protected override void DefineGoals()
     {
         var state = Game.State;
@@ -284,6 +286,7 @@ public sealed class SwapQuestHandler : QuestHandler
                 3 => new Goal { Swap = new(Randomizer.Next(2, 3), 3.0f) },
                 _ => default
             };
+            GoalsToReach++;
             state.Current.UpdateGoal(EventType.Swapped, goal);
         }
     }
@@ -359,8 +362,9 @@ public sealed class MatchQuestHandler : QuestHandler
             Console.WriteLine(goal.Match + "   for " + i + " tiles");
             TypeGoal.Add(i, goal);
         }
+
+        GoalsToReach++;
         int x = 10;
-    }
     
     private static bool IsMatchGoalReached(out Goal? goal, in Stats stats, out int direction)
     {
@@ -375,21 +379,11 @@ public sealed class MatchQuestHandler : QuestHandler
         goal = GetGoalBy(type);
         return IsSubGoalReached(EventType.Matched, goal.Value, stats, out direction);
     }
-
-    protected override bool IsMainGoalReached => SubGoalCounter == (int)TileType.Length;
-
     protected override void HandleEvent()
     {
         var state = Game.State;
         var type = state.Matches!.Body.TileType;
         ref var stats = ref Grid.GetStatsByType(type);
-        ref readonly var stats2 = ref Grid.GetStatsByType2(type);
-        ref readonly var ss = ref stats;
-         
-        
-        stats2 = ref stats;
-        //stats.Inc(EventType.Matched);
-        ref var s = ref stats2[EventType.Matched];   //THIS LINE SHOULD NOT COMPILE! MAKE A BUG REQUEST!
         stats[EventType.Matched].Count++;
 
         if (IsMatchGoalReached(out var goal, stats, out int direction))
@@ -412,6 +406,8 @@ public sealed class MatchQuestHandler : QuestHandler
                 state.Matches.Clear();
                 return;
             }
+            if (direction == -1)
+                Console.WriteLine($"{++SubGoalCounter}");
             
             Console.WriteLine(direction);
             //Console.BackgroundColor = ConsoleColor.Yellow;
@@ -444,7 +440,7 @@ public abstract class ClickQuestHandler : QuestHandler
            3 => new Goal { Click = new(Randomizer.Next(7, 10), 2.0f) },
            _ => default
         };
-
+        GoalsToReach++;
         state.Current.UpdateGoal(EventType.Clicked, goal);
     }
     protected static bool IsClickGoalReached(out Goal goal, in Stats stats, out int direction)
