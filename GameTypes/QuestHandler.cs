@@ -332,9 +332,11 @@ public sealed class MatchQuestHandler : QuestHandler
 
     private readonly int MaxGoalCount = (int)TileType.Length; 
     
-    private static RefTuple<Goal> GetGoalBy(TileType t)
+    private static ref readonly Goal GetGoalBy(TileType t)
     {
-        return new RefTuple<Goal>(ref CollectionsMarshal.GetValueRefOrAddDefault(TypeGoal, t, out _));
+        ref readonly var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeGoal, t, out _);
+
+        return ref x;
     }
     
     public MatchQuestHandler()
@@ -386,7 +388,7 @@ public sealed class MatchQuestHandler : QuestHandler
         }
 
         var type = Game.State.Current.Body.TileType;
-        goal = GetGoalBy(type).Item1;
+        goal = GetGoalBy(type);
         return IsSubGoalReached(EventType.Matched, goal.Value, stats, out direction);
     }
 
