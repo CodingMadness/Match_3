@@ -34,9 +34,15 @@ namespace Match_3
             ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out var existedB4);
             if (!existedB4)
                 x = new();
-            return ref new RefTuple<Stats>(ref x).Item1;
+            return ref x; 
         }
 
+        public static ref readonly Stats GetStatsByType2(TileType t)
+        {
+            ref readonly var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out _);
+            return ref x;
+        }
+        
         public static Grid Instance { get; } = new();
 
         private Grid()

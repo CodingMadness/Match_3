@@ -14,7 +14,6 @@ public struct EventStats
 {
     private TimeOnly? _prev, _current;
     private int _count;
- 
     public EventStats(int count) : this()
     {
         Count = count;
@@ -95,7 +94,7 @@ public struct Stats
             }
         }
     }
-
+    
     public Stats()
     {
         Destroyed = new(count:0);
@@ -172,21 +171,6 @@ public readonly record struct Goal(SubGoal? Click, SubGoal? Swap, SubGoal? Match
             { Clicked: { } } when RePaint is null => -1,
             _ => throw new ArgumentOutOfRangeException(nameof(stats), stats, null)
         };
-    }
-}
-
-public ref struct RefTuple<T> where T : struct 
-{
-    public  ref  T Item1;
-    public ref readonly T Item2;
-    public RefTuple(ref T item1)
-    {
-        Item1 =  ref item1;
-    }
-
-    public RefTuple(in T item2, bool a = true)
-    {
-        Item2 = ref item2;
     }
 }
 
@@ -399,9 +383,15 @@ public sealed class MatchQuestHandler : QuestHandler
         var state = Game.State;
         var type = state.Matches!.Body.TileType;
         ref var stats = ref Grid.GetStatsByType(type);
-        //stats.Inc(EventType.Matched);
-        stats[EventType.Matched].Count++;
+        ref readonly var stats2 = ref Grid.GetStatsByType2(type);
+        ref readonly var ss = ref stats;
+         
         
+        stats2 = ref stats;
+        //stats.Inc(EventType.Matched);
+        ref var s = ref stats2[EventType.Matched];   //THIS LINE SHOULD NOT COMPILE! MAKE A BUG REQUEST!
+        stats[EventType.Matched].Count++;
+
         if (IsMatchGoalReached(out var goal, stats, out int direction))
         {
             Console.WriteLine($"yea, we got {stats.Matched!.Value.Count} match of type: {type} within");
