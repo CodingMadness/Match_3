@@ -124,7 +124,7 @@ internal static class Game
                 DestroyOnClickHandler.Instance.UnSubscribe();
                 TileReplacerOnClickHandler.Instance.Subscribe();
                 State.Current = firstClickedTile;
-                OnTileClicked();
+                //OnTileClicked();
             }
             firstClickedTile.TileState |= TileState.Selected;
 
@@ -162,8 +162,8 @@ internal static class Game
             }
         }
     }
-    
-    static void ComputeMatches()
+
+    private static void ComputeMatches()
     {
         if (!State.WasSwapped)
             return;
@@ -221,7 +221,8 @@ internal static class Game
     {
         //float seconds = 0.0f;
         GameTime gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown);
-
+        int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
+        
         while (!WindowShouldClose())
         {
             //seconds += GetFrameTime();
@@ -229,11 +230,13 @@ internal static class Game
 
             BeginDrawing();
 
-                if (_enemyMatches is not null)
+                if (_enterGame)
                 {
-                    var size = GetScreenCoord();
-                    SetShaderValue(WobbleShader, shaderLoc.size, size , ShaderUniformDataType.SHADER_UNIFORM_VEC2);
-                    SetShaderValue(WobbleShader, shaderLoc.time, elapsedTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+                    Vector2 size = GetScreenCoord();
+                    
+                    SetShaderValue(WobbleEffect, shaderLoc.size, size , ShaderUniformDataType.SHADER_UNIFORM_VEC2);
+                    SetShaderValue(WobbleEffect, shaderLoc.time, elapsedTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+                    SetShaderValue(WobbleEffect, shallWobble, 0, ShaderUniformDataType.SHADER_UNIFORM_INT);
                 }
 
                 ClearBackground(WHITE);
@@ -278,14 +281,13 @@ internal static class Game
                         ComputeMatches();
                         //Console.WriteLine(_matchesOf3.Count);
                         Renderer.DrawOuterBox(_enemyMatches, elapsedTime);  
-                        Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;  
+                        Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;
+                        //BeginShaderMode(WobbleEffect);
                         Renderer.DrawGrid(elapsedTime, shaderLoc);
-                        BeginShaderMode(WobbleShader);
                         Renderer.DrawMatches(_enemyMatches, elapsedTime, _shallCreateEnemies);
-                        EndShaderMode();
+                        //EndShaderMode();
                         HardReset();
                     }
-                
                     _enterGame = true;
                 }
             
@@ -295,7 +297,7 @@ internal static class Game
 
     private static void CleanUp()
     {
-        UnloadShader(WobbleShader);
+        UnloadShader(WobbleEffect);
         UnloadTexture(DefaultTileSprite);
         CloseWindow();
     }

@@ -105,6 +105,10 @@
     <EmbeddedResource Include="Assets\Fonts\candy font.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Remove="Assets\Shaders\splash.glsl" />
+    <EmbeddedResource Include="Assets\Shaders\splash.frag">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\Fonts\font1.otf">

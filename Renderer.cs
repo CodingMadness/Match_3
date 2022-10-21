@@ -36,29 +36,26 @@ public static class Renderer
             return;
         }
         
-        var body = tile.Body as TileShape;
+        var body = tile.Body;
         DrawTexturePro(atlas, body.TextureRect, tile.WorldBounds, Vector2.Zero, 0f, body.Color);
         DrawCoordOnTop(tile);
     }
     
     public static void DrawGrid(float elapsedTime,(int size, int speed) shaderLoc)
     {
-        Vector2 size = Utils.GetScreenCoord();
-       
-        
-            for (int x = 0; x < Grid.Instance.TileWidth; x++)
+        for (int x = 0; x < Grid.Instance.TileWidth; x++)
+        {
+            for (int y = 0; y < Grid.Instance.TileHeight; y++)
             {
-                for (int y = 0; y < Grid.Instance.TileHeight; y++)
+                Vector2 current = new(x, y);
+                var basicTile = Grid.Instance[current];
+                    
+                if (basicTile is not null && !basicTile.IsDeleted && basicTile is not EnemyTile)
                 {
-                    Vector2 current = new(x, y);
-                    Tile? basicTile = Grid.Instance[current];
-                        
-                    if (basicTile is not null && !basicTile.IsDeleted && basicTile is not EnemyTile)
-                    {
-                        DrawTile(ref DefaultTileSprite, basicTile, elapsedTime);
-                    }
+                    DrawTile(ref DefaultTileSprite, basicTile, elapsedTime);
                 }
             }
+        }
     }
 
     public static void DrawMatches(MatchX? match, float elapsedTime, bool shallCreateEnemies)
@@ -69,9 +66,9 @@ public static class Renderer
         if (match is null)
             return;
         
-        Texture matchTexture = (match is MatchX and not EnemyMatches) ? ref DefaultTileSprite : ref EnemySprite;
+        Texture matchTexture = (match is not null and not EnemyMatches) ? ref DefaultTileSprite : ref EnemySprite;
 
-        for (int i = 0; i < match.Count; i++)
+        for (int i = 0; i < match?.Count; i++)
         {
             var gridCell = match[(i)].GridCell;
             var tile = Grid.Instance[gridCell];
@@ -85,7 +82,7 @@ public static class Renderer
     {
         if (matches?.IsMatchActive == true)
         {
-            DrawRectangleRec(matches.WorldBox, matches.Body.ToConstColor(RED));
+            DrawRectangleRec(matches.WorldBox, matches.Body!.ToConstColor(RED));
         }
     }
     

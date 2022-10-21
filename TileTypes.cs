@@ -356,7 +356,9 @@ public class Tile
     public bool IsDeleted => (TileState & TileState.Deleted) == TileState.Deleted;
     public Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
     public Rectangle WorldBounds => GridBounds.ToWorldBox();
-
+    
+    public bool ShallWobble { get; set; }
+    
     public void UpdateGoal(EventType eventType, in Goal aGoal)
     {
         _goal = eventType switch

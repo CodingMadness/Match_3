@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static Match_3.Utils;
 using static Raylib_CsLo.Raylib;
@@ -105,7 +106,6 @@ public struct Stats
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
     }
-
     public void Reset(EventType type)
     {
         switch (type)
@@ -145,7 +145,6 @@ public struct Stats
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
     }
-    
     public void Null(EventType type)
     {
         switch (type)
@@ -177,6 +176,44 @@ public struct Stats
             $"Swapped made  ->(Count: {Swapped?.Count}  - Interval: {Swapped?.Interval}"+
             $"Repaints made ->(Count: {RePainted?.Count}  - Interval: {RePainted?.Interval}";
         return output;
+    }
+
+    public ref EventStats this[EventType index]
+    {
+        get
+        {
+            switch (index)
+            {
+                case EventType.Clicked when Clicked.HasValue:
+                {
+                    //ref readonly var nullRef = ref Nullable.GetValueRefOrDefaultRef(Clicked);
+                    ref EventStats tmp = ref Unsafe.AsRef(Nullable.GetValueRefOrDefaultRef(Clicked));
+                    return ref tmp;
+                }
+                case EventType.Swapped when Swapped.HasValue:
+                {
+                    ref EventStats tmp = ref Unsafe.AsRef(Nullable.GetValueRefOrDefaultRef(Swapped));
+                    return ref tmp;
+                }
+                case EventType.Matched when Matched.HasValue:
+                {
+                    ref EventStats tmp = ref Unsafe.AsRef(Nullable.GetValueRefOrDefaultRef(Matched));
+                    return ref tmp;
+                }
+                case EventType.Destroyed when Destroyed.HasValue:
+                {
+                    ref EventStats tmp = ref Unsafe.AsRef(Nullable.GetValueRefOrDefaultRef(Destroyed));
+                    return ref tmp;
+                }
+                case EventType.RePainted when RePainted.HasValue:
+                {
+                    ref EventStats tmp = ref Unsafe.AsRef(Nullable.GetValueRefOrDefaultRef(RePainted));
+                    return ref tmp;
+                }
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(index), index, null);
+            }
+        }
     }
 
     public Stats()
@@ -256,15 +293,20 @@ public readonly record struct Goal(SubGoal? Click, SubGoal? Swap, SubGoal? Match
             _ => throw new ArgumentOutOfRangeException(nameof(stats), stats, null)
         };
     }
- 
 }
 
 public ref struct RefTuple<T> where T : struct 
 {
     public  ref  T Item1;
+    public ref readonly T Item2;
     public RefTuple(ref T item1)
     {
         Item1 =  ref item1;
+    }
+
+    public RefTuple(in T item2, bool a = true)
+    {
+        Item2 = ref item2;
     }
 }
 
@@ -475,11 +517,14 @@ public sealed class MatchQuestHandler : QuestHandler
         var state = Game.State;
         var type = state.Matches!.Body.TileType;
         ref var stats = ref Grid.GetStatsByType(type).Item1;
-        stats.Inc(EventType.Matched);
+        //stats.Inc(EventType.Matched);
+        stats[EventType.Matched].Count++;
         
         if (IsMatchGoalReached(out var goal, stats, out int direction))
         {
-            stats.Null(EventType.Matched);
+            Console.WriteLine($"yea, we got {stats.Matched!.Value.Count} match of type: {type} within");
+            Console.WriteLine($"current match goal:  {goal?.Match}");
+            stats[EventType.Matched] = default;
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
             Console.Clear();
             Console.WriteLine(direction);
@@ -521,8 +566,8 @@ public abstract class ClickQuestHandler : QuestHandler
 
         var goal = Game.Level.ID switch
         {
-           0 => new Goal { Click = new(Randomizer.Next(1, 3), 5f) },
-           1 => new Goal { Click = new(Randomizer.Next(3, 5), 4.5f) },
+           0 => new Goal { Click = new(Randomizer.Next(2, 4), 5f) },
+           1 => new Goal { Click = new(Randomizer.Next(4, 5), 4.5f) },
            2 => new Goal { Click = new(Randomizer.Next(5, 6), 3.0f) },
            3 => new Goal { Click = new(Randomizer.Next(7, 10), 2.0f) },
            _ => default
@@ -557,8 +602,9 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
         var state = Game.State;
         var type = state.Current.Body.TileType;
         ref   var stats = ref Grid.GetStatsByType(type).Item1;
-        stats.Inc(EventType.Destroyed);
-
+        //stats.Inc(EventType.Destroyed);
+        stats[EventType.Clicked].Count++;
+        
         Console.WriteLine($"Ok, 1 of {state.Current.Body.TileType} tiles was clicked!");
       
         if (IsClickGoalReached(out var goal, stats, out int direction))
@@ -568,7 +614,8 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
             enemy.BlockSurroundingTiles(Grid.Instance, false);
             state.EnemiesStillPresent = ++_matchXCounter < state.Matches!.Count;
             _matchXCounter = (byte)(state.EnemiesStillPresent ? _matchXCounter : 0);
-            stats.Null(EventType.Clicked);
+            //stats.Null(EventType.Clicked);
+            stats[EventType.Clicked] = default;
         }
         else
         {
@@ -589,16 +636,18 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         var state = Game.State;
         var type = state.Current.Body.TileType;
         ref   var stats = ref Grid.GetStatsByType(type).Item1;
-        stats.Inc(EventType.Clicked);
-        
-        if (IsClickGoalReached(out var goal, stats, out _) && !IsSoundPlaying(AssetManager.Splash))
+        //stats.Inc(EventType.Clicked);
+        stats[EventType.Clicked].Count++;
+
+        if (IsClickGoalReached(out var goal, stats, out _) && !IsSoundPlaying(AssetManager.SplashSound))
         {
             var tile  = Bakery.CreateTile(state.Current.GridCell, Randomizer.NextSingle());
             Grid.Instance[tile.GridCell] = tile;
-            PlaySound(AssetManager.Splash);
+            PlaySound(AssetManager.SplashSound);
             state.Current = tile;
             DefineGoals();
-            stats.Null(EventType.Clicked); //so u cannot replace the same tile over and over
+            stats[EventType.Clicked] = default;
+            //stats.Reset(EventType.Clicked); //so u cannot replace the same tile over and over
             Console.WriteLine("Nice, you got a new tile!");
         }
         else
