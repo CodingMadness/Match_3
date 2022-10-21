@@ -229,7 +229,7 @@ public abstract class QuestHandler
     protected bool IsMainGoalReached => GoalsLeft == 0;
     protected static bool IsSubGoalReached(EventType eventType, in Goal goal, in Stats stats, out int direction)
     {
-        direction = -int.MaxValue;
+        direction = int.MaxValue;
         
         return eventType switch
         {
@@ -332,7 +332,7 @@ public sealed class MatchQuestHandler : QuestHandler
     }
     
     public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
-    
+
     protected override void DefineGoals()
     {
         GameState state = Game.State;
@@ -347,7 +347,7 @@ public sealed class MatchQuestHandler : QuestHandler
                 3 => new Goal { Match = new(Randomizer.Next(8, 10), 2.5f) },
                 _ => default
             };
-            
+
             var matchValue = goal.Match!.Value;
 
             int matchSum = matchValue.Count * Level.MAX_TILES_PER_MATCH;
@@ -358,20 +358,20 @@ public sealed class MatchQuestHandler : QuestHandler
                 matchValue = matchValue with { Count = maxAllowed / Level.MAX_TILES_PER_MATCH };
                 goal = goal with { Match = matchValue };
             }
-
+            GoalsToReach++;
             Console.WriteLine(goal.Match + "   for " + i + " tiles");
             TypeGoal.Add(i, goal);
         }
 
-        GoalsToReach++;
         int x = 10;
-    
+    }
+
     private static bool IsMatchGoalReached(out Goal? goal, in Stats stats, out int direction)
     {
         if (stats.Matched is null)
         {
             goal = null;
-            direction = -int.MaxValue;
+            direction = int.MaxValue;
             return false;
         }
 
@@ -379,21 +379,30 @@ public sealed class MatchQuestHandler : QuestHandler
         goal = GetGoalBy(type);
         return IsSubGoalReached(EventType.Matched, goal.Value, stats, out direction);
     }
+    
     protected override void HandleEvent()
     {
         var state = Game.State;
         var type = state.Matches!.Body.TileType;
         ref var stats = ref Grid.GetStatsByType(type);
+
+        if (stats.Matched is null)
+        {
+            state.Matches.Clear();
+            return;
+        }
+
         stats[EventType.Matched].Count++;
 
-        if (IsMatchGoalReached(out var goal, stats, out int direction))
+        if (IsMatchGoalReached(out var goal, stats, out int compareResult))
         {
+            SubGoalCounter++;
+            Console.WriteLine(SubGoalCounter);
             Console.WriteLine($"yea, we got {stats.Matched!.Value.Count} match of type: {type} within");
             Console.WriteLine($"current match goal:  {goal?.Match}");
-            stats[EventType.Matched] = default;
+            stats.Matched = null;
             Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
             Console.Clear();
-            Console.WriteLine(direction);
             Grid.Instance.Delete(state.Matches);
         }
         else
@@ -401,15 +410,12 @@ public sealed class MatchQuestHandler : QuestHandler
             if (IsMainGoalReached)
                 Console.WriteLine("NICE, YOU FINISHED THE ENTIRE MATCH-QUEST WELL DONE MAAAA BOOOY");
 
-            if (direction == -int.MaxValue)
+            //error-code
+            if (compareResult > 1)
             {
                 state.Matches.Clear();
-                return;
             }
-            if (direction == -1)
-                Console.WriteLine($"{++SubGoalCounter}");
-            
-            Console.WriteLine(direction);
+
             //Console.BackgroundColor = ConsoleColor.Yellow;
             Console.WriteLine($"yea, we got {stats.Matched!.Value.Count} match of type: {type} within");
             Console.WriteLine($"current match goal:  {goal?.Match}");
