@@ -14,9 +14,9 @@ public static unsafe class AssetManager
     public static Texture DefaultTileSprite;
     public static Texture EnemySprite;
     public static Texture IngameTexture1, IngameTexture2;
-    public static Shader WobbleShader;
+    public static Shader WobbleEffect, SplashEffect;
     
-    public static Sound Splash;
+    public static Sound SplashSound;
 
     private static Font GameFont;
 
@@ -35,7 +35,7 @@ public static unsafe class AssetManager
         var fileName = $"Match_3.Assets.{relativePath}";
         var assembly = Assembly.GetEntryAssembly();
         var stream = assembly?.GetManifestResourceStream(fileName);
-        MemoryStream ms = new MemoryStream();
+        var ms = new MemoryStream();
 
         if (stream == null)
         {
@@ -52,7 +52,7 @@ public static unsafe class AssetManager
         var buffer = GetEmbeddedResource("Sounds.splash.mp3");
         var first = (byte*)Unsafe.AsPointer(ref buffer[0]);
         var wave = LoadWaveFromMemory(".mp3", first, buffer.Length);
-        Splash = LoadSoundFromWave(wave);
+        SplashSound = LoadSoundFromWave(wave);
 
         buffer = GetEmbeddedResource("Fonts.font4.otf");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]);
@@ -86,8 +86,13 @@ public static unsafe class AssetManager
         buffer = GetEmbeddedResource("Shaders.wobble.frag");
         using Stream rsStream = new MemoryStream(buffer, 0, buffer.Length);
         using var reader = new StreamReader(rsStream);
-        WobbleShader = LoadShaderFromMemory(null, reader.ReadToEnd());
-
+        WobbleEffect = LoadShaderFromMemory(null, reader.ReadToEnd());
+        
+        buffer = GetEmbeddedResource("Shaders.splash.frag");
+        using var rsStream2 = new MemoryStream(buffer, 0, buffer.Length);
+        using var reader2 = new StreamReader(rsStream2);
+        SplashEffect = LoadShaderFromMemory(null, reader2.ReadToEnd());
+        
         WelcomeText.Src = GameFont;
         GameOverText.Src = GameFont;
         TimerText.Src = GameFont;
@@ -96,30 +101,30 @@ public static unsafe class AssetManager
     
     public static (int sizeLoc, int timeLoc) InitShader()
     {
-        int sizeLoc = GetShaderLocation(WobbleShader, "size");
-        int secondsLoc = GetShaderLocation(WobbleShader, "seconds");
-        int freqXLoc = GetShaderLocation(WobbleShader, "freqX");
-        int freqYLoc = GetShaderLocation(WobbleShader, "freqY");
-        int ampXLoc = GetShaderLocation(WobbleShader, "ampX");
-        int ampYLoc = GetShaderLocation(WobbleShader, "ampY");
-        int speedXLoc = GetShaderLocation(WobbleShader, "speedX");
-        int speedYLoc = GetShaderLocation(WobbleShader, "speedY");
-
+        int sizeLoc = GetShaderLocation(WobbleEffect, "size");
+        int secondsLoc = GetShaderLocation(WobbleEffect, "seconds");
+        int freqXLoc = GetShaderLocation(WobbleEffect, "freqX");
+        int freqYLoc = GetShaderLocation(WobbleEffect, "freqY");
+        int ampXLoc = GetShaderLocation(WobbleEffect, "ampX");
+        int ampYLoc = GetShaderLocation(WobbleEffect, "ampY");
+        int speedXLoc = GetShaderLocation(WobbleEffect, "speedX");
+        int speedYLoc = GetShaderLocation(WobbleEffect, "speedY");
+        
         // Shader uniform values that can be updated at any time
         float freqX = 34.0f;
         float freqY = 50.0f;
-        float ampX = 5.0f;
-        float ampY = 5.0f;
+        float ampX = 8.5f;
+        float ampY = 7.33f;
         float speedX = 8.0f;
         float speedY = 8.0f;
         
-        SetShaderValue(WobbleShader, freqXLoc, ref freqX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleShader, freqYLoc, ref freqY,ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleShader, ampXLoc, ref ampX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleShader, ampYLoc, ref ampY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleShader, speedXLoc, ref speedX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleShader, speedYLoc, ref speedY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-
+        SetShaderValue(WobbleEffect, freqXLoc, ref freqX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        SetShaderValue(WobbleEffect, freqYLoc, ref freqY,ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        SetShaderValue(WobbleEffect, ampXLoc, ref ampX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        SetShaderValue(WobbleEffect, ampYLoc, ref ampY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        SetShaderValue(WobbleEffect, speedXLoc, ref speedX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        SetShaderValue(WobbleEffect, speedYLoc, ref speedY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        
         return (sizeLoc, secondsLoc);
     }
 
@@ -130,7 +135,7 @@ public static unsafe class AssetManager
         GameOverText.Color = RED;
         GameOverText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
     }
-
+    
     public static void InitWelcomeTxt()
     {
         WelcomeText.Color = RED;
