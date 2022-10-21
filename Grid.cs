@@ -29,16 +29,12 @@ namespace Match_3
         public static Tile LastMatchTrigger { get; private set; }
         private byte _match3FuncCounter;
 
-        public static RefTuple<Stats> GetStatsByType(TileType t)
+        public static ref Stats GetStatsByType(TileType t)
         {
             ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out var existedB4);
-
             if (!existedB4)
-            {
                 x = new();
-            }
-
-            return new(ref x);
+            return ref new RefTuple<Stats>(ref x).Item1;
         }
 
         public static Grid Instance { get; } = new();

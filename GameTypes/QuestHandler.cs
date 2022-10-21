@@ -48,126 +48,6 @@ public struct Stats
     public EventStats? RePainted;
     public EventStats? Destroyed;
 
-    public void Inc(EventType type)
-    {
-        switch (type)
-        {
-            case EventType.Clicked:
-                if (Clicked.HasValue )
-                {
-                    var tmp = Clicked.Value;
-                    tmp.Count++;
-                    Clicked = tmp;
-                }
-                else 
-                    Clicked = null;
-                break;
-            case EventType.Swapped:
-                if (Swapped.HasValue )
-                {
-                    var tmp = Swapped.Value;
-                    tmp.Count++;
-                    Swapped = tmp;
-                }
-                else
-                    Swapped = null;
-                break;
-            case EventType.Matched:
-                if (Matched.HasValue )
-                {
-                    var tmp = Matched.Value;
-                    tmp.Count++;
-                    Matched = tmp;
-                }
-                else
-                    Matched = null;
-                break;
-            case EventType.RePainted:
-                if (RePainted.HasValue )
-                {
-                    var tmp = RePainted.Value;
-                    tmp.Count++;
-                    RePainted = tmp;
-                }
-                else
-                    RePainted = null;
-                break;
-            case EventType.Destroyed:
-                if (Destroyed.HasValue )
-                {
-                    var tmp = Destroyed.Value;
-                    tmp.Count++;
-                    Destroyed = tmp;
-                }
-                else
-                    Destroyed = null;
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(type), type, null);
-        }
-    }
-    public void Reset(EventType type)
-    {
-        switch (type)
-        {
-            case EventType.Clicked:
-                if (Clicked.HasValue)
-                {
-                    Clicked = new(0);
-                }
-                break;
-            case EventType.Swapped:
-                if (Swapped.HasValue)
-                {
-                    Swapped =  new(0);
-                }
-                break;
-            case EventType.Matched:
-                if (Matched.HasValue)
-                {
-                    Matched = new(0);
-                }
-                break;
-            case EventType.RePainted:
-                if (RePainted.HasValue)
-                {
-                    
-                    RePainted = new(0);
-                }
-                break;
-            case EventType.Destroyed:
-                if (Destroyed.HasValue)
-                {
-                    Destroyed = new(0);
-                }
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(type), type, null);
-        }
-    }
-    public void Null(EventType type)
-    {
-        switch (type)
-        {
-            case EventType.Clicked:
-                Clicked = null;
-                break;
-            case EventType.Swapped:
-                Swapped = null;
-                break;
-            case EventType.Matched:
-                Matched = null;
-                break;
-            case EventType.RePainted:
-                RePainted = null;
-                break;
-            case EventType.Destroyed:
-                Destroyed = null;
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(type), type, null);
-        }
-    }
     public override string ToString()
     {
         string output =
@@ -516,7 +396,7 @@ public sealed class MatchQuestHandler : QuestHandler
     {
         var state = Game.State;
         var type = state.Matches!.Body.TileType;
-        ref var stats = ref Grid.GetStatsByType(type).Item1;
+        ref var stats = ref Grid.GetStatsByType(type);
         //stats.Inc(EventType.Matched);
         stats[EventType.Matched].Count++;
         
@@ -601,7 +481,7 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
 
         var state = Game.State;
         var type = state.Current.Body.TileType;
-        ref   var stats = ref Grid.GetStatsByType(type).Item1;
+        ref var stats = ref Grid.GetStatsByType(type);
         //stats.Inc(EventType.Destroyed);
         stats[EventType.Clicked].Count++;
         
@@ -635,7 +515,7 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
 
         var state = Game.State;
         var type = state.Current.Body.TileType;
-        ref   var stats = ref Grid.GetStatsByType(type).Item1;
+        ref var stats = ref Grid.GetStatsByType(type);
         //stats.Inc(EventType.Clicked);
         stats[EventType.Clicked].Count++;
 
