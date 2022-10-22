@@ -353,7 +353,7 @@ public class Tile
     /// </summary>
     public Vector2 End => WorldCell + Vector2.One * Size;
 
-    public bool IsDeleted => (TileState & TileState.Deleted) == TileState.Deleted;
+    public bool IsDeleted => TileState.HasFlag(TileState.Deleted);
     public Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
     public Rectangle WorldBounds => GridBounds.ToWorldBox();
     

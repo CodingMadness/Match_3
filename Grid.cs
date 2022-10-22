@@ -46,6 +46,7 @@ public sealed class Grid
 
     private Grid()
     {
+        
     }
         
     private void CreateMap()

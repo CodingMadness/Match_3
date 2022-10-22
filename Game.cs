@@ -1,9 +1,12 @@
 ﻿using System.Numerics;
+using DotNext.Runtime;
 using Match_3.GameTypes;
 using Raylib_CsLo;
+using RayWrapper.Objs;
 using static Match_3.AssetManager;
 using static Match_3.Utils;
 using static Raylib_CsLo.Raylib;
+using static rlImGui.rlImGui;
 
 #pragma warning disable CS8618
 
@@ -35,6 +38,8 @@ internal static class Game
         CleanUp();
     }
 
+    private static KeyButton featureBtn;
+    
     private static void InitGame()
     {
         Level = new(0,60*2, 6, 11, 9);
@@ -42,6 +47,8 @@ internal static class Game
         _matchesOf3 = new();
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
+        //featureBtn = new KeyButton()
+      
         InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
         SetTextureFilter(IngameTexture1, TextureFilter.TEXTURE_FILTER_BILINEAR);
         LoadAssets();
@@ -54,6 +61,12 @@ internal static class Game
         State = new( );
         Grid.Instance.Init(Level);
         shaderLoc = InitShader();
+        var tmp = GetScreenCoord();
+        var btnPos = tmp with { X = tmp.X * 0.5f };
+        featureBtn = new(btnPos, KeyboardKey.KEY_A);
+        featureBtn.RegisterGameObj();
+
+        
     }
     
     private static void DragMouseToEnemies()
@@ -104,27 +117,25 @@ internal static class Game
             return;
 
         //Enemy tile was clicked on , ofc after a matchX happened!
-        if (_enemyMatches?.IsMatchActive == true && 
-            EnemyTile.IsOnlyEnemyTile(firstClickedTile, out var enemy))
+        if (_enemyMatches?.IsMatchActive == true &&
+            Intrinsics.IsExactTypeOf<Tile>(firstClickedTile))
         {
             TileReplacerOnClickHandler.Instance.UnSubscribe();
             DestroyOnClickHandler.Instance.Subscribe();
-            State.Current = enemy!; 
+            State.Current = firstClickedTile!; 
             State.Matches = _enemyMatches;
             //OnTileClicked();
         }
         else
         {
-            if (Tile.IsOnlyDefaultTile(firstClickedTile) && 
-                !EnemyTile.IsOnlyEnemyTile(firstClickedTile, out _))
+            if (Intrinsics.IsExactTypeOf<Tile>(firstClickedTile))
             {
-                //Console.WriteLine("Normal tile was clicked !!");
-                //Only when a default tile is clicked, we wanna allow it to change
-                //and since both event classes are active, we will unsub the one who destroys on clicks
+                //Only when a default tile is clicked X-times, we wanna allow it to change
+                //and since both event classes are active, we will unsub from the one who destroys on clicks
                 DestroyOnClickHandler.Instance.UnSubscribe();
                 TileReplacerOnClickHandler.Instance.Subscribe();
                 State.Current = firstClickedTile;
-                //OnTileClicked();
+                OnTileClicked();
             }
             firstClickedTile.TileState |= TileState.Selected;
 
@@ -222,14 +233,15 @@ internal static class Game
         //float seconds = 0.0f;
         GameTime gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown);
         int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
+        Setup(false);
         
         while (!WindowShouldClose())
         {
             //seconds += GetFrameTime();
             float elapsedTime = _gameTimer.ElapsedSeconds;
-
+            
             BeginDrawing();
-
+            Begin();
                 if (_enterGame)
                 {
                     Vector2 size = GetScreenCoord();
@@ -290,7 +302,7 @@ internal static class Game
                     }
                     _enterGame = true;
                 }
-            
+            End();
             EndDrawing();
         }
     }

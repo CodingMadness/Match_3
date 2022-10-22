@@ -393,7 +393,7 @@ public sealed class MatchQuestHandler : QuestHandler
         }
 
         stats[EventType.Matched].Count++;
-
+        
         if (IsMatchGoalReached(out var goal, stats, out int compareResult))
         {
             SubGoalCounter++;
