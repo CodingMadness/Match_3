@@ -71,10 +71,10 @@ public static unsafe class AssetManager
     /// <returns></returns>
     private static Texture LoadTexture(string fullPath)
     {
-            var buffer = GetEmbeddedResource(fullPath);
-            var first = (byte*)Unsafe.AsPointer(ref buffer[0]);
-            Image bg = LoadImageFromMemory(".png", first, buffer.Length);
-            return LoadTextureFromImage(bg);
+        var buffer = GetEmbeddedResource(fullPath);
+        var first = (byte*)Unsafe.AsPointer(ref buffer[0]); 
+        Image bg = LoadImageFromMemory(".png", first, buffer.Length);
+        return LoadTextureFromImage(bg);
     }
 
     private static Texture LoadGuiTexture(string relativePath)
@@ -119,9 +119,9 @@ public static unsafe class AssetManager
     private static Shader LoadShader(string fileNameOnly)
     {
         var buffer = GetEmbeddedResource($"Shaders.{fileNameOnly}");
-            using Stream rsStream = new MemoryStream(buffer, 0, buffer.Length);
-            using var reader = new StreamReader(rsStream);
-            return LoadShaderFromMemory(null,  reader.ReadToEnd());
+        using Stream rsStream = new MemoryStream(buffer, 0, buffer.Length);
+        using var reader = new StreamReader(rsStream); 
+        return LoadShaderFromMemory(null,  reader.ReadToEnd());
     }
     
     public static void LoadAssets()

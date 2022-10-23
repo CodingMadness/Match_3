@@ -36,12 +36,6 @@ public sealed class Grid
         return ref x; 
     }
 
-    public static ref readonly Stats GetStatsByType2(TileType t)
-    {
-        ref readonly var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out _);
-        return ref x;
-    }
-        
     public static Grid Instance { get; } = new();
 
     private Grid()
@@ -100,8 +94,7 @@ public sealed class Grid
                             if (tile.Body == body)
                                 eventData = ref tile.EventData;
                             break;
-                    }
-
+                    } 
                     break;
             }
         }
@@ -140,7 +133,6 @@ public sealed class Grid
                                 eventData = ref tile.Goal;
                             break;
                     }
-
                     break;
             }
         }
@@ -151,7 +143,7 @@ public sealed class Grid
     public void Init(Level current)
     {
         TileWidth = current.GridWidth;
-        TileHeight = current.GridHeight;
+        TileHeight = current.GridHeight-2;
         _bitmap = new Tile[TileWidth, TileHeight];
         CreateMap();
     }

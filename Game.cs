@@ -60,8 +60,6 @@ internal static class Game
         Grid.Instance.Init(Level);
         ShaderLoc = InitShader();
         var tmp = GetScreenCoord();
-        _btnPos = tmp with { X = tmp.X * 0.5f, Y = tmp.Y - 200f};
-        
     }
     
     private static void DragMouseToEnemies()
@@ -237,33 +235,6 @@ internal static class Game
             
             BeginDrawing();
             Begin();
-            var flags = ImGuiWindowFlags.NoBackground |
-                        ImGuiWindowFlags.NoTitleBar |
-                        ImGuiWindowFlags.NoScrollbar |
-                        ImGuiWindowFlags.NoDecoration;
-            bool open = true;
-            
-            if (ImGui.Begin("THIS IS MY GAME SUB-WINDOW IN WINDOW", ref open, flags))
-            {
-                Vector2 btnSize = new(FeatureBtn.width, FeatureBtn.height);
-                var winSize = ImGui.GetWindowSize();
-                Vector2 newPos = _btnPos - (btnSize * 0.5f) with { Y = _btnPos.Y * 0.5f};
-                ImGui.SetWindowPos(newPos);
-                
-                if (winSize == btnSize)
-                    ImGui.SetWindowSize(btnSize * 4f);
-
-                ImGui.Text(ImGui.GetWindowSize().ToString());
-                ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive, Vector4.Zero);
-                //ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Vector4.Zero);
-                
-                if (ImGui.ImageButton((nint)FeatureBtn.id, btnSize * 0.5f))
-                {
-                    
-                }
-            }
-            ImGui.End();
 
             if (_enterGame)
             {
@@ -308,16 +279,16 @@ internal static class Game
                 }
                 else
                 {
+                    Renderer.ShowButton( );
                     Renderer.DrawBackground(ref _bgIngame1);
                     Renderer.DrawTimer(elapsedTime);
                     DragMouseToEnemies();
                     ProcessSelectedTiles();
                     ComputeMatches();
-                    //Console.WriteLine(_matchesOf3.Count);
                     Renderer.DrawOuterBox(_enemyMatches, elapsedTime);  
                     Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;
                     //BeginShaderMode(WobbleEffect);
-                    Renderer.DrawGrid(elapsedTime, ShaderLoc);
+                    Renderer.DrawGrid(elapsedTime);
                     Renderer.DrawMatches(_enemyMatches, elapsedTime, _shallCreateEnemies);
                     //EndShaderMode();
                     HardReset();

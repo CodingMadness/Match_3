@@ -1,14 +1,83 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using ImGuiNET;
 using Match_3.GameTypes;
 using Raylib_CsLo;
-
+using RayWrapper.Base;
 using static Match_3.AssetManager;
 using static Raylib_CsLo.Raylib;
+using Rectangle = Raylib_CsLo.Rectangle;
+using Texture = Raylib_CsLo.Texture;
 
 namespace Match_3;
 
 public static class Renderer
 {
+    
+    
+    public static void ShowButton()
+    {
+        static Vector2 NewPos(out Vector2 btnSize)
+        {
+            btnSize = new(FeatureBtn.width, FeatureBtn.height);
+            var winSize = Utils.GetScreenCoord();
+            float halfWidth = winSize.X * 0.45f;
+            Vector2 newPos = new(halfWidth, winSize.Y - btnSize.Y * 0.67f);
+            return newPos;
+        }
+
+        void Center(string text) 
+        {
+            float win_width = ImGui.GetWindowSize().X;
+            float text_width = ImGui.CalcTextSize(text).X;
+
+            // calculate the indentation that centers the text on one line, relative
+            // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
+            float text_indentation = (win_width - text_width) * 0.5f;
+
+            // if text is too long to be drawn on one line, `text_indentation` can
+            // become too small or even negative, so we check a minimum indentation
+            float min_indentation = 20.0f;
+            if (text_indentation <= min_indentation) {
+                text_indentation = min_indentation;
+            }
+
+            ImGui.SameLine(text_indentation);
+            ImGui.PushTextWrapPos(win_width - text_indentation);
+            ImGui.TextWrapped(text);
+            ImGui.PopTextWrapPos();
+        }
+
+        
+        var flags = ImGuiWindowFlags.NoBackground |
+                    ImGuiWindowFlags.NoTitleBar |
+                    ImGuiWindowFlags.NoScrollbar |
+                    ImGuiWindowFlags.NoDecoration;
+        bool open = true;
+            
+        if (ImGui.Begin("THIS IS MY GAME SUB-WINDOW IN WINDOW", ref open))
+        {
+            var newPos = NewPos(out var btnSize);
+            
+            if (ImGui.BeginChild("featureBtn", newPos, true))
+            {
+                var tmp = newPos with{Y = newPos.Y-300};
+                ImGui.SetWindowPos(tmp);
+                ImGui.SetWindowSize(btnSize*1.45f);
+                ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, Vector4.Zero);
+            
+                Center("Feature Button :-)");
+
+                if (ImGui.ImageButton((nint)FeatureBtn.id, btnSize))
+                {
+                
+                }   
+            }
+        }
+        ImGui.End();
+    }
+    
     private static void DrawTile(ref Texture atlas, Tile tile, float elapsedTime)
     {
         static void DrawCoordOnTop(Tile tile)
@@ -41,7 +110,7 @@ public static class Renderer
         DrawCoordOnTop(tile);
     }
     
-    public static void DrawGrid(float elapsedTime,(int size, int speed) shaderLoc)
+    public static void DrawGrid(float elapsedTime)
     {
         for (int x = 0; x < Grid.Instance.TileWidth; x++)
         {
