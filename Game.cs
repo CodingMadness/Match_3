@@ -228,7 +228,6 @@ internal static class Game
         GameTime gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown);
         int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
         
-
         Setup(false);
         
         while (!WindowShouldClose())
@@ -238,77 +237,93 @@ internal static class Game
             
             BeginDrawing();
             Begin();
-            var flags = ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoTitleBar;
+            var flags = ImGuiWindowFlags.NoBackground |
+                        ImGuiWindowFlags.NoTitleBar |
+                        ImGuiWindowFlags.NoScrollbar |
+                        ImGuiWindowFlags.NoDecoration;
             bool open = true;
             
-            if (ImGui.Begin("THIS IS MY GAME SUBWINDOW IN WINDOW"))
+            if (ImGui.Begin("THIS IS MY GAME SUB-WINDOW IN WINDOW", ref open, flags))
             {
-                if (ImGui.ImageButton(default, default))
+                Vector2 btnSize = new(FeatureBtn.width, FeatureBtn.height);
+                var winSize = ImGui.GetWindowSize();
+                Vector2 newPos = _btnPos - (btnSize * 0.5f) with { Y = _btnPos.Y * 0.5f};
+                ImGui.SetWindowPos(newPos);
+                
+                if (winSize == btnSize)
+                    ImGui.SetWindowSize(btnSize * 4f);
+
+                ImGui.Text(ImGui.GetWindowSize().ToString());
+                ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, Vector4.Zero);
+                //ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Vector4.Zero);
+                
+                if (ImGui.ImageButton((nint)FeatureBtn.id, btnSize * 0.5f))
                 {
-                       ImGui.Text("I was pressed!");
-                };
+                    
+                }
+            }
+            ImGui.End();
+
+            if (_enterGame)
+            {
+                Vector2 size = GetScreenCoord();
+                SetShaderValue(WobbleEffect, ShaderLoc.size, size , ShaderUniformDataType.SHADER_UNIFORM_VEC2);
+                SetShaderValue(WobbleEffect, ShaderLoc.time, elapsedTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+                SetShaderValue(WobbleEffect, shallWobble, 0, ShaderUniformDataType.SHADER_UNIFORM_INT);
             }
 
-            //ImGui.ShowDemoWindow();
-                if (_enterGame)
-                {
-                    Vector2 size = GetScreenCoord();
-                    SetShaderValue(WobbleEffect, ShaderLoc.size, size , ShaderUniformDataType.SHADER_UNIFORM_VEC2);
-                    SetShaderValue(WobbleEffect, ShaderLoc.time, elapsedTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-                    SetShaderValue(WobbleEffect, shallWobble, 0, ShaderUniformDataType.SHADER_UNIFORM_INT);
-                }
-
-                ClearBackground(WHITE);
+            ClearBackground(WHITE);
+            
+            if (!_enterGame)
+            {
+                Renderer.DrawBackground(ref _bgWelcome);
+                Renderer.ShowWelcomeScreen();
+                //Renderer.LogQuest(false, Level);
+            }
+            if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
+            {
+                _gameTimer.Run();
                 
-                if (!_enterGame)
-                {
-                    Renderer.DrawBackground(ref _bgWelcome);
-                    Renderer.ShowWelcomeScreen();
-                    //Renderer.LogQuest(false, Level);
-                }
-                if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
-                {
-                    _gameTimer.Run();
-                    
-                    bool isGameOver = _gameTimer.Done();
+                bool isGameOver = _gameTimer.Done();
 
-                    if (isGameOver)
-                    {
-                        gameOverTimer.Run();
-                        Renderer.DrawBackground(ref _bgGameOver);
-                        Renderer.DrawTimer(gameOverTimer.ElapsedSeconds);
-                        //Renderer.ShowWelcomeScreen();
-                        
-                        if (Renderer.DrawGameOverResult(gameOverTimer.Done(), State.WasGameWonB4Timeout))
-                            return;
-                    }
-                    else if (State.WasGameWonB4Timeout)
-                    {
-                        if (Renderer.DrawGameOverResult(_gameTimer.Done(), true))
-                        {
-                            InitGame();
-                            State.WasGameWonB4Timeout = false;
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        Renderer.DrawBackground(ref _bgIngame1);
-                        Renderer.DrawTimer(elapsedTime);
-                        DragMouseToEnemies();
-                        ProcessSelectedTiles();
-                        ComputeMatches();
-                        //Console.WriteLine(_matchesOf3.Count);
-                        Renderer.DrawOuterBox(_enemyMatches, elapsedTime);  
-                        Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;
-                        //BeginShaderMode(WobbleEffect);
-                        Renderer.DrawGrid(elapsedTime, ShaderLoc);
-                        Renderer.DrawMatches(_enemyMatches, elapsedTime, _shallCreateEnemies);
-                        //EndShaderMode();
-                        HardReset();
-                    }
-                    _enterGame = true;
+                if (isGameOver)
+                {
+                    gameOverTimer.Run();
+                    Renderer.DrawBackground(ref _bgGameOver);
+                    Renderer.DrawTimer(gameOverTimer.ElapsedSeconds);
+                    //Renderer.ShowWelcomeScreen();
+                    
+                    if (Renderer.DrawGameOverResult(gameOverTimer.Done(), State.WasGameWonB4Timeout))
+                        return;
                 }
+                else if (State.WasGameWonB4Timeout)
+                {
+                    if (Renderer.DrawGameOverResult(_gameTimer.Done(), true))
+                    {
+                        InitGame();
+                        State.WasGameWonB4Timeout = false;
+                        continue;
+                    }
+                }
+                else
+                {
+                    Renderer.DrawBackground(ref _bgIngame1);
+                    Renderer.DrawTimer(elapsedTime);
+                    DragMouseToEnemies();
+                    ProcessSelectedTiles();
+                    ComputeMatches();
+                    //Console.WriteLine(_matchesOf3.Count);
+                    Renderer.DrawOuterBox(_enemyMatches, elapsedTime);  
+                    Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;
+                    //BeginShaderMode(WobbleEffect);
+                    Renderer.DrawGrid(elapsedTime, ShaderLoc);
+                    Renderer.DrawMatches(_enemyMatches, elapsedTime, _shallCreateEnemies);
+                    //EndShaderMode();
+                    HardReset();
+                }
+                _enterGame = true;
+            }
             End();
             EndDrawing();
         }
