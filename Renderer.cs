@@ -17,12 +17,11 @@ public static class Renderer
     
     public static void ShowButton()
     {
-        static Vector2 NewPos(out Vector2 btnSize)
+        static Vector2 NewPos(Vector2 btnSize)
         {
-            btnSize = new(FeatureBtn.width, FeatureBtn.height);
-            var winSize = Utils.GetScreenCoord();
-            float halfWidth = winSize.X * 0.45f;
-            Vector2 newPos = new(halfWidth, winSize.Y - btnSize.Y * 0.67f);
+            var screenCoord = Utils.GetScreenCoord();
+            float halfWidth = screenCoord.X * 0.5f;
+            Vector2 newPos = new(halfWidth, screenCoord.Y - (btnSize.Y * 1.5f));
             return newPos;
         }
 
@@ -41,38 +40,37 @@ public static class Renderer
             if (text_indentation <= min_indentation) {
                 text_indentation = min_indentation;
             }
-
             ImGui.SameLine(text_indentation);
-            ImGui.PushTextWrapPos(win_width - text_indentation);
+            //ImGui.PushTextWrapPos(win_width - text_indentation);
+            ImGui.PushTextWrapPos();
             ImGui.TextWrapped(text);
             ImGui.PopTextWrapPos();
         }
-
         
         var flags = ImGuiWindowFlags.NoBackground |
                     ImGuiWindowFlags.NoTitleBar |
                     ImGuiWindowFlags.NoScrollbar |
                     ImGuiWindowFlags.NoDecoration;
         bool open = true;
-            
+
+        var btnSize = new Vector2(FeatureBtn.width, FeatureBtn.height);
+        var newPos = NewPos(btnSize);
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 0f);
+
         if (ImGui.Begin("THIS IS MY GAME SUB-WINDOW IN WINDOW", ref open))
         {
-            var newPos = NewPos(out var btnSize);
+            ImGui.SetWindowPos(newPos);
+            ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, Vector4.Zero);
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 0f);
             
-            if (ImGui.BeginChild("featureBtn", newPos, true))
-            {
-                var tmp = newPos with{Y = newPos.Y-300};
-                ImGui.SetWindowPos(tmp);
-                ImGui.SetWindowSize(btnSize*1.45f);
-                ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive, Vector4.Zero);
-            
-                Center("Feature Button :-)");
+            //Center((ImGui.GetContentRegionAvail()* 0.5f).ToString());
 
-                if (ImGui.ImageButton((nint)FeatureBtn.id, btnSize))
-                {
-                
-                }   
+            ImGui.Text("HALLLOOOOO");
+            
+            if (ImGui.ImageButton((nint)FeatureBtn.id, btnSize))
+            {
+                 
             }
         }
         ImGui.End();
