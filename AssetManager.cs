@@ -14,7 +14,8 @@ public static unsafe class AssetManager
     public static Texture DefaultTileSprite;
     public static Texture EnemySprite;
     public static Texture IngameTexture1, IngameTexture2;
-    public static Shader WobbleEffect, SplashEffect;
+    public static Shader WobbleEffect;
+    public static Texture FeatureBtn;
     
     public static Sound SplashSound;
 
@@ -46,23 +47,43 @@ public static unsafe class AssetManager
         return buffer;
     }
 
+    private static Sound LoadSound(string fileNameOnly)
+    {
+        var buffer = GetEmbeddedResource($"Sounds.{fileNameOnly}");
+        var first = (byte*)Unsafe.AsPointer(ref buffer[0]);
+        var wave = LoadWaveFromMemory(".mp3", first, buffer.Length);
+        return LoadSoundFromWave(wave);
+    }
+
+    private static Font LoadFont(string fileNameOnly)
+    {
+        var buffer = GetEmbeddedResource($"Fonts.{fileNameOnly}");
+        var first = (byte*)Unsafe.AsPointer(ref buffer[0]);
+        return LoadFontFromMemory(".ttf", first, buffer.Length, 200, null, 0);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="relativeFilePath">For instance: Background.bg1.png OR Button.FeatureBtn.png</param>
+    /// <returns></returns>
+    private static Texture LoadGUITexture(string relativeFilePath)
+    {
+            var buffer = GetEmbeddedResource(@$"Sprites.GUI{relativeFilePath}");
+            var first = (byte*)Unsafe.AsPointer(ref buffer[0]);
+            Image bg = LoadImageFromMemory(".png", first, buffer.Length);
+            return LoadTextureFromImage(bg);
+    }
+    
     public static void LoadAssets()
     {
         InitAudioDevice();
-        var buffer = GetEmbeddedResource("Sounds.splash.mp3");
-        var first = (byte*)Unsafe.AsPointer(ref buffer[0]);
-        var wave = LoadWaveFromMemory(".mp3", first, buffer.Length);
-        SplashSound = LoadSoundFromWave(wave);
 
-        buffer = GetEmbeddedResource("Fonts.font4.otf");
-        first = (byte*)Unsafe.AsPointer(ref buffer[0]);
-        GameFont = LoadFontFromMemory(".ttf", first, buffer.Length, 200, null, 0);
-
-        buffer = GetEmbeddedResource(@"Sprites.Background.bgWelcome1.png");
-        first = (byte*)Unsafe.AsPointer(ref buffer[0]);
-        Image bg = LoadImageFromMemory(".png", first, buffer.Length);
-        WelcomeTexture = LoadTextureFromImage(bg);
-
+        SplashSound = LoadSound("splash.mp3");
+        GameFont = LoadFont("font4.otf");
+        WelcomeTexture = LoadGUITexture("bgWelcome1.png");
+        FeatureBtn = LoadGUITexture("Button.btn1.png");
+        
         buffer = GetEmbeddedResource(@"Sprites.Background.bgIngame1.png");
         first = (byte*)Unsafe.AsPointer(ref buffer[0]); 
         bg = LoadImageFromMemory(".png", first, buffer.Length);
@@ -91,7 +112,7 @@ public static unsafe class AssetManager
         buffer = GetEmbeddedResource("Shaders.splash.frag");
         using var rsStream2 = new MemoryStream(buffer, 0, buffer.Length);
         using var reader2 = new StreamReader(rsStream2);
-        SplashEffect = LoadShaderFromMemory(null, reader2.ReadToEnd());
+        LoadShaderFromMemory(null, reader2.ReadToEnd());
         
         WelcomeText.Src = GameFont;
         GameOverText.Src = GameFont;

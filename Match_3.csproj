@@ -61,6 +61,21 @@
        
 
     <None Remove="Wobble_Shader.frag" />
+       
+
+    <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgGameOver.png" />
+       
+
+    <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgIngame1.png" />
+       
+
+    <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgIngame2.png" />
+       
+
+    <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgWelcome1.png" />
+       
+
+    <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgWelcome2.png" />
     <EmbeddedResource Include="Wobble_Shader.frag">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
@@ -85,31 +100,20 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <None Remove="Assets\Sprites\Background\bgIngame1.png" />
-    <EmbeddedResource Include="Assets\Sprites\Background\bgIngame1.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
     <None Remove="Assets\Sprites\Background\bgIngame2.png" />
-    <EmbeddedResource Include="Assets\Sprites\Background\bgIngame2.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
     <None Remove="Assets\Sprites\Background\bgWelcome1.png" />
-    <EmbeddedResource Include="Assets\Sprites\Background\bgWelcome1.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
     <None Remove="Assets\Sprites\Background\bgGameOver.png" />
-    <EmbeddedResource Include="Assets\Sprites\Background\bgGameOver.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
     <None Remove="Assets\Sprites\Background\bgWelcome2.png" />
-    <EmbeddedResource Include="Assets\Sprites\Background\bgWelcome2.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
     <None Remove="Assets\Fonts\candy font.ttf" />
     <EmbeddedResource Include="Assets\Fonts\candy font.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <None Remove="Assets\Shaders\splash.glsl" />
     <EmbeddedResource Include="Assets\Shaders\splash.frag">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <None Remove="Assets\Sprites\GUI\Button\btn1.png" />
+    <EmbeddedResource Include="Assets\Sprites\GUI\Button\btn1.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
@@ -129,8 +133,11 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="rlImGui">
-      <HintPath>..\..\Downloads\rlImGui-cs\rlImGui\bin\Release\net6.0\rlImGui.dll</HintPath>
+      <HintPath>..\..\Downloads\rlImGui-cs\rlImGui\bin\Debug\net7.0\rlImGui.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Assets\Sprites\GUI\Button" />
   </ItemGroup>
 </Project>
 

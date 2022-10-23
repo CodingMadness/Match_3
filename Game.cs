@@ -1,12 +1,13 @@
 ﻿using System.Numerics;
 using DotNext.Runtime;
+using ImGuiNET;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using RayWrapper.Objs;
 using static Match_3.AssetManager;
 using static Match_3.Utils;
 using static Raylib_CsLo.Raylib;
-using static rlImGui.rlImGui;
+using static rlImGui_cs.RlImGui;
 
 #pragma warning disable CS8618
 
@@ -26,7 +27,8 @@ internal static class Game
     private static bool _shallCreateEnemies;
 
     private static (int size, int time) shaderLoc;
-    
+    private static Vector2 btnPos;
+
     public static event Action OnMatchFound;
     public static event Action OnTileClicked;
     public static event Action OnTileSwapped;
@@ -37,8 +39,6 @@ internal static class Game
         MainGameLoop();
         CleanUp();
     }
-
-    private static KeyButton featureBtn;
     
     private static void InitGame()
     {
@@ -62,10 +62,7 @@ internal static class Game
         Grid.Instance.Init(Level);
         shaderLoc = InitShader();
         var tmp = GetScreenCoord();
-        var btnPos = tmp with { X = tmp.X * 0.5f };
-        featureBtn = new(btnPos, KeyboardKey.KEY_A);
-        featureBtn.RegisterGameObj();
-
+        btnPos = tmp with { X = tmp.X * 0.5f, Y = tmp.Y - 200f};
         
     }
     
@@ -233,6 +230,8 @@ internal static class Game
         //float seconds = 0.0f;
         GameTime gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown);
         int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
+        
+
         Setup(false);
         
         while (!WindowShouldClose())
@@ -242,10 +241,21 @@ internal static class Game
             
             BeginDrawing();
             Begin();
+            var flags = ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoTitleBar;
+            bool open = true;
+            
+            if (ImGui.Begin("THIS IS MY GAME SUBWINDOW IN WINDOW"))
+            {
+                if (ImGui.ImageButton())
+                {
+                       ImGui.Text("I was pressed!");
+                };
+            }
+
+            //ImGui.ShowDemoWindow();
                 if (_enterGame)
                 {
                     Vector2 size = GetScreenCoord();
-                    
                     SetShaderValue(WobbleEffect, shaderLoc.size, size , ShaderUniformDataType.SHADER_UNIFORM_VEC2);
                     SetShaderValue(WobbleEffect, shaderLoc.time, elapsedTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
                     SetShaderValue(WobbleEffect, shallWobble, 0, ShaderUniformDataType.SHADER_UNIFORM_INT);
