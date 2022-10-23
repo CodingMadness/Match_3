@@ -259,7 +259,7 @@ public abstract class QuestHandler
         }
     }
     protected virtual void Init() => Grid.NotifyOnGridCreationDone += DefineGoals;
-    public static void InitGoal()
+    public static void InitGoals()
     {
         MatchQuestHandler.Instance.Init();
         SwapQuestHandler.Instance.Init();
@@ -349,7 +349,6 @@ public sealed class MatchQuestHandler : QuestHandler
             };
 
             var matchValue = goal.Match!.Value;
-
             int matchSum = matchValue.Count * Level.MAX_TILES_PER_MATCH;
             int maxAllowed = state.TotalAmountPerType[(int)i];
 
@@ -363,7 +362,7 @@ public sealed class MatchQuestHandler : QuestHandler
             TypeGoal.Add(i, goal);
         }
 
-        int x = 10;
+        int debug = 10;
     }
 
     private static bool IsMatchGoalReached(out Goal? goal, in Stats stats, out int direction)
