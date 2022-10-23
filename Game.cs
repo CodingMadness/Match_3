@@ -20,14 +20,13 @@ internal static class Game
     private static MatchX? _matchesOf3;
     private static EnemyMatches? _enemyMatches;
     private static Tile? _secondClicked;
-    private static Background bgGameOver, bgWelcome, bgIngame1, bgIngame2;
+    private static Background _bgGameOver, _bgWelcome, _bgIngame1;
     private static GameTime _gameTimer ;
     
     private static bool _enterGame;
     private static bool _shallCreateEnemies;
 
-    private static (int size, int time) shaderLoc;
-    private static Vector2 btnPos;
+    private static Vector2 _btnPos;
 
     public static event Action OnMatchFound;
     public static event Action OnTileClicked;
@@ -47,22 +46,21 @@ internal static class Game
         _matchesOf3 = new();
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
-        //featureBtn = new KeyButton()
       
         InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
-        SetTextureFilter(IngameTexture1, TextureFilter.TEXTURE_FILTER_BILINEAR);
+        SetTextureFilter(BgIngameTexture, TextureFilter.TEXTURE_FILTER_BILINEAR);
         LoadAssets();
         InitGameOverTxt();
         InitWelcomeTxt();
-        bgWelcome = new(WelcomeTexture);
-        bgIngame1 = new(IngameTexture1);
-        bgGameOver = new(GameOverTexture);
-        QuestHandler.InitGoal();
+        _bgWelcome = new(WelcomeTexture);
+        _bgIngame1 = new(BgIngameTexture);
+        _bgGameOver = new(GameOverTexture);
+        QuestHandler.InitGoals();
         State = new( );
         Grid.Instance.Init(Level);
-        shaderLoc = InitShader();
+        ShaderLoc = InitShader();
         var tmp = GetScreenCoord();
-        btnPos = tmp with { X = tmp.X * 0.5f, Y = tmp.Y - 200f};
+        _btnPos = tmp with { X = tmp.X * 0.5f, Y = tmp.Y - 200f};
         
     }
     
@@ -141,7 +139,6 @@ internal static class Game
             {
                 //prepare for next round, so we store first in second!
                 _secondClicked = firstClickedTile;
-                //_secondClicked.Select();
                 return;
             }
             /*Same tile selected => deselect*/
@@ -246,7 +243,7 @@ internal static class Game
             
             if (ImGui.Begin("THIS IS MY GAME SUBWINDOW IN WINDOW"))
             {
-                if (ImGui.ImageButton())
+                if (ImGui.ImageButton(default, default))
                 {
                        ImGui.Text("I was pressed!");
                 };
@@ -256,8 +253,8 @@ internal static class Game
                 if (_enterGame)
                 {
                     Vector2 size = GetScreenCoord();
-                    SetShaderValue(WobbleEffect, shaderLoc.size, size , ShaderUniformDataType.SHADER_UNIFORM_VEC2);
-                    SetShaderValue(WobbleEffect, shaderLoc.time, elapsedTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+                    SetShaderValue(WobbleEffect, ShaderLoc.size, size , ShaderUniformDataType.SHADER_UNIFORM_VEC2);
+                    SetShaderValue(WobbleEffect, ShaderLoc.time, elapsedTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
                     SetShaderValue(WobbleEffect, shallWobble, 0, ShaderUniformDataType.SHADER_UNIFORM_INT);
                 }
 
@@ -265,7 +262,7 @@ internal static class Game
                 
                 if (!_enterGame)
                 {
-                    Renderer.DrawBackground(ref bgWelcome);
+                    Renderer.DrawBackground(ref _bgWelcome);
                     Renderer.ShowWelcomeScreen();
                     //Renderer.LogQuest(false, Level);
                 }
@@ -278,7 +275,7 @@ internal static class Game
                     if (isGameOver)
                     {
                         gameOverTimer.Run();
-                        Renderer.DrawBackground(ref bgGameOver);
+                        Renderer.DrawBackground(ref _bgGameOver);
                         Renderer.DrawTimer(gameOverTimer.ElapsedSeconds);
                         //Renderer.ShowWelcomeScreen();
                         
@@ -296,7 +293,7 @@ internal static class Game
                     }
                     else
                     {
-                        Renderer.DrawBackground(ref bgIngame1);
+                        Renderer.DrawBackground(ref _bgIngame1);
                         Renderer.DrawTimer(elapsedTime);
                         DragMouseToEnemies();
                         ProcessSelectedTiles();
@@ -305,7 +302,7 @@ internal static class Game
                         Renderer.DrawOuterBox(_enemyMatches, elapsedTime);  
                         Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;
                         //BeginShaderMode(WobbleEffect);
-                        Renderer.DrawGrid(elapsedTime, shaderLoc);
+                        Renderer.DrawGrid(elapsedTime, ShaderLoc);
                         Renderer.DrawMatches(_enemyMatches, elapsedTime, _shallCreateEnemies);
                         //EndShaderMode();
                         HardReset();
@@ -320,7 +317,7 @@ internal static class Game
     private static void CleanUp()
     {
         UnloadShader(WobbleEffect);
-        UnloadTexture(DefaultTileSprite);
+        UnloadTexture(DefaultTileAtlas);
         CloseWindow();
     }
 }

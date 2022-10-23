@@ -11,10 +11,12 @@ public static unsafe class AssetManager
 {
     public static Texture WelcomeTexture;
     public static Texture GameOverTexture;
-    public static Texture DefaultTileSprite;
+    public static Texture DefaultTileAtlas;
     public static Texture EnemySprite;
-    public static Texture IngameTexture1, IngameTexture2;
+    public static Texture BgIngameTexture;
     public static Shader WobbleEffect;
+    public static (int size, int time) ShaderLoc;
+
     public static Texture FeatureBtn;
     
     public static Sound SplashSound;
@@ -25,7 +27,7 @@ public static unsafe class AssetManager
     public static GameText GameOverText = new(GameFont, "", 7f);
     public static GameText TimerText = new( GameFont with { baseSize = 512 * 2 }, "", 11f);
     public static GameText QuestLogText = new(GameFont, "", 20f); 
-
+    
     /// <summary>
     /// 
     /// </summary>
@@ -65,61 +67,26 @@ public static unsafe class AssetManager
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="relativeFilePath">For instance: Background.bg1.png OR Button.FeatureBtn.png</param>
+    /// <param name="fullPath">For instance: Background.bg1.png OR Button.FeatureBtn.png</param>
     /// <returns></returns>
-    private static Texture LoadGUITexture(string relativeFilePath)
+    private static Texture LoadTexture(string fullPath)
     {
-            var buffer = GetEmbeddedResource(@$"Sprites.GUI{relativeFilePath}");
+            var buffer = GetEmbeddedResource(fullPath);
             var first = (byte*)Unsafe.AsPointer(ref buffer[0]);
             Image bg = LoadImageFromMemory(".png", first, buffer.Length);
             return LoadTextureFromImage(bg);
     }
-    
-    public static void LoadAssets()
+
+    private static Texture LoadGuiTexture(string relativePath)
     {
-        InitAudioDevice();
-
-        SplashSound = LoadSound("splash.mp3");
-        GameFont = LoadFont("font4.otf");
-        WelcomeTexture = LoadGUITexture("bgWelcome1.png");
-        FeatureBtn = LoadGUITexture("Button.btn1.png");
-        
-        buffer = GetEmbeddedResource(@"Sprites.Background.bgIngame1.png");
-        first = (byte*)Unsafe.AsPointer(ref buffer[0]); 
-        bg = LoadImageFromMemory(".png", first, buffer.Length);
-        IngameTexture1 = LoadTextureFromImage(bg);
-
-        buffer = GetEmbeddedResource(@"Sprites.Background.bgGameOver.png");
-        first = (byte*)Unsafe.AsPointer(ref buffer[0]); 
-        bg = LoadImageFromMemory(".png", first, buffer.Length);
-        GameOverTexture = LoadTextureFromImage(bg);
-
-        buffer = GetEmbeddedResource(@"Sprites.Tiles.set1.png");
-        first = (byte*)Unsafe.AsPointer(ref buffer[0]);
-        Image ballImg = LoadImageFromMemory(".png", first, buffer.Length);
-        DefaultTileSprite = LoadTextureFromImage(ballImg);
-        
-        buffer = GetEmbeddedResource(@"Sprites.Tiles.set2.png");
-        first = (byte*)Unsafe.AsPointer(ref buffer[0]);
-        ballImg = LoadImageFromMemory(".png", first, buffer.Length);
-        EnemySprite = LoadTextureFromImage(ballImg);
-        
-        buffer = GetEmbeddedResource("Shaders.wobble.frag");
-        using Stream rsStream = new MemoryStream(buffer, 0, buffer.Length);
-        using var reader = new StreamReader(rsStream);
-        WobbleEffect = LoadShaderFromMemory(null, reader.ReadToEnd());
-        
-        buffer = GetEmbeddedResource("Shaders.splash.frag");
-        using var rsStream2 = new MemoryStream(buffer, 0, buffer.Length);
-        using var reader2 = new StreamReader(rsStream2);
-        LoadShaderFromMemory(null, reader2.ReadToEnd());
-        
-        WelcomeText.Src = GameFont;
-        GameOverText.Src = GameFont;
-        TimerText.Src = GameFont;
-        QuestLogText.Src = GameFont;
+        return LoadTexture($"Sprites.GUI.{relativePath}");
     }
     
+    private static Texture LoadInGameTexture(string fileNameOnly)
+    {
+          return LoadTexture($"Sprites.Tiles.{fileNameOnly}");
+    }
+
     public static (int sizeLoc, int timeLoc) InitShader()
     {
         int sizeLoc = GetShaderLocation(WobbleEffect, "size");
@@ -130,7 +97,7 @@ public static unsafe class AssetManager
         int ampYLoc = GetShaderLocation(WobbleEffect, "ampY");
         int speedXLoc = GetShaderLocation(WobbleEffect, "speedX");
         int speedYLoc = GetShaderLocation(WobbleEffect, "speedY");
-        
+
         // Shader uniform values that can be updated at any time
         float freqX = 34.0f;
         float freqY = 50.0f;
@@ -138,15 +105,44 @@ public static unsafe class AssetManager
         float ampY = 7.33f;
         float speedX = 8.0f;
         float speedY = 8.0f;
-        
+
         SetShaderValue(WobbleEffect, freqXLoc, ref freqX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, freqYLoc, ref freqY,ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        SetShaderValue(WobbleEffect, freqYLoc, ref freqY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
         SetShaderValue(WobbleEffect, ampXLoc, ref ampX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
         SetShaderValue(WobbleEffect, ampYLoc, ref ampY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
         SetShaderValue(WobbleEffect, speedXLoc, ref speedX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
         SetShaderValue(WobbleEffect, speedYLoc, ref speedY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        
+
         return (sizeLoc, secondsLoc);
+    }
+    
+    private static Shader LoadShader(string fileNameOnly)
+    {
+        var buffer = GetEmbeddedResource($"Shaders.{fileNameOnly}");
+            using Stream rsStream = new MemoryStream(buffer, 0, buffer.Length);
+            using var reader = new StreamReader(rsStream);
+            return LoadShaderFromMemory(null,  reader.ReadToEnd());
+    }
+    
+    public static void LoadAssets()
+    {
+        InitAudioDevice();
+
+        SplashSound = LoadSound("splash.mp3");
+        GameFont = LoadFont("font4.otf");
+        WelcomeTexture = LoadGuiTexture("Background.bgWelcome1.png");
+        FeatureBtn = LoadGuiTexture("Button.btn1.png");
+        BgIngameTexture = LoadGuiTexture("Background.bgIngame1.png");
+        GameOverTexture = LoadGuiTexture("Background.bgGameOver.png");
+        DefaultTileAtlas = LoadInGameTexture("set1.png");
+        EnemySprite = LoadInGameTexture("set2.png");
+        WobbleEffect = LoadShader("wobble.frag");
+        ShaderLoc = InitShader();
+        
+        WelcomeText.Src = GameFont;
+        GameOverText.Src = GameFont;
+        TimerText.Src = GameFont;
+        QuestLogText.Src = GameFont;
     }
 
     public static void InitGameOverTxt()
