@@ -49,7 +49,6 @@
     <Compile Remove="Extension.cs" />
     <Compile Remove="ProbabilityPool.cs" />
     <Compile Remove="FadeableColour.cs" />
-    <Compile Remove="QuestHandler.cs" />
 
     <Compile Remove="Assets\SpriteSheets\Easter_UI\**" />
     <EmbeddedResource Remove="Assets\SpriteSheets\Easter_UI\**" />

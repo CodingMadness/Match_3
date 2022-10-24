@@ -182,6 +182,7 @@ public sealed class GameState
     public bool WasGameWonB4Timeout;
     public Tile Current;
     public MatchX? Matches;
+    public bool? WasFeatureBtnPressed;
 }
 
 public static class SingletonManager
@@ -503,13 +504,13 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         
     protected override void HandleEvent()
     {
-        if (!IsActive)
+        var state = Game.State;
+
+        if (!IsActive && !state.WasFeatureBtnPressed == true)
             return;
 
-        var state = Game.State;
         var type = state.Current.Body.TileType;
         ref var stats = ref Grid.GetStatsByType(type);
-        //stats.Inc(EventType.Clicked);
         stats[EventType.Clicked].Count++;
 
         if (IsClickGoalReached(out var goal, stats, out _) && !IsSoundPlaying(AssetManager.SplashSound))
@@ -522,6 +523,7 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
             stats[EventType.Clicked] = default;
             //stats.Reset(EventType.Clicked); //so u cannot replace the same tile over and over
             Console.WriteLine("Nice, you got a new tile!");
+            state.WasFeatureBtnPressed = false;
         }
         else
         {

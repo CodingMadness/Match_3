@@ -25,7 +25,7 @@ internal static class Game
     
     private static bool _enterGame;
     private static bool _shallCreateEnemies;
-
+    
     private static Vector2 _btnPos;
 
     public static event Action OnMatchFound;
@@ -111,7 +111,7 @@ internal static class Game
 
         //Enemy tile was clicked on , ofc after a matchX happened!
         if (_enemyMatches?.IsMatchActive == true &&
-            Intrinsics.IsExactTypeOf<Tile>(firstClickedTile))
+            Intrinsics.IsExactTypeOf<EnemyTile>(firstClickedTile))
         {
             TileReplacerOnClickHandler.Instance.UnSubscribe();
             DestroyOnClickHandler.Instance.Subscribe();
@@ -128,7 +128,8 @@ internal static class Game
                 DestroyOnClickHandler.Instance.UnSubscribe();
                 TileReplacerOnClickHandler.Instance.Subscribe();
                 State.Current = firstClickedTile;
-                OnTileClicked();
+                if (State.WasFeatureBtnPressed == true)
+                    OnTileClicked();
             }
             firstClickedTile.TileState |= TileState.Selected;
 
@@ -279,7 +280,9 @@ internal static class Game
                 }
                 else
                 {
-                    Renderer.ShowButton( );
+                    var pressed = Renderer.ButtonClicked();
+                    State.WasFeatureBtnPressed ??= pressed;
+                    State.WasFeatureBtnPressed = pressed ?? State.WasFeatureBtnPressed;
                     Renderer.DrawBackground(ref _bgIngame1);
                     Renderer.DrawTimer(elapsedTime);
                     DragMouseToEnemies();

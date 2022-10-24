@@ -13,15 +13,13 @@ namespace Match_3;
 
 public static class Renderer
 {
-    
-    
-    public static void ShowButton()
+    public static bool? ButtonClicked()
     {
         static Vector2 NewPos(Vector2 btnSize)
         {
             var screenCoord = Utils.GetScreenCoord();
-            float halfWidth = screenCoord.X * 0.5f;
-            Vector2 newPos = new(halfWidth, screenCoord.Y - (btnSize.Y * 1.5f));
+            float halfWidth = screenCoord.X * 0.4f;
+            Vector2 newPos = new(halfWidth, screenCoord.Y - btnSize.Y * 1.3f);
             return newPos;
         }
 
@@ -55,25 +53,21 @@ public static class Renderer
 
         var btnSize = new Vector2(FeatureBtn.width, FeatureBtn.height);
         var newPos = NewPos(btnSize);
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 0f);
 
+        //begin rendering sub-window
         if (ImGui.Begin("THIS IS MY GAME SUB-WINDOW IN WINDOW", ref open))
         {
-            ImGui.SetWindowPos(newPos);
             ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, Vector4.Zero);
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 0f);
             
-            //Center((ImGui.GetContentRegionAvail()* 0.5f).ToString());
-
-            ImGui.Text("HALLLOOOOO");
-            
-            if (ImGui.ImageButton((nint)FeatureBtn.id, btnSize))
+            if (ImGui.ImageButton((nint)FeatureBtn.id, btnSize ))
             {
-                 
+                 return true;
             }
         }
         ImGui.End();
+        return null;
     }
     
     private static void DrawTile(ref Texture atlas, Tile tile, float elapsedTime)
