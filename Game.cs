@@ -1,9 +1,7 @@
 ﻿using System.Numerics;
 using DotNext.Runtime;
-using ImGuiNET;
 using Match_3.GameTypes;
 using Raylib_CsLo;
-using RayWrapper.Objs;
 using static Match_3.AssetManager;
 using static Match_3.Utils;
 using static Raylib_CsLo.Raylib;
@@ -26,11 +24,11 @@ internal static class Game
     private static bool _enterGame;
     private static bool _shallCreateEnemies;
     
-    private static Vector2 _btnPos;
-
     public static event Action OnMatchFound;
     public static event Action OnTileClicked;
     public static event Action OnTileSwapped;
+    
+    public static event Action OnGameOver;
     
     private static void Main()
     {
@@ -41,7 +39,7 @@ internal static class Game
     
     private static void InitGame()
     {
-        Level = new(0,60*2, 6, 11, 9);
+        Level = new(0,200, 6, 11, 9);
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         _matchesOf3 = new();
         SetTargetFPS(60);
@@ -232,8 +230,8 @@ internal static class Game
         while (!WindowShouldClose())
         {
             //seconds += GetFrameTime();
-            float elapsedTime = _gameTimer.ElapsedSeconds;
-            
+            float currTime = _gameTimer.ElapsedSeconds;
+            State.CurrentTime = currTime;
             BeginDrawing();
             Begin();
 
@@ -241,7 +239,7 @@ internal static class Game
             {
                 Vector2 size = GetScreenCoord();
                 SetShaderValue(WobbleEffect, ShaderLoc.size, size , ShaderUniformDataType.SHADER_UNIFORM_VEC2);
-                SetShaderValue(WobbleEffect, ShaderLoc.time, elapsedTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+                SetShaderValue(WobbleEffect, ShaderLoc.time, currTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
                 SetShaderValue(WobbleEffect, shallWobble, 0, ShaderUniformDataType.SHADER_UNIFORM_INT);
             }
 
@@ -257,22 +255,23 @@ internal static class Game
             {
                 _gameTimer.Run();
                 
-                bool isGameOver = _gameTimer.Done();
+                State.IsGameOver = _gameTimer.Done();
 
-                if (isGameOver)
+                if (State.IsGameOver)
                 {
+                    OnGameOver();
                     gameOverTimer.Run();
                     Renderer.DrawBackground(ref _bgGameOver);
                     Renderer.DrawTimer(gameOverTimer.ElapsedSeconds);
-                    //Renderer.ShowWelcomeScreen();
                     
-                    if (Renderer.DrawGameOverResult(gameOverTimer.Done(), State.WasGameWonB4Timeout))
+                    if (Renderer.ShowGameOverScreen(gameOverTimer.Done(), State.WasGameWonB4Timeout, State.GameOverMessage))
                         return;
                 }
                 else if (State.WasGameWonB4Timeout)
                 {
-                    if (Renderer.DrawGameOverResult(_gameTimer.Done(), true))
+                    if (Renderer.ShowGameOverScreen(_gameTimer.Done(), true, State.GameOverMessage))
                     {
+                        //Begin new Level!
                         InitGame();
                         State.WasGameWonB4Timeout = false;
                         continue;
@@ -284,15 +283,15 @@ internal static class Game
                     State.WasFeatureBtnPressed ??= pressed;
                     State.WasFeatureBtnPressed = pressed ?? State.WasFeatureBtnPressed;
                     Renderer.DrawBackground(ref _bgIngame1);
-                    Renderer.DrawTimer(elapsedTime);
+                    Renderer.DrawTimer(currTime);
                     DragMouseToEnemies();
                     ProcessSelectedTiles();
                     ComputeMatches();
-                    Renderer.DrawOuterBox(_enemyMatches, elapsedTime);  
-                    Renderer.DrawInnerBox(_matchesOf3, elapsedTime) ;
+                    Renderer.DrawOuterBox(_enemyMatches, currTime);  
+                    Renderer.DrawInnerBox(_matchesOf3, currTime) ;
                     //BeginShaderMode(WobbleEffect);
-                    Renderer.DrawGrid(elapsedTime);
-                    Renderer.DrawMatches(_enemyMatches, elapsedTime, _shallCreateEnemies);
+                    Renderer.DrawGrid(currTime);
+                    Renderer.DrawMatches(_enemyMatches, currTime, _shallCreateEnemies);
                     //EndShaderMode();
                     HardReset();
                 }

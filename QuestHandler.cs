@@ -183,6 +183,9 @@ public sealed class GameState
     public Tile Current;
     public MatchX? Matches;
     public bool? WasFeatureBtnPressed;
+    public float CurrentTime;
+    public bool IsGameOver;
+    public string GameOverMessage;
 }
 
 public static class SingletonManager
@@ -317,8 +320,6 @@ public sealed class SwapQuestHandler : QuestHandler
 public sealed class MatchQuestHandler : QuestHandler
 {
     private static readonly Dictionary<TileType, Goal> TypeGoal = new((int)TileType.Length);
-
-    private readonly int MaxGoalCount = (int)TileType.Length; 
     
     private static ref readonly Goal GetGoalBy(TileType t)
     {
@@ -330,15 +331,38 @@ public sealed class MatchQuestHandler : QuestHandler
     public MatchQuestHandler()
     {
         Game.OnMatchFound += HandleEvent;
+        Game.OnGameOver += CompareResults;
     }
-    
+
+    private void CompareResults()
+    {
+        var state = Game.State;
+        
+        switch (IsMainGoalReached)
+        {
+            case true when !state.IsGameOver:
+                state.WasGameWonB4Timeout = true;
+                state.GameOverMessage = "NICE, YOU FINISHED THE ENTIRE MATCH-QUEST BEFORE THE GAME ENDED! WELL DONE Man!";
+                break;
+            case false when state.IsGameOver:
+                state.WasGameWonB4Timeout = false;
+                state.GameOverMessage = "Unlucky, very close, you will do it next time, i am sure :-), but here your results" +
+                                        $"So far you have gotten at least {SubGoalCounter} done and you needed actually {GoalsLeft}:";
+                break;
+            case true when state.IsGameOver:
+                state.WasGameWonB4Timeout = false;
+                state.GameOverMessage = "Good job, you did in time atlast, you pice of shit!!";
+                break;
+        }
+    }
+
     public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
 
     protected override void DefineGoals()
     {
         GameState state = Game.State;
 
-        for (TileType i = 0; i < TileType.Length; i++)
+        for (TileType i = (TileType)3; i < TileType.Length; i++)
         {
             var goal = Game.Level.ID switch
             {
@@ -359,11 +383,8 @@ public sealed class MatchQuestHandler : QuestHandler
                 goal = goal with { Match = matchValue };
             }
             GoalsToReach++;
-            Console.WriteLine(goal.Match + "   for " + i + " tiles");
             TypeGoal.Add(i, goal);
         }
-
-        int debug = 10;
     }
 
     private static bool IsMatchGoalReached(out Goal? goal, in Stats stats, out int direction)
@@ -397,25 +418,25 @@ public sealed class MatchQuestHandler : QuestHandler
         if (IsMatchGoalReached(out var goal, stats, out int compareResult))
         {
             SubGoalCounter++;
-            Console.WriteLine(SubGoalCounter);
-            Console.WriteLine($"yea, we got {stats.Matched!.Value.Count} match of type: {type} within");
-            Console.WriteLine($"current match goal:  {goal?.Match}");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Sub goals done:  {SubGoalCounter}");
+            Console.ResetColor();
+            //Console.WriteLine($"yea, we got {stats.Matched!.Value.Count} match of type: {type} within");
+            //Console.WriteLine($"current match goal:  {goal?.Match}");
             stats.Matched = null;
-            Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
+            //Console.WriteLine("YEA YOU GOT current MATCH AND ARE REWARDED FOR IT !: ");
             Console.Clear();
             Grid.Instance.Delete(state.Matches);
         }
         else
         {
-            if (IsMainGoalReached)
-                Console.WriteLine("NICE, YOU FINISHED THE ENTIRE MATCH-QUEST WELL DONE MAAAA BOOOY");
-
+            CompareResults();
+            
             //error-code
             if (compareResult > 1)
             {
                 state.Matches.Clear();
             }
-
             //Console.BackgroundColor = ConsoleColor.Yellow;
             Console.WriteLine($"yea, we got {stats.Matched!.Value.Count} match of type: {type} within");
             Console.WriteLine($"current match goal:  {goal?.Match}");
@@ -476,7 +497,6 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
         var state = Game.State;
         var type = state.Current.Body.TileType;
         ref var stats = ref Grid.GetStatsByType(type);
-        //stats.Inc(EventType.Destroyed);
         stats[EventType.Clicked].Count++;
         
         Console.WriteLine($"Ok, 1 of {state.Current.Body.TileType} tiles was clicked!");
@@ -488,7 +508,6 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
             enemy.BlockSurroundingTiles(Grid.Instance, false);
             state.EnemiesStillPresent = ++_matchXCounter < state.Matches!.Count;
             _matchXCounter = (byte)(state.EnemiesStillPresent ? _matchXCounter : 0);
-            //stats.Null(EventType.Clicked);
             stats[EventType.Clicked] = default;
         }
         else
@@ -512,7 +531,7 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         var type = state.Current.Body.TileType;
         ref var stats = ref Grid.GetStatsByType(type);
         stats[EventType.Clicked].Count++;
-
+        
         if (IsClickGoalReached(out var goal, stats, out _) && !IsSoundPlaying(AssetManager.SplashSound))
         {
             var tile  = Bakery.CreateTile(state.Current.GridCell, Randomizer.NextSingle());
@@ -521,7 +540,6 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
             state.Current = tile;
             DefineGoals();
             stats[EventType.Clicked] = default;
-            //stats.Reset(EventType.Clicked); //so u cannot replace the same tile over and over
             Console.WriteLine("Nice, you got a new tile!");
             state.WasFeatureBtnPressed = false;
         }
