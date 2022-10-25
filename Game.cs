@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using DotNext.Runtime;
+using ImGuiNET;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Match_3.AssetManager;
@@ -232,72 +233,95 @@ internal static class Game
             //seconds += GetFrameTime();
             float currTime = _gameTimer.ElapsedSeconds;
             State.CurrentTime = currTime;
-            BeginDrawing();
-            Begin();
-
-            if (_enterGame)
-            {
-                Vector2 size = GetScreenCoord();
-                SetShaderValue(WobbleEffect, ShaderLoc.size, size , ShaderUniformDataType.SHADER_UNIFORM_VEC2);
-                SetShaderValue(WobbleEffect, ShaderLoc.time, currTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-                SetShaderValue(WobbleEffect, shallWobble, 0, ShaderUniformDataType.SHADER_UNIFORM_INT);
-            }
-
-            ClearBackground(WHITE);
             
-            if (!_enterGame)
-            {
-                Renderer.DrawBackground(ref _bgWelcome);
-                Renderer.ShowWelcomeScreen();
-                //Renderer.LogQuest(false, Level);
-            }
-            if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
-            {
-                _gameTimer.Run();
-                
-                State.IsGameOver = _gameTimer.Done();
+            BeginDrawing();
+            ClearBackground(WHITE);
 
-                if (State.IsGameOver)
-                {
-                    OnGameOver();
-                    gameOverTimer.Run();
-                    Renderer.DrawBackground(ref _bgGameOver);
-                    Renderer.DrawTimer(gameOverTimer.ElapsedSeconds);
+                //ImGui Context Begin
+                Begin();
                     
-                    if (Renderer.ShowGameOverScreen(gameOverTimer.Done(), State.WasGameWonB4Timeout, State.GameOverMessage))
-                        return;
-                }
-                else if (State.WasGameWonB4Timeout)
-                {
-                    if (Renderer.ShowGameOverScreen(_gameTimer.Done(), true, State.GameOverMessage))
+                    var flags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground;
+                    //flags = 0;
+                    
+                    if (ImGui.Begin("Screen Overlay", flags))
                     {
-                        //Begin new Level!
-                        InitGame();
-                        State.WasGameWonB4Timeout = false;
-                        continue;
+                        ImGui.SetWindowPos(default);           
+                        ImGui.SetWindowSize(GetScreenCoord());
+                        
+                        ImGui.SetCursorPos(GetScreenCoord() * 0.5f);
+                        //UIRenderer.Center("HALLO WELT WIE GEHT ES DIR DENN HEUTE SO");
+                        ImGui.Text("HALLO WELT WIE GEHT ES DIR DENN HEUTE SO");
+
+                        if (_enterGame)
+                        {
+                            Vector2 size = GetScreenCoord();
+                            SetShaderValue(WobbleEffect, ShaderLoc.size, size,
+                                ShaderUniformDataType.SHADER_UNIFORM_VEC2);
+                            SetShaderValue(WobbleEffect, ShaderLoc.time, currTime,
+                                ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+                            SetShaderValue(WobbleEffect, shallWobble, 0, ShaderUniformDataType.SHADER_UNIFORM_INT);
+                        }
+                        else if (!_enterGame)
+                        {
+                            Renderer.DrawBackground(ref _bgWelcome);
+                            Renderer.ShowWelcomeScreen();
+                            //Renderer.LogQuest(false, Level);
+                        }
+
+                        if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
+                        {
+                            _gameTimer.Run();
+
+                            State.IsGameOver = _gameTimer.Done();
+
+                            if (State.IsGameOver)
+                            {
+                                OnGameOver();
+                                gameOverTimer.Run();
+                                Renderer.DrawBackground(ref _bgGameOver);
+                                Renderer.DrawTimer(gameOverTimer.ElapsedSeconds);
+
+                                if (Renderer.ShowGameOverScreen(gameOverTimer.Done(),
+                                                                State.WasGameWonB4Timeout,
+                                                                State.GameOverMessage))
+                                    return;
+                            }
+                            else if (State.WasGameWonB4Timeout)
+                            {
+                                if (Renderer.ShowGameOverScreen(_gameTimer.Done(), true, State.GameOverMessage))
+                                {
+                                    //Begin new Level!
+                                    InitGame();
+                                    State.WasGameWonB4Timeout = false;
+                                    continue;
+                                }
+                            }
+                            else
+                            {
+                                var pressed = UIRenderer.ButtonClicked(out var id);
+                                State.WasFeatureBtnPressed ??= pressed;
+                                State.WasFeatureBtnPressed = pressed ?? State.WasFeatureBtnPressed;
+                                Renderer.DrawBackground(ref _bgIngame1);
+                                Renderer.DrawTimer(currTime);
+                                DragMouseToEnemies();
+                                ProcessSelectedTiles();
+                                ComputeMatches();
+                                Renderer.DrawOuterBox(_enemyMatches, currTime);
+                                Renderer.DrawInnerBox(_matchesOf3, currTime);
+                                //BeginShaderMode(WobbleEffect);
+                                Renderer.DrawGrid(currTime);
+                                Renderer.DrawMatches(_enemyMatches, currTime, _shallCreateEnemies);
+                                //EndShaderMode();
+                                HardReset();
+                            }
+
+                            _enterGame = true;
+                        }
                     }
-                }
-                else
-                {
-                    var pressed = Renderer.ButtonClicked();
-                    State.WasFeatureBtnPressed ??= pressed;
-                    State.WasFeatureBtnPressed = pressed ?? State.WasFeatureBtnPressed;
-                    Renderer.DrawBackground(ref _bgIngame1);
-                    Renderer.DrawTimer(currTime);
-                    DragMouseToEnemies();
-                    ProcessSelectedTiles();
-                    ComputeMatches();
-                    Renderer.DrawOuterBox(_enemyMatches, currTime);  
-                    Renderer.DrawInnerBox(_matchesOf3, currTime) ;
-                    //BeginShaderMode(WobbleEffect);
-                    Renderer.DrawGrid(currTime);
-                    Renderer.DrawMatches(_enemyMatches, currTime, _shallCreateEnemies);
-                    //EndShaderMode();
-                    HardReset();
-                }
-                _enterGame = true;
-            }
-            End();
+                    ImGui.End();
+                //ImGui Context End
+                End();
+                
             EndDrawing();
         }
     }
