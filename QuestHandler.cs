@@ -344,10 +344,11 @@ public sealed class MatchQuestHandler : QuestHandler
                 state.WasGameWonB4Timeout = true;
                 state.GameOverMessage = "NICE, YOU FINISHED THE ENTIRE MATCH-QUEST BEFORE THE GAME ENDED! WELL DONE Man!";
                 break;
-            case false when state.IsGameOver:
+            case false when state.IsGameOver:    
                 state.WasGameWonB4Timeout = false;
-                state.GameOverMessage = "Unlucky, very close, you will do it next time, i am sure :-), but here your results" +
-                                        $"So far you have gotten at least {SubGoalCounter} done and you needed actually {GoalsLeft}:";
+                state.GameOverMessage =
+                    "Unlucky, very close, you will do it next time, i am sure :-), but here your results" +
+                    $"So far you have gotten at least {SubGoalCounter} done and you needed actually {GoalsLeft}:";
                 break;
             case true when state.IsGameOver:
                 state.WasGameWonB4Timeout = false;
@@ -534,14 +535,16 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
         
         if (IsClickGoalReached(out var goal, stats, out _) && !IsSoundPlaying(AssetManager.SplashSound))
         {
+            state.Current.TileState &= TileState.Selected; 
             var tile  = Bakery.CreateTile(state.Current.GridCell, Randomizer.NextSingle());
             Grid.Instance[tile.GridCell] = tile;
             PlaySound(AssetManager.SplashSound);
             state.Current = tile;
             DefineGoals();
             stats[EventType.Clicked] = default;
-            Console.WriteLine("Nice, you got a new tile!");
+            Console.WriteLine($"Nice, you got a new {tile.Body.TileType} tile!");
             state.WasFeatureBtnPressed = false;
+            tile.TileState = state.Current.TileState;
         }
         else
         {

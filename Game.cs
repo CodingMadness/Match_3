@@ -241,16 +241,14 @@ internal static class Game
                 Begin();
                     
                     var flags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground;
-                    //flags = 0;
+                    flags = 0;
                     
                     if (ImGui.Begin("Screen Overlay", flags))
                     {
                         ImGui.SetWindowPos(default);           
                         ImGui.SetWindowSize(GetScreenCoord());
-                        
-                        ImGui.SetCursorPos(GetScreenCoord() * 0.5f);
-                        //UIRenderer.Center("HALLO WELT WIE GEHT ES DIR DENN HEUTE SO");
-                        ImGui.Text("HALLO WELT WIE GEHT ES DIR DENN HEUTE SO");
+
+                        UIRenderer.Center("HALLO WELT WIE GEHT ES DIR DENN HEUTE SO");
 
                         if (_enterGame)
                         {
@@ -267,7 +265,6 @@ internal static class Game
                             Renderer.ShowWelcomeScreen();
                             //Renderer.LogQuest(false, Level);
                         }
-
                         if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
                         {
                             _gameTimer.Run();
@@ -319,7 +316,8 @@ internal static class Game
                         }
                     }
                     ImGui.End();
-                //ImGui Context End
+                
+                    //ImGui Context End
                 End();
                 
             EndDrawing();

@@ -53,21 +53,24 @@ public static class UIRenderer
 
     public static void Center(string text)
     {
+        
         float winWidth = ImGui.GetWindowSize().X;
         float textWidth = ImGui.CalcTextSize(text).X;
 
         // calculate the indentation that centers the text on one line, relative
         // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
-        float text_indentation = (winWidth - textWidth) * 0.5f;
+        float textIndentation = (winWidth - textWidth) * 0.5f;
 
         // if text is too long to be drawn on one line, `text_indentation` can
         // become too small or even negative, so we check a minimum indentation
-        float min_indentation = 20.0f;
-        if (text_indentation <= min_indentation) {
-            text_indentation = min_indentation;
-        }
-        ImGui.SameLine(text_indentation);
-        ImGui.PushTextWrapPos(winWidth - text_indentation);
+        const float minIndentation = 20.0f;
+        
+        if (textIndentation <= minIndentation) 
+            textIndentation = minIndentation;
+        
+        Vector2 center = new(textIndentation, ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y * 0.5f);
+        ImGui.SetCursorPos(center);
+        ImGui.PushTextWrapPos(winWidth - textIndentation);
         ImGui.TextWrapped(text);
         ImGui.PopTextWrapPos();
     }
@@ -75,7 +78,6 @@ public static class UIRenderer
 
 public static class Renderer
 {
-    
     private static void DrawTile(ref Texture atlas, Tile tile, float elapsedTime)
     {
         static void DrawCoordOnTop(Tile tile)
