@@ -1,19 +1,16 @@
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using ImGuiNET;
 using Match_3.GameTypes;
 using Raylib_CsLo;
-using RayWrapper.Base;
 using static Match_3.AssetManager;
 using static Raylib_CsLo.Raylib;
-using Rectangle = Raylib_CsLo.Rectangle;
-using Texture = Raylib_CsLo.Texture;
+ 
 
 namespace Match_3;
 
-public static class Renderer
+public static class UIRenderer
 {
-    public static bool? ButtonClicked()
+    public static bool? ButtonClicked(out string buttonID)
     {
         static Vector2 NewPos(Vector2 btnSize)
         {
@@ -21,28 +18,6 @@ public static class Renderer
             float halfWidth = screenCoord.X * 0.4f;
             Vector2 newPos = new(halfWidth, screenCoord.Y - btnSize.Y * 1.3f);
             return newPos;
-        }
-
-        void Center(string text) 
-        {
-            float win_width = ImGui.GetWindowSize().X;
-            float text_width = ImGui.CalcTextSize(text).X;
-
-            // calculate the indentation that centers the text on one line, relative
-            // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
-            float text_indentation = (win_width - text_width) * 0.5f;
-
-            // if text is too long to be drawn on one line, `text_indentation` can
-            // become too small or even negative, so we check a minimum indentation
-            float min_indentation = 20.0f;
-            if (text_indentation <= min_indentation) {
-                text_indentation = min_indentation;
-            }
-            ImGui.SameLine(text_indentation);
-            //ImGui.PushTextWrapPos(win_width - text_indentation);
-            ImGui.PushTextWrapPos();
-            ImGui.TextWrapped(text);
-            ImGui.PopTextWrapPos();
         }
         
         var flags = ImGuiWindowFlags.NoBackground |
@@ -53,22 +28,53 @@ public static class Renderer
 
         var btnSize = new Vector2(FeatureBtn.width, FeatureBtn.height);
         var newPos = NewPos(btnSize);
-
+        bool? result = null;
+        //ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 0f);
+        buttonID = "FeatureBtn";
+        
         //begin rendering sub-window
-        if (ImGui.Begin("THIS IS MY GAME SUB-WINDOW IN WINDOW", ref open))
+        if (ImGui.Begin(buttonID, ref open))
         {
+            ImGui.SetWindowFocus(buttonID);
             ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, Vector4.Zero);
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 0f);
             
             if (ImGui.ImageButton((nint)FeatureBtn.id, btnSize ))
             {
-                 return true;
+                result = true;
             }
+            ImGui.PopStyleColor(2);
         }
         ImGui.End();
-        return null;
+        //ImGui.PopStyleVar(1);
+
+        return result;
     }
+
+    public static void Center(string text)
+    {
+        float winWidth = ImGui.GetWindowSize().X;
+        float textWidth = ImGui.CalcTextSize(text).X;
+
+        // calculate the indentation that centers the text on one line, relative
+        // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
+        float text_indentation = (winWidth - textWidth) * 0.5f;
+
+        // if text is too long to be drawn on one line, `text_indentation` can
+        // become too small or even negative, so we check a minimum indentation
+        float min_indentation = 20.0f;
+        if (text_indentation <= min_indentation) {
+            text_indentation = min_indentation;
+        }
+        ImGui.SameLine(text_indentation);
+        ImGui.PushTextWrapPos(winWidth - text_indentation);
+        ImGui.TextWrapped(text);
+        ImGui.PopTextWrapPos();
+    }
+}
+
+public static class Renderer
+{
     
     private static void DrawTile(ref Texture atlas, Tile tile, float elapsedTime)
     {
@@ -161,7 +167,7 @@ public static class Renderer
     
     public static void DrawTimer(float elapsedSeconds)
     {
-        //horrible performance: use a stringbuilder to reuse values!
+        //horrible performance: use a stringBuilder to reuse values!
         TimerText.Text = ((int)elapsedSeconds).ToString();
         TimerText.Src.baseSize = 512*16;
         FadeableColor color = elapsedSeconds > 0f ? BLUE : WHITE;
@@ -177,14 +183,14 @@ public static class Renderer
         WelcomeText.Draw(null);
     }
     
-    public static bool DrawGameOverResult(bool isDone, bool? gameWon)
+    public static bool ShowGameOverScreen(bool isDone, bool? gameWon, string input)
     {
         if (gameWon is null)
         {
             return false;
         }
         InitGameOverTxt();
-        GameOverText.Text = gameWon.Value ? "YEA, YOU WON!" : "AHH, DONT WORRY, YOU WILL GET THERE";
+        GameOverText.Text = input;
         GameOverText.Draw(null);
         return isDone;
     }
