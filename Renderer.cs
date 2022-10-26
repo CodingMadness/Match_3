@@ -1,16 +1,17 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using ImGuiNET;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Match_3.AssetManager;
 using static Raylib_CsLo.Raylib;
- 
+
 
 namespace Match_3;
 
 public static class UIRenderer
 {
-    public static bool? ButtonClicked(out string buttonID)
+    public static bool? ButtonClicked(out string btnId)
     {
         static Vector2 NewPos(Vector2 btnSize)
         {
@@ -20,7 +21,7 @@ public static class UIRenderer
             return newPos;
         }
         
-        var flags = ImGuiWindowFlags.NoBackground |
+        var flags = 
                     ImGuiWindowFlags.NoTitleBar |
                     ImGuiWindowFlags.NoScrollbar |
                     ImGuiWindowFlags.NoDecoration;
@@ -29,15 +30,19 @@ public static class UIRenderer
         var btnSize = new Vector2(FeatureBtn.width, FeatureBtn.height);
         var newPos = NewPos(btnSize);
         bool? result = null;
-        //ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 0f);
-        buttonID = "FeatureBtn";
-        
+        btnId = "FeatureBtn";
+   
         //begin rendering sub-window
-        if (ImGui.Begin(buttonID, ref open))
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
+        ImGui.SetWindowFocus(btnId);
+ 
+        if (ImGui.Begin(btnId, ref open, flags))
         {
-            ImGui.SetWindowFocus(buttonID);
+            var windowSize = ImGui.GetWindowSize();
             ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, Vector4.Zero);
+            
+            //Center(buttonID);
             
             if (ImGui.ImageButton((nint)FeatureBtn.id, btnSize ))
             {
@@ -45,15 +50,14 @@ public static class UIRenderer
             }
             ImGui.PopStyleColor(2);
         }
+        ImGui.PopStyleVar();
         ImGui.End();
-        //ImGui.PopStyleVar(1);
-
+        
         return result;
     }
 
-    public static void Center(string text)
+    public static void Center(string text, Vector2? pos)
     {
-        
         float winWidth = ImGui.GetWindowSize().X;
         float textWidth = ImGui.CalcTextSize(text).X;
 
@@ -67,13 +71,42 @@ public static class UIRenderer
         
         if (textIndentation <= minIndentation) 
             textIndentation = minIndentation;
-        
-        Vector2 center = new(textIndentation, ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y * 0.5f);
-        ImGui.SetCursorPos(center);
+
+        pos ??= new(textIndentation, ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y * 0.5f);
+        ImGui.SetCursorPos(pos.Value);
+        ImGui.PushStyleColor(ImGuiCol.Text, Utils.AsVec4(RED));
         ImGui.PushTextWrapPos(winWidth - textIndentation);
         ImGui.TextWrapped(text);
         ImGui.PopTextWrapPos();
+        ImGui.PopStyleColor(1);
     }
+
+    public static unsafe void LogQuest(bool useConsole)
+    {              
+        ImGui.SetWindowFontScale(2f);
+        Vector2 begin = Vector2.Zero;
+        
+        
+        foreach (var pair in MatchQuestHandler.TypeGoal)
+        {
+            if (useConsole)
+            {
+                Console.WriteLine($"You have to collect {pair.Value} {pair.Key}-tiles!");
+                Console.WriteLine();
+            }
+            else
+            {
+                Color color = RED;//GetColor(Utils.RndHex());
+                
+                Center($"You have to collect {pair.Value.Match.Value.Count} " + 
+                       $"{pair.Key}-tiles! and u have {pair.Value.Match.Value.Interval} " +
+                       "seconds for each match" + Environment.NewLine, begin);
+                
+                begin = Vector2.UnitY * ImGui.GetWindowHeight() / 3f;
+            }
+        }
+    } 
+
 }
 
 public static class Renderer
@@ -191,9 +224,8 @@ public static class Renderer
         {
             return false;
         }
-        InitGameOverTxt();
-        GameOverText.Text = input;
-        GameOverText.Draw(null);
+         
+        UIRenderer.Center(input, null);
         return isDone;
     }
 
@@ -204,28 +236,4 @@ public static class Renderer
         DrawTexturePro(bg.Texture, bg.Body.TextureRect, screen.DoScale(bg.Body.Scale), 
             Vector2.Zero, 0f, bg.Body.FIXED_WHITE);
     }
-    
-    /*
-    public static void LogQuest(bool useConsole, QuestData match)
-    {
-        foreach (var pair in match.BallCountPerLevel.State)
-        {
-            if (useConsole)
-            {
-                 Console.WriteLine($"You have to collect {pair.Value} {pair.Key}-tiles!");
-                 Console.WriteLine();
-            }
-            else
-            {
-                var center = Utils.GetScreenCoord() * 0.5f;
-                string txt = $"You have to collect {pair.Value} {pair.Key}-tiles!";
-                Vector2 pos = center with {X = center.X * 1.5f, Y = 4 * Tile.ScaleFactor };
-                LogText.Begin = pos;
-                LogText.Text = txt;
-                LogText.Draw(null);                
-                break;
-            }
-        }
-    } 
-    */
 }
