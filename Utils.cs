@@ -3,7 +3,9 @@ using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using ImGuiNET;
 using static Raylib_CsLo.Raylib;
+using Color = Raylib_CsLo.Color;
 using Rectangle = Raylib_CsLo.Rectangle;
 
 namespace Match_3;
@@ -54,6 +56,29 @@ public static class Utils
     public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
     public static readonly FastNoiseLite NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
 
+    public static unsafe Vector4 AsVec4(Color color)
+    {
+        Vector4 v4Color = default;
+
+        const int max = 255; //100%
+
+        for (byte i = 0; i < 4; i++)
+        {
+            byte colorValue = *(byte*)Unsafe.Add<byte>((byte*)Unsafe.AsPointer(ref color), i);
+            float* v4Value = (float*)Unsafe.Add<float>((float*)Unsafe.AsPointer(ref v4Color), i);
+            float percentage = colorValue / (float)max;
+            *v4Value = percentage;
+        }
+        
+        return v4Color;
+    }
+    public static uint RndHex()
+    {
+        var val = Randomizer.Next(0, 1000).ToString("X");
+        var x = Convert.ToUInt32(val, 16);
+        return x;
+    }
+    
     static Utils()
     {
         NoiseMaker.SetFrequency(25f);
