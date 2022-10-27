@@ -16,17 +16,17 @@ public sealed class Grid
     }
 
     private Tile[,] _bitmap;
-
+    private static Tile _lastMatchTrigger;
+    private byte _match3FuncCounter;
+    private bool _hasBeenSorted;
+    
     public int TileWidth;
     public int TileHeight;
     private static readonly Dictionary<TileType, Stats> TypeStats = new((int)TileType.Length);
 
     public static event Action NotifyOnGridCreationDone;
     public static event Action OnTileCreated;
-
-    public static Tile LastMatchTrigger { get; private set; }
-    private byte _match3FuncCounter;
-
+    
     public static ref Stats GetStatsByType(TileType t)
     {
         ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out var existedB4);
@@ -65,7 +65,13 @@ public sealed class Grid
     {
         var map = _bitmap.AsSpan();
         ref var eventData = ref map[2].EventData;
-        map.Sort();
+        
+        if (!_hasBeenSorted)
+        {
+            map.Sort();
+            _hasBeenSorted = true;
+        }
+
         var iterator = new SpanEnumerator<Tile>(map);
             
         foreach (var tile in iterator)
@@ -183,21 +189,19 @@ public sealed class Grid
     {
         bool AddWhenEqual(Tile? first, Tile? next)
         {
-            if (first is not null && next is not null /*&& first.GridCell.GetDirectionTo(next.GridCell)*/)
+            if (StateAndBodyComparer.Singleton.Equals(first, next))
             {
-                if (StateAndBodyComparer.Singleton.Equals(first, next))
+                switch (matches.Count)
                 {
-                    switch (matches.Count)
-                    {
-                        case Level.MAX_TILES_PER_MATCH:
-                            return false;
-                    }
-
-                    matches.Add(first);
-                    matches.Add(next);
-                    return true;
+                    case Level.MAX_TILES_PER_MATCH:
+                        return false;
                 }
+
+                matches.Add(first!);
+                matches.Add(next!);
+                return true;
             }
+
             return false;
         }
 
@@ -217,14 +221,14 @@ public sealed class Grid
 
         const Direction lastDir = (Direction)4;
 
-        LastMatchTrigger = match3Trigger;
+        _lastMatchTrigger = match3Trigger;
 
         for (Direction i = 0; i < lastDir; i++)
         {
-            Vector2 nextCoords = Next(LastMatchTrigger.GridCell, i);
+            Vector2 nextCoords = Next(_lastMatchTrigger.GridCell, i);
             var next = this[nextCoords]; //when a new tile is give back, the state == 0??
 
-            while (AddWhenEqual(LastMatchTrigger, next))
+            while (AddWhenEqual(_lastMatchTrigger, next))
             {
                 //compute the proper (x,y) for next round, because
                 //we found a match between a -> b, now we check
@@ -239,7 +243,7 @@ public sealed class Grid
             //if he could not get a match by the 2.tile which was clicked, try the 1.clicked tile!
             case false when ++_match3FuncCounter <= 1:
                 matches.Clear();
-                return WasAMatchInAnyDirection(this[LastMatchTrigger.CoordsB4Swap]!, matches);
+                return WasAMatchInAnyDirection(this[_lastMatchTrigger.CoordsB4Swap]!, matches);
         }
 
         switch (_match3FuncCounter)
