@@ -57,6 +57,12 @@ public struct Pair
     public int Length;
 
     public static unsafe implicit operator Span<byte>(Pair p) => new(p.First, p.Length);
+
+    public static unsafe implicit operator Pair(Span<byte> p) => new Pair()
+    {
+        First = (byte*)Unsafe.AsPointer(ref p[0]),
+        Length = p.Length
+    };
 }
 
 public static class Utils
