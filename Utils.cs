@@ -27,7 +27,7 @@ public ref struct SpanEnumerator<TItem>
     {
     }
 
-    public SpanEnumerator(ref TItem item, nint length)
+    private SpanEnumerator(ref TItem item, nint length)
     {
         _currentItem = ref Unsafe.Subtract(ref item, 1);
 
@@ -72,12 +72,8 @@ public static class Utils
         return v4Color;
     }
 
-    private static Color FromSysColor(in SysColor color)
+    private static Color FromSysColor(SysColor color)
     {
-        unsafe
-        {
-            int size = sizeof(SysColor);
-        }
         return new(color.R, color.G, color.B, color.A);
     }
     
@@ -187,46 +183,19 @@ public static class Utils
         //rayrect 
         return new(rayRect.x, rayRect.y, rayRect.width * factor.GetFactor(), rayRect.height * factor.GetFactor());
     }
-    public static Rectangle SliceBy(this Rectangle rayRect, int factor)
-    {
-        //rayrect 
-        return new(rayRect.x, rayRect.y, rayRect.width * factor, rayRect.height * factor);
-    }
-    public static Rectangle Move(this Rectangle rayRect, bool xDirection, int steps=1)
-    {
-        if (steps < 2)
-            return rayRect;
-        
-        Rectangle tmp;
-        
-        if (xDirection)
-        {
-            //{0,0, 64, 64}  ---> {64 ,0, 64, 64}  ---> {128 ,0, 64, 64}  
-            tmp = new(rayRect.x + rayRect.width * steps, rayRect.y, rayRect.width, rayRect.height);
-        }
-        else
-        {
-            //{0,0, 64, 64}  ---> {0 ,64, 64, 64}  ---> {0 ,128, 64, 64}  
-            tmp = new(rayRect.x, rayRect.y + rayRect.width * steps, rayRect.width, rayRect.height);
-        }
 
-        return tmp;
-    }
-    
     public static bool Equals(this float x, float y, float tolerance)
     {
         var diff = MathF.Abs(x - y);
         return diff <= tolerance ||
                diff <= MathF.Max(MathF.Abs(x), MathF.Abs(y)) * tolerance;
     }
-
-    public static bool GreaterOrEqual(this float x, float y, float tolerance)
+    private static bool GreaterOrEqual(this float x, float y, float tolerance)
     {
         var diff = MathF.Abs(x - y);
         return diff > tolerance ||
                diff > MathF.Max(MathF.Abs(x), MathF.Abs(y)) * tolerance;
     }
-
     public static int CompareTo(this Vector2 a, Vector2 b)
     {
         var pair = a.GetDirectionTo(b);
@@ -300,7 +269,7 @@ public static class Utils
     {
         return  ((int)a.X != (int)b.X && (int)a.Y != (int)b.Y) ;
     }
-    public static Vector2 GetWorldPos(this Rectangle a) => new((int)a.x, (int)a.y);
+    private static Vector2 GetWorldPos(this Rectangle a) => new((int)a.x, (int)a.y);
     public static Vector2 GetCellPos(this Rectangle a) => GetWorldPos(a) / Tile.Size;
     public static void SetMouseToWorldPos(Vector2 position, int scale = Tile.Size)
     {

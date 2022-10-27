@@ -1,10 +1,5 @@
-﻿using System.Drawing;
-using System.Numerics;
-using System.Runtime.CompilerServices;
+﻿using DotNext.Runtime;
 using Match_3.GameTypes;
-using static Raylib_CsLo.Raylib;
-using Color = Raylib_CsLo.Color;
-using Rectangle = Raylib_CsLo.Rectangle;
 
 namespace Match_3;
 
@@ -275,13 +270,10 @@ public enum TileState
 public class Tile
 {
     private TileState _current;
-    private Stats _tmp = new();
     private Goal _goal;
-    public ref Stats EventData => ref _tmp;
+    public Stats EventData;
     public ref readonly Goal Goal => ref _goal;
-
     public virtual Options Options { get; set; }
-
     public TileState TileState
     {
         get => _current;
@@ -338,7 +330,6 @@ public class Tile
             _current = value;
         }
     }
-
     public Vector2 GridCell { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public TileShape Body { get; init; }
@@ -352,12 +343,9 @@ public class Tile
     /// End in WorldCoordinates
     /// </summary>
     public Vector2 End => WorldCell + Vector2.One * Size;
-
     public bool IsDeleted => TileState.HasFlag(TileState.Deleted);
-    public Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
+    private Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
     public Rectangle WorldBounds => GridBounds.ToWorldBox();
-    
-    public bool ShallWobble { get; set; }
     
     public void UpdateGoal(EventType eventType, in Goal aGoal)
     {
@@ -373,15 +361,12 @@ public class Tile
     }
     
     public const int Size = Level.TILE_SIZE;
-    public static bool IsOnlyDefaultTile(Tile? current) =>
-        current is not null and not EnemyTile;
+  
     public Tile()
     {
-        //we just init the variable with a dummy value to have the error gone, since we will 
-        //overwrite the Body anyway with the Factorymethod "CreateNewTile(..)";
-        Body = null!;
+        EventData = new();
     }
-    public override string ToString() => $"GridCell: {GridCell}; ---- {Body}";
+    public override string ToString() => $"Cell: {GridCell}; ---- {Body}";
     public void Disable(bool shallDelete)
     {
         Body.Fade(BLACK, 0f, 1f);
@@ -473,7 +458,7 @@ public class EnemyTile : Tile
 
             Vector2 next = NextCell(i);
 
-            if (IsOnlyDefaultTile(map[next]))
+            if (Intrinsics.IsExactTypeOf<Tile>(map[next]))
             {
                 var t = map[next];
 
@@ -484,19 +469,5 @@ public class EnemyTile : Tile
                     t!.Enable();
             }
         }
-    }
-
-    public static bool IsOnlyEnemyTile(Tile? enemy, out EnemyTile? e)
-    {
-       if (enemy is Tile e0 && !e0.IsDeleted)
-       {
-            if (e0 is EnemyTile e1 && !e1.IsDeleted)
-            {
-                e = e1;
-                return true;
-            } 
-        }
-        e = null;
-        return false;
     }
 }
