@@ -244,7 +244,7 @@ public abstract class QuestHandler
     protected static THandler GetInstance<THandler>() 
         where THandler : QuestHandler, new() => SingletonManager.GetOrCreateInstance<THandler>();
     protected int SubGoalCounter { get; set; }
-    protected virtual int GoalCountToReach { get; set; }
+    public virtual int GoalCountToReach { get; set; }
     protected int GoalsLeft => GoalCountToReach - SubGoalCounter;
     protected bool IsMainGoalReached => GoalsLeft == 0;
     protected static bool IsSubGoalReached(EventType eventType, in Goal goal, in Stats stats, out int direction)
@@ -290,8 +290,6 @@ public abstract class QuestHandler
 
 public sealed class SwapQuestHandler : QuestHandler
 {
-    protected override int GoalCountToReach { get; set; }
-
     protected override void DefineGoals(Span<byte> countPerType)
     {
         //Define Ruleset for SwapQuestHandler:
@@ -338,14 +336,7 @@ public sealed class SwapQuestHandler : QuestHandler
 
 public sealed class MatchQuestHandler : QuestHandler
 {
-    public static readonly Dictionary<TileType, Goal> TypeGoal = new((int)TileType.Length);
-    
-    private static ref readonly Goal GetGoalBy(TileType t)
-    {
-        ref readonly var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeGoal, t, out _);
-
-        return ref x;
-    }
+    private static readonly Goal[] TypeGoal = new Goal[(int)TileType.Length];
     
     public MatchQuestHandler()
     {
@@ -378,11 +369,26 @@ public sealed class MatchQuestHandler : QuestHandler
 
     public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
 
+    public static ref readonly Goal GetGoalBy(TileType key) => ref TypeGoal[(int)key];
+
     //did some changes here..!
     protected override void DefineGoals(Span<byte> countPerType)
     {
-        GameState state = Game.State;
+        void LocalFunction(in Span<TileType> dest)
+        {
+            Span<TileType> local = stackalloc TileType[(int)(TileType.Length)];
+         
+            for (int i = 1; i < local.Length; i++)
+            {
+                local[i] = (TileType)i; //just some random value..
+            }
+            local.CopyTo(dest);
+        }
 
+        GameState state = Game.State;
+        Span<TileType> local = stackalloc TileType[(int)(TileType.Length)];
+        LocalFunction(local);
+        
         var countToMatch = Game.Level.ID switch
         {
             0 => Randomizer.Next(2, 4),
@@ -392,8 +398,7 @@ public sealed class MatchQuestHandler : QuestHandler
             _ => default
         };
         
-        //Span<byte> countPerType = state.Span;
-        Span<TileType> slice = Enum.GetValues<TileType>().AsSpan(1, (int)TileType.Length-1);
+        Span<TileType> slice = local.Slice(1, (int)TileType.Length-1);
         slice.Shuffle(Randomizer);
         var nextPiece = slice[..countToMatch];
         var iterator = new SpanEnumerator<TileType>(nextPiece);
@@ -426,7 +431,7 @@ public sealed class MatchQuestHandler : QuestHandler
                 goal = goal with { Match = matchValue };
             }
             GoalCountToReach++;
-            TypeGoal.TryAdd(value, goal);
+            TypeGoal[(int)value] = goal;
         }
     }
 

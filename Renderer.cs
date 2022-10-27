@@ -91,23 +91,28 @@ public static class UIRenderer
         ImGui.SetWindowFontScale(2f);
         Vector2 begin = Vector2.Zero;
         _questLogColor ??= Utils.GetRndColor();
-
-        foreach (var pair in MatchQuestHandler.TypeGoal)
+        
+        //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
+        for (var index = 1; index < MatchQuestHandler.Instance.GoalCountToReach; index++)
         {
+            var type = (TileType)index;
+            ref readonly var pair = ref MatchQuestHandler.GetGoalBy(type);
+
+            string msg = $"You have to collect {pair.Match.Value.Count} " +
+                         $"{type}-tiles! and u have {pair.Match.Value.Interval} " +
+                         $"seconds to make a new match, so hurry up! {Environment.NewLine}";
+            
             if (useConsole)
             {
-                Console.WriteLine($"You have to collect {pair.Value} {pair.Key}-tiles!");
-                Console.WriteLine();
+                Console.WriteLine(msg);
             }
             else
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, Utils.AsVec4(BLACK));
-                
-                CenterText($"You have to collect {pair.Value.Match.Value.Count} " + 
-                       $"{pair.Key}-tiles! and u have {pair.Value.Match.Value.Interval} " +
-                       "seconds for each match" + Environment.NewLine, begin);
-                
-                begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.TypeGoal.Count;
+
+                CenterText(msg, begin);
+
+                begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
                 ImGui.PopStyleColor(1);
             }
         }
