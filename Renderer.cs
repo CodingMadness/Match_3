@@ -1,10 +1,6 @@
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using ImGuiNET;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Match_3.AssetManager;
-using static Raylib_CsLo.Raylib;
 
 
 namespace Match_3;
@@ -93,13 +89,10 @@ public static class UIRenderer
         _questLogColor ??= Utils.GetRndColor();
         
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
-        for (var index = 1; index < MatchQuestHandler.Instance.GoalCountToReach; index++)
+        foreach (ref readonly var tuple in MatchQuestHandler.Instance.GetIterator())
         {
-            var type = (TileType)index;
-            ref readonly var pair = ref MatchQuestHandler.GetGoalBy(type);
-
-            string msg = $"You have to collect {pair.Match.Value.Count} " +
-                         $"{type}-tiles! and u have {pair.Match.Value.Interval} " +
+            string msg = $"You have to collect {tuple!.Item2.Match.Value.Count} " +
+                         $"{tuple.Item1}-tiles! and u have {tuple.Item2.Match.Value.Interval} " +
                          $"seconds to make a new match, so hurry up! {Environment.NewLine}";
             
             if (useConsole)
