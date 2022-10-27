@@ -196,7 +196,6 @@ public sealed class GameState
 {
     public bool WasSwapped;
     public bool EnemiesStillPresent;
-    public Pair Span;
     public bool WasGameWonB4Timeout;
     public Tile Current;
     public MatchX? Matches;
@@ -264,7 +263,7 @@ public abstract class QuestHandler
     /// <summary>
     /// This will be called automatically when Grid is done with its bitmap creation!
     /// </summary>
-    protected abstract void DefineGoals();
+    protected abstract void DefineGoals(Span<byte> countPerType);
     protected abstract void HandleEvent();
     public void Subscribe()
     {
@@ -293,7 +292,7 @@ public sealed class SwapQuestHandler : QuestHandler
 {
     protected override int GoalCountToReach { get; set; }
 
-    protected override void DefineGoals()
+    protected override void DefineGoals(Span<byte> countPerType)
     {
         //Define Ruleset for SwapQuestHandler:
         /*
@@ -380,7 +379,7 @@ public sealed class MatchQuestHandler : QuestHandler
     public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
 
     //did some changes here..!
-    protected override void DefineGoals()
+    protected override void DefineGoals(Span<byte> countPerType)
     {
         GameState state = Game.State;
 
@@ -392,7 +391,8 @@ public sealed class MatchQuestHandler : QuestHandler
             3 => Randomizer.Next(7, 9),
             _ => default
         };
-        Span<byte> countPerType = state.Span;
+        
+        //Span<byte> countPerType = state.Span;
         Span<TileType> slice = Enum.GetValues<TileType>().AsSpan(1, (int)TileType.Length-1);
         slice.Shuffle(Randomizer);
         var nextPiece = slice[..countToMatch];
@@ -408,14 +408,21 @@ public sealed class MatchQuestHandler : QuestHandler
                 3 => new Goal { Match = new(Randomizer.Next(8, 10), 2.5f) },
                 _ => default
             };
+            int index = (int)(value < (TileType)countPerType.Length ? value : value - 1); 
+            int maxAllowed = countPerType[index];
+            
+            if (maxAllowed == 0)
+                continue;
             
             var matchValue = goal.Match!.Value;
             int matchSum = matchValue.Count * Level.MAX_TILES_PER_MATCH;
-            int maxAllowed = countPerType[(int)value];
-
+            
             if (matchSum > maxAllowed)
             {
                 matchValue = matchValue with { Count = maxAllowed / Level.MAX_TILES_PER_MATCH };
+                if (matchValue.Count == 0)
+                    continue;
+                
                 goal = goal with { Match = matchValue };
             }
             GoalCountToReach++;
@@ -491,7 +498,7 @@ public abstract class ClickQuestHandler : QuestHandler
     {
         Grid.OnTileCreated += DefineGoals;
     }
-    protected override void DefineGoals()
+    protected override void DefineGoals(Span<byte> countPerType)
     {
         var state = Game.State;
 
@@ -575,7 +582,7 @@ public sealed class TileReplacerOnClickHandler : ClickQuestHandler
             Grid.Instance[tile.GridCell] = tile;
             PlaySound(AssetManager.SplashSound);
             state.Current = tile;
-            DefineGoals();
+            DefineGoals(Span<byte>.Empty);
             stats[EventType.Clicked] = default;
             Console.WriteLine($"Nice, you got a new {tile.Body.TileType} tile!");
             state.WasFeatureBtnPressed = false;

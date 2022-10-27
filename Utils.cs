@@ -63,13 +63,6 @@ public struct Pair
         First = (byte*)Unsafe.AsPointer(ref p[0]),
         Length = p.Length
     };
-    public static unsafe implicit operator Span<TileType>(Pair p) => new((TileType*)p.First, p.Length);
-
-    public static unsafe implicit operator Pair(Span<TileType> p) => new()
-    {
-        First = (byte*)Unsafe.AsPointer(ref p[0]),
-        Length = p.Length
-    };
 }
 
 public static class Utils
@@ -139,7 +132,6 @@ public static class Utils
 
     public static readonly Rectangle InvalidRect = new(-1f, -1f, 0f, 0f);
     public static Vector2 InvalidCell => -Vector2.One;
-    
     public static void Add(ref this Rectangle a, Rectangle b)
     {
         if (a.IsEmpty())

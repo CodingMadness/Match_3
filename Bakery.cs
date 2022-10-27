@@ -156,7 +156,7 @@ public static class Bakery
         return blockTile;
     }
     
-    public static event Action OnEnemyTileCreated;
+    public static event Grid.GridAction OnEnemyTileCreated;
 
     public static EnemyMatches AsEnemies(Grid map, MatchX match)
     {
@@ -170,7 +170,7 @@ public static class Bakery
             map[gridCell] = AsEnemy(map[gridCell]!);
             EnemyTile e = (EnemyTile)map[gridCell]!;
             Game.State.Current = e;
-            OnEnemyTileCreated();
+            OnEnemyTileCreated(Span<byte>.Empty);
             e.BlockSurroundingTiles(map, true);
             list.Add(e);
         }

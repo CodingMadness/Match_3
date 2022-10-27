@@ -24,9 +24,8 @@ public sealed class Grid
     public int TileHeight;
     private static readonly Dictionary<TileType, Stats> TypeStats = new((int)TileType.Length);
 
-    public static event Action NotifyOnGridCreationDone;
-    public static event Action OnTileCreated;
-    
+    public static event GridAction OnTileCreated;
+
     public static ref Stats GetStatsByType(TileType t)
     {
         ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out var existedB4);
@@ -34,6 +33,9 @@ public sealed class Grid
         return ref x; 
     }
 
+    public delegate void GridAction(Span<byte> countPerType);
+
+    public static event GridAction NotifyOnGridCreationDone;
     public static Grid Instance { get; } = new();
 
     private Grid()
@@ -41,7 +43,7 @@ public sealed class Grid
         
     }
         
-    private unsafe void CreateMap()
+    private void CreateMap()
     {
         Span<byte> counts = stackalloc byte[(int)TileType.Length];
         
@@ -53,13 +55,12 @@ public sealed class Grid
                 float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
                 var tile = _bitmap[x, y] = Bakery.CreateTile(current, noise);
                 Game.State.Current = tile;
-                OnTileCreated();
+                OnTileCreated(Span<byte>.Empty);
                 counts[(int)tile.Body.TileType]++;
             }
         }
-
-        Game.State.Span = counts.Slice(1);
-        NotifyOnGridCreationDone();
+        
+        NotifyOnGridCreationDone(counts.Slice(1));
     }
         
     public ref Stats GetTileStatsBy<T>(T key) where T : notnull
