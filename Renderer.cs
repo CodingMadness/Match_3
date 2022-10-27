@@ -11,6 +11,8 @@ namespace Match_3;
 
 public static class UIRenderer
 {
+    private static Color? _questLogColor;
+
     public static bool? ButtonClicked(out string btnId)
     {
         static Vector2 NewPos(Vector2 btnSize)
@@ -56,7 +58,7 @@ public static class UIRenderer
         return result;
     }
 
-    public static void Center(string text, Vector2? pos)
+    public static void CenterText(string text, Vector2? pos)
     {
         float winWidth = ImGui.GetWindowSize().X;
         float textWidth = ImGui.CalcTextSize(text).X;
@@ -79,11 +81,11 @@ public static class UIRenderer
         ImGui.PopTextWrapPos();
     }
 
-    public static void LogQuest(bool useConsole)
+    public static void ShowQuestLog(bool useConsole)
     {              
         ImGui.SetWindowFontScale(2f);
         Vector2 begin = Vector2.Zero;
-        Color color = Utils.GetRndColor();
+        _questLogColor ??= Utils.GetRndColor();
 
         foreach (var pair in MatchQuestHandler.TypeGoal)
         {
@@ -94,8 +96,8 @@ public static class UIRenderer
             }
             else
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, Utils.AsVec4(color));
-                Center($"You have to collect {pair.Value.Match.Value.Count} " + 
+                ImGui.PushStyleColor(ImGuiCol.Text, Utils.AsVec4(_questLogColor.Value));
+                CenterText($"You have to collect {pair.Value.Match.Value.Count} " + 
                        $"{pair.Key}-tiles! and u have {pair.Value.Match.Value.Interval} " +
                        "seconds for each match" + Environment.NewLine, begin);
                 
@@ -105,7 +107,7 @@ public static class UIRenderer
         }
     } 
 
-    public static void DrawTimer(float elapsedSeconds)
+    public static void ShowTimer(float elapsedSeconds)
     {
         //horrible performance: use a stringBuilder to reuse values!
         TimerText.Text = ((int)elapsedSeconds).ToString();
@@ -130,11 +132,11 @@ public static class UIRenderer
             return false;
         }
          
-        UIRenderer.Center(input, null);
+        CenterText(input, null);
         return isDone;
     }
 
-    public static void DrawBackground(ref Background bg)
+    public static void ShowBackground(ref Background bg)
     {
         Rectangle screen = new(0f,0f, GetScreenWidth(), GetScreenHeight());
 

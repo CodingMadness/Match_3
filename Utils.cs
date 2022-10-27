@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using DotNext;
 using ImGuiNET;
 
 using SysColor = System.Drawing.Color;
@@ -80,7 +81,7 @@ public static class Utils
         return new(color.R, color.G, color.B, color.A);
     }
     
-    public static Color GetRndColor()
+    public static Color GetRndColor( )
     {
         int max = (int)KnownColor.YellowGreen;
         Span<Color> all = stackalloc Color[max];
@@ -89,7 +90,7 @@ public static class Utils
         {
             all[i] = FromSysColor(SysColor.FromKnownColor((KnownColor)i));
         }
-
+        all.Shuffle(Randomizer);
         return all[Randomizer.Next(0, max)];
     }
     

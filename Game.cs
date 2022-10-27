@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Globalization;
+using System.Numerics;
 using DotNext.Runtime;
 using ImGuiNET;
 using Match_3.GameTypes;
@@ -257,9 +258,9 @@ internal static class Game
                         }
                         else if (!_enterGame)
                         {
-                            UIRenderer.DrawBackground(ref _bgWelcome);
+                            UIRenderer.ShowBackground(ref _bgWelcome);
                             UIRenderer.ShowWelcomeScreen();
-                            UIRenderer.LogQuest(false);
+                            UIRenderer.ShowQuestLog(false);
                         }
                         if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
                         {
@@ -271,9 +272,9 @@ internal static class Game
                             {
                                 OnGameOver();
                                 gameOverTimer.Run();
-                                UIRenderer.Center(gameOverTimer.ElapsedSeconds.ToString(), null);
-                                UIRenderer.DrawBackground(ref _bgGameOver);
-                                UIRenderer.DrawTimer(gameOverTimer.ElapsedSeconds);
+                                UIRenderer.CenterText(gameOverTimer.ElapsedSeconds.ToString(CultureInfo.InvariantCulture), null);
+                                UIRenderer.ShowBackground(ref _bgGameOver);
+                                UIRenderer.ShowTimer(gameOverTimer.ElapsedSeconds);
                                 ImGui.SetWindowFontScale(2f);
 
                                 if (UIRenderer.ShowGameOverScreen(gameOverTimer.Done(),
@@ -283,7 +284,7 @@ internal static class Game
                             }
                             else if (State.WasGameWonB4Timeout)
                             {
-                                if (GameObjectRenderer.ShowGameOverScreen(_gameTimer.Done(), true, State.GameOverMessage))
+                                if (UIRenderer.ShowGameOverScreen(_gameTimer.Done(), true, State.GameOverMessage))
                                 {
                                     //Begin new Level!
                                     InitGame();
@@ -296,8 +297,8 @@ internal static class Game
                                 var pressed = UIRenderer.ButtonClicked(out var id);
                                 State.WasFeatureBtnPressed ??= pressed;
                                 State.WasFeatureBtnPressed = pressed ?? State.WasFeatureBtnPressed;
-                                GameObjectRenderer.DrawBackground(ref _bgIngame1);
-                                GameObjectRenderer.DrawTimer(currTime);
+                                UIRenderer.ShowBackground(ref _bgIngame1);
+                                UIRenderer.ShowTimer(currTime);
                                 DragMouseToEnemies();
                                 ProcessSelectedTiles();
                                 ComputeMatches();
