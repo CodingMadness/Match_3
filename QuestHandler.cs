@@ -315,6 +315,7 @@ public sealed class SwapQuestHandler : QuestHandler
 public sealed class MatchQuestHandler : QuestHandler  
 {
     private static (TileType, Goal)[] TypeGoal;
+    private static (TileType, Goal) Empty = default;
     
     public MatchQuestHandler()
     {
@@ -354,6 +355,8 @@ public sealed class MatchQuestHandler : QuestHandler
             if (pair.Item1 == key)
                 return ref pair;
         }
+
+        return ref Empty;
     }
 
     //did some changes here..!
@@ -414,12 +417,12 @@ public sealed class MatchQuestHandler : QuestHandler
                 if (matchValue.Count == 0)
                 {
                     iterator = new(all[countToMatch..(countToMatch+3)]);
+                    GoalCountToReach = 0;
                     goto LOOP_AGAIN;
                 }
 
                 goal = goal with { Match = matchValue };
             }
-
             TypeGoal[GoalCountToReach++] = (value, goal);
         }
     }
