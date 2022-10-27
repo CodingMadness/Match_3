@@ -53,12 +53,19 @@ public ref struct SpanEnumerator<TItem>
 
 public struct Pair
 {
-    public unsafe byte* First;
-    public int Length;
+    private unsafe byte* First;
+    private int Length;
 
     public static unsafe implicit operator Span<byte>(Pair p) => new(p.First, p.Length);
 
-    public static unsafe implicit operator Pair(Span<byte> p) => new Pair()
+    public static unsafe implicit operator Pair(Span<byte> p) => new()
+    {
+        First = (byte*)Unsafe.AsPointer(ref p[0]),
+        Length = p.Length
+    };
+    public static unsafe implicit operator Span<TileType>(Pair p) => new((TileType*)p.First, p.Length);
+
+    public static unsafe implicit operator Pair(Span<TileType> p) => new()
     {
         First = (byte*)Unsafe.AsPointer(ref p[0]),
         Length = p.Length

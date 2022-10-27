@@ -1,5 +1,6 @@
 
 using Match_3.GameTypes;
+using Microsoft.Toolkit.HighPerformance;
 using static Match_3.Utils;
 
 namespace Match_3;
@@ -391,12 +392,10 @@ public sealed class MatchQuestHandler : QuestHandler
             3 => Randomizer.Next(7, 9),
             _ => default
         };
-            
-        var values = Enum.GetValues<TileType>();
-        var slice = values.AsSpan(..((int)TileType.Length - 1));
+        Span<byte> countPerType = state.Span;
+        Span<TileType> slice = Enum.GetValues<TileType>().AsSpan(1, (int)TileType.Length-1);
         slice.Shuffle(Randomizer);
-        var nextPiece = slice.Slice(0, countToMatch);
-        TileType count = (TileType)nextPiece.Length;
+        var nextPiece = slice[..countToMatch];
         var iterator = new SpanEnumerator<TileType>(nextPiece);
         
         foreach (var value in iterator)
@@ -409,11 +408,10 @@ public sealed class MatchQuestHandler : QuestHandler
                 3 => new Goal { Match = new(Randomizer.Next(8, 10), 2.5f) },
                 _ => default
             };
-            Span<byte> validItems = state.Span;
-
+            
             var matchValue = goal.Match!.Value;
             int matchSum = matchValue.Count * Level.MAX_TILES_PER_MATCH;
-            int maxAllowed = validItems[(int)value];
+            int maxAllowed = countPerType[(int)value];
 
             if (matchSum > maxAllowed)
             {

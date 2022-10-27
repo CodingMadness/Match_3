@@ -44,7 +44,7 @@ public sealed class Grid
     private unsafe void CreateMap()
     {
         Span<byte> counts = stackalloc byte[(int)TileType.Length];
-
+        
         for (int x = 0; x < TileWidth; x++)
         {
             for (int y = 2; y < TileHeight; y++)
@@ -58,11 +58,7 @@ public sealed class Grid
             }
         }
 
-        Game.State.Span = new()
-        {
-            First = (byte*)Unsafe.AsPointer(ref counts[0]),
-            Length = counts.Length
-        };
+        Game.State.Span = counts.Slice(1);
         NotifyOnGridCreationDone();
     }
         
