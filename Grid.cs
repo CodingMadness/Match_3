@@ -1,7 +1,5 @@
 ﻿//using DotNext;
 
-using System.Numerics;
-using System.Runtime.InteropServices;
 using Match_3.GameTypes;
 using Microsoft.Toolkit.HighPerformance;
 
@@ -67,6 +65,7 @@ public sealed class Grid
     {
         var map = _bitmap.AsSpan();
         ref var eventData = ref map[2].EventData;
+        map.Sort();
         var iterator = new SpanEnumerator<Tile>(map);
             
         foreach (var tile in iterator)
@@ -106,13 +105,14 @@ public sealed class Grid
         var map = _bitmap.AsSpan();
         ref readonly var eventData = ref map[2].Goal;
         var iterator = new SpanEnumerator<Tile>(map);
-
+        
         foreach (var tile in iterator)
         {
             switch (tile)
             {
                 case null:
                     continue;
+                
                 default:
                     switch (key)
                     {
