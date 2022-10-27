@@ -34,7 +34,7 @@ public static class UIRenderer
         var newPos = NewPos(btnSize);
         bool? result = null;
         btnId = "FeatureBtn";
-   
+        
         //begin rendering sub-window
         ImGui.SetWindowFocus(btnId);
 
@@ -87,7 +87,7 @@ public static class UIRenderer
     }
 
     public static void ShowQuestLog(bool useConsole)
-    {              
+    {
         ImGui.SetWindowFontScale(2f);
         Vector2 begin = Vector2.Zero;
         _questLogColor ??= Utils.GetRndColor();
@@ -101,12 +101,13 @@ public static class UIRenderer
             }
             else
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, Utils.AsVec4(_questLogColor.Value));
+                ImGui.PushStyleColor(ImGuiCol.Text, Utils.AsVec4(BLACK));
+                
                 CenterText($"You have to collect {pair.Value.Match.Value.Count} " + 
                        $"{pair.Key}-tiles! and u have {pair.Value.Match.Value.Interval} " +
                        "seconds for each match" + Environment.NewLine, begin);
                 
-                begin = Vector2.UnitY * ImGui.GetWindowHeight() / 3f;
+                begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.TypeGoal.Count;
                 ImGui.PopStyleColor(1);
             }
         }
@@ -126,6 +127,7 @@ public static class UIRenderer
     
     public static void ShowWelcomeScreen()
     {
+        
         InitWelcomeTxt();
         WelcomeText.Draw(null);
     }

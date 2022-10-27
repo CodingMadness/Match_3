@@ -1,6 +1,4 @@
-﻿using System.Numerics;
-
-namespace Match_3;
+﻿namespace Match_3;
 
 public static class Bakery
 {
@@ -134,7 +132,7 @@ public static class Bakery
         return tile;
     }
 
-    public static EnemyTile AsEnemy(Tile matchTile)
+    private static EnemyTile AsEnemy(Tile matchTile)
     {
         EnemyTile blockTile = new()
         {
@@ -149,8 +147,8 @@ public static class Bakery
                 Form = ShapeKind.Trapez,
                 AtlasLocation = matchTile.Body.AtlasLocation,
                 Size = new(Tile.Size, Tile.Size),
-                TileType = matchTile.Body is TileShape c0 ? c0.TileType : TileType.Empty,
-                Layer = matchTile.Body is TileShape c1 ? c1.Layer : (Coat)(-1)
+                TileType = matchTile.Body is { } c0 ? c0.TileType : TileType.Empty,
+                Layer = matchTile.Body is { } c1 ? c1.Layer : (Coat)(-1)
             },
             TileState = TileState.Clean,
             Options = Options.UnMovable | Options.UnShapeable,

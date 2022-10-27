@@ -51,8 +51,7 @@ public struct Stats : IComparable<Stats>
     public EventStats? Matched;
     public EventStats? RePainted;
     public EventStats? Destroyed;
-
-
+    
     public int CompareTo(Stats other)
     {
         for (EventType i = 0; i < EventType.COUNT; i++)
@@ -62,6 +61,8 @@ public struct Stats : IComparable<Stats>
             if (comparison != 0)
                 return comparison;
         }
+
+        return 0;
     }
 
     public override string ToString()
