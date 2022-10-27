@@ -347,7 +347,14 @@ public sealed class MatchQuestHandler : QuestHandler
 
     public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
 
-    private static ref readonly (TileType, Goal) GetGoalBy(TileType key) => ref TypeGoal[(int)key];
+    private static ref readonly (TileType, Goal) GetGoalBy(TileType key)
+    {
+        foreach (ref readonly var pair in GetIterator())
+        {
+            if (pair.Item1 == key)
+                return ref pair;
+        }
+    }
 
     //did some changes here..!
     protected override void DefineGoals(Span<byte> countPerType)
@@ -403,6 +410,7 @@ public sealed class MatchQuestHandler : QuestHandler
             if (matchSum > maxAllowed)
             {
                 matchValue = matchValue with { Count = maxAllowed / Level.MAX_TILES_PER_MATCH };
+               
                 if (matchValue.Count == 0)
                 {
                     iterator = new(all[countToMatch..(countToMatch+3)]);
