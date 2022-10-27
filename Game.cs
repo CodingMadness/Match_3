@@ -41,7 +41,7 @@ internal static class Game
     
     private static void InitGame()
     {
-        Level = new(0,120, 6, 11, 9);
+        Level = new(0,45, 6, 11, 9);
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         _matchesOf3 = new();
         SetTargetFPS(60);

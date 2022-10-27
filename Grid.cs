@@ -41,10 +41,10 @@ public sealed class Grid
         
     }
         
-    private void CreateMap()
+    private unsafe void CreateMap()
     {
-        Span<int> counts = stackalloc int[(int)TileType.Length];
-                    
+        Span<byte> counts = stackalloc byte[(int)TileType.Length];
+
         for (int x = 0; x < TileWidth; x++)
         {
             for (int y = 2; y < TileHeight; y++)
@@ -57,7 +57,12 @@ public sealed class Grid
                 counts[(int)tile.Body.TileType]++;
             }
         }
-        Game.State.TotalAmountPerType = counts.ToArray();
+
+        Game.State.Span = new()
+        {
+            First = (byte*)Unsafe.AsPointer(ref counts[0]),
+            Length = counts.Length
+        };
         NotifyOnGridCreationDone();
     }
         

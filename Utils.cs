@@ -51,6 +51,14 @@ public ref struct SpanEnumerator<TItem>
     }
 }
 
+public struct Pair
+{
+    public unsafe byte* First;
+    public int Length;
+
+    public static unsafe implicit operator Span<byte>(Pair p) => new(p.First, p.Length);
+}
+
 public static class Utils
 {
     public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
@@ -104,19 +112,9 @@ public static class Utils
         return result < 0 ? -result : result;
         ;
     }
-
-    public static Rectangle ScreenRect = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
-
+    
     public static Vector2 GetScreenCoord() => new(GetScreenWidth(), GetScreenHeight());
-
-    public static Rectangle Union(this Rectangle rayRect, Rectangle otherRayRect)
-    {
-        var rect1 = new System.Drawing.Rectangle((int)rayRect.x, (int)rayRect.y, (int)rayRect.width, (int)rayRect.height);
-        var rect2 = new System.Drawing.Rectangle((int)otherRayRect.x, (int)otherRayRect.y, (int)otherRayRect.width, (int)otherRayRect.height);
-        var union = RectangleF.Union(rect1, rect2);
-        return new Rectangle(union.X, union.Y, union.Width, union.Height);
-    }
-
+    
     public static bool RollADice()
     {
         var val = Randomizer.NextSingle();
@@ -183,7 +181,6 @@ public static class Utils
         //rayrect 
         return new(rayRect.x, rayRect.y, rayRect.width * factor.GetFactor(), rayRect.height * factor.GetFactor());
     }
-
     public static bool Equals(this float x, float y, float tolerance)
     {
         var diff = MathF.Abs(x - y);
@@ -264,10 +261,6 @@ public static class Utils
         }
 
         throw new ArgumentException("this line should never be reached!");
-    }
-    public static bool CompletelyDifferent(this Vector2 a, Vector2 b)
-    {
-        return  ((int)a.X != (int)b.X && (int)a.Y != (int)b.Y) ;
     }
     private static Vector2 GetWorldPos(this Rectangle a) => new((int)a.x, (int)a.y);
     public static Vector2 GetCellPos(this Rectangle a) => GetWorldPos(a) / Tile.Size;

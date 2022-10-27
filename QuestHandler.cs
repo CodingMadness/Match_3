@@ -195,7 +195,12 @@ public sealed class GameState
 {
     public bool WasSwapped;
     public bool EnemiesStillPresent;
-    public int[] TotalAmountPerType;
+    //public unsafe byte* TotalAmountPerType;
+
+    /// <summary>
+    /// It is a managed reference to a Span<byte>
+    /// </summary>
+    public Pair Span;
     public bool WasGameWonB4Timeout;
     public Tile Current;
     public MatchX? Matches;
@@ -391,15 +396,13 @@ public sealed class MatchQuestHandler : QuestHandler
             3 => Randomizer.Next(7, 9),
             _ => default
         };
-
+            
         var values = Enum.GetValues<TileType>();
-        values.AsSpan(0..((int)TileType.Length-1)).Shuffle(Randomizer);
+        values.AsSpan(..((int)TileType.Length-1)).Shuffle(Randomizer);
         
-        TileType max = (TileType)countToMatch;
+        TileType count = (TileType)values.Slice(0, countToMatch).Length;
         
-        int count = values.Slice(0, (int)max).Length;
-        
-        for(int i = 0; i < count; i++)
+        for(TileType i = 0; i < count; i++)
         {
             var goal = Game.Level.ID switch
             {
@@ -409,10 +412,11 @@ public sealed class MatchQuestHandler : QuestHandler
                 3 => new Goal { Match = new(Randomizer.Next(8, 10), 2.5f) },
                 _ => default
             };
+            Span<byte> validItems = state.Span;
 
             var matchValue = goal.Match!.Value;
             int matchSum = matchValue.Count * Level.MAX_TILES_PER_MATCH;
-            int maxAllowed = state.TotalAmountPerType[i];
+            int maxAllowed = validItems[(int)i];
 
             if (matchSum > maxAllowed)
             {
@@ -420,7 +424,7 @@ public sealed class MatchQuestHandler : QuestHandler
                 goal = goal with { Match = matchValue };
             }
             GoalCountToReach++;
-            TypeGoal.TryAdd(values[i], goal);
+            TypeGoal.TryAdd(i, goal);
         }
     }
 
