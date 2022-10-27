@@ -1,6 +1,4 @@
-
 using Match_3.GameTypes;
-using Microsoft.Toolkit.HighPerformance;
 using static Match_3.Utils;
 
 namespace Match_3;
@@ -123,9 +121,15 @@ public struct Stats : IComparable<Stats>
     }
 }
 
-public readonly record struct SubGoal(int Count, float Interval);
+public readonly record struct SubGoal(int Count, float Interval) : IComparable<SubGoal>
+{
+    public int CompareTo(SubGoal other)
+    {
+        return Count.CompareTo(other.Count);
+    }
+}
 
-public readonly record struct Goal(SubGoal? Click, SubGoal? Swap, SubGoal? Match, SubGoal? RePaint, SubGoal? Destroyed)
+public readonly record struct Goal(SubGoal? Click, SubGoal? Swap, SubGoal? Match)  
 {
     public int ClickCompare(in Stats? stats)
     {
@@ -161,32 +165,6 @@ public readonly record struct Goal(SubGoal? Click, SubGoal? Swap, SubGoal? Match
             null => 1,
             { Matched: null } => 1,
             { Matched: { } } when Match is null => -1,
-            _ => throw new ArgumentOutOfRangeException(nameof(stats), stats, null)
-        };
-    }
-
-    public int DestroyCompare(in Stats? stats)
-    {
-        return stats switch
-        {
-            { Destroyed: { } statsClick } when Destroyed is { Count : var count } => count.CompareTo(statsClick
-                .Count),
-            null => 1,
-            { Destroyed: null } => 1,
-            { Destroyed: { } } when Destroyed is null => -1,
-            _ => throw new ArgumentOutOfRangeException(nameof(stats), stats, null)
-        };
-    }
-
-    public int RepaintCompare(in Stats? stats)
-    {
-        return stats switch
-        {
-            { Clicked: { } statsClick } when RePaint is { Count : var count } => count.CompareTo(statsClick
-                .Count),
-            null => 1,
-            { Clicked: null } => 1,
-            { Clicked: { } } when RePaint is null => -1,
             _ => throw new ArgumentOutOfRangeException(nameof(stats), stats, null)
         };
     }
@@ -334,9 +312,9 @@ public sealed class SwapQuestHandler : QuestHandler
     }
 }
 
-public sealed class MatchQuestHandler : QuestHandler
+public sealed class MatchQuestHandler : QuestHandler  
 {
-    private static readonly Goal[] TypeGoal = new Goal[(int)TileType.Length];
+    private static (TileType, Goal)[] TypeGoal;
     
     public MatchQuestHandler()
     {
@@ -369,7 +347,7 @@ public sealed class MatchQuestHandler : QuestHandler
 
     public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
 
-    public static ref readonly Goal GetGoalBy(TileType key) => ref TypeGoal[(int)key];
+    private static ref readonly (TileType, Goal) GetGoalBy(TileType key) => ref TypeGoal[(int)key];
 
     //did some changes here..!
     protected override void DefineGoals(Span<byte> countPerType)
@@ -385,7 +363,6 @@ public sealed class MatchQuestHandler : QuestHandler
             local.CopyTo(dest);
         }
 
-        GameState state = Game.State;
         Span<TileType> local = stackalloc TileType[(int)(TileType.Length)];
         LocalFunction(local);
         
@@ -397,6 +374,7 @@ public sealed class MatchQuestHandler : QuestHandler
             3 => Randomizer.Next(7, 9),
             _ => default
         };
+        TypeGoal = new (TileType, Goal)[countToMatch];
         
         Span<TileType> slice = local.Slice(1, (int)TileType.Length-1);
         slice.Shuffle(Randomizer);
@@ -430,8 +408,8 @@ public sealed class MatchQuestHandler : QuestHandler
                 
                 goal = goal with { Match = matchValue };
             }
-            GoalCountToReach++;
-            TypeGoal[(int)value] = goal;
+
+            TypeGoal[GoalCountToReach++] = (value, goal);
         }
     }
 
@@ -445,7 +423,7 @@ public sealed class MatchQuestHandler : QuestHandler
         }
 
         var type = Game.State.Current.Body.TileType;
-        goal = GetGoalBy(type);
+        goal = GetGoalBy(type).Item2;
         return IsSubGoalReached(EventType.Matched, goal.Value, stats, out direction);
     }
     
@@ -490,6 +468,13 @@ public sealed class MatchQuestHandler : QuestHandler
             Console.WriteLine($"current match goal:  {goal?.Match}");
             Grid.Instance.Delete(state.Matches);
         }
+    }
+
+    public SpanEnumerator<(TileType, Goal)> GetIterator()
+    {
+        var local = TypeGoal.AsSpan();
+        var iterator = new SpanEnumerator<(TileType, Goal)>(local);
+        return iterator;
     }
 }
 
