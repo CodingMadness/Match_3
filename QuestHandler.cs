@@ -1,20 +1,15 @@
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using DotNext;
+
 using Match_3.GameTypes;
-using Microsoft.Toolkit.HighPerformance;
-using Raylib_CsLo;
 using static Match_3.Utils;
-using static Raylib_CsLo.Raylib;
 
 namespace Match_3;
 
 public enum EventType : byte
 {
-    Clicked, Swapped, Matched, RePainted, Destroyed
+    Clicked, Swapped, Matched, RePainted, Destroyed, COUNT = Destroyed + 1
 }
 
-public struct EventStats
+public struct EventStats : IComparable<EventStats>
 {
     private TimeOnly? _prev, _current;
     private int _count;
@@ -38,9 +33,15 @@ public struct EventStats
     {
         return $"event: ({Count} was done in an Interval of: {Interval} seconds) {Environment.NewLine}";
     }
+
+    public int CompareTo(EventStats other)
+    {
+        var countComparison = _count.CompareTo(other._count);
+        return countComparison == 0 ? Interval.CompareTo(other.Interval) : countComparison;
+    }
 }
 
-public struct Stats
+public struct Stats : IComparable<Stats>
 {
     /// <summary>
     /// Count-Clicks, with maxTime inbetween them
@@ -50,6 +51,18 @@ public struct Stats
     public EventStats? Matched;
     public EventStats? RePainted;
     public EventStats? Destroyed;
+
+
+    public int CompareTo(Stats other)
+    {
+        for (EventType i = 0; i < EventType.COUNT; i++)
+        {
+            var comparison = this[i].CompareTo(other[i]);
+
+            if (comparison != 0)
+                return comparison;
+        }
+    }
 
     public override string ToString()
     {
