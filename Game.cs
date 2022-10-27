@@ -40,7 +40,7 @@ internal static class Game
     
     private static void InitGame()
     {
-        Level = new(0,200, 6, 11, 9);
+        Level = new(0,120, 6, 11, 9);
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         _matchesOf3 = new();
         SetTargetFPS(60);
@@ -223,9 +223,9 @@ internal static class Game
     private static void MainGameLoop()
     {
         //float seconds = 0.0f;
-        GameTime gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown);
+        GameTime gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown + 10);
         int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
-        
+      
         Setup(false);
         
         while (!WindowShouldClose())
@@ -236,34 +236,30 @@ internal static class Game
             
             BeginDrawing();
             ClearBackground(WHITE);
-
                 //ImGui Context Begin
+                var flags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground;
+
                 Begin();
-                    
-                    var flags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground;
-                    flags = 0;
-                    
+                
+                    //flags = 0;
+            
                     if (ImGui.Begin("Screen Overlay", flags))
                     {
                         ImGui.SetWindowPos(default);           
                         ImGui.SetWindowSize(GetScreenCoord());
-
-                        UIRenderer.Center("HALLO WELT WIE GEHT ES DIR DENN HEUTE SO");
-
+                        
                         if (_enterGame)
                         {
                             Vector2 size = GetScreenCoord();
-                            SetShaderValue(WobbleEffect, ShaderLoc.size, size,
-                                ShaderUniformDataType.SHADER_UNIFORM_VEC2);
-                            SetShaderValue(WobbleEffect, ShaderLoc.time, currTime,
-                                ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+                            SetShaderValue(WobbleEffect, ShaderLoc.size, size, ShaderUniformDataType.SHADER_UNIFORM_VEC2);
+                            SetShaderValue(WobbleEffect, ShaderLoc.time, currTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
                             SetShaderValue(WobbleEffect, shallWobble, 0, ShaderUniformDataType.SHADER_UNIFORM_INT);
                         }
                         else if (!_enterGame)
                         {
-                            Renderer.DrawBackground(ref _bgWelcome);
-                            Renderer.ShowWelcomeScreen();
-                            //Renderer.LogQuest(false, Level);
+                            UIRenderer.DrawBackground(ref _bgWelcome);
+                            UIRenderer.ShowWelcomeScreen();
+                            UIRenderer.LogQuest(false);
                         }
                         if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
                         {
@@ -275,17 +271,19 @@ internal static class Game
                             {
                                 OnGameOver();
                                 gameOverTimer.Run();
-                                Renderer.DrawBackground(ref _bgGameOver);
-                                Renderer.DrawTimer(gameOverTimer.ElapsedSeconds);
+                                UIRenderer.Center(gameOverTimer.ElapsedSeconds.ToString(), null);
+                                UIRenderer.DrawBackground(ref _bgGameOver);
+                                UIRenderer.DrawTimer(gameOverTimer.ElapsedSeconds);
+                                ImGui.SetWindowFontScale(2f);
 
-                                if (Renderer.ShowGameOverScreen(gameOverTimer.Done(),
+                                if (UIRenderer.ShowGameOverScreen(gameOverTimer.Done(),
                                                                 State.WasGameWonB4Timeout,
                                                                 State.GameOverMessage))
                                     return;
                             }
                             else if (State.WasGameWonB4Timeout)
                             {
-                                if (Renderer.ShowGameOverScreen(_gameTimer.Done(), true, State.GameOverMessage))
+                                if (GameObjectRenderer.ShowGameOverScreen(_gameTimer.Done(), true, State.GameOverMessage))
                                 {
                                     //Begin new Level!
                                     InitGame();
@@ -298,16 +296,16 @@ internal static class Game
                                 var pressed = UIRenderer.ButtonClicked(out var id);
                                 State.WasFeatureBtnPressed ??= pressed;
                                 State.WasFeatureBtnPressed = pressed ?? State.WasFeatureBtnPressed;
-                                Renderer.DrawBackground(ref _bgIngame1);
-                                Renderer.DrawTimer(currTime);
+                                GameObjectRenderer.DrawBackground(ref _bgIngame1);
+                                GameObjectRenderer.DrawTimer(currTime);
                                 DragMouseToEnemies();
                                 ProcessSelectedTiles();
                                 ComputeMatches();
-                                Renderer.DrawOuterBox(_enemyMatches, currTime);
-                                Renderer.DrawInnerBox(_matchesOf3, currTime);
+                                GameObjectRenderer.DrawOuterBox(_enemyMatches, currTime);
+                                GameObjectRenderer.DrawInnerBox(_matchesOf3, currTime);
                                 //BeginShaderMode(WobbleEffect);
-                                Renderer.DrawGrid(currTime);
-                                Renderer.DrawMatches(_enemyMatches, currTime, _shallCreateEnemies);
+                                GameObjectRenderer.DrawGrid(currTime);
+                                GameObjectRenderer.DrawMatches(_enemyMatches, currTime, _shallCreateEnemies);
                                 //EndShaderMode();
                                 HardReset();
                             }
@@ -315,10 +313,10 @@ internal static class Game
                             _enterGame = true;
                         }
                     }
+                    
                     ImGui.End();
-                
-                    //ImGui Context End
-                End();
+
+                    End();
                 
             EndDrawing();
         }

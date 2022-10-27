@@ -74,19 +74,17 @@ public static class UIRenderer
 
         pos ??= new(textIndentation, ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y * 0.5f);
         ImGui.SetCursorPos(pos.Value);
-        ImGui.PushStyleColor(ImGuiCol.Text, Utils.AsVec4(RED));
         ImGui.PushTextWrapPos(winWidth - textIndentation);
         ImGui.TextWrapped(text);
         ImGui.PopTextWrapPos();
-        ImGui.PopStyleColor(1);
     }
 
-    public static unsafe void LogQuest(bool useConsole)
+    public static void LogQuest(bool useConsole)
     {              
         ImGui.SetWindowFontScale(2f);
         Vector2 begin = Vector2.Zero;
-        
-        
+        Color color = Utils.GetRndColor();
+
         foreach (var pair in MatchQuestHandler.TypeGoal)
         {
             if (useConsole)
@@ -96,20 +94,56 @@ public static class UIRenderer
             }
             else
             {
-                Color color = RED;//GetColor(Utils.RndHex());
-                
+                ImGui.PushStyleColor(ImGuiCol.Text, Utils.AsVec4(color));
                 Center($"You have to collect {pair.Value.Match.Value.Count} " + 
                        $"{pair.Key}-tiles! and u have {pair.Value.Match.Value.Interval} " +
                        "seconds for each match" + Environment.NewLine, begin);
                 
                 begin = Vector2.UnitY * ImGui.GetWindowHeight() / 3f;
+                ImGui.PopStyleColor(1);
             }
         }
     } 
 
+    public static void DrawTimer(float elapsedSeconds)
+    {
+        //horrible performance: use a stringBuilder to reuse values!
+        TimerText.Text = ((int)elapsedSeconds).ToString();
+        TimerText.Src.baseSize = 512*16;
+        FadeableColor color = elapsedSeconds > 0f ? BLUE : WHITE;
+        TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
+        TimerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 0f };
+        TimerText.ScaleText(null);
+        TimerText.Draw(1f);
+    }
+    
+    public static void ShowWelcomeScreen()
+    {
+        InitWelcomeTxt();
+        WelcomeText.Draw(null);
+    }
+    
+    public static bool ShowGameOverScreen(bool isDone, bool? gameWon, string input)
+    {
+        if (gameWon is null)
+        {
+            return false;
+        }
+         
+        UIRenderer.Center(input, null);
+        return isDone;
+    }
+
+    public static void DrawBackground(ref Background bg)
+    {
+        Rectangle screen = new(0f,0f, GetScreenWidth(), GetScreenHeight());
+
+        DrawTexturePro(bg.Texture, bg.Body.TextureRect, screen.DoScale(bg.Body.Scale), 
+            Vector2.Zero, 0f, bg.Body.FIXED_WHITE);
+    }
 }
 
-public static class Renderer
+public static class GameObjectRenderer
 {
     private static void DrawTile(ref Texture atlas, Tile tile, float elapsedTime)
     {
@@ -198,42 +232,5 @@ public static class Renderer
             */
             DrawRectangleRec(matches.Border, matches.Body!.ToConstColor(RED));
         }
-    }
-    
-    public static void DrawTimer(float elapsedSeconds)
-    {
-        //horrible performance: use a stringBuilder to reuse values!
-        TimerText.Text = ((int)elapsedSeconds).ToString();
-        TimerText.Src.baseSize = 512*16;
-        FadeableColor color = elapsedSeconds > 0f ? BLUE : WHITE;
-        TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
-        TimerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 0f };
-        TimerText.ScaleText(null);
-        TimerText.Draw(1f);
-    }
-    
-    public static void ShowWelcomeScreen()
-    {
-        InitWelcomeTxt();
-        WelcomeText.Draw(null);
-    }
-    
-    public static bool ShowGameOverScreen(bool isDone, bool? gameWon, string input)
-    {
-        if (gameWon is null)
-        {
-            return false;
-        }
-         
-        UIRenderer.Center(input, null);
-        return isDone;
-    }
-
-    public static void DrawBackground(ref Background bg)
-    {
-        Rectangle screen = new(0f,0f, GetScreenWidth(), GetScreenHeight());
-
-        DrawTexturePro(bg.Texture, bg.Body.TextureRect, screen.DoScale(bg.Body.Scale), 
-            Vector2.Zero, 0f, bg.Body.FIXED_WHITE);
     }
 }

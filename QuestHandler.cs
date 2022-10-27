@@ -1,9 +1,13 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using DotNext;
+using Match_3.GameTypes;
+using Microsoft.Toolkit.HighPerformance;
+using Raylib_CsLo;
 using static Match_3.Utils;
 using static Raylib_CsLo.Raylib;
 
-namespace Match_3.GameTypes;
+namespace Match_3;
 
 public enum EventType : byte
 {
@@ -50,10 +54,10 @@ public struct Stats
     public override string ToString()
     {
         string output =
-            $"Matches made ->(Count: {Matched?.Count}  - Interval: {Matched?.Interval}" +
-            $"Clicks made  ->(Count: {Clicked?.Count}  - Interval: {Clicked?.Interval}"+
-            $"Swapped made  ->(Count: {Swapped?.Count}  - Interval: {Swapped?.Interval}"+
-            $"Repaints made ->(Count: {RePainted?.Count}  - Interval: {RePainted?.Interval}";
+            $"Matches made ->(Count: {Matched?.Count}  - Interval: {Matched?.Interval} {Environment.NewLine}" +
+            $"Clicks made  ->(Count: {Clicked?.Count}  - Interval: {Clicked?.Interval}{Environment.NewLine}"+
+            $"Swapped made  ->(Count: {Swapped?.Count}  - Interval: {Swapped?.Interval}{Environment.NewLine}"+
+            $"Repaints made ->(Count: {RePainted?.Count}  - Interval: {RePainted?.Interval}{Environment.NewLine}";
         return output;
     }
 
@@ -65,7 +69,6 @@ public struct Stats
             {
                 case EventType.Clicked when Clicked.HasValue:
                 {
-                    //ref readonly var nullRef = ref Nullable.GetValueRefOrDefaultRef(Clicked);
                     ref EventStats tmp = ref Unsafe.AsRef(Nullable.GetValueRefOrDefaultRef(Clicked));
                     return ref tmp;
                 }
@@ -226,10 +229,9 @@ public abstract class QuestHandler
     protected bool IsActive { get; private set; }
     protected static THandler GetInstance<THandler>() 
         where THandler : QuestHandler, new() => SingletonManager.GetOrCreateInstance<THandler>();
-
-    protected virtual int SubGoalCounter { get; set; }
-    protected virtual int GoalsToReach { get; set; }
-    protected int GoalsLeft => GoalsToReach - SubGoalCounter;
+    protected int SubGoalCounter { get; set; }
+    protected virtual int GoalCountToReach { get; set; }
+    protected int GoalsLeft => GoalCountToReach - SubGoalCounter;
     protected bool IsMainGoalReached => GoalsLeft == 0;
     protected static bool IsSubGoalReached(EventType eventType, in Goal goal, in Stats stats, out int direction)
     {
@@ -274,25 +276,28 @@ public abstract class QuestHandler
 
 public sealed class SwapQuestHandler : QuestHandler
 {
-    protected override int GoalsToReach { get; set; }
+    protected override int GoalCountToReach { get; set; }
 
     protected override void DefineGoals()
     {
+        //Define Ruleset for SwapQuestHandler:
+        /*
+         * Swap 3 types only
+         * and if other types ar
+         * 
+         */
         var state = Game.State;
         
-        for (TileType i = 0; i < TileType.Length; i++)
+        var goal = Game.Level.ID switch
         {
-            var goal = Game.Level.ID switch
-            {
-                0 => new Goal { Swap = new(Randomizer.Next(4, 7), 6f) },
-                1 => new Goal { Swap = new(Randomizer.Next(3, 6), 4.5f) },
-                2 => new Goal { Swap = new(Randomizer.Next(2, 4), 4.0f) },
-                3 => new Goal { Swap = new(Randomizer.Next(2, 3), 3.0f) },
-                _ => default
-            };
-            GoalsToReach++;
-            state.Current.UpdateGoal(EventType.Swapped, goal);
-        }
+            0 => new Goal { Swap = new(Randomizer.Next(4, 7), 6f) },
+            1 => new Goal { Swap = new(Randomizer.Next(3, 6), 4.5f) },
+            2 => new Goal { Swap = new(Randomizer.Next(2, 4), 4.0f) },
+            3 => new Goal { Swap = new(Randomizer.Next(2, 3), 3.0f) },
+            _ => default
+        };
+        GoalCountToReach++;
+        state.Current.UpdateGoal(EventType.Swapped, goal);
     }
 
     public static SwapQuestHandler Instance => GetInstance<SwapQuestHandler>();
@@ -319,7 +324,7 @@ public sealed class SwapQuestHandler : QuestHandler
 
 public sealed class MatchQuestHandler : QuestHandler
 {
-    private static readonly Dictionary<TileType, Goal> TypeGoal = new((int)TileType.Length);
+    public static readonly Dictionary<TileType, Goal> TypeGoal = new((int)TileType.Length);
     
     private static ref readonly Goal GetGoalBy(TileType t)
     {
@@ -348,7 +353,7 @@ public sealed class MatchQuestHandler : QuestHandler
                 state.WasGameWonB4Timeout = false;
                 state.GameOverMessage =
                     "Unlucky, very close, you will do it next time, i am sure :-), but here your results" +
-                    $"So far you have gotten at least {SubGoalCounter} done and you needed actually {GoalsLeft}:";
+                    $"So far you have gotten at least {SubGoalCounter} done and you needed actually still {GoalsLeft} more";
                 break;
             case true when state.IsGameOver:
                 state.WasGameWonB4Timeout = false;
@@ -359,11 +364,28 @@ public sealed class MatchQuestHandler : QuestHandler
 
     public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
 
+    //did some changes here..!
     protected override void DefineGoals()
     {
         GameState state = Game.State;
 
-        for (TileType i = (TileType)3; i < TileType.Length; i++)
+        var countToMatch = Game.Level.ID switch
+        {
+            0 => Randomizer.Next(2, 4),
+            1 => Randomizer.Next(3, 5),
+            2 => Randomizer.Next(5, 7),
+            3 => Randomizer.Next(7, 9),
+            _ => default
+        };
+
+        var values = Enum.GetValues<TileType>();
+        values.AsSpan(0..((int)TileType.Length-1)).Shuffle(Randomizer);
+        
+        TileType max = (TileType)countToMatch;
+        
+        int count = values.Slice(0, (int)max).Length;
+        
+        for(int i = 0; i < count; i++)
         {
             var goal = Game.Level.ID switch
             {
@@ -376,15 +398,15 @@ public sealed class MatchQuestHandler : QuestHandler
 
             var matchValue = goal.Match!.Value;
             int matchSum = matchValue.Count * Level.MAX_TILES_PER_MATCH;
-            int maxAllowed = state.TotalAmountPerType[(int)i];
+            int maxAllowed = state.TotalAmountPerType[i];
 
             if (matchSum > maxAllowed)
             {
                 matchValue = matchValue with { Count = maxAllowed / Level.MAX_TILES_PER_MATCH };
                 goal = goal with { Match = matchValue };
             }
-            GoalsToReach++;
-            TypeGoal.Add(i, goal);
+            GoalCountToReach++;
+            TypeGoal.TryAdd(values[i], goal);
         }
     }
 
@@ -468,7 +490,7 @@ public abstract class ClickQuestHandler : QuestHandler
            3 => new Goal { Click = new(Randomizer.Next(7, 10), 2.0f) },
            _ => default
         };
-        GoalsToReach++;
+        GoalCountToReach++;
         state.Current.UpdateGoal(EventType.Clicked, goal);
     }
     protected static bool IsClickGoalReached(out Goal goal, in Stats stats, out int direction)
@@ -502,7 +524,7 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
         
         Console.WriteLine($"Ok, 1 of {state.Current.Body.TileType} tiles was clicked!");
       
-        if (IsClickGoalReached(out var goal, stats, out int direction))
+        if (IsClickGoalReached(out var goal, stats, out _))
         {
             var enemy = state.Current as EnemyTile;
             enemy!.Disable(true);

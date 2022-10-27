@@ -4,6 +4,8 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ImGuiNET;
+
+using SysColor = System.Drawing.Color;
 using static Raylib_CsLo.Raylib;
 using Color = Raylib_CsLo.Color;
 using Rectangle = Raylib_CsLo.Rectangle;
@@ -56,7 +58,7 @@ public static class Utils
     public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
     public static readonly FastNoiseLite NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
 
-    public static unsafe Vector4 AsVec4(Color color)
+    public static Vector4 AsVec4(Color color)
     {
         Vector4 v4Color = default;
 
@@ -64,19 +66,31 @@ public static class Utils
 
         for (byte i = 0; i < 4; i++)
         {
-            byte colorValue = *(byte*)Unsafe.Add<byte>((byte*)Unsafe.AsPointer(ref color), i);
-            float* v4Value = (float*)Unsafe.Add<float>((float*)Unsafe.AsPointer(ref v4Color), i);
+            byte colorValue = Unsafe.Add(ref Unsafe.AsRef(color.r), i);
+            ref float v4Value = ref Unsafe.Add(ref Unsafe.AsRef(v4Color.X), i);
             float percentage = colorValue / (float)max;
-            *v4Value = percentage;
+            v4Value = percentage;
         }
         
         return v4Color;
     }
-    public static uint RndHex()
+
+    private static Color FromSysColor(SysColor color)
     {
-        var val = Randomizer.Next(0, 1000).ToString("X");
-        var x = Convert.ToUInt32(val, 16);
-        return x;
+        return new(color.R, color.G, color.B, color.A);
+    }
+    
+    public static Color GetRndColor()
+    {
+        int max = (int)KnownColor.YellowGreen;
+        Span<Color> all = stackalloc Color[max];
+        
+        for (int i = 0; i < max; i++)
+        {
+            all[i] = FromSysColor(SysColor.FromKnownColor((KnownColor)i));
+        }
+
+        return all[Randomizer.Next(0, max)];
     }
     
     static Utils()
