@@ -375,12 +375,12 @@ public sealed class MatchQuestHandler : QuestHandler
             _ => default
         };
         TypeGoal = new (TileType, Goal)[countToMatch];
-        
-        Span<TileType> slice = local.Slice(1, (int)TileType.Length-1);
-        slice.Shuffle(Randomizer);
-        var nextPiece = slice[..countToMatch];
+        Span<TileType> all = local.Slice(1, (int)TileType.Length-1);
+        all.Shuffle(Randomizer);
+        var nextPiece = all[..countToMatch];
         var iterator = new SpanEnumerator<TileType>(nextPiece);
         
+        LOOP_AGAIN:
         foreach (var value in iterator)
         {
             var goal = Game.Level.ID switch
@@ -404,8 +404,11 @@ public sealed class MatchQuestHandler : QuestHandler
             {
                 matchValue = matchValue with { Count = maxAllowed / Level.MAX_TILES_PER_MATCH };
                 if (matchValue.Count == 0)
-                    continue;
-                
+                {
+                    iterator = new(all[countToMatch..(countToMatch+3)]);
+                    goto LOOP_AGAIN;
+                }
+
                 goal = goal with { Match = matchValue };
             }
 
@@ -470,7 +473,7 @@ public sealed class MatchQuestHandler : QuestHandler
         }
     }
 
-    public SpanEnumerator<(TileType, Goal)> GetIterator()
+    public static SpanEnumerator<(TileType, Goal)> GetIterator()
     {
         var local = TypeGoal.AsSpan();
         var iterator = new SpanEnumerator<(TileType, Goal)>(local);

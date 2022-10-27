@@ -89,7 +89,7 @@ public static class UIRenderer
         _questLogColor ??= Utils.GetRndColor();
         
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
-        foreach (ref readonly var tuple in MatchQuestHandler.Instance.GetIterator())
+        foreach (ref readonly var tuple in MatchQuestHandler.GetIterator())
         {
             string msg = $"You have to collect {tuple!.Item2.Match.Value.Count} " +
                          $"{tuple.Item1}-tiles! and u have {tuple.Item2.Match.Value.Interval} " +
