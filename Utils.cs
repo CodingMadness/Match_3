@@ -1,48 +1,47 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Drawing;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using DotNext;
-using ImGuiNET;
+﻿global using System.Drawing;
+global using System.Numerics;
+global using System.Runtime.CompilerServices;
+global using System.Runtime.InteropServices;
+global using DotNext;
+global using ImGuiNET;
 
-using SysColor = System.Drawing.Color;
-using static Raylib_CsLo.Raylib;
-using Color = Raylib_CsLo.Color;
-using Rectangle = Raylib_CsLo.Rectangle;
+global using SysColor = System.Drawing.Color;
+global using System.Diagnostics.CodeAnalysis;
+global using static Raylib_CsLo.Raylib;
+global using Color = Raylib_CsLo.Color;
+global using Rectangle = Raylib_CsLo.Rectangle;
 
 namespace Match_3;
 
-
 public ref struct SpanEnumerator<TItem>
 {
-    public ref TItem CurrentItem;
+    private ref TItem _currentItem;
 
-    public readonly ref TItem LastItemOffsetByOne;
+    private readonly ref TItem _lastItemOffsetByOne;
 
-    public SpanEnumerator(ReadOnlySpan<TItem> Span) : this(ref MemoryMarshal.GetReference(Span), Span.Length)
+    public SpanEnumerator(ReadOnlySpan<TItem> span) : this(ref MemoryMarshal.GetReference(span), span.Length)
     {
     }
 
-    public SpanEnumerator(Span<TItem> Span) : this(ref MemoryMarshal.GetReference(Span), Span.Length)
+    public SpanEnumerator(Span<TItem> span) : this(ref MemoryMarshal.GetReference(span), span.Length)
     {
     }
 
-    public SpanEnumerator(ref TItem Item, nint Length)
+    public SpanEnumerator(ref TItem item, nint length)
     {
-        CurrentItem = ref Unsafe.Subtract(ref Item, 1);
+        _currentItem = ref Unsafe.Subtract(ref item, 1);
 
-        LastItemOffsetByOne = ref Unsafe.Add(ref Item, Length);
+        _lastItemOffsetByOne = ref Unsafe.Add(ref item, length);
     }
 
-    [UnscopedRef] public ref TItem Current => ref CurrentItem;
+    [UnscopedRef] public ref TItem Current => ref _currentItem;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool MoveNext()
     {
-        CurrentItem = ref Unsafe.Add(ref CurrentItem, 1);
+        _currentItem = ref Unsafe.Add(ref _currentItem, 1);
 
-        return !Unsafe.AreSame(ref CurrentItem, ref LastItemOffsetByOne);
+        return !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -52,17 +51,14 @@ public ref struct SpanEnumerator<TItem>
     }
 }
 
-
 public static class Utils
 {
-    
     public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
     public static readonly FastNoiseLite NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
 
     public static Vector4 AsVec4(Color color)
     {
         Vector4 v4Color = default;
-
         const int max = 255; //100%
 
         for (byte i = 0; i < 4; i++)
@@ -76,8 +72,12 @@ public static class Utils
         return v4Color;
     }
 
-    private static Color FromSysColor(SysColor color)
+    private static Color FromSysColor(in SysColor color)
     {
+        unsafe
+        {
+            int size = sizeof(SysColor);
+        }
         return new(color.R, color.G, color.B, color.A);
     }
     
