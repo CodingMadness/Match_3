@@ -13,13 +13,14 @@ public static class UIRenderer
 {
     private static Color? _questLogColor;
 
-    public static bool? ButtonClicked(out string btnId)
+    public static bool? ShowFeatureBtn(out string btnId)
     {
         static Vector2 NewPos(Vector2 btnSize)
         {
             var screenCoord = Utils.GetScreenCoord();
-            float halfWidth = screenCoord.X * 0.4f;
-            Vector2 newPos = new(halfWidth, screenCoord.Y - btnSize.Y * 1.3f);
+            float halfWidth = screenCoord.X * 0.5f;
+            float indentPos = halfWidth - (btnSize.X * 0.5f);
+            Vector2 newPos = new(indentPos, screenCoord.Y - btnSize.Y);
             return newPos;
         }
         
@@ -29,31 +30,35 @@ public static class UIRenderer
                     ImGuiWindowFlags.NoDecoration;
         bool open = true;
 
-        var btnSize = new Vector2(FeatureBtn.width, FeatureBtn.height);
+        var btnSize = new Vector2(FeatureBtn.width, FeatureBtn.height) *0.67f;
         var newPos = NewPos(btnSize);
         bool? result = null;
         btnId = "FeatureBtn";
    
         //begin rendering sub-window
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
         ImGui.SetWindowFocus(btnId);
- 
+
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
+        
         if (ImGui.Begin(btnId, ref open, flags))
         {
-            var windowSize = ImGui.GetWindowSize();
+            ImGui.SetWindowSize(btnSize * 1.06f);
+            ImGui.SetWindowPos(newPos);
+            
             ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, Vector4.Zero);
             
             //Center(buttonID);
-            
+            ImGui.SetCursorPos(Vector2.One*3);
             if (ImGui.ImageButton((nint)FeatureBtn.id, btnSize ))
             {
                 result = true;
             }
             ImGui.PopStyleColor(2);
         }
-        ImGui.PopStyleVar();
         ImGui.End();
+        ImGui.PopStyleVar(2);
         
         return result;
     }

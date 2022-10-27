@@ -294,7 +294,7 @@ internal static class Game
                             }
                             else
                             {
-                                var pressed = UIRenderer.ButtonClicked(out var id);
+                                var pressed = UIRenderer.ShowFeatureBtn(out var id);
                                 State.WasFeatureBtnPressed ??= pressed;
                                 State.WasFeatureBtnPressed = pressed ?? State.WasFeatureBtnPressed;
                                 UIRenderer.ShowBackground(ref _bgIngame1);
