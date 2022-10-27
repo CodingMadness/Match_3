@@ -47,7 +47,6 @@
 // VERSION: 1.0.1
 // https://github.com/Auburn/FastNoise
 
-using System.Runtime.CompilerServices;
 // Switch between using floats or doubles for input GridCoords
 using FNLfloat = System.Single;
 //using FNLfloat = System.Double;

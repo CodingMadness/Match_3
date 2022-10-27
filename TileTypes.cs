@@ -354,8 +354,8 @@ public class Tile
             EventType.Clicked => _goal with { Click = aGoal.Click },
             EventType.Swapped => _goal with { Swap = aGoal.Swap },
             EventType.Matched => _goal with { Match = aGoal.Match },
-            EventType.RePainted => _goal with { RePaint = aGoal.RePaint },
-            EventType.Destroyed => _goal with { Destroyed = aGoal.Destroyed },
+            //EventType.RePainted => _goal with { RePaint = aGoal.RePaint },
+            //EventType.Destroyed => _goal with { Destroyed = aGoal.Destroyed },
             _ => throw new ArgumentOutOfRangeException(nameof(eventType), eventType, null)
         };
     }

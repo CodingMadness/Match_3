@@ -1,6 +1,4 @@
-﻿using System.Numerics;
-using Raylib_CsLo;
-using static Raylib_CsLo.Raylib;
+﻿using Raylib_CsLo;
 
 namespace Match_3.GameTypes;
 

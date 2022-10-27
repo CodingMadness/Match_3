@@ -13,7 +13,7 @@ global using Rectangle = Raylib_CsLo.Rectangle;
 
 namespace Match_3;
 
-public ref struct SpanEnumerator<TItem>
+public ref struct SpanEnumerator<TItem> 
 {
     private ref TItem _currentItem;
 
