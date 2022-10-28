@@ -1,14 +1,16 @@
+using System.Globalization;
+using FastEnumUtility;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Match_3.AssetManager;
-
 
 namespace Match_3;
 
 public static class UIRenderer
 {
     private static Color? _questLogColor;
-
+    private static readonly IReadOnlyList<string> ColorNames = FastEnum.GetNames<KnownColor>();
+   
     public static bool? ShowFeatureBtn(out string btnId)
     {
         static Vector2 NewPos(Vector2 btnSize)
@@ -59,85 +61,62 @@ public static class UIRenderer
         return result;
     }
 
-    public static (Vector2, float txtWidth) CenterText(string text, (Vector2? pos, float? oldTxtWidth)pair, Color color, bool isSameLine=true)
+    public static void CenterText(string text)
     {
         float winWidth = ImGui.GetWindowSize().X;
-        
-        unsafe void GetWordLength(out float width, out ReadOnlySpan<char> guiltyWord)
-        {
-            // we need to find out, which word was the guilty one,
-            //who caused the textWrap!
-
-            ReadOnlySpan<char> txtSpan = text;
-            int idx = 0;
-           
-            float length = 0f;
-            
-            while(true)
-            {
-                var slice = txtSpan.Slice(idx, idx = text.IndexOf(' '));
-                var wordPtr = (sbyte*)Unsafe.AsPointer(ref Unsafe.AsRef(slice[0]));
-                length += MeasureText(wordPtr, (int)ImGui.GetFontSize());
-
-                if (length >= winWidth)
-                {
-                    guiltyWord = slice;
-                    width = length;
-                    return;
-                }
-            }
-        }
-        
-        
-        var (begin, oldTxtWidth) = pair;
-        var oldBegin = begin ?? Vector2.Zero;
-        float textWidth = oldTxtWidth + ImGui.CalcTextSize(text).X ?? ImGui.CalcTextSize(text).X;
-
+        float textWidth = ImGui.CalcTextSize(text).X;
         // calculate the indentation that centers the text on one line, relative
         // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
         float textIndentation = (winWidth - textWidth) * 0.5f;
-
         // if text is too long to be drawn on one line, `text_indentation` can
         // become too small or even negative, so we check a minimum indentation
         const float minIndentation = 20.0f;
-        bool wasOutsideWindow = false;
         
         if (textIndentation <= minIndentation)
         {
             textIndentation = minIndentation;
-            wasOutsideWindow = true;
         }
 
         float wrapPos = winWidth - textIndentation;
         
-        if (begin is not null)
-        {
-            if (!isSameLine)
-            {
-                begin = new(textIndentation, ImGui.GetCursorPos().Y + begin.Value.Y * 0.5f);
-            }
-            else
-            {
-                if (oldTxtWidth is null)
-                    begin = begin.Value with { X = textIndentation };
-                else
-                {
-                    begin = begin.Value + Vector2.UnitX * oldTxtWidth;
-                }
-            }
-        }
-        else
-        {
-            begin = new(textIndentation, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
-        }
-
-        ImGui.SetCursorPos(wasOutsideWindow ? oldBegin : begin.Value);
+        Vector2 currentPos = new(textIndentation, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
         ImGui.PushTextWrapPos(wrapPos);
-        ImGui.TextColored(Utils.AsVec4(color), text);
+        var x = new ColorCodeEnumerator(text);
+
+        foreach (var slice in x)
+        {
+            string tmp = slice.ToString();
+        }
+        
+        /*
+        foreach (var slices in text.Split(""))
+        {
+            ImGui.SetCursorPos(currentPos);
+            ImGui.TextColored(slices.Key, slices.Value);
+            currentPos += ImGui.CalcTextSize(slices.Value).X;
+        }
+        */
         ImGui.PopTextWrapPos();
-        return (begin.Value, textWidth);
     }
 
+    /// <summary>
+    /// Centers (partially) colorized Text with potential wrapping
+    /// </summary>
+    /// <param name="begin"></param>
+    /// <param name="colorFmtTxt">format looks like: "this is a {red} very long {green} text"</param>
+    public static void CenterColorText(Vector2 begin, string colorFmtTxt)
+    {
+        float winWidth = ImGui.GetWindowSize().X;
+        float textWidth = ImGui.CalcTextSize(colorFmtTxt).X;
+
+        // calculate the indentation that centers the text on one line, relative
+        // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
+        float textIndentation = (winWidth - textWidth) * 0.5f;
+        float wrapPos = winWidth - textIndentation;
+        
+         
+    }
+    
     public static void ShowQuestLog(bool useConsole)
     {
         ImGui.SetWindowFontScale(2f);
@@ -157,8 +136,7 @@ public static class UIRenderer
             }
             else
             { 
-                var pair = CenterText("This is a  word1", (null, null), RED);
-                CenterText("word2 word3 word4 word5 word6 word7 word8!", pair ,GREEN);
+                CenterText("{Black} This is a {Red} super nice {Green} shiny looking text");
                 begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
             }
         }
@@ -189,7 +167,7 @@ public static class UIRenderer
             return false;
         }
          
-        CenterText(input, (null, null), RED);
+        CenterText(input);
         return isDone;
     }
 
