@@ -58,8 +58,8 @@ public ref struct ColorCodeEnumerator
     private static readonly Regex rgx = new(@"\{[a-zA-Z]+\}", RegexOptions.Compiled);
     private readonly string _text;
 
-    private ReadOnlySpan<char> _current;
-    private Span<(int idx, int len)> matchData;
+    private TextStyle _current;
+    private readonly Span<(int idx, int len)> matchData;
     private int _textStart, relativeStart, relativeEnd;
     private StackBuffer _stackPool;
     private int _runner;
@@ -88,49 +88,65 @@ public ref struct ColorCodeEnumerator
     //probably best done with regex
     //{Black} This is a {Red} super nice {Green} shiny looking text
     
-    [UnscopedRef] public ref ReadOnlySpan<char> Current => ref _current;
+    [UnscopedRef] public ref TextStyle Current => ref _current;
     
-    //part0: This is a {Black}
+    //part0: {Black} This is a 
     //part1: super nice {Red}
     //part1: shiny looking text {Green}
     public bool MoveNext()
     {
         if (_runner >= matchData.Length)
             return false;
+
+        ref readonly var match = ref matchData[_runner];
+
+        ReadOnlySpan<char> colorCode = _text.AsSpan(match.idx, match.len);
+
+        relativeStart = match.idx;
+        int okayBegin = relativeStart;
         
-        //Logic here!
-        var color = _text.AsSpan(matchData[_runner].idx, matchData[_runner].len);
-
-        relativeStart = matchData[_runner].len;
-        relativeEnd = _text.IndexOf('{', relativeStart)-1;
-
-        //This is a
-        var sentence = _text.AsSpan(relativeStart, relativeEnd-relativeStart);
-
-        _current = _text.AsSpan(matchData[_runner].idx, color.Length + sentence.Length);
+        if (_runner + 1 <matchData.Length)
+            relativeEnd = matchData[_runner + 1].idx;
+        else
+        {
+            relativeEnd = _text.Length - match.idx + 1;
+            relativeStart = 1;
+        }
+        //part0: {Black} This is a
+        var tmp = _text.AsSpan(okayBegin, relativeEnd - relativeStart);
+        tmp = tmp[match.len..^1];
+        _current = new(tmp, colorCode);
         _runner++;
         
-       return _current.Length > 0;
+        return tmp.Length > 0;
     }
-    
+
     public ColorCodeEnumerator GetEnumerator()
     {
         return this;
     }
 }
 
-public struct Pair
+public readonly ref struct TextStyle
 {
-    private unsafe byte* First;
-    private int Length;
+    public readonly float TextSize;
+    public readonly ReadOnlySpan<char> Piece;
+    public readonly Vector4 Color;
 
-    public static unsafe implicit operator Span<byte>(Pair p) => new(p.First, p.Length);
-
-    public static unsafe implicit operator Pair(Span<byte> p) => new()
+    /// <summary>
+    /// represents the color we want to convert to a Vector4 type
+    /// </summary>
+    /// <param name="piece"></param>
+    /// <param name="colorCode">the string colorname like {Black} or {Red}</param>
+    public unsafe TextStyle(ReadOnlySpan<char> piece, ReadOnlySpan<char> colorCode)
     {
-        First = (byte*)Unsafe.AsPointer(ref p[0]),
-        Length = p.Length
-    };
+        var colName = colorCode[1..^1];
+        Piece = piece;
+        var rayColor = Utils.FromSysColor(SysColor.FromName(colName.ToString()));
+        Color = Utils.AsVec4(rayColor);
+        sbyte* piecePtr = (sbyte*)Unsafe.AsPointer(ref Unsafe.AsRef(piece[0]));
+        TextSize = MeasureText(piecePtr, (int)ImGui.GetFontSize());
+    }
 }
 
 public static class Utils
