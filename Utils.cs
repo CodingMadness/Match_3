@@ -11,6 +11,7 @@ global using static Raylib_CsLo.Raylib;
 global using Color = Raylib_CsLo.Color;
 global using Rectangle = Raylib_CsLo.Rectangle;
 using System.Text.RegularExpressions;
+using NoAlloq;
 
 namespace Match_3;
 
@@ -55,11 +56,11 @@ public ref struct SpanEnumerator<TItem>
 
 public ref struct ColorCodeEnumerator
 {
-    private static readonly Regex rgx = new(@"\{[a-zA-Z]+\}", RegexOptions.Compiled);
+    private static readonly Regex rgx = new(@"\{[a-zA-Z]+\}", RegexOptions.Singleline);
     private readonly string _text;
 
     private TextStyle _current;
-    private readonly Span<(int idx, int len)> matchData;
+    private Span<(int idx, int len)> matchData;
     private int _textStart, relativeStart, relativeEnd;
     private StackBuffer _stackPool;
     private int _runner;
@@ -72,17 +73,24 @@ public ref struct ColorCodeEnumerator
         
         //var result = rgx.Split(_text);
         //{Black} This is a {Red} super nice {Green} shiny looking text
-        matchData = _stackPool.Slice<(int idx, int len)>(0, 3);
+        matchData = _stackPool.Slice<(int idx, int len)>(0, 5);
         
         foreach (var enumerateMatch in rgx.EnumerateMatches(_text))
         {
+            reset:
             if (_runner < matchData.Length)
+            {
                 matchData[_runner++] = (enumerateMatch.Index, enumerateMatch.Length);
+            }
             else
             {
-                matchData = _stackPool.Slice<(int idx, int len)>(matchData.Length, 5);
+                _stackPool.Store<(int idx, int len)>(matchData, 0);
+                matchData = _stackPool.Slice<(int idx, int len)>(0, 5);
+                goto reset;
             }
         }
+
+        matchData = matchData.Where(x => x.idx >= 0 && x.len > 0).CopyInto(matchData).Slice(0);
         _runner = 0;
     }
     //probably best done with regex
@@ -105,7 +113,7 @@ public ref struct ColorCodeEnumerator
         relativeStart = match.idx;
         int okayBegin = relativeStart;
         
-        if (_runner + 1 <matchData.Length)
+        if (_runner + 1 < matchData.Length-1)
             relativeEnd = matchData[_runner + 1].idx;
         else
         {
