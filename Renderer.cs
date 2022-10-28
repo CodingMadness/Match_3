@@ -85,11 +85,11 @@ public static class UIRenderer
 
         foreach (var slice in x)
         {
-            string tmp = slice.ToString();
+            
         }
         
         /*
-        foreach (var slices in text.Split(""))
+        foreach (var slice in text.Split(""))
         {
             ImGui.SetCursorPos(currentPos);
             ImGui.TextColored(slices.Key, slices.Value);
