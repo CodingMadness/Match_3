@@ -83,19 +83,13 @@ public static class UIRenderer
         ImGui.PushTextWrapPos(wrapPos);
         var x = new ColorCodeEnumerator(text);
 
-        foreach (var slice in x)
-        {
-            
-        }
-        
-        /*
-        foreach (var slice in text.Split(""))
+        foreach (ref readonly var slice in x)
         {
             ImGui.SetCursorPos(currentPos);
-            ImGui.TextColored(slices.Key, slices.Value);
-            currentPos += ImGui.CalcTextSize(slices.Value).X;
+            ImGui.TextColored(slice.Color, slice.Piece.ToString());
+            currentPos.X += (slice.TextSize);
         }
-        */
+        
         ImGui.PopTextWrapPos();
     }
 
@@ -136,7 +130,7 @@ public static class UIRenderer
             }
             else
             { 
-                CenterText("{Black} This is a {Red} super nice {Green} shiny looking text");
+                CenterText("{Black} This is a {Red} super nice {Green} shiny looking text {Purple} with a lot of other shiny stuff");
                 begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
             }
         }

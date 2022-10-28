@@ -144,8 +144,9 @@ public readonly ref struct TextStyle
         Piece = piece;
         var rayColor = Utils.FromSysColor(SysColor.FromName(colName.ToString()));
         Color = Utils.AsVec4(rayColor);
-        sbyte* piecePtr = (sbyte*)Unsafe.AsPointer(ref Unsafe.AsRef(piece[0]));
-        TextSize = MeasureText(piecePtr, (int)ImGui.GetFontSize());
+        //sbyte* piecePtr = (sbyte*)Unsafe.AsPointer(ref Unsafe.AsRef(piece[0]));
+        //TextSize = MeasureText(piecePtr, (int)ImGui.GetFontSize());
+        TextSize = ImGui.CalcTextSize(Piece.ToString()).X; //make improvement PR to accept ROS instead of string
     }
 }
 
