@@ -10,21 +10,23 @@ global using System.Diagnostics.CodeAnalysis;
 global using static Raylib_CsLo.Raylib;
 global using Color = Raylib_CsLo.Color;
 global using Rectangle = Raylib_CsLo.Rectangle;
+using System.Text.RegularExpressions;
 
 namespace Match_3;
 
 public ref struct SpanEnumerator<TItem> 
 {
     private ref TItem _currentItem;
-
+    private int _counter = 0;
     private readonly ref TItem _lastItemOffsetByOne;
 
-    public SpanEnumerator(ReadOnlySpan<TItem> span) : this(ref MemoryMarshal.GetReference(span), span.Length)
+    public SpanEnumerator(ReadOnlySpan<TItem> span) : this(ref MemoryMarshal.GetReference(span), span.Length-1)
     {
     }
 
-    public SpanEnumerator(Span<TItem> span) : this(ref MemoryMarshal.GetReference(span), span.Length)
+    public SpanEnumerator(Span<TItem> span) : this(ref MemoryMarshal.GetReference(span), span.Length-1)
     {
+        _counter = 0;
     }
 
     private SpanEnumerator(ref TItem item, nint length)
@@ -46,6 +48,72 @@ public ref struct SpanEnumerator<TItem>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public SpanEnumerator<TItem> GetEnumerator()
+    {
+        return this;
+    }
+}
+
+public ref struct ColorCodeEnumerator
+{
+    private static readonly Regex rgx = new(@"\{[a-zA-Z]+\}", RegexOptions.Compiled);
+    private readonly string _text;
+
+    private ReadOnlySpan<char> _current;
+    private Span<(int idx, int len)> matchData;
+    private int _textStart, relativeStart, relativeEnd;
+    private StackBuffer _stackPool;
+    private int _runner;
+
+    public ColorCodeEnumerator(string text)
+    {
+        _stackPool = new();
+        _runner = 0;
+        _text = text;
+        
+        //var result = rgx.Split(_text);
+        //{Black} This is a {Red} super nice {Green} shiny looking text
+        matchData = _stackPool.Slice<(int idx, int len)>(0, 3);
+        
+        foreach (var enumerateMatch in rgx.EnumerateMatches(_text))
+        {
+            if (_runner < matchData.Length)
+                matchData[_runner++] = (enumerateMatch.Index, enumerateMatch.Length);
+            else
+            {
+                matchData = _stackPool.Slice<(int idx, int len)>(matchData.Length, 5);
+            }
+        }
+        _runner = 0;
+    }
+    //probably best done with regex
+    //{Black} This is a {Red} super nice {Green} shiny looking text
+    
+    [UnscopedRef] public ref ReadOnlySpan<char> Current => ref _current;
+    
+    //part0: This is a {Black}
+    //part1: super nice {Red}
+    //part1: shiny looking text {Green}
+    public bool MoveNext()
+    {
+        if (_runner >= matchData.Length)
+            return false;
+        
+        //Logic here!
+        var color = _text.AsSpan(matchData[_runner].idx, matchData[_runner].len);
+
+        relativeStart = matchData[_runner].len;
+        relativeEnd = _text.IndexOf('{', relativeStart)-1;
+
+        //This is a
+        var sentence = _text.AsSpan(relativeStart, relativeEnd-relativeStart);
+
+        _current = _text.AsSpan(matchData[_runner].idx, color.Length + sentence.Length);
+        _runner++;
+        
+       return _current.Length > 0;
+    }
+    
+    public ColorCodeEnumerator GetEnumerator()
     {
         return this;
     }
@@ -86,7 +154,7 @@ public static class Utils
         return v4Color;
     }
 
-    private static Color FromSysColor(SysColor color)
+    public static Color FromSysColor(SysColor color)
     {
         return new(color.R, color.G, color.B, color.A);
     }
