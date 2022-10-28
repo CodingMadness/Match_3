@@ -378,7 +378,7 @@ public sealed class MatchQuestHandler : QuestHandler
         
         var countToMatch = Game.Level.ID switch
         {
-            0 => Randomizer.Next(2, 4),
+            0 => Randomizer.Next(2, 2),
             1 => Randomizer.Next(3, 5),
             2 => Randomizer.Next(5, 7),
             3 => Randomizer.Next(7, 9),
@@ -388,14 +388,14 @@ public sealed class MatchQuestHandler : QuestHandler
         Span<TileType> all = local.Slice(1, (int)TileType.Length-1);
         all.Shuffle(Randomizer);
         var nextPiece = all[..countToMatch];
-        var iterator = new SpanEnumerator<TileType>(nextPiece);
+        //var iterator = new SpanEnumerator<TileType>(nextPiece);
         
         LOOP_AGAIN:
-        foreach (var value in iterator)
+        foreach (var value in nextPiece)
         {
             var goal = Game.Level.ID switch
             {
-                0 => new Goal { Match = new(Randomizer.Next(2, 3), 8f) },
+                0 => new Goal { Match = new(Randomizer.Next(2, 2), 8f) },
                 1 => new Goal { Match = new(Randomizer.Next(3, 4), 6.5f) },
                 2 => new Goal { Match = new(Randomizer.Next(5, 6), 5.0f) },
                 3 => new Goal { Match = new(Randomizer.Next(8, 10), 2.5f) },
@@ -416,7 +416,7 @@ public sealed class MatchQuestHandler : QuestHandler
                
                 if (matchValue.Count == 0)
                 {
-                    iterator = new(all[countToMatch..(countToMatch+3)]);
+                    //iterator = new(all[countToMatch..(countToMatch+3)]);
                     GoalCountToReach = 0;
                     goto LOOP_AGAIN;
                 }
