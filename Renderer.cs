@@ -98,19 +98,7 @@ public static class UIRenderer
     /// </summary>
     /// <param name="begin"></param>
     /// <param name="colorFmtTxt">format looks like: "this is a {red} very long {green} text"</param>
-    public static void CenterColorText(Vector2 begin, string colorFmtTxt)
-    {
-        float winWidth = ImGui.GetWindowSize().X;
-        float textWidth = ImGui.CalcTextSize(colorFmtTxt).X;
 
-        // calculate the indentation that centers the text on one line, relative
-        // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
-        float textIndentation = (winWidth - textWidth) * 0.5f;
-        float wrapPos = winWidth - textIndentation;
-        
-         
-    }
-    
     public static void ShowQuestLog(bool useConsole)
     {
         ImGui.SetWindowFontScale(2f);
