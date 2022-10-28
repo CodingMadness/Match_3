@@ -62,7 +62,35 @@ public static class UIRenderer
     public static (Vector2, float txtWidth) CenterText(string text, (Vector2? pos, float? oldTxtWidth)pair, Color color, bool isSameLine=true)
     {
         float winWidth = ImGui.GetWindowSize().X;
-        var (pos, oldTxtWidth) = pair;
+        
+        unsafe void GetWordLength(out float width, out ReadOnlySpan<char> guiltyWord)
+        {
+            // we need to find out, which word was the guilty one,
+            //who caused the textWrap!
+
+            ReadOnlySpan<char> txtSpan = text;
+            int idx = 0;
+           
+            float length = 0f;
+            
+            while(true)
+            {
+                var slice = txtSpan.Slice(idx, idx = text.IndexOf(' '));
+                var wordPtr = (sbyte*)Unsafe.AsPointer(ref Unsafe.AsRef(slice[0]));
+                length += MeasureText(wordPtr, (int)ImGui.GetFontSize());
+
+                if (length >= winWidth)
+                {
+                    guiltyWord = slice;
+                    width = length;
+                    return;
+                }
+            }
+        }
+        
+        
+        var (begin, oldTxtWidth) = pair;
+        var oldBegin = begin ?? Vector2.Zero;
         float textWidth = oldTxtWidth + ImGui.CalcTextSize(text).X ?? ImGui.CalcTextSize(text).X;
 
         // calculate the indentation that centers the text on one line, relative
@@ -72,34 +100,42 @@ public static class UIRenderer
         // if text is too long to be drawn on one line, `text_indentation` can
         // become too small or even negative, so we check a minimum indentation
         const float minIndentation = 20.0f;
+        bool wasOutsideWindow = false;
         
-        if (textIndentation <= minIndentation) 
+        if (textIndentation <= minIndentation)
+        {
             textIndentation = minIndentation;
+            wasOutsideWindow = true;
+        }
 
-        if (pos is not null)
+        float wrapPos = winWidth - textIndentation;
+        
+        if (begin is not null)
         {
             if (!isSameLine)
-                pos = new(textIndentation, ImGui.GetCursorPos().Y + pos.Value.Y * 0.5f);
+            {
+                begin = new(textIndentation, ImGui.GetCursorPos().Y + begin.Value.Y * 0.5f);
+            }
             else
             {
                 if (oldTxtWidth is null)
-                    pos = pos.Value with { X = textIndentation };
+                    begin = begin.Value with { X = textIndentation };
                 else
                 {
-                    pos = pos.Value + Vector2.UnitX * oldTxtWidth;
+                    begin = begin.Value + Vector2.UnitX * oldTxtWidth;
                 }
             }
         }
         else
         {
-            pos = new(textIndentation, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
+            begin = new(textIndentation, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
         }
-        
-        ImGui.SetCursorPos(pos.Value);
-        ImGui.PushTextWrapPos(winWidth - textIndentation);
+
+        ImGui.SetCursorPos(wasOutsideWindow ? oldBegin : begin.Value);
+        ImGui.PushTextWrapPos(wrapPos);
         ImGui.TextColored(Utils.AsVec4(color), text);
         ImGui.PopTextWrapPos();
-        return (pos.Value, textWidth);
+        return (begin.Value, textWidth);
     }
 
     public static void ShowQuestLog(bool useConsole)
@@ -107,9 +143,7 @@ public static class UIRenderer
         ImGui.SetWindowFontScale(2f);
         Vector2 begin = (ImGui.GetContentRegionAvail() * 0.5f);//with { Y = 0 };
         _questLogColor ??= Utils.GetRndColor();
-        Color a0 = Utils.GetRndColor();
-        Color a1 = Utils.GetRndColor();
-        Color a2 = Utils.GetRndColor();
+ 
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
         foreach (ref readonly var tuple in MatchQuestHandler.GetIterator())
         {
@@ -123,8 +157,8 @@ public static class UIRenderer
             }
             else
             { 
-                var pair = CenterText("This is a", (begin, null), RED);
-                CenterText("long long text!", pair ,GREEN);
+                var pair = CenterText("This is a  word1", (null, null), RED);
+                CenterText("word2 word3 word4 word5 word6 word7 word8!", pair ,GREEN);
                 begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
             }
         }
