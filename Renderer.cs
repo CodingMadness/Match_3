@@ -59,10 +59,11 @@ public static class UIRenderer
         return result;
     }
 
-    public static Vector2 CenterText(string text, Vector2? pos, Color color, bool isSameLine=true)
+    public static (Vector2, float txtWidth) CenterText(string text, (Vector2? pos, float? oldTxtWidth)pair, Color color, bool isSameLine=true)
     {
         float winWidth = ImGui.GetWindowSize().X;
-        float textWidth = ImGui.CalcTextSize(text).X;
+        var (pos, oldTxtWidth) = pair;
+        float textWidth = oldTxtWidth + ImGui.CalcTextSize(text).X ?? ImGui.CalcTextSize(text).X;
 
         // calculate the indentation that centers the text on one line, relative
         // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
@@ -77,10 +78,17 @@ public static class UIRenderer
 
         if (pos is not null)
         {
-            if(!isSameLine)
+            if (!isSameLine)
                 pos = new(textIndentation, ImGui.GetCursorPos().Y + pos.Value.Y * 0.5f);
-            else{}
-                //pos = pos.Value with { X = textIndentation };
+            else
+            {
+                if (oldTxtWidth is null)
+                    pos = pos.Value with { X = textIndentation };
+                else
+                {
+                    pos = pos.Value + Vector2.UnitX * oldTxtWidth;
+                }
+            }
         }
         else
         {
@@ -91,8 +99,7 @@ public static class UIRenderer
         ImGui.PushTextWrapPos(winWidth - textIndentation);
         ImGui.TextColored(Utils.AsVec4(color), text);
         ImGui.PopTextWrapPos();
-        Vector2 x = pos.Value + Vector2.UnitX * textWidth; 
-        return x;
+        return (pos.Value, textWidth);
     }
 
     public static void ShowQuestLog(bool useConsole)
@@ -115,13 +122,10 @@ public static class UIRenderer
                 Console.WriteLine(msg);
             }
             else
-            {
-                var pos = CenterText("This is a", begin, RED);
-                pos = CenterText("big cool", pos, GREEN);
-                //pos = CenterText("test", pos, BLUE);
-                break;
-                //CenterText(msg, begin);
-               //begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
+            { 
+                var pair = CenterText("This is a", (begin, null), RED);
+                CenterText("long long text!", pair ,GREEN);
+                begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
             }
         }
     } 
@@ -151,7 +155,7 @@ public static class UIRenderer
             return false;
         }
          
-        CenterText(input, null, RED);
+        CenterText(input, (null, null), RED);
         return isDone;
     }
 

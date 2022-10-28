@@ -270,7 +270,7 @@ internal static class Game
                                 OnGameOver();
                                 gameOverTimer.Run();
                                 var value = gameOverTimer.ElapsedSeconds.ToString(CultureInfo.InvariantCulture);
-                                UIRenderer.CenterText(value, null, Utils.GetRndColor());
+                                UIRenderer.CenterText(value, (null, null), Utils.GetRndColor());
                                 UIRenderer.ShowBackground(ref _bgGameOver);
                                 UIRenderer.ShowTimer(gameOverTimer.ElapsedSeconds);
                                 ImGui.SetWindowFontScale(2f);
