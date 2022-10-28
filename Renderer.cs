@@ -59,7 +59,7 @@ public static class UIRenderer
         return result;
     }
 
-    public static void CenterText(string text, Vector2? pos)
+    public static Vector2 CenterText(string text, Vector2? pos, Color color, bool isSameLine=true)
     {
         float winWidth = ImGui.GetWindowSize().X;
         float textWidth = ImGui.CalcTextSize(text).X;
@@ -75,23 +75,38 @@ public static class UIRenderer
         if (textIndentation <= minIndentation) 
             textIndentation = minIndentation;
 
-        pos ??= new(textIndentation, ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y * 0.5f);
+        if (pos is not null)
+        {
+            if(!isSameLine)
+                pos = new(textIndentation, ImGui.GetCursorPos().Y + pos.Value.Y * 0.5f);
+            else{}
+                //pos = pos.Value with { X = textIndentation };
+        }
+        else
+        {
+            pos = new(textIndentation, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
+        }
+        
         ImGui.SetCursorPos(pos.Value);
         ImGui.PushTextWrapPos(winWidth - textIndentation);
-        ImGui.TextWrapped(text);
+        ImGui.TextColored(Utils.AsVec4(color), text);
         ImGui.PopTextWrapPos();
+        Vector2 x = pos.Value + Vector2.UnitX * textWidth; 
+        return x;
     }
 
     public static void ShowQuestLog(bool useConsole)
     {
         ImGui.SetWindowFontScale(2f);
-        Vector2 begin = Vector2.Zero;
+        Vector2 begin = (ImGui.GetContentRegionAvail() * 0.5f);//with { Y = 0 };
         _questLogColor ??= Utils.GetRndColor();
-        
+        Color a0 = Utils.GetRndColor();
+        Color a1 = Utils.GetRndColor();
+        Color a2 = Utils.GetRndColor();
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
         foreach (ref readonly var tuple in MatchQuestHandler.GetIterator())
         {
-            string msg = $"You have to collect {tuple!.Item2.Match.Value.Count} " +
+            string msg = $"You have to collect {tuple.Item2.Match.Value.Count} " +
                          $"{tuple.Item1}-tiles! and u have {tuple.Item2.Match.Value.Interval} " +
                          $"seconds to make a new match, so hurry up! {Environment.NewLine}";
             
@@ -101,12 +116,12 @@ public static class UIRenderer
             }
             else
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, Utils.AsVec4(BLACK));
-
-                CenterText(msg, begin);
-
-                begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
-                ImGui.PopStyleColor(1);
+                var pos = CenterText("This is a", begin, RED);
+                pos = CenterText("big cool", pos, GREEN);
+                //pos = CenterText("test", pos, BLUE);
+                break;
+                //CenterText(msg, begin);
+               //begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
             }
         }
     } 
@@ -125,7 +140,6 @@ public static class UIRenderer
     
     public static void ShowWelcomeScreen()
     {
-        
         InitWelcomeTxt();
         WelcomeText.Draw(null);
     }
@@ -137,7 +151,7 @@ public static class UIRenderer
             return false;
         }
          
-        CenterText(input, null);
+        CenterText(input, null, RED);
         return isDone;
     }
 

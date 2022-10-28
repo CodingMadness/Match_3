@@ -315,7 +315,7 @@ public sealed class SwapQuestHandler : QuestHandler
 public sealed class MatchQuestHandler : QuestHandler  
 {
     private static (TileType, Goal)[] TypeGoal;
-    private static (TileType, Goal) Empty = default;
+    private static readonly (TileType, Goal) Empty = default;
     
     public MatchQuestHandler()
     {

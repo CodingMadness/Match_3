@@ -255,8 +255,8 @@ internal static class Game
                         }
                         else if (!_enterGame)
                         {
-                            UIRenderer.ShowBackground(ref _bgWelcome);
-                            UIRenderer.ShowWelcomeScreen();
+                            //UIRenderer.ShowBackground(ref _bgWelcome);
+                            //UIRenderer.ShowWelcomeScreen();
                             UIRenderer.ShowQuestLog(false);
                         }
                         if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
@@ -269,7 +269,8 @@ internal static class Game
                             {
                                 OnGameOver();
                                 gameOverTimer.Run();
-                                UIRenderer.CenterText(gameOverTimer.ElapsedSeconds.ToString(CultureInfo.InvariantCulture), null);
+                                var value = gameOverTimer.ElapsedSeconds.ToString(CultureInfo.InvariantCulture);
+                                UIRenderer.CenterText(value, null, Utils.GetRndColor());
                                 UIRenderer.ShowBackground(ref _bgGameOver);
                                 UIRenderer.ShowTimer(gameOverTimer.ElapsedSeconds);
                                 ImGui.SetWindowFontScale(2f);
