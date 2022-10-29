@@ -1,6 +1,6 @@
 ﻿namespace Match_3;
 
-[StructLayout(LayoutKind.Explicit, Size = ConstData.POOL_SIZE * 2, Pack = sizeof(ulong))]
+[StructLayout(LayoutKind.Explicit, Size = ConstData.POOL_SIZE * 1, Pack = sizeof(ulong))]
 public unsafe ref struct StackBuffer
 {
     [FieldOffset(0)]
@@ -34,8 +34,7 @@ public unsafe ref struct StackBuffer
     }
 }
 
-
 public readonly struct ConstData
 {
-    public const int POOL_SIZE = 1024;
+    public const int POOL_SIZE = 256;
 }

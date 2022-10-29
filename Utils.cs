@@ -146,14 +146,12 @@ public readonly ref struct TextStyle
     /// </summary>
     /// <param name="piece"></param>
     /// <param name="colorCode">the string colorname like {Black} or {Red}</param>
-    public unsafe TextStyle(ReadOnlySpan<char> piece, ReadOnlySpan<char> colorCode)
+    public TextStyle(ReadOnlySpan<char> piece, ReadOnlySpan<char> colorCode)
     {
         var colName = colorCode[1..^1];
         Piece = piece;
-        var rayColor = Utils.FromSysColor(SysColor.FromName(colName.ToString()));
-        Color = Utils.AsVec4(rayColor);
-        //sbyte* piecePtr = (sbyte*)Unsafe.AsPointer(ref Unsafe.AsRef(piece[0]));
-        //TextSize = MeasureText(piecePtr, (int)ImGui.GetFontSize());
+        var color = SysColor.FromName(colName.ToString());
+        Color = ImGui.ColorConvertU32ToFloat4((uint)color.ToArgb());
         TextSize = ImGui.CalcTextSize(Piece.ToString()).X; //make improvement PR to accept ROS instead of string
     }
 }
@@ -163,14 +161,14 @@ public static class Utils
     public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
     public static readonly FastNoiseLite NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
 
-    public static Vector4 AsVec4(Color color)
+    public static Vector4 AsVec4(SysColor color)
     {
         Vector4 v4Color = default;
         const int max = 255; //100%
 
         for (byte i = 0; i < 4; i++)
         {
-            byte colorValue = Unsafe.Add(ref Unsafe.AsRef(color.r), i);
+            byte colorValue = Unsafe.Add(ref Unsafe.AsRef(color.R), i);
             ref float v4Value = ref Unsafe.Add(ref Unsafe.AsRef(v4Color.X), i);
             float percentage = colorValue / (float)max;
             v4Value = percentage;
