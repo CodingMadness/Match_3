@@ -1,5 +1,7 @@
 using System.Collections;
+using FastEnumUtility;
 using Match_3.GameTypes;
+using NoAlloq;
 using static Match_3.Utils;
 
 namespace Match_3;
@@ -373,13 +375,31 @@ public sealed class MatchQuestHandler : QuestHandler
             }
             local.CopyTo(dest);
         }
+        
+        Span<TileType> Difference(Span<TileType> a, Span<TileType> b)
+        {
+            LinkedSpan<byte> ls =new(); 
+            //get the elements from a which are not in b
+            var bRunner = new SpanEnumerator<TileType>(b);
+            var aRunner = new SpanEnumerator<TileType>(a);
+            Span<byte> bytes = MemoryMarshal.Cast<TileType, byte>(b);
+            
+            foreach (var aValue in aRunner)
+            {
+                if (!bytes.Contains((byte)aValue))
+                    ls.Append((byte)aValue);
+            }
 
+            Span<byte> tmp = ls;
+            return MemoryMarshal.Cast<byte, TileType>(tmp);
+        }
+        
         Span<TileType> local = stackalloc TileType[(int)(TileType.Length)];
         LocalFunction(local);
         
         var countToMatch = Game.Level.ID switch
         {
-            0 => Randomizer.Next(2, 2),
+            0 => Randomizer.Next(2, 4),
             1 => Randomizer.Next(3, 5),
             2 => Randomizer.Next(5, 7),
             3 => Randomizer.Next(7, 9),
@@ -387,13 +407,13 @@ public sealed class MatchQuestHandler : QuestHandler
         };
         
         TypeGoal = new (TileType, Goal)[countToMatch];
-        var all = local.Slice(1, (int)TileType.Length-1);
-        all.Shuffle(Randomizer);
-        var nextPiece = all[..countToMatch];
-        //var iterator = new SpanEnumerator<TileType>(nextPiece);
+        var allTypes = local.Slice(1, (int)TileType.Length-1);
+        allTypes.Shuffle(Randomizer);
+        var nextPiece = allTypes[..countToMatch];
+        var iterator = new SpanEnumerator<TileType>(nextPiece);
         
         LOOP_AGAIN:
-        foreach (var type in nextPiece)
+        foreach (var typeNr in iterator)
         {
             var goal = Game.Level.ID switch
             {
@@ -403,30 +423,31 @@ public sealed class MatchQuestHandler : QuestHandler
                 3 => new Goal { Match = new(Randomizer.Next(8, 10), 2.5f) },
                 _ => default
             };
-            int index = (int)(type < (TileType)countPerType.Length ? type : type - 1); 
+            
+            int index = (int)(typeNr < (TileType)countPerType.Length ? typeNr : typeNr - 1); 
             int maxAllowed = countPerType[index];
-            
-            if (maxAllowed == 0)
-                continue;
-            
+
             var matchValue = goal.Match!.Value;
             int matchSum = matchValue.Count * Level.MAX_TILES_PER_MATCH;
             
             if (matchSum > maxAllowed)
             {
                 matchValue = matchValue with { Count = maxAllowed / Level.MAX_TILES_PER_MATCH };
-               
+
                 if (matchValue.Count == 0)
                 {
-                    //iterator = new(all[countToMatch..(countToMatch+3)]);
+                    //var diff = allTypes - nextPiece
+                    var difference = Difference(allTypes, nextPiece);
+                    
+                    TileType newOne = difference.Where(x => x >= (TileType)2).First();
+                    nextPiece[(int)iterator.Current] = newOne;
                     GoalCountToReach = 0;
                     goto LOOP_AGAIN;
                 }
-
                 goal = goal with { Match = matchValue };
             }
-            
-            TypeGoal[GoalCountToReach++] = (type, goal);
+          
+            TypeGoal[GoalCountToReach++] = (typeNr, goal);
         }
     }
 
