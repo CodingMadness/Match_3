@@ -15,39 +15,41 @@ using NoAlloq;
 
 namespace Match_3;
 
-public ref struct SpanEnumerator<TItem> where TItem : IEquatable<TItem>
+public ref struct SpanEnumerator<TItem>
 {
     private ref TItem _currentItem;
-    private int _counter = 0;
     private readonly ref TItem _lastItemOffsetByOne;
     private bool shallSkipDefault;
     
-    public SpanEnumerator(ReadOnlySpan<TItem> span, bool shallSkipDefault=false) : this(ref MemoryMarshal.GetReference(span), span.Length-1, shallSkipDefault)
+    public SpanEnumerator(ReadOnlySpan<TItem> span) : this(ref MemoryMarshal.GetReference(span), span.Length-1)
     {
     }
 
     public SpanEnumerator(Span<TItem> span) : 
-        this(ref MemoryMarshal.GetReference(span), span.Length-1)
+        this(ref MemoryMarshal.GetReference(span), span.Length)
     {
-        _counter = 0;
+     
     }
 
-    private SpanEnumerator(ref TItem item, nint length, bool shallSkipDefault=false)
+    private SpanEnumerator(ref TItem item, nint length)
     {
         _currentItem = ref Unsafe.Subtract(ref item, 1);
         this.shallSkipDefault = shallSkipDefault;
         _lastItemOffsetByOne = ref Unsafe.Add(ref item, length);
     }
-
     [UnscopedRef] public ref TItem Current => ref _currentItem;
+    public int Counter { get; private set; } = 0;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool MoveNext()
     {
         _currentItem = ref Unsafe.Add(ref _currentItem, 1);
-        
-        return shallSkipDefault ? (!_currentItem.Equals(default) && !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne)) 
-                                : !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne);
+        /*
+        bool equalityCheck = EqualityComparer<TItem>.Default.Equals(_currentItem, default);
+        return shallSkipDefault ? !equalityCheck && !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne) 
+                                : !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne);*/
+        Counter++;
+        return !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
