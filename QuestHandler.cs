@@ -1,3 +1,4 @@
+using System.Collections;
 using Match_3.GameTypes;
 using static Match_3.Utils;
 
@@ -312,7 +313,7 @@ public sealed class SwapQuestHandler : QuestHandler
     }
 }
 
-public sealed class MatchQuestHandler : QuestHandler  
+public sealed class MatchQuestHandler : QuestHandler
 {
     private static (TileType, Goal)[] TypeGoal;
     private static readonly (TileType, Goal) Empty = default;
@@ -350,9 +351,9 @@ public sealed class MatchQuestHandler : QuestHandler
 
     private static ref readonly (TileType, Goal) GetGoalBy(TileType key)
     {
-        foreach (ref readonly var pair in GetIterator())
+        foreach (ref readonly var pair in GetSpanEnumerator())
         {
-            if (pair.Item1 == key)
+            if (pair.Item1 != TileType.Empty)
                 return ref pair;
         }
 
@@ -384,14 +385,15 @@ public sealed class MatchQuestHandler : QuestHandler
             3 => Randomizer.Next(7, 9),
             _ => default
         };
+        
         TypeGoal = new (TileType, Goal)[countToMatch];
-        Span<TileType> all = local.Slice(1, (int)TileType.Length-1);
+        var all = local.Slice(1, (int)TileType.Length-1);
         all.Shuffle(Randomizer);
         var nextPiece = all[..countToMatch];
         //var iterator = new SpanEnumerator<TileType>(nextPiece);
         
         LOOP_AGAIN:
-        foreach (var value in nextPiece)
+        foreach (var type in nextPiece)
         {
             var goal = Game.Level.ID switch
             {
@@ -401,7 +403,7 @@ public sealed class MatchQuestHandler : QuestHandler
                 3 => new Goal { Match = new(Randomizer.Next(8, 10), 2.5f) },
                 _ => default
             };
-            int index = (int)(value < (TileType)countPerType.Length ? value : value - 1); 
+            int index = (int)(type < (TileType)countPerType.Length ? type : type - 1); 
             int maxAllowed = countPerType[index];
             
             if (maxAllowed == 0)
@@ -423,7 +425,8 @@ public sealed class MatchQuestHandler : QuestHandler
 
                 goal = goal with { Match = matchValue };
             }
-            TypeGoal[GoalCountToReach++] = (value, goal);
+            
+            TypeGoal[GoalCountToReach++] = (type, goal);
         }
     }
 
@@ -484,12 +487,7 @@ public sealed class MatchQuestHandler : QuestHandler
         }
     }
 
-    public static SpanEnumerator<(TileType, Goal)> GetIterator()
-    {
-        var local = TypeGoal.AsSpan();
-        var iterator = new SpanEnumerator<(TileType, Goal)>(local);
-        return iterator;
-    }
+    public static SpanEnumerator<(TileType, Goal)> GetSpanEnumerator() => new (TypeGoal.AsSpan());
 }
 
 public abstract class ClickQuestHandler : QuestHandler
