@@ -15,25 +15,27 @@ using NoAlloq;
 
 namespace Match_3;
 
-public ref struct SpanEnumerator<TItem> 
+public ref struct SpanEnumerator<TItem> where TItem : IEquatable<TItem>
 {
     private ref TItem _currentItem;
     private int _counter = 0;
     private readonly ref TItem _lastItemOffsetByOne;
-
-    public SpanEnumerator(ReadOnlySpan<TItem> span) : this(ref MemoryMarshal.GetReference(span), span.Length-1)
+    private bool shallSkipDefault;
+    
+    public SpanEnumerator(ReadOnlySpan<TItem> span, bool shallSkipDefault=false) : this(ref MemoryMarshal.GetReference(span), span.Length-1, shallSkipDefault)
     {
     }
 
-    public SpanEnumerator(Span<TItem> span) : this(ref MemoryMarshal.GetReference(span), span.Length-1)
+    public SpanEnumerator(Span<TItem> span) : 
+        this(ref MemoryMarshal.GetReference(span), span.Length-1)
     {
         _counter = 0;
     }
 
-    private SpanEnumerator(ref TItem item, nint length)
+    private SpanEnumerator(ref TItem item, nint length, bool shallSkipDefault=false)
     {
         _currentItem = ref Unsafe.Subtract(ref item, 1);
-
+        this.shallSkipDefault = shallSkipDefault;
         _lastItemOffsetByOne = ref Unsafe.Add(ref item, length);
     }
 
@@ -43,8 +45,9 @@ public ref struct SpanEnumerator<TItem>
     public bool MoveNext()
     {
         _currentItem = ref Unsafe.Add(ref _currentItem, 1);
-
-        return !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne);
+        
+        return shallSkipDefault ? (!_currentItem.Equals(default) && !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne)) 
+                                : !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -54,18 +57,17 @@ public ref struct SpanEnumerator<TItem>
     }
 }
 
-public ref struct ColorCodeEnumerator
+public ref struct TextStyleEnumerator
 {
-    private static readonly Regex rgx = new(@"\{[a-zA-Z]+\}", RegexOptions.Singleline);
+    //private static readonly Regex rgx = new(@"\([a-zA-Z]+\)", RegexOptions.Singleline);
     private readonly string _text;
-
     private TextStyle _current;
     private Span<(int idx, int len)> matchData;
-    private int _textStart, relativeStart, relativeEnd;
+    private int relativeStart, relativeEnd;
     private StackBuffer _stackPool;
     private int _runner;
 
-    public ColorCodeEnumerator(string text)
+    public TextStyleEnumerator(string text)
     {
         _stackPool = new();
         _runner = 0;
@@ -74,8 +76,8 @@ public ref struct ColorCodeEnumerator
         //var result = rgx.Split(_text);
         //{Black} This is a {Red} super nice {Green} shiny looking text
         matchData = _stackPool.Slice<(int idx, int len)>(0, 5);
-        
-        foreach (var enumerateMatch in rgx.EnumerateMatches(_text))
+    
+        foreach (var enumerateMatch in Regex.EnumerateMatches(_text, @"\([a-zA-Z]+\)", RegexOptions.Singleline))
         {
             reset:
             if (_runner < matchData.Length)
@@ -96,8 +98,9 @@ public ref struct ColorCodeEnumerator
     //probably best done with regex
     //{Black} This is a {Red} super nice {Green} shiny looking text
     
-    [UnscopedRef] public ref TextStyle Current => ref _current;
-    
+    [UnscopedRef] public ref readonly TextStyle Current => ref _current;
+
+    public readonly int Length => _runner;
     //part0: {Black} This is a 
     //part1: super nice {Red}
     //part1: shiny looking text {Green}
@@ -129,7 +132,7 @@ public ref struct ColorCodeEnumerator
         return tmp.Length > 0;
     }
 
-    public ColorCodeEnumerator GetEnumerator()
+    public TextStyleEnumerator GetEnumerator()
     {
         return this;
     }
