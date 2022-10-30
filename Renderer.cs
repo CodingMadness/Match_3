@@ -80,16 +80,19 @@ public static class UIRenderer
         float wrapPos = winWidth - textIndentation;
         
         Vector2 currentPos = new(textIndentation, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
-        ImGui.PushTextWrapPos(wrapPos);
-        var x = new ColorCodeEnumerator(text);
+        
+        var x = new TextStyleEnumerator(text);
 
+        if (x.Length == 0)
+            ImGui.SetCursorPos(currentPos);
+        
         foreach (ref readonly var slice in x)
         {
             ImGui.SetCursorPos(currentPos);
             ImGui.TextColored(slice.Color, slice.Piece.ToString());
             currentPos.X += (slice.TextSize);
         }
-        
+        ImGui.PushTextWrapPos(wrapPos);
         ImGui.PopTextWrapPos();
     }
 
@@ -106,10 +109,10 @@ public static class UIRenderer
         _questLogColor ??= Utils.GetRndColor();
  
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
-        foreach (ref readonly var tuple in MatchQuestHandler.GetIterator())
+        foreach (ref readonly var tuple in MatchQuestHandler.GetSpanEnumerator())
         {
-            string msg = $"You have to collect {tuple.Item2.Match.Value.Count} " +
-                         $"{tuple.Item1}-tiles! and u have {tuple.Item2.Match.Value.Interval} " +
+            string msg = $"You have to collect (Red) {tuple.Item2.Match.Value.Count} " +
+                         $"(Blue) {tuple.Item1})-tiles! and u have (Green){tuple.Item2.Match.Value.Interval} " +
                          $"seconds to make a new match, so hurry up! {Environment.NewLine}";
             
             if (useConsole)
@@ -118,7 +121,8 @@ public static class UIRenderer
             }
             else
             { 
-                CenterText("{Black} This is a {Red} super nice {Green} shiny looking text {Purple} with a lot of other shiny stuff");
+               // CenterText("{Black} This is a {Red} super nice {Green} shiny looking text {Purple} with a lot of other shiny stuff");
+                CenterText(msg);
                 begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
             }
         }

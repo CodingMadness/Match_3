@@ -217,6 +217,7 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
     {
         return HashCode.Combine(FIXED_WHITE, TileType);
     }
+  
     public override string ToString() =>
         $"Tile type: <{TileType}> with Tint: <{FIXED_WHITE}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
 
@@ -248,7 +249,6 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
     }
 }
 
-
 [Flags]
 public enum Options
 {
@@ -267,7 +267,7 @@ public enum TileState
     Disabled=1, Deleted=2, Hidden=4, Selected=8, Clean=16, Pulsate=32
 }
 
-public class Tile
+public class Tile : IEquatable<Tile>
 {
     private TileState _current;
     private Goal _goal;
@@ -381,6 +381,11 @@ public class Tile
     }
 
     public bool Equals(Tile? other) => StateAndBodyComparer.Singleton.Equals(other, this);
+
+    public override bool Equals(object obj)
+    {
+        return Equals(obj as Tile);
+    }
 }
 
 public class EnemyTile : Tile
