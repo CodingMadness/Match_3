@@ -83,7 +83,6 @@ public static class UIRenderer
         
         var x = new TextStyleEnumerator(text);
 
-        Vector2 origin = currentPos;
         ImGui.SetCursorPos(currentPos); 
         ImGui.PushTextWrapPos(wrapPos);
 
@@ -94,19 +93,17 @@ public static class UIRenderer
         
         foreach (ref readonly var slice in x)
         {
-            totalSize += (int)slice.TextSize.X;
             tmp = tmp == Vector2.Zero ? currentPos : tmp;
             
-            if (++counter == 3)
+            if (++counter % 3 == 0)
             {
-                tmp = origin;
+                tmp = currentPos with { Y = tmp.Y };
                 tmp.Y += slice.TextSize.Y;
-                //counter = 0;
             }
+            
             ImGui.SetCursorPos(tmp);
             ImGui.TextColored(slice.Color,slice.Piece.ToString());
             tmp.X += (slice.TextSize.X);
-            //Console.WriteLine(counter);
         }
         ImGui.PopTextWrapPos();
     }
@@ -116,29 +113,22 @@ public static class UIRenderer
         ImGui.SetWindowFontScale(2f);
         Vector2 begin = (ImGui.GetContentRegionAvail() * 0.5f);//with { Y = 0 };
         _questLogColor ??= Utils.GetRndColor();
- 
+
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
         foreach (ref readonly var tuple in MatchQuestHandler.GetSpanEnumerator())
         {
             string msg = $"(Black) You have to collect (Red) {tuple.Item2.Match.Value.Count} " +
                          $"(Blue) {tuple.Item1}-tiles! (Black) and u have (Green) {tuple.Item2.Match.Value.Interval} " +
                          $"seconds (Black) to make a new match, so hurry up! {Environment.NewLine}";
-            
-            if (useConsole)
-            {
-                Console.WriteLine(msg);
-            }
-            else
-            {
-                string txt = "(Black) You have to collect (Red) 2 balls (Green) and other shit " +
-                             $"(Blue) as well as {DateTime.Now.Date} (Purple) ticks per day (Magenta) with a lot of juice " +
-                             " (Beige) we have to a great (Yellow) day in front of us! ";
 
-               // string txt2 = "hallo du schwere Welt, wie sehr habe ich doch gelitten gehabt über all die Zeit";
-                CenterText(txt);
-                begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
-                break;
-            }
+            string txt = "(Black) You have to collect (Red) 2 balls (Green) and other shit " +
+                         $"(Blue) as well as {DateTime.Now.Date} (Purple) ticks per day (Magenta) with a lot of juice " +
+                         " (Beige) we have to a great (Yellow) day in front of us! ";
+
+            // string txt2 = "hallo du schwere Welt, wie sehr habe ich doch gelitten gehabt über all die Zeit";
+            CenterText(txt);
+            begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
+            break;
         }
     } 
 

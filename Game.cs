@@ -47,8 +47,8 @@ internal static class Game
         InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
         SetTextureFilter(BgIngameTexture, TextureFilter.TEXTURE_FILTER_BILINEAR);
         LoadAssets();
-        InitGameOverTxt();
-        InitWelcomeTxt();
+        //InitGameOverTxt();
+        //InitWelcomeTxt();
         _bgWelcome = new(WelcomeTexture);
         _bgIngame1 = new(BgIngameTexture);
         _bgGameOver = new(GameOverTexture);
