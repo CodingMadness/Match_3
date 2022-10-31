@@ -85,23 +85,31 @@ public static class UIRenderer
 
         Vector2 origin = currentPos;
         ImGui.SetCursorPos(currentPos); 
-        ImGui.PushTextWrapPos(wrapPos); 
+        ImGui.PushTextWrapPos(wrapPos);
+
+        int counter = 0;
+        int totalSize = 0;
+        int percentageBounds = (int)(wrapPos / 10f);
+        Vector2 tmp = Vector2.Zero;
         
         foreach (ref readonly var slice in x)
-        { 
-           ImGui.SetCursorPos(currentPos);
-           ImGui.TextColored(slice.Color,slice.Piece.ToString());
-           currentPos.X += (slice.TextSize);
+        {
+            totalSize += (int)slice.TextSize.X;
+            tmp = tmp == Vector2.Zero ? currentPos : tmp;
+            
+            if (++counter == 3)
+            {
+                tmp = origin;
+                tmp.Y += slice.TextSize.Y;
+                //counter = 0;
+            }
+            ImGui.SetCursorPos(tmp);
+            ImGui.TextColored(slice.Color,slice.Piece.ToString());
+            tmp.X += (slice.TextSize.X);
+            //Console.WriteLine(counter);
         }
-       
         ImGui.PopTextWrapPos();
     }
-
-    /// <summary>
-    /// Centers (partially) colorized Text with potential wrapping
-    /// </summary>
-    /// <param name="begin"></param>
-    /// <param name="colorFmtTxt">format looks like: "this is a {red} very long {green} text"</param>
 
     public static void ShowQuestLog(bool useConsole)
     {
@@ -123,7 +131,8 @@ public static class UIRenderer
             else
             {
                 string txt = "(Black) You have to collect (Red) 2 balls (Green) and other shit " +
-                             $"(Blue) as well as {DateTime.Now.Date} (Purple) ticks per day (Magenta) with a lot of juice ";
+                             $"(Blue) as well as {DateTime.Now.Date} (Purple) ticks per day (Magenta) with a lot of juice " +
+                             " (Beige) we have to a great (Yellow) day in front of us! ";
 
                // string txt2 = "hallo du schwere Welt, wie sehr habe ich doch gelitten gehabt über all die Zeit";
                 CenterText(txt);

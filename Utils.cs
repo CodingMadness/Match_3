@@ -103,9 +103,7 @@ public ref struct TextStyleEnumerator
     [UnscopedRef] public ref readonly TextStyle Current => ref _current;
 
     public readonly int Length => _runner;
-    //part0: {Black} This is a 
-    //part1: super nice {Red}
-    //part1: shiny looking text {Green}
+
     public bool MoveNext()
     {
         if (_runner >= matchData.Length)
@@ -142,7 +140,7 @@ public ref struct TextStyleEnumerator
 
 public readonly ref struct TextStyle
 {
-    public readonly float TextSize;
+    public readonly Vector2 TextSize;
     public readonly ReadOnlySpan<char> Piece;
     public readonly Vector4 Color;
     public readonly KnownColor Name;
@@ -158,7 +156,8 @@ public readonly ref struct TextStyle
         var color = SysColor.FromName(colName.ToString());
         Name = color.ToKnownColor();
         Color = ImGui.ColorConvertU32ToFloat4((uint)color.ToArgb());
-        TextSize = ImGui.CalcTextSize(Piece.ToString()).X; //make improvement PR to accept ROS instead of string
+        Vector2 offset = Vector2.One * 1.5f;
+        TextSize = ImGui.CalcTextSize(Piece.ToString()) + offset;// make improvement PR to accept ROS instead of string
     }
 }
 
@@ -213,7 +212,6 @@ public static class Utils
         float mult = MathF.Pow(10.0f, digits);
         float result = MathF.Truncate(mult * value) / mult;
         return result < 0 ? -result : result;
-        ;
     }
     
     public static Vector2 GetScreenCoord() => new(GetScreenWidth(), GetScreenHeight());
@@ -288,6 +286,12 @@ public static class Utils
         var diff = MathF.Abs(x - y);
         return diff <= tolerance ||
                diff <= MathF.Max(MathF.Abs(x), MathF.Abs(y)) * tolerance;
+    }
+    public static bool Equals(this int x, int y, int tolerance)
+    {
+        var diff = MathF.Abs(x - y);
+        return diff <= tolerance ||
+               diff >= Math.Max(Math.Abs(x), Math.Abs(y));
     }
     private static bool GreaterOrEqual(this float x, float y, float tolerance)
     {
