@@ -54,13 +54,17 @@ public sealed class Grid
                 Vector2 current = new(x, y);
                 float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
                 var tile = _bitmap[x, y] = Bakery.CreateTile(current, noise);
+                
+                if (tile.Body.TileType is TileType.Empty or TileType.Length)
+                    continue;
+                
                 Game.State.Current = tile;
                 OnTileCreated(Span<byte>.Empty);
-                counts[(int)tile.Body.TileType]++;
+                counts[(byte)tile.Body.TileType]++;
             }
         }
         
-        NotifyOnGridCreationDone(counts.Slice(1));
+        NotifyOnGridCreationDone(counts[1..]);
     }
         
     public ref Stats GetTileStatsBy<T>(T key) where T : notnull

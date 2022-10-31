@@ -156,7 +156,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
 public enum TileType : byte
 {
     Empty =0, Red=1, Blue, Green, Purple, Orange, Yellow, Brown, Violet,
-    Length = Violet + 1
+    Length = 9
 }
 
 public enum ShapeKind

@@ -76,23 +76,24 @@ public static class UIRenderer
         {
             textIndentation = minIndentation;
         }
-
+        
         float wrapPos = winWidth - textIndentation;
         
         Vector2 currentPos = new(textIndentation, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
         
         var x = new TextStyleEnumerator(text);
 
-        if (x.Length == 0)
-            ImGui.SetCursorPos(currentPos);
+        Vector2 origin = currentPos;
+        ImGui.SetCursorPos(currentPos); 
+        ImGui.PushTextWrapPos(wrapPos); 
         
         foreach (ref readonly var slice in x)
-        {
-            ImGui.SetCursorPos(currentPos);
-            ImGui.TextColored(slice.Color, slice.Piece.ToString());
-            currentPos.X += (slice.TextSize);
+        { 
+           ImGui.SetCursorPos(currentPos);
+           ImGui.TextColored(slice.Color,slice.Piece.ToString());
+           currentPos.X += (slice.TextSize);
         }
-        ImGui.PushTextWrapPos(wrapPos);
+       
         ImGui.PopTextWrapPos();
     }
 
@@ -111,19 +112,23 @@ public static class UIRenderer
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
         foreach (ref readonly var tuple in MatchQuestHandler.GetSpanEnumerator())
         {
-            string msg = $"You have to collect (Red) {tuple.Item2.Match.Value.Count} " +
-                         $"(Blue) {tuple.Item1})-tiles! and u have (Green){tuple.Item2.Match.Value.Interval} " +
-                         $"seconds to make a new match, so hurry up! {Environment.NewLine}";
+            string msg = $"(Black) You have to collect (Red) {tuple.Item2.Match.Value.Count} " +
+                         $"(Blue) {tuple.Item1}-tiles! (Black) and u have (Green) {tuple.Item2.Match.Value.Interval} " +
+                         $"seconds (Black) to make a new match, so hurry up! {Environment.NewLine}";
             
             if (useConsole)
             {
                 Console.WriteLine(msg);
             }
             else
-            { 
-               // CenterText("{Black} This is a {Red} super nice {Green} shiny looking text {Purple} with a lot of other shiny stuff");
-                CenterText(msg);
+            {
+                string txt = "(Black) You have to collect (Red) 2 balls (Green) and other shit " +
+                             $"(Blue) as well as {DateTime.Now.Date} (Purple) ticks per day (Magenta) with a lot of juice ";
+
+               // string txt2 = "hallo du schwere Welt, wie sehr habe ich doch gelitten gehabt über all die Zeit";
+                CenterText(txt);
                 begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
+                break;
             }
         }
     } 

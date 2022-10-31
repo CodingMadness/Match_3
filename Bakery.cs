@@ -111,10 +111,7 @@ public static class Bakery
                 Layer = Coat.H,
                 Scale = 1f,
             },
-         
-            //DEFAULTS.......
-            TileType.Length => new() { AtlasLocation = -Vector2.One },
-            TileType.Empty => new() { AtlasLocation = -Vector2.One },
+            
             _ => throw new ArgumentOutOfRangeException()
         };
     }
