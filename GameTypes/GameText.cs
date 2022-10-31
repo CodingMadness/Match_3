@@ -26,8 +26,7 @@ public class GameText
     public void ScaleText(int? scaleToThis)
     {
         //default scale is always to screen
-        if (scaleToThis is null)
-            scaleToThis = GetScreenWidth();
+        scaleToThis ??= GetScreenWidth();
 
         var pos = MeasureTextEx(Src, Text, InitSize, 1f);
         float scaleX = MathF.Round(scaleToThis.Value / pos.X);

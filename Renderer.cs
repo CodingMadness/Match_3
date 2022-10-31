@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text;
+using DotNext.Buffers;
 using FastEnumUtility;
 using Match_3.GameTypes;
 using Raylib_CsLo;
@@ -10,7 +12,8 @@ public static class UIRenderer
 {
     private static Color? _questLogColor;
     private static readonly IReadOnlyList<string> ColorNames = FastEnum.GetNames<KnownColor>();
-   
+    private static StringBuilder? Builder;
+    
     public static bool? ShowFeatureBtn(out string btnId)
     {
         static Vector2 NewPos(Vector2 btnSize)
@@ -61,7 +64,7 @@ public static class UIRenderer
         return result;
     }
 
-    public static void CenterText(string text)
+    public static void CenterText(string text, Vector2? begin = null)
     {
         float winWidth = ImGui.GetWindowSize().X;
         float textWidth = ImGui.CalcTextSize(text).X;
@@ -79,7 +82,7 @@ public static class UIRenderer
         
         float wrapPos = winWidth - textIndentation;
         
-        Vector2 currentPos = new(textIndentation, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
+        Vector2 currentPos = new(textIndentation, ImGui.GetCursorPos().Y + (begin?.Y ?? ImGui.GetContentRegionAvail().Y) * 0.5f);
         
         var x = new TextStyleEnumerator(text);
 
@@ -102,33 +105,46 @@ public static class UIRenderer
             }
             
             ImGui.SetCursorPos(tmp);
-            ImGui.TextColored(slice.Color,slice.Piece.ToString());
+            ImGui.TextColored(slice.ImGui__Color,slice.Piece.ToString());
             tmp.X += (slice.TextSize.X);
         }
         ImGui.PopTextWrapPos();
     }
 
-    public static void ShowQuestLog(bool useConsole)
+    public static void ShowQuestLog()
     {
         ImGui.SetWindowFontScale(2f);
-        Vector2 begin = (ImGui.GetContentRegionAvail() * 0.5f);//with { Y = 0 };
+        Vector2 begin = (ImGui.GetContentRegionAvail() * 0.5f) with { Y = 0 };
         _questLogColor ??= Utils.GetRndColor();
+      
+        string msg = $"(Black) You have to collect (Red) " +
+                     "(Blue) -tiles! (Black) and u have (Green) seconds (Purple) to make a new match, " +
+                     " so hurry up!" + Environment.NewLine;
 
-        //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
-        foreach (ref readonly var tuple in MatchQuestHandler.GetSpanEnumerator())
+        Builder ??= new(msg);
+
+        var iterator = new TextStyleEnumerator(msg);
+        Span<byte> indices = stackalloc byte[3];
+
+        int counter = -1;
+        
+        foreach (ref readonly var slice in iterator)
         {
-            string msg = $"(Black) You have to collect (Red) {tuple.Item2.Match.Value.Count} " +
-                         $"(Blue) {tuple.Item1}-tiles! (Black) and u have (Green) {tuple.Item2.Match.Value.Interval} " +
-                         $"seconds (Black) to make a new match, so hurry up! {Environment.NewLine}";
+            if (slice.SystemColor.ToKnownColor() is KnownColor.Black or KnownColor.Purple)
+                continue;
+            
+            indices[++counter] = (byte)msg.LastIndexOf(slice.SystemColor.Name, StringComparison.OrdinalIgnoreCase);
+        }
+        
+        //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
+        foreach (ref readonly var matchGoal in MatchQuestHandler.GetSpanEnumerator())
+        {
+            Builder.Insert(indices[0], matchGoal.Item2.Match.Value.Count);
+            Builder.Insert(indices[1], matchGoal.Item1);
+            Builder.Insert(indices[2], matchGoal.Item2.Match.Value.Interval);
 
-            string txt = "(Black) You have to collect (Red) 2 balls (Green) and other shit " +
-                         $"(Blue) as well as {DateTime.Now.Date} (Purple) ticks per day (Magenta) with a lot of juice " +
-                         " (Beige) we have to a great (Yellow) day in front of us! ";
-
-            // string txt2 = "hallo du schwere Welt, wie sehr habe ich doch gelitten gehabt über all die Zeit";
-            CenterText(txt);
-            begin += Vector2.UnitY * ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
-            break;
+            CenterText(msg, begin);
+            begin *= (ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach);
         }
     } 
 

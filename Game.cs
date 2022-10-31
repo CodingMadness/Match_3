@@ -235,7 +235,7 @@ internal static class Game
             BeginDrawing();
             ClearBackground(WHITE);
                 //ImGui Context Begin
-                var flags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground;
+                const ImGuiWindowFlags flags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground;
 
                 Begin();
                 
@@ -257,7 +257,7 @@ internal static class Game
                         {
                             //UIRenderer.ShowBackground(ref _bgWelcome);
                             //UIRenderer.ShowWelcomeScreen();
-                            UIRenderer.ShowQuestLog(false);
+                            UIRenderer.ShowQuestLog();
                         }
                         if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
                         {

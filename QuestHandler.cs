@@ -376,7 +376,7 @@ public sealed class MatchQuestHandler : QuestHandler
             local.CopyTo(dest);
         }
         
-        Span<TileType> local = stackalloc TileType[(int)(TileType.Length)];
+        Span<TileType> local = stackalloc TileType[(int)TileType.Length];
         LocalFunction(local);
         
         var countToMatch = Game.Level.ID switch
@@ -392,11 +392,10 @@ public sealed class MatchQuestHandler : QuestHandler
 
         TypeGoal = new (TileType, Goal)[allTypes.Length];
         allTypes.Shuffle(Randomizer);
-        byte i = 0;
         
         foreach (var value in allTypes)
         {
-            TypeGoal[i++] = (value, goal);
+            TypeGoal[GoalCountToReach++] = (value, goal);
         }
     }
 

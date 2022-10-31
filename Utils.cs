@@ -10,6 +10,7 @@ global using System.Diagnostics.CodeAnalysis;
 global using static Raylib_CsLo.Raylib;
 global using Color = Raylib_CsLo.Color;
 global using Rectangle = Raylib_CsLo.Rectangle;
+using System.Buffers;
 using System.Text.RegularExpressions;
 using NoAlloq;
 
@@ -142,8 +143,8 @@ public readonly ref struct TextStyle
 {
     public readonly Vector2 TextSize;
     public readonly ReadOnlySpan<char> Piece;
-    public readonly Vector4 Color;
-    public readonly KnownColor Name;
+    public readonly Vector4 ImGui__Color;
+    public readonly SysColor SystemColor;
     /// <summary>
     /// represents the color we want to convert to a Vector4 type
     /// </summary>
@@ -153,9 +154,8 @@ public readonly ref struct TextStyle
     {
         var colName = colorCode[1..^1];
         Piece = piece;
-        var color = SysColor.FromName(colName.ToString());
-        Name = color.ToKnownColor();
-        Color = ImGui.ColorConvertU32ToFloat4((uint)color.ToArgb());
+        SystemColor = SysColor.FromName(colName.ToString());
+        ImGui__Color = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
         Vector2 offset = Vector2.One * 1.5f;
         TextSize = ImGui.CalcTextSize(Piece.ToString()) + offset;// make improvement PR to accept ROS instead of string
     }
