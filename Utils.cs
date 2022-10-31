@@ -61,7 +61,7 @@ public ref struct SpanEnumerator<TItem>
 
 public ref struct TextStyleEnumerator
 {
-    //private static readonly Regex rgx = new(@"\([a-zA-Z]+\)", RegexOptions.Singleline);
+    private static readonly Regex rgx = new(@"\([a-zA-Z]+\)", RegexOptions.Singleline);
     private readonly string _text;
     private TextStyle _current;
     private Span<(int idx, int len)> matchData;
@@ -79,7 +79,7 @@ public ref struct TextStyleEnumerator
         //{Black} This is a {Red} super nice {Green} shiny looking text
         matchData = _stackPool.Slice<(int idx, int len)>(0, 5);
     
-        foreach (var enumerateMatch in Regex.EnumerateMatches(_text, @"\([a-zA-Z]+\)", RegexOptions.Singleline))
+        foreach (var enumerateMatch in rgx.EnumerateMatches(_text))//Regex.EnumerateMatches(_text, @"\([a-zA-Z]+\)", RegexOptions.Singleline))
         {
             reset:
             if (_runner < matchData.Length)
@@ -88,8 +88,8 @@ public ref struct TextStyleEnumerator
             }
             else
             {
-                _stackPool.Store<(int idx, int len)>(matchData, 0);
-                matchData = _stackPool.Slice<(int idx, int len)>(0, 5);
+                //_stackPool.Store<(int idx, int len)>(matchData, 0);
+                matchData = _stackPool.Slice<(int idx, int len)>(0, matchData.Length*2);
                 goto reset;
             }
         }
@@ -118,7 +118,7 @@ public ref struct TextStyleEnumerator
         relativeStart = match.idx;
         int okayBegin = relativeStart;
         
-        if (_runner + 1 < matchData.Length-1)
+        if (_runner + 1 < matchData.Length)
             relativeEnd = matchData[_runner + 1].idx;
         else
         {
@@ -145,7 +145,7 @@ public readonly ref struct TextStyle
     public readonly float TextSize;
     public readonly ReadOnlySpan<char> Piece;
     public readonly Vector4 Color;
-
+    public readonly KnownColor Name;
     /// <summary>
     /// represents the color we want to convert to a Vector4 type
     /// </summary>
@@ -156,6 +156,7 @@ public readonly ref struct TextStyle
         var colName = colorCode[1..^1];
         Piece = piece;
         var color = SysColor.FromName(colName.ToString());
+        Name = color.ToKnownColor();
         Color = ImGui.ColorConvertU32ToFloat4((uint)color.ToArgb());
         TextSize = ImGui.CalcTextSize(Piece.ToString()).X; //make improvement PR to accept ROS instead of string
     }
@@ -166,14 +167,14 @@ public static class Utils
     public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
     public static readonly FastNoiseLite NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
 
-    public static Vector4 AsVec4(SysColor color)
+    public static Vector4 AsVec4(Color color)
     {
         Vector4 v4Color = default;
         const int max = 255; //100%
 
         for (byte i = 0; i < 4; i++)
         {
-            byte colorValue = Unsafe.Add(ref Unsafe.AsRef(color.R), i);
+            byte colorValue = Unsafe.Add(ref Unsafe.AsRef(color.r), i);
             ref float v4Value = ref Unsafe.Add(ref Unsafe.AsRef(v4Color.X), i);
             float percentage = colorValue / (float)max;
             v4Value = percentage;
