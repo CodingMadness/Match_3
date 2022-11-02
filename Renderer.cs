@@ -86,34 +86,43 @@ public static class UIRenderer
             textIndentation = minIndentation;
         }
         
-        float wrapPos = winWidth - textIndentation;
-        
         Vector2 currentPos = new(textIndentation, ImGui.GetCursorPos().Y + (begin?.Y ?? ImGui.GetContentRegionAvail().Y) * 0.5f);
         
         var x = new TextStyleEnumerator(text);
 
         ImGui.SetCursorPos(currentPos); 
-        ImGui.PushTextWrapPos(wrapPos);
+        //ImGui.PushTextWrapPos(wrapPos);
 
         int counter = 0;
         Vector2 tmp = Vector2.Zero;
         int totalSize = 0;
+        //int percentage = (int)(winWidth / 6f);
+        int wrapPosX = (int)(winWidth - textIndentation);
+        
         foreach (ref readonly var slice in x)
         {
-            tmp = tmp == Vector2.Zero ? currentPos : tmp;
-            totalSize += (int)slice.TextSize.X;
+            var wordRunner = new WordEnumerator(slice.Piece, ' ');
             
-            if (totalSize >= winWidth)
+            foreach (var word in wordRunner)
             {
-                tmp = currentPos with { Y = tmp.Y };
-                tmp.Y += slice.TextSize.Y;
+                tmp = tmp == Vector2.Zero ? currentPos : tmp;
+                totalSize += word.Length;
+                //textIndentation = (winWidth - totalSize) * 0.5f;
+                //wrapPos = winWidth - textIndentation;
+
+                if (totalSize >= wrapPosX)
+                {
+                    tmp = currentPos with { Y = tmp.Y };
+                    tmp.Y += slice.TextSize.Y;
+                    totalSize = 0;
+                }
+
+                ImGui.SetCursorPos(tmp);
+                ImGui.TextColored(slice.ImGuiColor, slice.Piece.ToString());
+                tmp.X += slice.TextSize.X;
             }
-            
-            ImGui.SetCursorPos(tmp);
-            ImGui.TextColored(slice.ImGui__Color,slice.Piece.ToString());
-            tmp.X += slice.TextSize.X;
         }
-        ImGui.PopTextWrapPos();
+        //ImGui.PopTextWrapPos();
     }
 
     public static void ShowQuestLog()
@@ -180,7 +189,7 @@ public static class UIRenderer
         {
             BuildMessageFrom(new(matchGoal));
             begin *= ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
-            CenterText(MessageBuilder.ToString());
+            CenterText(MessageBuilder.ToString(), begin);
             break;
         }
     } 
