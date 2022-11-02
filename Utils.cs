@@ -63,6 +63,55 @@ public ref struct SpanEnumerator<TItem>
         return ref this;
     }
 }
+internal ref struct WordEnumerator
+{
+    //private SpanEnumerator<TextChunk> _iterator;
+    private readonly char _separator;
+    private int _startIdx = 0;
+    
+    private ReadOnlySpan<char> _current;
+    private ReadOnlySpan<char> _remainder;
+        
+    [UnscopedRef]public ref readonly ReadOnlySpan<char> Current => ref _current;
+        
+    public int Counter { get; private set; } 
+    /// <summary>
+    /// An Enumerator who iterates over a string[] stored as ROS
+    /// </summary>
+    /// <param name="stringArray">the ROS which is interpreted as a string[]</param>
+    /// <param name="separator">the character who will be used to split the ROS</param>
+    internal WordEnumerator(ReadOnlySpan<char> stringArray, char separator)
+    {
+        _separator = separator;
+        _remainder = stringArray;
+            
+        if (!stringArray.Contains(separator))
+            throw new ArgumentException(
+                "The Enumerator expects a char which shall function as line splitter! If there is none" +
+                "it cannot slice the ROS which shall be viewed as string[]");
+    }
+        
+    public bool MoveNext()
+    {
+        //ReadOnlySpan<char> items = "abc, def, ghi, jkl, mno"
+        int idxOfChar = _remainder.IndexOf(_separator);
+            
+        if (idxOfChar < 0)
+            return false;
+            
+        var firstBlock = _remainder[..idxOfChar];
+        _remainder = _remainder[(firstBlock.Length + 1)..];
+        _current = firstBlock;
+            
+        Counter++;
+        return _current.Length > 0;
+    }
+    
+    public WordEnumerator GetEnumerator()
+    {
+        return this;
+    }
+}
 
 public ref struct TextStyleEnumerator
 {
@@ -162,6 +211,11 @@ public readonly ref struct TextChunk
         ImGui__Color = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
         Vector2 offset = Vector2.One * 1.5f;
         TextSize = ImGui.CalcTextSize(Piece.ToString()) + offset;// make improvement PR to accept ROS instead of string
+    }
+
+    public TextChunk SingleWord()
+    {
+        return new ()
     }
 }
 
