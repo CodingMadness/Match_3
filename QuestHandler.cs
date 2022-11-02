@@ -132,7 +132,7 @@ public readonly record struct SubGoal(int Count, float Interval) : IComparable<S
     }
 }
 
-public readonly record struct Goal(SubGoal? Click, SubGoal? Swap, SubGoal? Match)  
+public readonly record struct Goal(TileType ItemType, SubGoal? Click, SubGoal? Swap, SubGoal? Match)  
 {
     public int ClickCompare(in Stats? stats)
     {
@@ -205,6 +205,20 @@ public static class SingletonManager
 
             return (T)toReturn;
         }
+    }
+}
+
+public readonly struct LogData
+{
+    internal readonly TileType Type;
+    internal readonly int Count;
+    internal readonly int Interval;
+
+    public LogData(in Goal goal)
+    {
+        Type = goal.ItemType;
+        Count = goal.Match!.Value.Count;
+        Interval = (int)goal.Match.Value.Interval;
     }
 }
 
@@ -317,8 +331,8 @@ public sealed class SwapQuestHandler : QuestHandler
 
 public sealed class MatchQuestHandler : QuestHandler
 {
-    private static (TileType, Goal)[] TypeGoal;
-    private static readonly (TileType, Goal) Empty = default;
+    private static Goal[] TypeGoal;
+    private static readonly Goal Empty = default;
     
     public MatchQuestHandler()
     {
@@ -351,11 +365,11 @@ public sealed class MatchQuestHandler : QuestHandler
 
     public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
 
-    private static ref readonly (TileType, Goal) GetGoalBy(TileType key)
+    private static ref readonly Goal GetGoalBy(TileType key)
     {
         foreach (ref readonly var pair in GetSpanEnumerator())
         {
-            if (pair.Item1 != TileType.Empty)
+            if (pair.ItemType == key)
                 return ref pair;
         }
 
@@ -365,19 +379,16 @@ public sealed class MatchQuestHandler : QuestHandler
     //did some changes here..!
     protected override void DefineGoals(Span<byte> countPerType)
     {
-        void LocalFunction(in Span<TileType> dest)
+        void Fill(Span<TileType> toFill)
         {
-            Span<TileType> local = stackalloc TileType[(int)(TileType.Length)];
-         
-            for (int i = 1; i < local.Length; i++)
+            Span<TileType> allTypes = stackalloc TileType[(int)TileType.Length-1];
+
+            for (int i = 1; i < allTypes.Length; i++)
             {
-                local[i] = (TileType)i; //just some random value..
+                allTypes[i] = (TileType)i;
             }
-            local.CopyTo(dest);
+            allTypes.CopyTo(toFill);
         }
-        
-        Span<TileType> local = stackalloc TileType[(int)TileType.Length];
-        LocalFunction(local);
         
         var countToMatch = Game.Level.ID switch
         {
@@ -387,15 +398,15 @@ public sealed class MatchQuestHandler : QuestHandler
             3 => Randomizer.Next(7, 9),
             _ => default
         };
-        var goal = new Goal(null, null, new SubGoal(2, 5f));
-        var allTypes = local.Slice(1, (int)TileType.Length-1);
-
-        TypeGoal = new (TileType, Goal)[allTypes.Length];
+        Span<TileType> allTypes = stackalloc TileType[(int)TileType.Length-1];
+        Fill(allTypes);
+        TypeGoal = new Goal[allTypes.Length];
         allTypes.Shuffle(Randomizer);
         
         foreach (var value in allTypes)
-        {
-            TypeGoal[GoalCountToReach++] = (value, goal);
+        {        
+            var goal = new Goal(value,null, null, new SubGoal(2, 5f));
+            TypeGoal[GoalCountToReach++] = goal;
         }
     }
 
@@ -409,7 +420,7 @@ public sealed class MatchQuestHandler : QuestHandler
         }
 
         var type = Game.State.Current.Body.TileType;
-        goal = GetGoalBy(type).Item2;
+        goal = GetGoalBy(type);
         return IsSubGoalReached(EventType.Matched, goal.Value, stats, out direction);
     }
     
@@ -456,7 +467,7 @@ public sealed class MatchQuestHandler : QuestHandler
         }
     }
 
-    public static SpanEnumerator<(TileType, Goal)> GetSpanEnumerator() => new (TypeGoal.AsSpan());
+    public static SpanEnumerator<Goal> GetSpanEnumerator() => new (TypeGoal.AsSpan());
 }
 
 public abstract class ClickQuestHandler : QuestHandler
