@@ -4,18 +4,14 @@ global using System.Runtime.CompilerServices;
 global using System.Runtime.InteropServices;
 global using DotNext;
 global using ImGuiNET;
-
 global using SysColor = System.Drawing.Color;
 global using System.Diagnostics.CodeAnalysis;
 global using static Raylib_CsLo.Raylib;
 global using Color = Raylib_CsLo.Color;
 global using Rectangle = Raylib_CsLo.Rectangle;
-using System.Buffers;
-using System.Text;
-using System.Text.RegularExpressions;
-using DotNext.Buffers;
-using FastEnumUtility;
-using NoAlloq;
+global using System.Text.RegularExpressions;
+global using FastEnumUtility;
+global using NoAlloq;
 
 namespace Match_3;
 
@@ -70,17 +66,19 @@ public ref struct WordEnumerator
     private int _startIdx = 0;
     
     private ReadOnlySpan<char> _current;
+    private TextChunk _chunk;
     private ReadOnlySpan<char> _remainder;
         
-    [UnscopedRef]public ref readonly ReadOnlySpan<char> Current => ref _current;
-        
+    //[UnscopedRef]public ref readonly ReadOnlySpan<char> Current => ref _current;
+    
+    [UnscopedRef]public ref readonly TextChunk Current => ref _chunk;
     public int Counter { get; private set; } 
     /// <summary>
     /// An Enumerator who iterates over a string[] stored as ROS
     /// </summary>
     /// <param name="stringArray">the ROS which is interpreted as a string[]</param>
     /// <param name="separator">the character who will be used to split the ROS</param>
-    internal WordEnumerator(ReadOnlySpan<char> stringArray, char separator)
+    public WordEnumerator(ReadOnlySpan<char> stringArray, char separator)
     {
         _separator = separator;
         
@@ -96,7 +94,12 @@ public ref struct WordEnumerator
                 "The Enumerator expects a char which shall function as line splitter! If there is none" +
                 "it cannot slice the ROS which shall be viewed as string[]");
     }
-        
+
+    public WordEnumerator(in TextChunk chunk, char separator) : this(chunk.Piece, separator)
+    {
+        _chunk = chunk;
+    }
+    
     public bool MoveNext()
     {
         //ReadOnlySpan<char> items = "abc, def, ghi, jkl, mno"
@@ -108,7 +111,7 @@ public ref struct WordEnumerator
         var firstBlock = _remainder[..idxOfChar];
         _remainder = _remainder[(firstBlock.Length + 1)..];
         _current = firstBlock;
-            
+        _chunk = new(_current, _chunk.SystemColor);
         Counter++;
         return _current.Length > 0;
     }
@@ -206,7 +209,8 @@ public readonly ref struct TextChunk
     /// </summary>
     /// <param name="piece"></param>
     /// <param name="colorCode">the string colorname like {Black} or {Red}</param>
-    public TextChunk(ReadOnlySpan<char> piece, ReadOnlySpan<char> colorCode, (int idx, int len) occurence)
+    public TextChunk(ReadOnlySpan<char> piece, ReadOnlySpan<char> colorCode, 
+        (int idx, int len) occurence)
     {
         var colName = colorCode[1..^1];
         Piece = piece;
@@ -215,6 +219,15 @@ public readonly ref struct TextChunk
         ImGuiColor = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
         Vector2 offset = Vector2.One * 1.5f;
         TextSize = ImGui.CalcTextSize(Piece.ToString()) + offset;// make improvement PR to accept ROS instead of string
+    }
+
+    public TextChunk(ReadOnlySpan<char> piece, SysColor color)
+    {
+        Piece = piece;
+        SystemColor = color;
+        TextSize = ImGui.CalcTextSize(piece.ToString());
+        ImGuiColor = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
+        Occurence = (-1, -1);
     }
 }
 
