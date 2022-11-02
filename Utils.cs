@@ -11,7 +11,10 @@ global using static Raylib_CsLo.Raylib;
 global using Color = Raylib_CsLo.Color;
 global using Rectangle = Raylib_CsLo.Rectangle;
 using System.Buffers;
+using System.Text;
 using System.Text.RegularExpressions;
+using DotNext.Buffers;
+using FastEnumUtility;
 using NoAlloq;
 
 namespace Match_3;
@@ -20,27 +23,26 @@ public ref struct SpanEnumerator<TItem>
 {
     private ref TItem _currentItem;
     private readonly ref TItem _lastItemOffsetByOne;
-    private bool shallSkipDefault;
     
-    public SpanEnumerator(ReadOnlySpan<TItem> span) : this(ref MemoryMarshal.GetReference(span), span.Length-1)
-    {
-    }
+    public SpanEnumerator(ReadOnlySpan<TItem> span) 
+        : this(ref MemoryMarshal.GetReference(span), span.Length)
+    { }
 
     public SpanEnumerator(Span<TItem> span) : 
         this(ref MemoryMarshal.GetReference(span), span.Length)
-    {
-     
-    }
+    { }
 
     private SpanEnumerator(ref TItem item, nint length)
     {
         _currentItem = ref Unsafe.Subtract(ref item, 1);
-        this.shallSkipDefault = shallSkipDefault;
         _lastItemOffsetByOne = ref Unsafe.Add(ref item, length);
+        Length = (int)length;
     }
     [UnscopedRef] public ref TItem Current => ref _currentItem;
     public int Counter { get; private set; } = 0;
 
+    public readonly int Length;
+    
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool MoveNext()
     {
@@ -54,33 +56,34 @@ public ref struct SpanEnumerator<TItem>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public SpanEnumerator<TItem> GetEnumerator()
+   
+    [UnscopedRef]
+    public ref SpanEnumerator<TItem> GetEnumerator()
     {
-        return this;
+        return ref this;
     }
 }
 
 public ref struct TextStyleEnumerator
 {
     private static readonly Regex rgx = new(@"\([a-zA-Z]+\)", RegexOptions.Singleline);
-    private readonly string _text;
-    private TextStyle _current;
+    private TextChunk _current;
     private Span<(int idx, int len)> matchData;
     private int relativeStart, relativeEnd;
+    private readonly ReadOnlySpan<char> _text;
     private StackBuffer _stackPool;
     private int _runner;
 
-    public TextStyleEnumerator(string text)
+    public TextStyleEnumerator(ReadOnlySpan<char> text)
     {
         _stackPool = new();
         _runner = 0;
         _text = text;
-        
         //var result = rgx.Split(_text);
         //{Black} This is a {Red} super nice {Green} shiny looking text
         matchData = _stackPool.Slice<(int idx, int len)>(0, 5);
     
-        foreach (var enumerateMatch in rgx.EnumerateMatches(_text))//Regex.EnumerateMatches(_text, @"\([a-zA-Z]+\)", RegexOptions.Singleline))
+        foreach (var enumerateMatch in rgx.EnumerateMatches(text))
         {
             reset:
             if (_runner < matchData.Length)
@@ -98,62 +101,63 @@ public ref struct TextStyleEnumerator
         matchData = matchData.Where(x => x.idx >= 0 && x.len > 0).CopyInto(matchData).Slice(0);
         _runner = 0;
     }
-    //probably best done with regex
-    //{Black} This is a {Red} super nice {Green} shiny looking text
     
-    [UnscopedRef] public ref readonly TextStyle Current => ref _current;
+    [UnscopedRef]public ref readonly TextChunk Current => ref _current;
 
-    public readonly int Length => _runner;
+    public int Position { get; private set; }
 
     public bool MoveNext()
     {
-        if (_runner >= matchData.Length)
+        if (Position >= matchData.Length)
             return false;
 
-        ref readonly var match = ref matchData[_runner];
+        ref readonly var match = ref matchData[Position];
 
-        ReadOnlySpan<char> colorCode = _text.AsSpan(match.idx, match.len);
+        ReadOnlySpan<char> colorCode = _text.Slice(match.idx, match.len);
 
         relativeStart = match.idx;
         int okayBegin = relativeStart;
         
-        if (_runner + 1 < matchData.Length)
-            relativeEnd = matchData[_runner + 1].idx;
+        if (Position + 1 < matchData.Length)
+            relativeEnd = matchData[Position + 1].idx;
         else
         {
             relativeEnd = _text.Length - match.idx + 1;
             relativeStart = 1;
         }
-        //part0: {Black} This is a
-        var tmp = _text.AsSpan(okayBegin, relativeEnd - relativeStart);
+        //part0: (Black) You have to collect (Red) xxx
+        var tmp = _text.Slice(okayBegin, relativeEnd - relativeStart);
         tmp = tmp[match.len..^1];
-        _current = new(tmp, colorCode);
-        _runner++;
+        _current = new(tmp, colorCode, (match.idx + match.len, tmp.Length));
+        Position++;
         
         return tmp.Length > 0;
     }
 
-    public TextStyleEnumerator GetEnumerator()
+    [UnscopedRef]
+    public ref readonly TextStyleEnumerator GetEnumerator()
     {
-        return this;
+        return ref this;
     }
 }
 
-public readonly ref struct TextStyle
+public readonly ref struct TextChunk
 {
     public readonly Vector2 TextSize;
     public readonly ReadOnlySpan<char> Piece;
     public readonly Vector4 ImGui__Color;
     public readonly SysColor SystemColor;
+    public readonly (int idx, int len) Occurence;
     /// <summary>
     /// represents the color we want to convert to a Vector4 type
     /// </summary>
     /// <param name="piece"></param>
     /// <param name="colorCode">the string colorname like {Black} or {Red}</param>
-    public TextStyle(ReadOnlySpan<char> piece, ReadOnlySpan<char> colorCode)
+    public TextChunk(ReadOnlySpan<char> piece, ReadOnlySpan<char> colorCode, (int idx, int len) occurence)
     {
         var colName = colorCode[1..^1];
         Piece = piece;
+        Occurence = occurence;
         SystemColor = SysColor.FromName(colName.ToString());
         ImGui__Color = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
         Vector2 offset = Vector2.One * 1.5f;
@@ -165,7 +169,12 @@ public static class Utils
 {
     public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
     public static readonly FastNoiseLite NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
-
+    public static readonly IReadOnlyList<TileType> ValidItems = FastEnum.GetValues<TileType>();
+    
+    static void DoWork()
+    {
+    }
+    
     public static Vector4 AsVec4(Color color)
     {
         Vector4 v4Color = default;

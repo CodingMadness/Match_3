@@ -4,6 +4,7 @@ using System.Text;
 using DotNext.Buffers;
 using FastEnumUtility;
 using Match_3.GameTypes;
+using NoAlloq;
 using Raylib_CsLo;
 using static Match_3.AssetManager;
 
@@ -17,8 +18,8 @@ public static class UIRenderer
     private static StringBuilder? Builder;
 
     private static readonly string _message = "(Black) You have to collect " +
-                                              "(Red) xxx " +
-                                              "(Blue) xxx -tiles! " +
+                                              "(Red) xxx amount of " +
+                                              "(Blue) xxx tiles! " +
                                               "(Black) and u have " +
                                               "(Green) xxx seconds (Purple) to make a new match, " +
                                               " so hurry up!" + Environment.NewLine;
@@ -125,28 +126,52 @@ public static class UIRenderer
     {
         void BuildMessageFrom(LogData matchGoal)
         {
-            unsafe ReadOnlySpan<char> GetNextValue(LogData data, int offset)
+            string GetNextValue(LogData data, int offset)
             {
                 //1. matchGoal.g.Match.Value.Count
                 //2. matchGoal.t
                 //3  matchGoal.Match.Value.Interval
-                int* first = (int*)Unsafe.AsPointer(ref data) + offset;
-                return new(first, 1);
+
+                switch (offset)
+                {
+                    case 0:
+                        return data.Count.ToString();
+                    case 1:
+                        return data.Type.ToString();
+                    case 2:
+                        return data.Interval.ToString();
+                }
+
+                return String.Empty;
             }
 
             var tmpWriter = new BufferWriterSlim<char>(stackalloc char[FastEnum.ToString(matchGoal.Type).Length]);
             
             var txtBlockIterator = new TextStyleEnumerator(_message);
 
+            int counter = 0;
+
+            int deletedLen = 0;
+            
             foreach (ref readonly var slice in txtBlockIterator)
             {
                 if (slice.SystemColor.ToKnownColor() is KnownColor.Black or KnownColor.Purple)
                     continue;
+                //
+                string _message2 = "(Black) You have to collect " +
+                                                          "(Red) xxx amount of " +
+                                                          "(Blue) xxx -tiles! " +
+                                                          "(Black) and u have " +
+                                                          "(Green) xxx seconds (Purple) to make a new match, " +
+                                                          " so hurry up!" + Environment.NewLine;
+                var value = GetNextValue(matchGoal, counter++);
                 
                 Builder?.Replace(slice.Piece.ToString(), 
-                    GetNextValue(matchGoal, txtBlockIterator.Position).ToString(), 
-                    slice.Occurence.idx,
+                    value, 
+                    slice.Occurence.idx - deletedLen,
                     slice.Occurence.len);
+                
+                deletedLen += slice.Piece.Length - GetNextValue(matchGoal, counter-1).Length;
             }
         }
     

@@ -153,7 +153,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
 /// <summary>
 /// DefaultTile hardcoded type which is created from a look into the AngryBallsTexture!
 /// </summary>
-public enum TileType : byte
+public enum TileType
 {
     Empty =0, Red=1, Blue, Green, Purple, Orange, Yellow, Brown, Violet,
     Length = 9
