@@ -12,12 +12,12 @@ public static class UIRenderer
     //private static readonly IReadOnlyList<string> ColorNames = FastEnum.GetNames<KnownColor>();
     private static StringBuilder? MessageBuilder, Replacer=new(5);
 
-    private static readonly string _message = "(Black) You have to collect " +
-                                              "(Red) an amount of xxx " +
-                                              "(Blue) xxx tiles! " +
-                                              "(Black) and u have " +
-                                              "(Green) xxx seconds (Purple) to make a new match, " +
-                                              "so hurry up!";
+    private static readonly string _message = "(Black) You have to collect an  " +
+                                              "(Red) amount of xxx  " +
+                                              "(Blue) xxx tiles!  " +
+                                              "(Black) and u have  " +
+                                              "(Green) xxx seconds  " +
+                                              "(Purple) to make a new match, so hurry up!  ";
 
     private static readonly (TileType, Goal)[] MatchGoals = new (TileType, Goal)[(int)TileType.Length-1];
     public static bool? ShowFeatureBtn(out string btnId)
@@ -72,7 +72,7 @@ public static class UIRenderer
 
     public static void CenterText(string text, Vector2? begin = null)
     {
-        float winWidth = ImGui.GetWindowSize().X;
+        float winWidth = GetScreenWidth();//ImGui.GetWindowSize().X;
         float textWidth = ImGui.CalcTextSize(text).X;
         // calculate the indentation that centers the text on one line, relative
         // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
@@ -98,31 +98,29 @@ public static class UIRenderer
         int totalSize = 0;
         //int percentage = (int)(winWidth / 6f);
         int wrapPosX = (int)(winWidth - textIndentation);
+        bool shallWrap = false;
         
         foreach (ref readonly var slice in x)
         {
             var wordRunner = new WordEnumerator(slice.Piece, ' ');
-            
+
             foreach (var word in wordRunner)
             {
                 tmp = tmp == Vector2.Zero ? currentPos : tmp;
-                totalSize += word.Length;
-                //textIndentation = (winWidth - totalSize) * 0.5f;
-                //wrapPos = winWidth - textIndentation;
+                totalSize += (int)word.TextSize.X;
 
-                if (totalSize >= wrapPosX)
+                if (totalSize >= wrapPosX-(int)word.TextSize.X)
                 {
                     tmp = currentPos with { Y = tmp.Y };
-                    tmp.Y += slice.TextSize.Y;
+                    tmp.Y += word.TextSize.Y;
                     totalSize = 0;
                 }
-
+                
                 ImGui.SetCursorPos(tmp);
-                ImGui.TextColored(slice.ImGuiColor, slice.Piece.ToString());
-                tmp.X += slice.TextSize.X;
+                ImGui.TextColored(slice.ImGuiColor, word.Piece.ToString());
+                tmp.X += word.TextSize.X + 4f;
             }
         }
-        //ImGui.PopTextWrapPos();
     }
 
     public static void ShowQuestLog()
