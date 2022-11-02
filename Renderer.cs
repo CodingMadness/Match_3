@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Globalization;
 using System.Text;
 using DotNext.Buffers;
@@ -8,12 +9,21 @@ using static Match_3.AssetManager;
 
 namespace Match_3;
 
+
 public static class UIRenderer
 {
     private static Color? _questLogColor;
-    private static readonly IReadOnlyList<string> ColorNames = FastEnum.GetNames<KnownColor>();
+    //private static readonly IReadOnlyList<string> ColorNames = FastEnum.GetNames<KnownColor>();
     private static StringBuilder? Builder;
-    
+
+    private static readonly string _message = "(Black) You have to collect " +
+                                              "(Red) xxx " +
+                                              "(Blue) xxx -tiles! " +
+                                              "(Black) and u have " +
+                                              "(Green) xxx seconds (Purple) to make a new match, " +
+                                              " so hurry up!" + Environment.NewLine;
+
+    private static readonly (TileType, Goal)[] MatchGoals = new (TileType, Goal)[(int)TileType.Length-1];
     public static bool? ShowFeatureBtn(out string btnId)
     {
         static Vector2 NewPos(Vector2 btnSize)
@@ -113,39 +123,51 @@ public static class UIRenderer
 
     public static void ShowQuestLog()
     {
+        void BuildMessageFrom(LogData matchGoal)
+        {
+            unsafe ReadOnlySpan<char> GetNextValue(LogData data, int offset)
+            {
+                //1. matchGoal.g.Match.Value.Count
+                //2. matchGoal.t
+                //3  matchGoal.Match.Value.Interval
+                int* first = (int*)Unsafe.AsPointer(ref data) + offset;
+                return new(first, 1);
+            }
+
+            var tmpWriter = new BufferWriterSlim<char>(stackalloc char[FastEnum.ToString(matchGoal.Type).Length]);
+            
+            var txtBlockIterator = new TextStyleEnumerator(_message);
+
+            foreach (ref readonly var slice in txtBlockIterator)
+            {
+                if (slice.SystemColor.ToKnownColor() is KnownColor.Black or KnownColor.Purple)
+                    continue;
+                
+                Builder?.Replace(slice.Piece.ToString(), 
+                    GetNextValue(matchGoal, txtBlockIterator.Position).ToString(), 
+                    slice.Occurence.idx,
+                    slice.Occurence.len);
+            }
+        }
+    
         ImGui.SetWindowFontScale(2f);
         Vector2 begin = (ImGui.GetContentRegionAvail() * 0.5f) with { Y = 0 };
         _questLogColor ??= Utils.GetRndColor();
-      
-        string msg = $"(Black) You have to collect (Red) " +
-                     "(Blue) -tiles! (Black) and u have (Green) seconds (Purple) to make a new match, " +
-                     " so hurry up!" + Environment.NewLine;
-
-        Builder ??= new(msg);
-
-        var iterator = new TextStyleEnumerator(msg);
-        Span<byte> indices = stackalloc byte[3];
-
+        
+        using var writer = new BufferWriterSlim<char>(stackalloc char[3*3]);
+        
+        Builder ??= new (_message);
         int counter = -1;
-        
-        foreach (ref readonly var slice in iterator)
-        {
-            if (slice.SystemColor.ToKnownColor() is KnownColor.Black or KnownColor.Purple)
-                continue;
-            
-            indices[++counter] = (byte)msg.LastIndexOf(slice.SystemColor.Name, StringComparison.OrdinalIgnoreCase);
-        }
-        
-        //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
-        foreach (ref readonly var matchGoal in MatchQuestHandler.GetSpanEnumerator())
-        {
-            Builder.Insert(indices[0], matchGoal.Item2.Match.Value.Count);
-            Builder.Insert(indices[1], matchGoal.Item1);
-            Builder.Insert(indices[2], matchGoal.Item2.Match.Value.Interval);
 
-            CenterText(msg, begin);
-            begin *= (ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach);
+        var spanIterator = MatchQuestHandler.GetSpanEnumerator();
+        //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
+
+        foreach (ref readonly var matchGoal in spanIterator)
+        {
+            BuildMessageFrom(new(matchGoal));
+            begin *= ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
         }
+        CenterText(Builder.ToString());
     } 
 
     public static void ShowTimer(float elapsedSeconds)
