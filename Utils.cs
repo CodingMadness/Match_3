@@ -63,7 +63,7 @@ public ref struct SpanEnumerator<TItem>
         return ref this;
     }
 }
-internal ref struct WordEnumerator
+public ref struct WordEnumerator
 {
     //private SpanEnumerator<TextChunk> _iterator;
     private readonly char _separator;
@@ -83,8 +83,14 @@ internal ref struct WordEnumerator
     internal WordEnumerator(ReadOnlySpan<char> stringArray, char separator)
     {
         _separator = separator;
-        _remainder = stringArray;
-            
+        
+        if (stringArray.IndexOf(separator) == 0)
+            _remainder = stringArray[1..];
+
+        else
+            _remainder = stringArray;
+
+
         if (!stringArray.Contains(separator))
             throw new ArgumentException(
                 "The Enumerator expects a char which shall function as line splitter! If there is none" +
@@ -121,12 +127,12 @@ public ref struct TextStyleEnumerator
     private int relativeStart, relativeEnd;
     private readonly ReadOnlySpan<char> _text;
     private StackBuffer _stackPool;
-    private int _runner;
+    private int _position;
 
     public TextStyleEnumerator(ReadOnlySpan<char> text)
     {
         _stackPool = new();
-        _runner = 0;
+        _position = 0;
         _text = text;
         //var result = rgx.Split(_text);
         //{Black} This is a {Red} super nice {Green} shiny looking text
@@ -135,9 +141,9 @@ public ref struct TextStyleEnumerator
         foreach (var enumerateMatch in rgx.EnumerateMatches(text))
         {
             reset:
-            if (_runner < matchData.Length)
+            if (_position < matchData.Length)
             {
-                matchData[_runner++] = (enumerateMatch.Index, enumerateMatch.Length);
+                matchData[_position++] = (enumerateMatch.Index, enumerateMatch.Length);
             }
             else
             {
@@ -148,27 +154,25 @@ public ref struct TextStyleEnumerator
         }
 
         matchData = matchData.Where(x => x.idx >= 0 && x.len > 0).CopyInto(matchData).Slice(0);
-        _runner = 0;
+        _position = 0;
     }
     
     [UnscopedRef]public ref readonly TextChunk Current => ref _current;
-
-    public int Position { get; private set; }
-
+    
     public bool MoveNext()
     {
-        if (Position >= matchData.Length)
+        if (_position >= matchData.Length)
             return false;
 
-        ref readonly var match = ref matchData[Position];
+        ref readonly var match = ref matchData[_position];
 
         ReadOnlySpan<char> colorCode = _text.Slice(match.idx, match.len);
 
         relativeStart = match.idx;
         int okayBegin = relativeStart;
         
-        if (Position + 1 < matchData.Length)
-            relativeEnd = matchData[Position + 1].idx;
+        if (_position + 1 < matchData.Length)
+            relativeEnd = matchData[_position + 1].idx;
         else
         {
             relativeEnd = _text.Length - match.idx + 1;
@@ -178,7 +182,7 @@ public ref struct TextStyleEnumerator
         var tmp = _text.Slice(okayBegin, relativeEnd - relativeStart);
         tmp = tmp[match.len..^1];
         _current = new(tmp, colorCode, (match.idx + match.len, tmp.Length));
-        Position++;
+        _position++;
         
         return tmp.Length > 0;
     }
@@ -194,7 +198,7 @@ public readonly ref struct TextChunk
 {
     public readonly Vector2 TextSize;
     public readonly ReadOnlySpan<char> Piece;
-    public readonly Vector4 ImGui__Color;
+    public readonly Vector4 ImGuiColor;
     public readonly SysColor SystemColor;
     public readonly (int idx, int len) Occurence;
     /// <summary>
@@ -208,14 +212,9 @@ public readonly ref struct TextChunk
         Piece = piece;
         Occurence = occurence;
         SystemColor = SysColor.FromName(colName.ToString());
-        ImGui__Color = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
+        ImGuiColor = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
         Vector2 offset = Vector2.One * 1.5f;
         TextSize = ImGui.CalcTextSize(Piece.ToString()) + offset;// make improvement PR to accept ROS instead of string
-    }
-
-    public TextChunk SingleWord()
-    {
-        return new ()
     }
 }
 
