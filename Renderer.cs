@@ -1,10 +1,5 @@
-using System.Buffers;
-using System.Globalization;
 using System.Text;
-using DotNext.Buffers;
-using FastEnumUtility;
 using Match_3.GameTypes;
-using NoAlloq;
 using Raylib_CsLo;
 using static Match_3.AssetManager;
 
@@ -15,14 +10,14 @@ public static class UIRenderer
 {
     private static Color? _questLogColor;
     //private static readonly IReadOnlyList<string> ColorNames = FastEnum.GetNames<KnownColor>();
-    private static StringBuilder? Builder;
+    private static StringBuilder? MessageBuilder, Replacer=new(5);
 
     private static readonly string _message = "(Black) You have to collect " +
-                                              "(Red) xxx amount of " +
+                                              "(Red) an amount of xxx " +
                                               "(Blue) xxx tiles! " +
                                               "(Black) and u have " +
                                               "(Green) xxx seconds (Purple) to make a new match, " +
-                                              " so hurry up!" + Environment.NewLine;
+                                              "so hurry up!";
 
     private static readonly (TileType, Goal)[] MatchGoals = new (TileType, Goal)[(int)TileType.Length-1];
     public static bool? ShowFeatureBtn(out string btnId)
@@ -101,15 +96,14 @@ public static class UIRenderer
         ImGui.PushTextWrapPos(wrapPos);
 
         int counter = 0;
-        int totalSize = 0;
-        int percentageBounds = (int)(wrapPos / 10f);
         Vector2 tmp = Vector2.Zero;
-        
+        int totalSize = 0;
         foreach (ref readonly var slice in x)
         {
             tmp = tmp == Vector2.Zero ? currentPos : tmp;
+            totalSize += (int)slice.TextSize.X;
             
-            if (++counter % 3 == 0)
+            if (totalSize >= winWidth)
             {
                 tmp = currentPos with { Y = tmp.Y };
                 tmp.Y += slice.TextSize.Y;
@@ -117,7 +111,7 @@ public static class UIRenderer
             
             ImGui.SetCursorPos(tmp);
             ImGui.TextColored(slice.ImGui__Color,slice.Piece.ToString());
-            tmp.X += (slice.TextSize.X);
+            tmp.X += slice.TextSize.X;
         }
         ImGui.PopTextWrapPos();
     }
@@ -126,63 +120,58 @@ public static class UIRenderer
     {
         void BuildMessageFrom(LogData matchGoal)
         {
-            string GetNextValue(LogData data, int offset)
+            StringBuilder GetNextValue(LogData data, int offset)
             {
                 //1. matchGoal.g.Match.Value.Count
                 //2. matchGoal.t
                 //3  matchGoal.Match.Value.Interval
-
-                switch (offset)
+                Replacer?.Clear();
+                
+                return offset switch
                 {
-                    case 0:
-                        return data.Count.ToString();
-                    case 1:
-                        return data.Type.ToString();
-                    case 2:
-                        return data.Interval.ToString();
-                }
-
-                return String.Empty;
+                    0 => Replacer?.Append(data.Count),
+                    1 => Replacer?.Append(data.Type),
+                    2 => Replacer?.Append(data.Interval),
+                    _ => null
+                };
             }
 
-            var tmpWriter = new BufferWriterSlim<char>(stackalloc char[FastEnum.ToString(matchGoal.Type).Length]);
-            
+            TextChunk Get_XXX_Removal(in TextChunk chunk)
+            {
+                int begin = chunk.Piece.IndexOf('x');
+                int last =  chunk.Piece.LastIndexOf('x')+1;
+                var slice = chunk.Piece[begin..last];
+                TextChunk tmp = new(slice, chunk.SystemColor.Name, (chunk.Occurence.idx + begin , 3));
+                return tmp;
+            }
+
             var txtBlockIterator = new TextStyleEnumerator(_message);
 
             int counter = 0;
 
             int deletedLen = 0;
             
-            foreach (ref readonly var slice in txtBlockIterator)
+            foreach (ref readonly var chunk in txtBlockIterator)
             {
-                if (slice.SystemColor.ToKnownColor() is KnownColor.Black or KnownColor.Purple)
+                if (chunk.SystemColor.ToKnownColor() is KnownColor.Black or KnownColor.Purple)
                     continue;
-                //
-                string _message2 = "(Black) You have to collect " +
-                                                          "(Red) xxx amount of " +
-                                                          "(Blue) xxx -tiles! " +
-                                                          "(Black) and u have " +
-                                                          "(Green) xxx seconds (Purple) to make a new match, " +
-                                                          " so hurry up!" + Environment.NewLine;
+
                 var value = GetNextValue(matchGoal, counter++);
+                var newChunk = Get_XXX_Removal(chunk);
                 
-                Builder?.Replace(slice.Piece.ToString(), 
-                    value, 
-                    slice.Occurence.idx - deletedLen,
-                    slice.Occurence.len);
-                
-                deletedLen += slice.Piece.Length - GetNextValue(matchGoal, counter-1).Length;
+                MessageBuilder?.Replace(newChunk.Piece.ToString(),
+                    value.ToString(), 
+                    newChunk.Occurence.idx - deletedLen,
+                    newChunk.Occurence.len);
+                    
+                deletedLen += newChunk.Piece.Length - value.Length;
             }
         }
     
         ImGui.SetWindowFontScale(2f);
         Vector2 begin = (ImGui.GetContentRegionAvail() * 0.5f) with { Y = 0 };
         _questLogColor ??= Utils.GetRndColor();
-        
-        using var writer = new BufferWriterSlim<char>(stackalloc char[3*3]);
-        
-        Builder ??= new (_message);
-        int counter = -1;
+        MessageBuilder ??= new (_message);
 
         var spanIterator = MatchQuestHandler.GetSpanEnumerator();
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
@@ -191,8 +180,9 @@ public static class UIRenderer
         {
             BuildMessageFrom(new(matchGoal));
             begin *= ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
+            CenterText(MessageBuilder.ToString());
+            break;
         }
-        CenterText(Builder.ToString());
     } 
 
     public static void ShowTimer(float elapsedSeconds)
