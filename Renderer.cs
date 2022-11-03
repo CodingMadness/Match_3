@@ -177,7 +177,9 @@ public static class UIRenderer
                     if (FastEnum.TryParse<TileType>(word.Piece.ToString(), out _) ||
                         int.TryParse(word.Piece, out _))
                     {
-                        TextChunk ret = new(_message.AsSpan(0, word.RelativeLocation.idx), word.RelativeLocation);
+                        var (idx, len) = word.RelativeLocation;
+                        idx = _message.AsSpan().IndexOf(word.Piece, StringComparison.OrdinalIgnoreCase);
+                        TextChunk ret = new(word.Piece, (idx, len));
                         return ret;
                     }
                 }
