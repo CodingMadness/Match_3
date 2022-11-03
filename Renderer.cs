@@ -14,13 +14,13 @@ public static class UIRenderer
     private static StringBuilder? MessageBuilder, Replacer=new(5);
 
     private const string _message =  "(Black) You have to collect an  " 
-                                    + "(Red) amount of <xxx>  "
-                                    + "(Blue) <xxx> tiles!  " 
+                                    + "(Red) amount of -1  "
+                                    + "(Blue) Empty tiles!  " 
                                     + "(Black) and u have  "
-                                    + "(Green) <xxx> seconds  " 
+                                    + "(Green) -1 seconds  " 
                                     + "(Purple) to make a new match, and  " 
                                     + "(Yellow) keep in mind to not swap  " 
-                                    + "more than <xxx> times" ;
+                                    + "more than -1 times" ;
 
     private static readonly (TileType, Goal)[] MatchGoals = new (TileType, Goal)[(int)TileType.Length-1];
     
@@ -169,21 +169,7 @@ public static class UIRenderer
                     _ => null
                 };
             }
-
-            TextChunk GetReplaceableChunkFrom(in TextChunk chunk)
-            {
-                if (_message.Contains("<xxx>"))
-                {
-                    int begin = chunk.Piece.IndexOf('<');
-                    int last = chunk.Piece.LastIndexOf('>') + 1;
-                    var slice = chunk.Piece[begin..last];
-                    TextChunk tmp = new(slice, (chunk.Occurence.idx + begin, 5));
-                    return tmp;
-                }
-
-                return GetChunkFromMsg(chunk);
-            }
-
+            
             TextChunk GetChunkFromMsg(in TextChunk chunk)
             {
                 foreach (ref readonly var word in chunk)
@@ -208,11 +194,9 @@ public static class UIRenderer
                 if (chunk.SystemColor.ToKnownColor() is KnownColor.Black or KnownColor.Purple)
                     continue;
 
-                var value = shallRestoreMsg ? "<xxx>" : GetNextValue(matchGoal, counter++);
-                
-                var current = shallRestoreMsg ? 
-                                       chunk /*GetChunkFromMsg(chunk)*/ :
-                                       GetReplaceableChunkFrom(chunk);
+                var value = GetNextValue(matchGoal, counter++);
+
+                var current = shallRestoreMsg ? chunk : GetChunkFromMsg(chunk);
 
                 MessageBuilder?.Replace(current.Piece.ToString(),
                     value, 
