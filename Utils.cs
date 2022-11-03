@@ -204,17 +204,21 @@ public readonly ref struct TextChunk
     public readonly Vector4 ImGuiColor;
     public readonly SysColor SystemColor;
     public readonly (int idx, int len) Occurence;
+    private readonly char _separator;
+
     /// <summary>
     /// represents the color we want to convert to a Vector4 type
     /// </summary>
     /// <param name="piece"></param>
     /// <param name="colorCode">the string colorname like {Black} or {Red}</param>
-    public TextChunk(ReadOnlySpan<char> piece, ReadOnlySpan<char> colorCode, 
-        (int idx, int len) occurence)
+    public TextChunk(ReadOnlySpan<char> piece, 
+        ReadOnlySpan<char> colorCode, 
+        (int idx, int len) occurence, char separator = ' ')
     {
-        var colName = colorCode[1..^1];
+        var colName = colorCode != ReadOnlySpan<char>.Empty ? colorCode[1..^1] : "(Black)";
         Piece = piece;
         Occurence = occurence;
+        _separator = separator;
         SystemColor = SysColor.FromName(colName.ToString());
         ImGuiColor = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
         Vector2 offset = Vector2.One * 1.5f;
@@ -229,6 +233,12 @@ public readonly ref struct TextChunk
         ImGuiColor = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
         Occurence = (-1, -1);
     }
+
+    public TextChunk(ReadOnlySpan<char> piece, (int idx, int len) occurence) 
+        : this(piece, ReadOnlySpan<char>.Empty, occurence)
+    {}
+
+    public WordEnumerator GetEnumerator() => new(this, _separator);
 }
 
 public static class Utils
