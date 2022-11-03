@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Match_3.GameTypes;
 using Raylib_CsLo;
@@ -12,14 +13,17 @@ public static class UIRenderer
     //private static readonly IReadOnlyList<string> ColorNames = FastEnum.GetNames<KnownColor>();
     private static StringBuilder? MessageBuilder, Replacer=new(5);
 
-    private static readonly string _message = "(Black) You have to collect an  " +
-                                              "(Red) amount of xxx  " +
-                                              "(Blue) xxx tiles!  " +
-                                              "(Black) and u have  " +
-                                              "(Green) xxx seconds  " +
-                                              "(Purple) to make a new match, so hurry up!  ";
+    private const string _message =  "(Black) You have to collect an  " 
+                                    + "(Red) amount of <xxx>  "
+                                    + "(Blue) <xxx> tiles!  " 
+                                    + "(Black) and u have  "
+                                    + "(Green) <xxx> seconds  " 
+                                    + "(Purple) to make a new match, and  " 
+                                    + "(Yellow) keep in mind to not swap  " 
+                                    + "more than <xxx> times" ;
 
     private static readonly (TileType, Goal)[] MatchGoals = new (TileType, Goal)[(int)TileType.Length-1];
+    
     public static bool? ShowFeatureBtn(out string btnId)
     {
         static Vector2 NewPos(Vector2 btnSize)
@@ -102,9 +106,7 @@ public static class UIRenderer
         
         foreach (ref readonly var slice in x)
         {
-            var wordRunner = new WordEnumerator(slice.Piece, ' ');
-
-            foreach (var word in wordRunner)
+            foreach (var word in slice)
             {
                 tmp = tmp == Vector2.Zero ? currentPos : tmp;
                 totalSize += (int)word.TextSize.X;
@@ -115,80 +117,126 @@ public static class UIRenderer
                     tmp.Y += word.TextSize.Y;
                     totalSize = 0;
                 }
-                
                 ImGui.SetCursorPos(tmp);
+                ImGui.PushTextWrapPos(winWidth - textIndentation);
                 ImGui.TextColored(slice.ImGuiColor, word.Piece.ToString());
+                ImGui.PopTextWrapPos();
                 tmp.X += word.TextSize.X + 4f;
             }
         }
     }
 
+    public static void TextCentered(string text) 
+    {
+        float winWidth = GetScreenWidth();//ImGui.GetWindowSize().X;
+        float textWidth = ImGui.CalcTextSize(text).X;
+        // calculate the indentation that centers the text on one line, relative
+        // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
+        float textIndentation = (winWidth - textWidth) * 0.5f;
+        // if text is too long to be drawn on one line, `text_indentation` can
+        // become too small or even negative, so we check a minimum indentation
+        const float minIndentation = 20.0f;
+        
+        if (textIndentation <= minIndentation)
+        {
+            textIndentation = minIndentation;
+        }
+        
+        Vector2 currentPos = new(textIndentation, ImGui.GetCursorPos().Y +  ImGui.GetContentRegionAvail().Y * 0.5f);
+
+        ImGui.SetCursorPos(currentPos);
+        ImGui.PushTextWrapPos(winWidth - textIndentation);
+        ImGui.TextColored(Utils.AsVec4(BLACK),text);
+        ImGui.PopTextWrapPos();
+    }
+    
     public static void ShowQuestLog()
     {
-        void BuildMessageFrom(LogData matchGoal)
+        void BuildMessageFrom(in LogData matchGoal, bool shallRestoreMsg)
         {
-            StringBuilder GetNextValue(LogData data, int offset)
+            string GetNextValue(in LogData data, int offset)
             {
                 //1. matchGoal.g.Match.Value.Count
                 //2. matchGoal.t
                 //3  matchGoal.Match.Value.Interval
-                Replacer?.Clear();
                 
                 return offset switch
                 {
-                    0 => Replacer?.Append(data.Count),
-                    1 => Replacer?.Append(data.Type),
-                    2 => Replacer?.Append(data.Interval),
+                    0 => data.Count.ToString(),
+                    1 => data.Type.ToString(),
+                    2 => data.Interval.ToString(),
+                    3 => data.MaxSwapsAllowed.ToString(),
                     _ => null
                 };
             }
 
-            TextChunk Get_XXX_Removal(in TextChunk chunk)
+            TextChunk GetReplaceableChunkFrom(in TextChunk chunk)
             {
-                int begin = chunk.Piece.IndexOf('x');
-                int last =  chunk.Piece.LastIndexOf('x')+1;
-                var slice = chunk.Piece[begin..last];
-                TextChunk tmp = new(slice, chunk.SystemColor.Name, (chunk.Occurence.idx + begin , 3));
-                return tmp;
+                if (_message.Contains("<xxx>"))
+                {
+                    int begin = chunk.Piece.IndexOf('<');
+                    int last = chunk.Piece.LastIndexOf('>') + 1;
+                    var slice = chunk.Piece[begin..last];
+                    TextChunk tmp = new(slice, (chunk.Occurence.idx + begin, 5));
+                    return tmp;
+                }
+
+                return GetChunkFromMsg(chunk);
             }
 
-            var txtBlockIterator = new TextStyleEnumerator(_message);
+            TextChunk GetChunkFromMsg(in TextChunk chunk)
+            {
+                foreach (ref readonly var word in chunk)
+                {
+                    if (FastEnum.TryParse<TileType>(word.Piece.ToString(), out _) ||
+                        int.TryParse(word.Piece, out _))
+                    {
+                        TextChunk ret = new(_message.AsSpan(0, word.Occurence.idx), word.Occurence);
+                        return ret;
+                    }
+                }
 
+                throw new ArgumentException("this shall not be called actually");
+            }
+            
+            var msgIterator = new TextStyleEnumerator(_message);
             int counter = 0;
-
             int deletedLen = 0;
             
-            foreach (ref readonly var chunk in txtBlockIterator)
+            foreach (ref readonly var chunk in msgIterator)
             {
                 if (chunk.SystemColor.ToKnownColor() is KnownColor.Black or KnownColor.Purple)
                     continue;
 
-                var value = GetNextValue(matchGoal, counter++);
-                var newChunk = Get_XXX_Removal(chunk);
+                var value = shallRestoreMsg ? "<xxx>" : GetNextValue(matchGoal, counter++);
                 
-                MessageBuilder?.Replace(newChunk.Piece.ToString(),
-                    value.ToString(), 
-                    newChunk.Occurence.idx - deletedLen,
-                    newChunk.Occurence.len);
+                var current = shallRestoreMsg ? 
+                                       chunk /*GetChunkFromMsg(chunk)*/ :
+                                       GetReplaceableChunkFrom(chunk);
+
+                MessageBuilder?.Replace(current.Piece.ToString(),
+                    value, 
+                    current.Occurence.idx - deletedLen,
+                    current.Occurence.len);
                     
-                deletedLen += newChunk.Piece.Length - value.Length;
+                deletedLen += current.Piece.Length - value.Length;
             }
         }
-    
-        ImGui.SetWindowFontScale(2f);
+
+        ImGui.SetWindowFontScale(1.5f);
         Vector2 begin = (ImGui.GetContentRegionAvail() * 0.5f) with { Y = 0 };
         _questLogColor ??= Utils.GetRndColor();
         MessageBuilder ??= new (_message);
 
-        var spanIterator = MatchQuestHandler.GetSpanEnumerator();
+        var spanIterator = MatchQuestHandler.Instance.GetSpanEnumerator();
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
 
         foreach (ref readonly var matchGoal in spanIterator)
         {
-            BuildMessageFrom(new(matchGoal));
+            BuildMessageFrom(matchGoal, false);
+            CenterText(MessageBuilder.ToString());
             begin *= ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
-            CenterText(MessageBuilder.ToString(), begin);
-            break;
+            BuildMessageFrom(default, true);
         }
     } 
 
