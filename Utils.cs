@@ -59,45 +59,41 @@ public ref struct SpanEnumerator<TItem>
         return ref this;
     }
 }
-public ref struct WordEnumerator
+public unsafe ref struct WordEnumerator
 {
     //private SpanEnumerator<TextChunk> _iterator;
     private readonly char _separator;
     private int _startIdx = 0;
     
     private ReadOnlySpan<char> _current;
-    private TextChunk _chunk;
+    private TextChunk _passage;
     private ReadOnlySpan<char> _remainder;
         
     //[UnscopedRef]public ref readonly ReadOnlySpan<char> Current => ref _current;
+
+    [UnscopedRef] public ref readonly TextChunk Current => ref _passage;
     
-    [UnscopedRef]public ref readonly TextChunk Current => ref _chunk;
-    public int Counter { get; private set; } 
+    private int Counter;
     /// <summary>
     /// An Enumerator who iterates over a string[] stored as ROS
     /// </summary>
     /// <param name="stringArray">the ROS which is interpreted as a string[]</param>
     /// <param name="separator">the character who will be used to split the ROS</param>
-    public WordEnumerator(ReadOnlySpan<char> stringArray, char separator)
+    private WordEnumerator(ReadOnlySpan<char> stringArray, char separator)
     {
         _separator = separator;
         
-        if (stringArray.IndexOf(separator) == 0)
-            _remainder = stringArray[1..];
-
-        else
-            _remainder = stringArray;
-
-
+        _remainder = stringArray.Contains(separator) ? stringArray[1..] : stringArray;
+        
         if (!stringArray.Contains(separator))
             throw new ArgumentException(
                 "The Enumerator expects a char which shall function as line splitter! If there is none" +
                 "it cannot slice the ROS which shall be viewed as string[]");
     }
 
-    public WordEnumerator(in TextChunk chunk, char separator) : this(chunk.Piece, separator)
+    public WordEnumerator(in TextChunk passage, char separator) : this(passage.Piece, separator)
     {
-        _chunk = chunk;
+        _passage = passage;
     }
     
     public bool MoveNext()
@@ -108,12 +104,16 @@ public ref struct WordEnumerator
         if (idxOfChar < 0)
             return false;
             
-        var firstBlock = _remainder[..idxOfChar];
-        _remainder = _remainder[(firstBlock.Length + 1)..];
-        _current = firstBlock;
-        _chunk = new(_current, _chunk.SystemColor);
-        Counter++;
-        return _current.Length > 0;
+        var word = _remainder[..idxOfChar];
+        _remainder = _remainder[(word.Length + 1)..];
+        var (idx, len) = _passage.Occurence;
+        
+        idx = _passage.Piece.IndexOf(word, StringComparison.OrdinalIgnoreCase);
+        len = word.Length;
+        
+        _passage = new(word, _passage.SystemColor, (idx, len));
+        
+        return word.Length > 0;
     }
     
     public WordEnumerator GetEnumerator()
@@ -169,7 +169,7 @@ public ref struct TextStyleEnumerator
 
         ref readonly var match = ref matchData[_position];
 
-        ReadOnlySpan<char> colorCode = _text.Slice(match.idx, match.len);
+        var colorCode = _text.Slice(match.idx, match.len);
 
         relativeStart = match.idx;
         int okayBegin = relativeStart;
@@ -237,6 +237,11 @@ public readonly ref struct TextChunk
     public TextChunk(ReadOnlySpan<char> piece, (int idx, int len) occurence) 
         : this(piece, ReadOnlySpan<char>.Empty, occurence)
     {}
+
+    public TextChunk(ReadOnlySpan<char> current, SysColor sysCol, 
+        (int idx, int len) occurence) : this(current, sysCol.Name, occurence)
+    {
+    }
 
     public WordEnumerator GetEnumerator() => new(this, _separator);
 }

@@ -235,7 +235,10 @@ internal static class Game
             BeginDrawing();
             ClearBackground(WHITE);
                 //ImGui Context Begin
-                const ImGuiWindowFlags flags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground;
+                const ImGuiWindowFlags flags = ImGuiWindowFlags.NoDecoration |
+                                               ImGuiWindowFlags.NoScrollbar |
+                                               ImGuiWindowFlags.NoBackground | 
+                                               ImGuiWindowFlags.NoMove;
 
                 Begin();
                 
