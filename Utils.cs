@@ -32,13 +32,9 @@ public ref struct SpanEnumerator<TItem>
     {
         _currentItem = ref Unsafe.Subtract(ref item, 1);
         _lastItemOffsetByOne = ref Unsafe.Add(ref item, length);
-        Length = (int)length;
     }
     [UnscopedRef] public ref TItem Current => ref _currentItem;
-    public int Counter { get; private set; } = 0;
 
-    public readonly int Length;
-    
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool MoveNext()
     {
@@ -47,7 +43,6 @@ public ref struct SpanEnumerator<TItem>
         bool equalityCheck = EqualityComparer<TItem>.Default.Equals(_currentItem, default);
         return shallSkipDefault ? !equalityCheck && !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne) 
                                 : !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne);*/
-        Counter++;
         return !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne);
     }
 
@@ -59,21 +54,18 @@ public ref struct SpanEnumerator<TItem>
         return ref this;
     }
 }
-public unsafe ref struct WordEnumerator
+public ref struct WordEnumerator
 {
     //private SpanEnumerator<TextChunk> _iterator;
     private readonly char _separator;
-    private int _startIdx = 0;
-    
-    private ReadOnlySpan<char> _current;
-    private TextChunk _passage;
+    private readonly TextChunk _original;
+    private TextChunk _tmp;
     private ReadOnlySpan<char> _remainder;
         
     //[UnscopedRef]public ref readonly ReadOnlySpan<char> Current => ref _current;
 
-    [UnscopedRef] public ref readonly TextChunk Current => ref _passage;
+    [UnscopedRef] public ref readonly TextChunk Current => ref _tmp;
     
-    private int Counter;
     /// <summary>
     /// An Enumerator who iterates over a string[] stored as ROS
     /// </summary>
@@ -91,14 +83,14 @@ public unsafe ref struct WordEnumerator
                 "it cannot slice the ROS which shall be viewed as string[]");
     }
 
-    public WordEnumerator(in TextChunk passage, char separator) : this(passage.Piece, separator)
+    public WordEnumerator(in TextChunk original, char separator) : this(original.Piece, separator)
     {
-        _passage = passage;
+        _original = original;
     }
     
     public bool MoveNext()
     {
-        //ReadOnlySpan<char> items = "abc, def, ghi, jkl, mno"
+        //ReadOnlySpan<char> items = "abc <separator> def <separator> ghi <separator> jkl <separator> mno"
         int idxOfChar = _remainder.IndexOf(_separator);
             
         if (idxOfChar < 0)
@@ -106,12 +98,12 @@ public unsafe ref struct WordEnumerator
             
         var word = _remainder[..idxOfChar];
         _remainder = _remainder[(word.Length + 1)..];
-        var (idx, len) = _passage.Occurence;
+        var (idx, len) = (0,0);
         
-        idx = _passage.Piece.IndexOf(word, StringComparison.OrdinalIgnoreCase);
+        idx = _original.Piece.IndexOf(word, StringComparison.OrdinalIgnoreCase);
         len = word.Length;
         
-        _passage = new(word, _passage.SystemColor, (idx, len));
+        _tmp = new(word, _original.SystemColor, (idx, len));
         
         return word.Length > 0;
     }
@@ -203,7 +195,7 @@ public readonly ref struct TextChunk
     public readonly ReadOnlySpan<char> Piece;
     public readonly Vector4 ImGuiColor;
     public readonly SysColor SystemColor;
-    public readonly (int idx, int len) Occurence;
+    public readonly (int idx, int len) RelativeLocation;
     private readonly char _separator;
 
     /// <summary>
@@ -213,11 +205,11 @@ public readonly ref struct TextChunk
     /// <param name="colorCode">the string colorname like {Black} or {Red}</param>
     public TextChunk(ReadOnlySpan<char> piece, 
         ReadOnlySpan<char> colorCode, 
-        (int idx, int len) occurence, char separator = ' ')
+        (int idx, int len) relativeLocation, char separator = ' ')
     {
         var colName = colorCode != ReadOnlySpan<char>.Empty ? colorCode[1..^1] : "(Black)";
         Piece = piece;
-        Occurence = occurence;
+        RelativeLocation = relativeLocation;
         _separator = separator;
         SystemColor = SysColor.FromName(colName.ToString());
         ImGuiColor = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
@@ -231,7 +223,7 @@ public readonly ref struct TextChunk
         SystemColor = color;
         TextSize = ImGui.CalcTextSize(piece.ToString());
         ImGuiColor = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
-        Occurence = (-1, -1);
+        RelativeLocation = (-1, -1);
     }
 
     public TextChunk(ReadOnlySpan<char> piece, (int idx, int len) occurence) 
@@ -239,7 +231,7 @@ public readonly ref struct TextChunk
     {}
 
     public TextChunk(ReadOnlySpan<char> current, SysColor sysCol, 
-        (int idx, int len) occurence) : this(current, sysCol.Name, occurence)
+        (int idx, int len) relativeLocation) : this(current, sysCol.Name, relativeLocation)
     {
     }
 

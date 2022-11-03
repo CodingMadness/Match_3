@@ -177,7 +177,7 @@ public static class UIRenderer
                     if (FastEnum.TryParse<TileType>(word.Piece.ToString(), out _) ||
                         int.TryParse(word.Piece, out _))
                     {
-                        TextChunk ret = new(_message.AsSpan(0, word.Occurence.idx), word.Occurence);
+                        TextChunk ret = new(_message.AsSpan(0, word.RelativeLocation.idx), word.RelativeLocation);
                         return ret;
                     }
                 }
@@ -200,8 +200,8 @@ public static class UIRenderer
 
                 MessageBuilder?.Replace(current.Piece.ToString(),
                     value, 
-                    current.Occurence.idx - deletedLen,
-                    current.Occurence.len);
+                    current.RelativeLocation.idx - deletedLen,
+                    current.RelativeLocation.len);
                     
                 deletedLen += current.Piece.Length - value.Length;
             }
