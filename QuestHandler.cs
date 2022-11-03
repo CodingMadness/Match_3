@@ -214,13 +214,17 @@ public readonly struct LogData
     internal readonly TileType Type;
     internal readonly int Count;
     internal readonly int Interval;
-
-    public LogData(in Goal goal)
+    internal readonly int MaxSwapsAllowed;
+    
+    private LogData(in Goal goal)
     {
         Type = goal.ItemType;
         Count = goal.Match!.Value.Count;
         Interval = (int)goal.Match.Value.Interval;
+        MaxSwapsAllowed = goal.Swap!.Value.Count;
     }
+
+    public static implicit operator LogData(in Goal goal) => new(goal);
 }
 
 
@@ -366,7 +370,7 @@ public sealed class MatchQuestHandler : QuestHandler
 
     public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
 
-    private static ref readonly Goal GetGoalBy(TileType key)
+    private ref readonly Goal GetGoalBy(TileType key)
     {
         foreach (ref readonly var pair in GetSpanEnumerator())
         {
@@ -401,17 +405,19 @@ public sealed class MatchQuestHandler : QuestHandler
         };
         Span<TileType> allTypes = stackalloc TileType[(int)TileType.Length-1];
         Fill(allTypes);
+        allTypes = allTypes[1..];
+        allTypes[1..].Shuffle(Randomizer);
         TypeGoal = new Goal[allTypes.Length];
-        allTypes.Shuffle(Randomizer);
         
-        foreach (var value in allTypes)
-        {        
-            var goal = new Goal(value,null, null, new SubGoal(2, 5f));
-            TypeGoal[GoalCountToReach++] = goal;
+        foreach (var value in allTypes[..(countToMatch)])
+        {
+            SubGoal match = new(countPerType[(int)value] / Level.MAX_TILES_PER_MATCH, 4.5f);
+            SubGoal test_swap = new(4, 5f);
+            TypeGoal[GoalCountToReach++] = new Goal(value,null, test_swap, match);
         }
     }
 
-    private static bool IsMatchGoalReached(out Goal? goal, in Stats stats, out int direction)
+    private bool IsMatchGoalReached(out Goal? goal, in Stats stats, out int direction)
     {
         if (stats.Matched is null)
         {
@@ -468,7 +474,7 @@ public sealed class MatchQuestHandler : QuestHandler
         }
     }
 
-    public static SpanEnumerator<Goal> GetSpanEnumerator() => new (TypeGoal.AsSpan());
+    public SpanEnumerator<Goal> GetSpanEnumerator() => new (TypeGoal.AsSpan(..GoalsLeft));
 }
 
 public abstract class ClickQuestHandler : QuestHandler
