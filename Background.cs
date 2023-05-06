@@ -7,6 +7,7 @@ public class Background
     public Shape Body { get; }
     //public Rectangle ScreenRect = new(0f, 0f, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
     public Texture Texture;
+    
     public Background(Texture bgTexture)
     {
         Body = new()

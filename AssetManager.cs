@@ -12,14 +12,10 @@ public static unsafe class AssetManager
     public static Texture EnemySprite;
     public static Texture BgIngameTexture;
     public static Shader WobbleEffect;
-    public static (int size, int time) ShaderLoc;
-
+    public static (int size, int time) ShaderData;
     public static Texture FeatureBtn;
-    
     public static Sound SplashSound;
-
     private static Font GameFont;
-
     public static GameText WelcomeText = new(GameFont, "Welcome young man!!", 7f);
     public static GameText GameOverText = new(GameFont, "", 7f);
     public static GameText TimerText = new( GameFont with { baseSize = 512 * 2 }, "", 11f);
@@ -34,8 +30,8 @@ public static unsafe class AssetManager
     {
         var fileName = $"Match_3.Assets.{relativePath}";
         var assembly = Assembly.GetEntryAssembly();
-        var stream = assembly?.GetManifestResourceStream(fileName);
-        var ms = new MemoryStream();
+        using var stream = assembly?.GetManifestResourceStream(fileName);
+        using var ms = new MemoryStream();
 
         if (stream == null)
         {
@@ -134,7 +130,7 @@ public static unsafe class AssetManager
         DefaultTileAtlas = LoadInGameTexture("set1.png");
         EnemySprite = LoadInGameTexture("set2.png");
         WobbleEffect = LoadShader("wobble.frag");
-        ShaderLoc = InitShader();
+        ShaderData = InitShader();
         
         WelcomeText.Src = GameFont;
         GameOverText.Src = GameFont;

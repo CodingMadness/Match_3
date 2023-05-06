@@ -10,7 +10,7 @@ public class MatchX
     private Rectangle _worldRect;
     public TimeOnly DeletedAt { get; private set; }
     public TimeOnly CreatedAt { get; private set; }
-    public bool IsRowBased { get; private set; }
+    protected bool IsRowBased { get; private set; }
     public int Count => Matches.Count;
     public bool IsMatchActive => Count == Level.MAX_TILES_PER_MATCH;
     public TileShape? Body { get; private set; }

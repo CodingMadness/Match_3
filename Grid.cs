@@ -36,6 +36,7 @@ public sealed class Grid
     public delegate void GridAction(Span<byte> countPerType);
 
     public static event GridAction NotifyOnGridCreationDone;
+  
     public static Grid Instance { get; } = new();
 
     private Grid()
@@ -58,7 +59,7 @@ public sealed class Grid
                 if (tile.Body.TileType is TileType.Empty or TileType.Length)
                     continue;
                 
-                Game.State.Current = tile;
+                GameState.Current = tile;
                 OnTileCreated(Span<byte>.Empty);
                 counts[(byte)tile.Body.TileType]++;
             }
@@ -78,14 +79,15 @@ public sealed class Grid
             _hasBeenSorted = true;
         }
 
-        var iterator = new SpanEnumerator<Tile>(map);
+        var iterator = new FastSpanEnumerator<Tile>(map);
             
-        foreach (var tile in iterator)
+        foreach (Tile tile in iterator)
         {
             switch (tile)
             {
                 case null:
                     continue;
+                
                 default:
                     switch (key)
                     {
@@ -112,11 +114,11 @@ public sealed class Grid
         return ref eventData;
     }
 
-    public ref readonly Goal GetTileGoalBy<T>(T key) where T : notnull
+    public ref readonly Quest GetTileQuestBy<T>(T key) where T : notnull
     {
         var map = _bitmap.AsSpan();
-        ref readonly var eventData = ref map[2].Goal;
-        var iterator = new SpanEnumerator<Tile>(map);
+        ref readonly var eventData = ref map[2].Quest;
+        var iterator = new FastSpanEnumerator<Tile>(map);
         
         foreach (var tile in iterator)
         {
@@ -130,19 +132,19 @@ public sealed class Grid
                     {
                         case Tile x:
                             if (x.Equals(tile))
-                                eventData = ref tile.Goal;
+                                eventData = ref tile.Quest;
                             break;
                         case TileType type:
                             if (tile.Body.TileType == type)
-                                eventData = ref tile.Goal;
+                                eventData = ref tile.Quest;
                             break;
                         case Vector2 pos:
                             if (tile.GridCell == pos)
-                                eventData = ref tile.Goal;
+                                eventData = ref tile.Quest;
                             break;
                         case TileShape body:
                             if (tile.Body == body)
-                                eventData = ref tile.Goal;
+                                eventData = ref tile.Quest;
                             break;
                     }
                     break;
@@ -168,8 +170,7 @@ public sealed class Grid
                 
             switch (coord.X)
             {
-                case >= 0 when coord.X < TileWidth 
-                               && coord.Y >= 0 && coord.Y < TileHeight:
+                case >= 0 when coord.X < TileWidth && coord.Y >= 0 && coord.Y < TileHeight:
                 {
                     //its within bounds!
                     tmp = _bitmap[(int)coord.X, (int)coord.Y];
@@ -252,12 +253,11 @@ public sealed class Grid
                 return WasAMatchInAnyDirection(this[_lastMatchTrigger.CoordsB4Swap]!, matches);
         }
 
-        switch (_match3FuncCounter)
+        _match3FuncCounter = _match3FuncCounter switch
         {
-            case >= 1:
-                _match3FuncCounter = 0;
-                break;
-        }
+            >= 1 => 0,
+            _ => _match3FuncCounter
+        };
         return matches.IsMatchActive;
     }
         
@@ -268,7 +268,7 @@ public sealed class Grid
         {
             return false;
         }
-        if ((a.Options & Options.UnMovable) == Options.UnMovable ||
+        if (a.Options.HasFlag(Options.UnMovable) ||
             (b.Options & Options.UnMovable) == Options.UnMovable)
             return false;
             
@@ -284,18 +284,9 @@ public sealed class Grid
     {
         for (int i = 0; i <  match.Count; i++)
         {
-            //var gridCell0 = match.Move(i) ?? throw new Exception("why am i even thrown?"); //works not at al.... investigate
             var gridCell1 = match[i].GridCell; //works good!
-            //Console.WriteLine(this[gridCell1]);
             this[gridCell1]?.Disable(true);
         }
-        /*
-        Console.WriteLine();
-        foreach (var VARIABLE in match.Matches)
-        {
-            Console.WriteLine(VARIABLE);
-        }
-        */
         match.Clear();
     }
 }

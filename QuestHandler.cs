@@ -267,18 +267,13 @@ public readonly struct LogData
 /// </summary>
 public abstract class QuestHandler
 {
-    private static Type Cached_Type;
+    protected virtual Type Cached_Type { get; }
     
     protected bool IsActive { get; private set; }
 
     protected static THandler GetInstance<THandler>() where THandler : QuestHandler, new()
         => SingletonManager.GetOrCreateQuestHandler<THandler>();
 
-    protected QuestHandler()
-    {
-        Cached_Type = GetType();
-    }
-    
     protected int SubGoalCounter { get; set; }
     public int GoalCountToReach { get; protected set; }
     protected int GoalsLeft => GoalCountToReach - SubGoalCounter;
@@ -306,17 +301,18 @@ public abstract class QuestHandler
 
     public void Subscribe()
     {
+        if (IsActive) return;
+        
         SingletonManager.QuestHandlerStorage.TryAdd(Cached_Type, this);
         IsActive = true;
     }
 
     public void UnSubscribe()
     {
-        if (IsActive)
-        {
-            SingletonManager.QuestHandlerStorage.Remove(Cached_Type);
-            IsActive = false;
-        }
+        if (!IsActive) return;
+        
+        SingletonManager.QuestHandlerStorage.Remove(Cached_Type);
+        IsActive = false;
     }
 
     protected virtual void Init() => Grid.NotifyOnGridCreationDone += DefineQuest;
@@ -325,13 +321,17 @@ public abstract class QuestHandler
     {
         MatchQuestHandler.Instance.Init();
         SwapQuestHandler.Instance.Init();
-        TileReplacerOnClickHandler.Instance.Init();
+        //TileReplacementOnClickHandler.Instance.Init();
         DestroyOnClickHandler.Instance.Init();
     }
 }
 
 public sealed class SwapQuestHandler : QuestHandler
 {
+    private static readonly Type _cachedType = Type<SwapQuestHandler>.RuntimeType;
+
+    protected override Type Cached_Type => _cachedType;
+
     protected override void DefineQuest(Span<byte> countPerType)
     {
         //Define Ruleset for SwapQuestHandler:
@@ -377,7 +377,8 @@ public sealed class MatchQuestHandler : QuestHandler
 {
     private static Quest[] TypeGoal;
     private static readonly Quest Empty;
-    
+    private static readonly Type _cachedType = Type<MatchQuestHandler>.RuntimeType;
+
     public MatchQuestHandler()
     {
         Game.OnMatchFound += HandleEvent;
@@ -403,6 +404,8 @@ public sealed class MatchQuestHandler : QuestHandler
                 break;
         }
     }
+
+    protected override Type Cached_Type => _cachedType;
 
     public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
 
@@ -552,11 +555,14 @@ public abstract class ClickQuestHandler : QuestHandler
 public sealed class DestroyOnClickHandler : ClickQuestHandler
 {
     private byte _matchXCounter;
+    private static readonly Type _cachedType = Type<DestroyOnClickHandler>.RuntimeType;
 
     public DestroyOnClickHandler()
     {
         Bakery.OnEnemyTileCreated += DefineQuest;
     }
+
+    protected override Type Cached_Type => _cachedType;
 
     public static DestroyOnClickHandler Instance => GetInstance<DestroyOnClickHandler>();
 
@@ -587,9 +593,13 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
     }
 }
 
-public sealed class TileReplacerOnClickHandler : ClickQuestHandler
+public sealed class TileReplacementOnClickHandler : ClickQuestHandler
 {
-    public static TileReplacerOnClickHandler Instance => GetInstance<TileReplacerOnClickHandler>();
+    private static readonly Type _cachedType = Type<TileReplacementOnClickHandler>.RuntimeType;
+
+    public static TileReplacementOnClickHandler Instance => GetInstance<TileReplacementOnClickHandler>();
+
+    protected override Type Cached_Type => _cachedType;
 
     protected override void HandleEvent()
     {

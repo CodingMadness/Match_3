@@ -270,9 +270,9 @@ public enum TileState
 public class Tile : IEquatable<Tile>
 {
     private TileState _current;
-    private Goal _goal;
+    private Quest _quest;
     public Stats EventData;
-    public ref readonly Goal Goal => ref _goal;
+    public ref readonly Quest Quest => ref _quest;
     public virtual Options Options { get; set; }
     public TileState TileState
     {
@@ -347,13 +347,13 @@ public class Tile : IEquatable<Tile>
     private Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
     public Rectangle WorldBounds => GridBounds.ToWorldBox();
     
-    public void UpdateGoal(EventType eventType, in Goal aGoal)
+    public void UpdateGoal(EventType eventType, in Quest aQuest)
     {
-        _goal = eventType switch
+        _quest = eventType switch
         {
-            EventType.Clicked => _goal with { Click = aGoal.Click },
-            EventType.Swapped => _goal with { Swap = aGoal.Swap },
-            EventType.Matched => _goal with { Match = aGoal.Match },
+            EventType.Clicked => _quest with { Click = aQuest.Click },
+            EventType.Swapped => _quest with { Swap = aQuest.Swap },
+            EventType.Matched => _quest with { Match = aQuest.Match },
             //EventType.RePainted => _goal with { RePaint = aGoal.RePaint },
             //EventType.Destroyed => _goal with { Destroyed = aGoal.Destroyed },
             _ => throw new ArgumentOutOfRangeException(nameof(eventType), eventType, null)
@@ -382,9 +382,14 @@ public class Tile : IEquatable<Tile>
 
     public bool Equals(Tile? other) => StateAndBodyComparer.Singleton.Equals(other, this);
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return Equals(obj as Tile);
+    }
+
+    public override int GetHashCode()
+    {
+        return Body.GetHashCode();
     }
 }
 
