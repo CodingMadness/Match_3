@@ -5,249 +5,22 @@ global using System.Runtime.InteropServices;
 global using DotNext;
 global using ImGuiNET;
 global using SysColor = System.Drawing.Color;
-global using System.Diagnostics.CodeAnalysis;
 global using static Raylib_CsLo.Raylib;
 global using Color = Raylib_CsLo.Color;
 global using Rectangle = Raylib_CsLo.Rectangle;
 global using System.Text.RegularExpressions;
-global using FastEnumUtility;
 global using NoAlloq;
 
+using System;
+using System.Runtime.CompilerServices;
+
 namespace Match_3;
-
-public ref struct SpanEnumerator<TItem>
-{
-    private ref TItem _currentItem;
-    private readonly ref TItem _lastItemOffsetByOne;
-    
-    public SpanEnumerator(ReadOnlySpan<TItem> span) 
-        : this(ref MemoryMarshal.GetReference(span), span.Length)
-    { }
-
-    public SpanEnumerator(Span<TItem> span) : 
-        this(ref MemoryMarshal.GetReference(span), span.Length)
-    { }
-
-    private SpanEnumerator(ref TItem item, nint length)
-    {
-        _currentItem = ref Unsafe.Subtract(ref item, 1);
-        _lastItemOffsetByOne = ref Unsafe.Add(ref item, length);
-    }
-    [UnscopedRef] public ref TItem Current => ref _currentItem;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool MoveNext()
-    {
-        _currentItem = ref Unsafe.Add(ref _currentItem, 1);
-        /*
-        bool equalityCheck = EqualityComparer<TItem>.Default.Equals(_currentItem, default);
-        return shallSkipDefault ? !equalityCheck && !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne) 
-                                : !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne);*/
-        return !Unsafe.AreSame(ref _currentItem, ref _lastItemOffsetByOne);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-   
-    [UnscopedRef]
-    public ref SpanEnumerator<TItem> GetEnumerator()
-    {
-        return ref this;
-    }
-}
-public ref struct WordEnumerator
-{
-    //private SpanEnumerator<TextChunk> _iterator;
-    private readonly char _separator;
-    private readonly TextChunk _original;
-    private TextChunk _tmp;
-    private ReadOnlySpan<char> _remainder;
-        
-    //[UnscopedRef]public ref readonly ReadOnlySpan<char> Current => ref _current;
-
-    [UnscopedRef] public ref readonly TextChunk Current => ref _tmp;
-    
-    /// <summary>
-    /// An Enumerator who iterates over a string[] stored as ROS
-    /// </summary>
-    /// <param name="stringArray">the ROS which is interpreted as a string[]</param>
-    /// <param name="separator">the character who will be used to split the ROS</param>
-    private WordEnumerator(ReadOnlySpan<char> stringArray, char separator)
-    {
-        _separator = separator;
-        
-        _remainder = stringArray.Contains(separator) ? stringArray[1..] : stringArray;
-        
-        if (!stringArray.Contains(separator))
-            throw new ArgumentException(
-                "The Enumerator expects a char which shall function as line splitter! If there is none" +
-                "it cannot slice the ROS which shall be viewed as string[]");
-    }
-
-    public WordEnumerator(in TextChunk original, char separator) : this(original.Piece, separator)
-    {
-        _original = original;
-    }
-    
-    public bool MoveNext()
-    {
-        //ReadOnlySpan<char> items = "abc <separator> def <separator> ghi <separator> jkl <separator> mno"
-        int idxOfChar = _remainder.IndexOf(_separator);
-            
-        if (idxOfChar < 0)
-            return false;
-            
-        var word = _remainder[..idxOfChar];
-        _remainder = _remainder[(word.Length + 1)..];
-        var (idx, len) = (0,0);
-        
-        idx = _original.Piece.IndexOf(word, StringComparison.OrdinalIgnoreCase);
-        len = word.Length;
-        
-        _tmp = new(word, _original.SystemColor, (idx, len));
-        
-        return word.Length > 0;
-    }
-    
-    public WordEnumerator GetEnumerator()
-    {
-        return this;
-    }
-}
-
-public ref struct TextStyleEnumerator
-{
-    private static readonly Regex rgx = new(@"\([a-zA-Z]+\)", RegexOptions.Singleline);
-    private TextChunk _current;
-    private Span<(int idx, int len)> matchData;
-    private int relativeStart, relativeEnd;
-    private readonly ReadOnlySpan<char> _text;
-    private StackBuffer _stackPool;
-    private int _position;
-
-    public TextStyleEnumerator(ReadOnlySpan<char> text)
-    {
-        _stackPool = new();
-        _position = 0;
-        _text = text;
-        //var result = rgx.Split(_text);
-        //{Black} This is a {Red} super nice {Green} shiny looking text
-        matchData = _stackPool.Slice<(int idx, int len)>(0, 5);
-    
-        foreach (var enumerateMatch in rgx.EnumerateMatches(text))
-        {
-            reset:
-            if (_position < matchData.Length)
-            {
-                matchData[_position++] = (enumerateMatch.Index, enumerateMatch.Length);
-            }
-            else
-            {
-                //_stackPool.Store<(int idx, int len)>(matchData, 0);
-                matchData = _stackPool.Slice<(int idx, int len)>(0, matchData.Length*2);
-                goto reset;
-            }
-        }
-
-        matchData = matchData.Where(x => x.idx >= 0 && x.len > 0).CopyInto(matchData).Slice(0);
-        _position = 0;
-    }
-    
-    [UnscopedRef]public ref readonly TextChunk Current => ref _current;
-    
-    public bool MoveNext()
-    {
-        if (_position >= matchData.Length)
-            return false;
-
-        ref readonly var match = ref matchData[_position];
-
-        var colorCode = _text.Slice(match.idx, match.len);
-
-        relativeStart = match.idx;
-        int okayBegin = relativeStart;
-        
-        if (_position + 1 < matchData.Length)
-            relativeEnd = matchData[_position + 1].idx;
-        else
-        {
-            relativeEnd = _text.Length - match.idx + 1;
-            relativeStart = 1;
-        }
-        //part0: (Black) You have to collect (Red) xxx
-        var tmp = _text.Slice(okayBegin, relativeEnd - relativeStart);
-        tmp = tmp[match.len..^1];
-        _current = new(tmp, colorCode, (match.idx + match.len, tmp.Length));
-        _position++;
-        
-        return tmp.Length > 0;
-    }
-
-    [UnscopedRef]
-    public ref readonly TextStyleEnumerator GetEnumerator()
-    {
-        return ref this;
-    }
-}
-
-public readonly ref struct TextChunk
-{
-    public readonly Vector2 TextSize;
-    public readonly ReadOnlySpan<char> Piece;
-    public readonly Vector4 ImGuiColor;
-    public readonly SysColor SystemColor;
-    public readonly (int idx, int len) RelativeLocation;
-    private readonly char _separator;
-
-    /// <summary>
-    /// represents the color we want to convert to a Vector4 type
-    /// </summary>
-    /// <param name="piece"></param>
-    /// <param name="colorCode">the string colorname like {Black} or {Red}</param>
-    public TextChunk(ReadOnlySpan<char> piece, 
-        ReadOnlySpan<char> colorCode, 
-        (int idx, int len) relativeLocation, char separator = ' ')
-    {
-        var colName = colorCode != ReadOnlySpan<char>.Empty ? colorCode[1..^1] : "(Black)";
-        Piece = piece;
-        RelativeLocation = relativeLocation;
-        _separator = separator;
-        SystemColor = SysColor.FromName(colName.ToString());
-        ImGuiColor = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
-        Vector2 offset = Vector2.One * 1.5f;
-        TextSize = ImGui.CalcTextSize(Piece.ToString()) + offset;// make improvement PR to accept ROS instead of string
-    }
-
-    public TextChunk(ReadOnlySpan<char> piece, SysColor color)
-    {
-        Piece = piece;
-        SystemColor = color;
-        TextSize = ImGui.CalcTextSize(piece.ToString());
-        ImGuiColor = ImGui.ColorConvertU32ToFloat4((uint)SystemColor.ToArgb());
-        RelativeLocation = (-1, -1);
-    }
-
-    public TextChunk(ReadOnlySpan<char> piece, (int idx, int len) occurence) 
-        : this(piece, ReadOnlySpan<char>.Empty, occurence)
-    {}
-
-    public TextChunk(ReadOnlySpan<char> current, SysColor sysCol, 
-        (int idx, int len) relativeLocation) : this(current, sysCol.Name, relativeLocation)
-    {
-    }
-
-    public WordEnumerator GetEnumerator() => new(this, _separator);
-}
 
 public static class Utils
 {
     public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
     public static readonly FastNoiseLite NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
-    public static readonly IReadOnlyList<TileType> ValidItems = FastEnum.GetValues<TileType>();
-    
-    static void DoWork()
-    {
-    }
-    
+  
     public static Vector4 AsVec4(Color color)
     {
         Vector4 v4Color = default;
@@ -305,7 +78,7 @@ public static class Utils
     }
     
     public  static bool IsEmpty(this Rectangle rayRect) => 
-       /* rayRect.x == 0 && rayRect.y == 0 &&*/ rayRect.width == 0 && rayRect.height == 0;
+       /* rayRect.x == 0 && rayRect.y == 0 &&*/ rayRect is { width: 0, height: 0 };
 
     public static readonly Rectangle InvalidRect = new(-1f, -1f, 0f, 0f);
     public static Vector2 InvalidCell => -Vector2.One;
@@ -360,7 +133,6 @@ public static class Utils
     }
     public static Rectangle DoScale(this Rectangle rayRect, Scale factor)
     {
-        //rayrect 
         return new(rayRect.x, rayRect.y, rayRect.width * factor.GetFactor(), rayRect.height * factor.GetFactor());
     }
     public static bool Equals(this float x, float y, float tolerance)
