@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using FastEnumUtility;
 using Match_3.GameTypes;
 using Raylib_CsLo;
 using static Match_3.AssetManager;
@@ -11,18 +12,18 @@ public static class UIRenderer
 {
     private static Color? _questLogColor;
     //private static readonly IReadOnlyList<string> ColorNames = FastEnum.GetNames<KnownColor>();
-    private static StringBuilder? MessageBuilder, Replacer=new(5);
+    private static StringBuilder? MessageBuilder, Replacer= new(5);
 
     private const string _message =  "(Black) You have to collect an  " 
                                     + "(Red) amount of -1  "
                                     + "(Blue) Empty tiles!  " 
                                     + "(Black) and u have  "
-                                    + "(Green) -1 seconds  " 
-                                    + "(Purple) to make a new match, and  " 
-                                    + "(Yellow) keep in mind to not swap  " 
-                                    + "more than -1 times" ;
-
-    private static readonly (TileType, Goal)[] MatchGoals = new (TileType, Goal)[(int)TileType.Length-1];
+                                    + "(Green) -2 seconds  " 
+                                    + "(Purple) to make a new match, and " 
+                                    + "(Yellow) keep in mind to not swap " 
+                                    + "more than -3 times" ;
+    
+    private static readonly (TileType, Quest)[] MatchGoals = new (TileType, Quest)[(int)TileType.Length-1];
     
     public static bool? ShowFeatureBtn(out string btnId)
     {
@@ -62,7 +63,8 @@ public static class UIRenderer
             
             //Center(buttonID);
             ImGui.SetCursorPos(Vector2.One*3);
-            if (ImGui.ImageButton((nint)FeatureBtn.id, btnSize ))
+            
+            if (ImGui.ImageButton(btnId, (nint)FeatureBtn.id, btnSize))
             {
                 result = true;
             }
@@ -154,7 +156,7 @@ public static class UIRenderer
     {
         void BuildMessageFrom(in LogData matchGoal, bool shallRestoreMsg)
         {
-            string GetNextValue(in LogData data, int offset)
+            string? GetNextValue(in LogData data, int offset)
             {
                 //1. matchGoal.g.Match.Value.Count
                 //2. matchGoal.t
@@ -174,12 +176,11 @@ public static class UIRenderer
             {
                 foreach (ref readonly var word in chunk)
                 {
-                    if (FastEnum.TryParse<TileType>(word.Piece.ToString(), out _) ||
-                        int.TryParse(word.Piece, out _))
+                    if (FastEnum.TryParse<TileType, int>(word.Piece,true, out _) || int.TryParse(word.Piece, out _))
                     {
                         var (idx, len) = word.RelativeLocation;
                         idx = _message.AsSpan().IndexOf(word.Piece, StringComparison.OrdinalIgnoreCase);
-                        TextChunk ret = new(word.Piece, (idx, len));
+                        TextChunk ret = new(word.Piece, word.SystemColor, (idx, len));
                         return ret;
                     }
                 }
@@ -205,7 +206,7 @@ public static class UIRenderer
                     current.RelativeLocation.idx - deletedLen,
                     current.RelativeLocation.len);
                     
-                deletedLen += current.Piece.Length - value.Length;
+                deletedLen += current.Piece.Length - value!.Length;
             }
         }
 
@@ -222,7 +223,8 @@ public static class UIRenderer
             BuildMessageFrom(matchGoal, false);
             CenterText(MessageBuilder.ToString());
             begin *= ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
-            BuildMessageFrom(default, true);
+            MessageBuilder.Clear();
+            MessageBuilder.Append(_message);
         }
     } 
 
@@ -255,7 +257,7 @@ public static class UIRenderer
         return isDone;
     }
 
-    public static void ShowBackground(ref Background bg)
+    public static void ShowBackground(Background bg)
     {
         Rectangle screen = new(0f,0f, GetScreenWidth(), GetScreenHeight());
 
@@ -289,7 +291,7 @@ public static class GameObjectRenderer
             enemy.Body.Scale = 1f;
             //enemy.TileState &= TileState.Selected;
             DrawTexturePro(atlas, enemy.Body.TextureRect, enemy.Pulsate(elapsedTime), 
-                    Vector2.Zero, 0f, enemy.Body.Color);
+                           Vector2.Zero, 0f, enemy.Body.Color);
             return;
         }
         
