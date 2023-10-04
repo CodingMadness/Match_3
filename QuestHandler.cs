@@ -53,14 +53,17 @@ public struct EventStats : IComparable<EventStats>
 public struct Stats : IComparable<Stats>
 {
     /// <summary>
-    /// Count-Clicks, with maxTime inbetween them
+    /// Count-Clicks, with maxTime in between them
     /// </summary>
-    public EventStats? Clicked;
+    public EventStats? Clicked = new(count: 0);
+    public EventStats? Swapped = new(count: 0);
+    public EventStats? Matched = new(count: 0);
+    public EventStats? RePainted = new(count: 0);
+    public EventStats? Destroyed = new(count: 0);
 
-    public EventStats? Swapped;
-    public EventStats? Matched;
-    public EventStats? RePainted;
-    public EventStats? Destroyed;
+    public Stats()
+    {
+    }
 
     public int CompareTo(Stats other)
     {
@@ -121,18 +124,9 @@ public struct Stats : IComparable<Stats>
             }
         }
     }
-
-    public Stats()
-    {
-        Destroyed = new(count: 0);
-        Clicked = new(count: 0);
-        Swapped = new(count: 0);
-        Matched = new(count: 0);
-        RePainted = new(count: 0);
-    }
 }
 
-public readonly record struct SubQuest(int Count, float Interval) : IComparable<SubQuest>
+public readonly record struct SubQuest(int Count, double Interval) : IComparable<SubQuest>
 {
     public int CompareTo(SubQuest other)
     {
@@ -237,22 +231,22 @@ public static class SingletonManager
     }
 }
 
-public readonly struct LogData
+public readonly struct QuestLog
 {
     internal readonly TileType Type;
-    internal readonly int Count;
-    internal readonly int Interval;
+    internal readonly int TotalMatchCount;
+    internal readonly double MatchInterval;
     internal readonly int MaxSwapsAllowed;
 
-    private LogData(in Quest quest)
+    private QuestLog(in Quest quest)
     {
         Type = quest.ItemType;
-        Count = quest.Match!.Value.Count;
-        Interval = (int)quest.Match.Value.Interval;
+        TotalMatchCount = quest.Match!.Value.Count;
+        MatchInterval = quest.Match.Value.Interval;
         MaxSwapsAllowed = quest.Swap!.Value.Count;
     }
 
-    public static implicit operator LogData(in Quest quest) => new(quest);
+    public static implicit operator QuestLog(in Quest quest) => new(quest);
 }
 
 /// <summary>
@@ -359,7 +353,7 @@ public sealed class SwapQuestHandler : QuestHandler
         Game.OnTileSwapped += HandleEvent;
     }
 
-    private bool IsSwapGoalReached(out Quest quest, out Stats stats, out int direction)
+    private static bool IsSwapGoalReached(out Quest quest, out Stats stats, out int direction)
     {
         var type = GameState.Current.Body.TileType;
         quest = Grid.Instance.GetTileQuestBy(GameState.Current);
@@ -534,10 +528,10 @@ public abstract class ClickQuestHandler : QuestHandler
     {
         var goal = Game.Level.ID switch
         {
-            0 => new Quest { Click = new(Randomizer.Next(2, 4), 5f) },
-            1 => new Quest { Click = new(Randomizer.Next(4, 5), 4.5f) },
-            2 => new Quest { Click = new(Randomizer.Next(5, 6), 3.0f) },
-            3 => new Quest { Click = new(Randomizer.Next(7, 10), 2.0f) },
+            0 => new Quest { Click = new(Randomizer.Next(2, 5), Randomizer.NextDouble() * 10f) },
+            1 => new Quest { Click = new(Randomizer.Next(5, 7), Randomizer.NextDouble() * 10f) },
+            2 => new Quest { Click = new(Randomizer.Next(7, 10), Randomizer.NextDouble() * 10f) },
+            3 => new Quest { Click = new(Randomizer.Next(10, 14), Randomizer.NextDouble() * 10f) },
             _ => default
         };
         GoalCountToReach++;

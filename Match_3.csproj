@@ -39,12 +39,12 @@
   
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="DotNext" Version="4.12.0" />
+    <PackageReference Include="DotNext" Version="4.14.0" />
     <PackageReference Include="DotNext.Reflection" Version="4.9.0" />
-    <PackageReference Include="ImGui.NET" Version="1.89.5" />
+    <PackageReference Include="ImGui.NET" Version="1.89.9.2" />
     <PackageReference Include="JetBrains.Annotations" Version="2023.2.0-eap2" />
     <PackageReference Include="Microsoft.Experimental.Collections" Version="1.0.6-e190117-3" />
-    <PackageReference Include="NoAlloq" Version="0.1.0" />
+    <PackageReference Include="NoAlloq" Version="0.2.0" />
     <PackageReference Include="Raylib-CsLo" Version="4.2.0.9" />
   </ItemGroup>
   <ItemGroup>

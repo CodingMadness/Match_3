@@ -11,7 +11,6 @@
 *
 ********************************************************************************************/
 
-using FastEnumUtility;
 using Raylib_CsLo;
 
 namespace Match_3
@@ -188,7 +187,7 @@ namespace Match_3
         {
             ImGuiIOPtr io = ImGui.GetIO();
 
-            FastSpanEnumerator<KeyboardKey> keyEnumerator = new(FastEnum.GetValues<KeyboardKey, int>());
+            FastSpanEnumerator<KeyboardKey> keyEnumerator = new(Enum.GetValues<KeyboardKey>()/*FastEnum.GetValues<KeyboardKey, int>()*/);
             
             foreach (KeyboardKey key in keyEnumerator)
             {
@@ -274,7 +273,7 @@ namespace Match_3
 
             for (int l = 0; l < data.CmdListsCount; l++)
             {
-                ImDrawListPtr commandList = data.CmdListsRange[l];
+                ImDrawListPtr commandList = data.CmdLists[l];
 
                 for (int cmdIndex = 0; cmdIndex < commandList.CmdBuffer.Size; cmdIndex++)
                 {

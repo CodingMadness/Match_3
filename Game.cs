@@ -13,7 +13,9 @@ internal static class Game
     private static MatchX? _matchesOf3;
     private static EnemyMatches? _enemyMatches;
     private static Tile? _secondClicked;
-    private static Background _bgGameOver, _bgWelcome, _bgIngame1;
+    private static Background? _bgGameOver;
+    private static Background _bgWelcome;
+    private static Background? _bgIngame1;
     private static GameTime _gameTimer ;
     private static EnemyMatchRuleHandler _enemyMatchRuleHandler;
     
@@ -45,7 +47,7 @@ internal static class Game
         //InitGameOverTxt();
         //InitWelcomeTxt();
         _bgWelcome = new(WelcomeTexture);
-        _bgIngame1 = new(BgIngameTexture);
+        //_bgIngame1 = new(BgIngameTexture);
         _bgGameOver = new(GameOverTexture);
         QuestHandler.InitGoals();
         Grid.Instance.Init(Level);
@@ -255,9 +257,8 @@ internal static class Game
                         }
                         else if (!_enterGame)
                         {
-                            //UIRenderer.ShowBackground(ref _bgWelcome);
-                            //UIRenderer.ShowWelcomeScreen();
-                            UIRenderer.ShowQuestLog();
+                            // UiRenderer.DrawBackground(_bgWelcome);
+                            UiRenderer.DrawQuestLog();
                         }
                         if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
                         {
@@ -270,19 +271,19 @@ internal static class Game
                                 OnGameOver();
                                 gameOverTimer.Run();
                                 var value = gameOverTimer.ElapsedSeconds.ToString(CultureInfo.InvariantCulture);
-                                UIRenderer.CenterText(value);
-                                UIRenderer.ShowBackground(_bgGameOver);
-                                UIRenderer.ShowTimer(gameOverTimer.ElapsedSeconds);
+                                UiRenderer.CenterAndRenderText(value);
+                                UiRenderer.DrawBackground(_bgGameOver);
+                                UiRenderer.DrawTimer(gameOverTimer.ElapsedSeconds);
                                 ImGui.SetWindowFontScale(2f);
 
-                                if (UIRenderer.ShowGameOverScreen(gameOverTimer.Done(),
+                                if (UiRenderer.DrawGameOverScreen(gameOverTimer.Done(),
                                         GameState.WasGameWonB4Timeout,
                                         GameState.GameOverMessage))
                                     return;
                             }
                             else if (GameState.WasGameWonB4Timeout)
                             {
-                                if (UIRenderer.ShowGameOverScreen(_gameTimer.Done(), true, GameState.GameOverMessage))
+                                if (UiRenderer.DrawGameOverScreen(_gameTimer.Done(), true, GameState.GameOverMessage))
                                 {
                                     //Begin new Level!
                                     InitGame();
@@ -292,11 +293,11 @@ internal static class Game
                             }
                             else
                             {
-                                var pressed = UIRenderer.ShowFeatureBtn(out _);
-                                GameState.WasFeatureBtnPressed ??= pressed;
-                                GameState.WasFeatureBtnPressed = pressed ?? GameState.WasFeatureBtnPressed;
-                                UIRenderer.ShowBackground(_bgIngame1);
-                                UIRenderer.ShowTimer(currTime);
+                                // var pressed = UIRenderer.DrawFeatureBtn(out _);
+                                // GameState.WasFeatureBtnPressed ??= pressed;
+                                // GameState.WasFeatureBtnPressed = pressed ?? GameState.WasFeatureBtnPressed;
+                                UiRenderer.DrawBackground(_bgIngame1);
+                                UiRenderer.DrawTimer(currTime);
                                 DragMouseToEnemies();
                                 ProcessSelectedTiles();
                                 ComputeMatches();

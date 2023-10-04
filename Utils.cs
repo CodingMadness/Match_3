@@ -28,8 +28,8 @@ public static class Utils
 
         for (byte i = 0; i < 4; i++)
         {
-            byte colorValue = Unsafe.Add(ref Unsafe.AsRef(color.r), i);
-            ref float v4Value = ref Unsafe.Add(ref Unsafe.AsRef(v4Color.X), i);
+            byte colorValue = Unsafe.Add(ref color.r, i);
+            ref float v4Value = ref Unsafe.Add(ref v4Color.X, i);
             float percentage = colorValue / (float)max;
             v4Value = percentage;
         }
@@ -37,7 +37,7 @@ public static class Utils
         return v4Color;
     }
 
-    public static Color FromSysColor(SysColor color)
+    private static Color FromSysColor(SysColor color)
     {
         return new(color.R, color.G, color.B, color.A);
     }
@@ -81,7 +81,7 @@ public static class Utils
        /* rayRect.x == 0 && rayRect.y == 0 &&*/ rayRect is { width: 0, height: 0 };
 
     public static readonly Rectangle InvalidRect = new(-1f, -1f, 0f, 0f);
-    public static Vector2 InvalidCell => -Vector2.One;
+    public static Vector2 InvalidCell { get; } = -Vector2.One; //this will be computed only once!
     public static void Add(ref this Rectangle a, Rectangle b)
     {
         if (a.IsEmpty())
@@ -228,10 +228,7 @@ public static class Utils
     {
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);
     }
-    public static unsafe nint GetAddrOfObject<TObjectT>(this TObjectT @object) where TObjectT: class
-    {
-        return (nint) Unsafe.AsPointer(ref Unsafe.As<StrongBox<byte>>(@object).Value);
-    }
+
     public static Rectangle NewWorldRect(Vector2 begin, int width, int height)
     {
         return new((int)begin.X * Tile.Size,
