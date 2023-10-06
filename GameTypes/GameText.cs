@@ -1,36 +1,27 @@
-﻿using Raylib_CsLo;
+﻿using Raylib_cs;
 
 namespace Match_3.GameTypes;
 
-public class GameText
+public class GameText(Font src, string text, float initSize) 
 {
-    private float _scaledSize;
-        
-    public GameText(Font src, string text, float initSize)
-    {
-        Src = src;
-        Text = text;
-        InitSize = initSize;
-    }
+    private float ScaledSize { get; set; }
 
     public FadeableColor Color;
     
-    public Font Src;
+    public Font Src = src;
         
-    public string Text { get; set; }
-        
-    public float InitSize { get; set; }
-        
+    public string Text { get; set; } = text;
+
+    public float InitSize { get; set; } = initSize;
+
     public Vector2 Begin { get; set; }
         
-    public void ScaleText(int? scaleToThis)
+    public void ScaleText(float scaleRelativeTo)
     {
         //default scale is always to screen
-        scaleToThis ??= GetScreenWidth();
-
         var pos = MeasureTextEx(Src, Text, InitSize, 1f);
-        float scaleX = MathF.Round(scaleToThis.Value / pos.X);
-        _scaledSize = InitSize * scaleX;
+        float scaleX = MathF.Round(scaleRelativeTo / pos.X);
+        ScaledSize = InitSize * scaleX;
     }
         
     public void Draw(float? spacing)
@@ -39,8 +30,8 @@ public class GameText
         {
             Src.baseSize = 10;
             Begin = Begin with { X = Begin.X * 1f };
-            _scaledSize = 80f;
-            DrawTextEx(Src, Text, Begin, _scaledSize, spacing ?? _scaledSize / InitSize, Color);
+            ScaledSize = 80f;
+            DrawTextEx(Src, Text, Begin, ScaledSize, spacing ?? ScaledSize / InitSize, Color);
             return;
         }
 
@@ -50,8 +41,8 @@ public class GameText
             Begin = Begin with { X = Begin.X - width };
         }
 
-        _scaledSize = _scaledSize == 0 ? InitSize : _scaledSize;
+        ScaledSize = ScaledSize == 0 ? InitSize : ScaledSize;
             
-        DrawTextEx(Src, Text, Begin, _scaledSize, spacing ?? _scaledSize / InitSize, Color.Apply());
+        DrawTextEx(Src, Text, Begin, ScaledSize, spacing ?? ScaledSize / InitSize, Color.Apply());
     }
 }
