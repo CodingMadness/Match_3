@@ -4,15 +4,17 @@ global using System.Runtime.CompilerServices;
 global using System.Runtime.InteropServices;
 global using DotNext;
 global using ImGuiNET;
-global using SysColor = System.Drawing.Color;
-global using static Raylib_CsLo.Raylib;
-global using Color = Raylib_CsLo.Color;
-global using Rectangle = Raylib_CsLo.Rectangle;
+global using static Raylib_cs.Color;
+global using RayColor = Raylib_cs.Color;
+
+global using static Raylib_cs.Raylib;
+
 global using System.Text.RegularExpressions;
 global using NoAlloq;
-
-using System;
-using System.Runtime.CompilerServices;
+using DotNext.Collections.Generic;
+using Raylib_cs;
+using Color = System.Drawing.Color;
+using Rectangle = System.Drawing.Rectangle;
 
 namespace Match_3;
 
@@ -20,43 +22,44 @@ public static class Utils
 {
     public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
     public static readonly FastNoiseLite NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
-  
-    public static Vector4 AsVec4(Color color)
-    {
-        Vector4 v4Color = default;
-        const int max = 255; //100%
+    
+    const byte Min = (int)KnownColor.AliceBlue;
+    const byte Max = (int)KnownColor.YellowGreen;
+    const int TrueColorCount = Max - Min;
 
-        for (byte i = 0; i < 4; i++)
-        {
-            byte colorValue = Unsafe.Add(ref color.r, i);
-            ref float v4Value = ref Unsafe.Add(ref v4Color.X, i);
-            float percentage = colorValue / (float)max;
-            v4Value = percentage;
-        }
-        
-        return v4Color;
-    }
-
-    private static Color FromSysColor(SysColor color)
+    private static readonly RayColor[] All = new RayColor[TrueColorCount];
+    
+    public static Vector4 ToVec4(this Color color)
     {
-        return new(color.R, color.G, color.B, color.A);
+        return new (
+            color.R / 255.0f,
+            color.G / 255.0f,
+            color.B / 255.0f,
+            color.A / 255.0f);
     }
     
-    public static Color GetRndColor( )
+    public static Vector4 ToVector4(this RayColor color)
     {
-        int max = (int)KnownColor.YellowGreen;
-        Span<Color> all = stackalloc Color[max];
-        
-        for (int i = 0; i < max; i++)
-        {
-            all[i] = FromSysColor(SysColor.FromKnownColor((KnownColor)i));
-        }
-        all.Shuffle(Randomizer);
-        return all[Randomizer.Next(0, max)];
+        return new (
+            color.r / 255.0f,
+            color.g / 255.0f,
+            color.b / 255.0f,
+            color.a / 255.0f);
     }
+    
+    public static RayColor AsRayColor(this Color color) => new(color.R, color.G, color.B, color.A);
+
+    public static Color AsSysColor(this RayColor color) => Color.FromArgb(color.a, color.r, color.g, color.b);
+    
+    public static RayColor GetRndColor( ) => All[Randomizer.Next(0, TrueColorCount)];
+
+    public static Raylib_cs.Rectangle AsIntRayRect(this RectangleF floatBox) =>
+        new(floatBox.X, floatBox.Y, floatBox.Width, floatBox.Height);
     
     static Utils()
     {
+        All.Shuffle(Randomizer);
+        
         NoiseMaker.SetFrequency(25f);
         NoiseMaker.SetFractalType(FastNoiseLite.FractalType.Ridged);
         NoiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
@@ -76,13 +79,13 @@ public static class Utils
         var val = Randomizer.NextSingle();
         return val.GreaterOrEqual(0.50f, 0.001f);
     }
-    
-    public  static bool IsEmpty(this Rectangle rayRect) => 
-       /* rayRect.x == 0 && rayRect.y == 0 &&*/ rayRect is { width: 0, height: 0 };
 
-    public static readonly Rectangle InvalidRect = new(-1f, -1f, 0f, 0f);
+    private static bool IsEmpty(this RectangleF rayRect) => 
+       /* rayRect.x == 0 && rayRect.y == 0 &&*/ rayRect is { Width: 0, Height: 0 };
+
+    public static readonly RectangleF InvalidRect = new(-1, -1, 0, 0);
     public static Vector2 InvalidCell { get; } = -Vector2.One; //this will be computed only once!
-    public static void Add(ref this Rectangle a, Rectangle b)
+    public static void Add(ref this RectangleF a, RectangleF b)
     {
         if (a.IsEmpty())
         {
@@ -97,43 +100,46 @@ public static class Utils
         Vector2 first = a.GetWorldPos();
         Vector2 other = b.GetWorldPos();
         (Vector2 Direction, bool isRow) pair = first.GetDirectionTo(other);
-        float width = a.width;
-        float height = a.height;
+        float width = a.Width;
+        float height = a.Height;
         
         //we know that: a) the direction and b)
         if (pair.isRow)
         {
             //a=10, b=10, result= a + b * 1
-            width = (a.width + b.width);
+            width = (a.Width + b.Width);
         }
         else
         {
-            height = (a.height + b.height);
+            height = (a.Height + b.Height);
         }
 
-        a = new(first.X, first.Y, width, height);
+        a = new( first.X,  first.Y,  width,  height);
     }
-    public static string ToStr(this Rectangle rayRect)
-        => $"x:{rayRect.x} y:{rayRect.y}  width:{rayRect.width}  height:{rayRect.height}";
-    public static Rectangle ToWorldBox(this Rectangle cellRect)
+    public static string ToStr(this RectangleF rayRect)
+        => $"x:{rayRect.X} y:{rayRect.Y}  width:{rayRect.Width}  height:{rayRect.Height}";
+    
+    public static RectangleF RelativeToMap(this RectangleF cellRect)
     {
-        //rayrect 
-        return new(cellRect.x * Tile.Size, 
-            cellRect.y * Tile.Size,
-            cellRect.width * Tile.Size,
-            cellRect.height * Tile.Size);
+        return new(cellRect.X * Tile.Size, 
+            cellRect.Y * Tile.Size,
+            cellRect.Width * Tile.Size,
+            cellRect.Height * Tile.Size);
     }
-    public static Rectangle ToGridBox(this Rectangle worldRect)
+    public static RectangleF RelativeToGrid(this RectangleF worldRect)
     {
-        //rayrect 
-        return new(worldRect.x / Tile.Size, 
-            worldRect.y / Tile.Size,
-            worldRect.width / Tile.Size,
-            worldRect.height / Tile.Size);
+        return new(worldRect.X / Tile.Size, 
+            worldRect.Y / Tile.Size,
+            worldRect.Width / Tile.Size,
+            worldRect.Height / Tile.Size);
     }
-    public static Rectangle DoScale(this Rectangle rayRect, Scale factor)
+    public static RectangleF DoScale(this RectangleF rayRect, Scale factor)
     {
-        return new(rayRect.x, rayRect.y, rayRect.width * factor.GetFactor(), rayRect.height * factor.GetFactor());
+        return rayRect with 
+        { 
+            Width =  (rayRect.Width * factor.GetFactor()),
+            Height =  (rayRect.Height * factor.GetFactor()) 
+        };
     }
     public static bool Equals(this float x, float y, float tolerance)
     {
@@ -222,17 +228,16 @@ public static class Utils
 
         throw new ArgumentException("this line should never be reached!");
     }
-    private static Vector2 GetWorldPos(this Rectangle a) => new((int)a.x, (int)a.y);
-    public static Vector2 GetCellPos(this Rectangle a) => GetWorldPos(a) / Tile.Size;
+    private static Vector2 GetWorldPos(this RectangleF a) => new(a.X, a.Y);
+    public static Vector2 GetCellPos(this RectangleF a) => GetWorldPos(a) / Tile.Size;
     public static void SetMouseToWorldPos(Vector2 position, int scale = Tile.Size)
     {
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);
     }
-
-    public static Rectangle NewWorldRect(Vector2 begin, int width, int height)
+    public static RectangleF NewWorldRect(Vector2 begin, int width, int height)
     {
-        return new((int)begin.X * Tile.Size,
-            (int)begin.Y * Tile.Size,
+        return new(begin.X * Tile.Size,
+            begin.Y * Tile.Size,
             width * Tile.Size,
             height* Tile.Size);
     }
