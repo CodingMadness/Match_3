@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using DotNext.Runtime;
 using Match_3.GameTypes;
-using Raylib_CsLo;
+using Raylib_cs;
 using static Match_3.AssetManager;
 using static Match_3.Utils;
 
@@ -36,7 +36,7 @@ internal static class Game
     
     private static void InitGame()
     {
-        Level = new(0,900, 6, 11, 9);
+        Level = new(0,900, 6, 6, 7);
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         _matchesOf3 = new();
         SetTargetFPS(60);
@@ -60,7 +60,7 @@ internal static class Game
         //WHEN the cursor exceeds at a certain bounding box
         if (_enemyMatches is not null && _enemyMatches.WorldPos != InvalidCell)
         {
-            bool outsideRect = !CheckCollisionPointRec(GetMousePosition(), _enemyMatches.Border);
+            bool outsideRect = !CheckCollisionPointRec(GetMousePosition(), _enemyMatches.Border.AsIntRayRect());
 
             if (outsideRect && GameState.EnemiesStillPresent)
             {
@@ -78,7 +78,7 @@ internal static class Game
             }
         }
     }
-   
+    
     private static bool TileClicked(out Tile? tile)
     {
         tile = default!;
@@ -243,6 +243,8 @@ internal static class Game
                 {
                     if (ImGui.Begin("Screen Overlay", flags))
                     {
+                        // ImGui.ShowDemoWindow();
+                        
                         ImGui.SetWindowPos(default);
                         ImGui.SetWindowSize(GetScreenCoord());
 
@@ -271,7 +273,7 @@ internal static class Game
                                 OnGameOver();
                                 gameOverTimer.Run();
                                 var value = gameOverTimer.ElapsedSeconds.ToString(CultureInfo.InvariantCulture);
-                                UiRenderer.CenterAndRenderText(value);
+                                UiRenderer.DrawText(value);
                                 UiRenderer.DrawBackground(_bgGameOver);
                                 UiRenderer.DrawTimer(gameOverTimer.ElapsedSeconds);
                                 ImGui.SetWindowFontScale(2f);
@@ -301,7 +303,7 @@ internal static class Game
                                 DragMouseToEnemies();
                                 ProcessSelectedTiles();
                                 ComputeMatches();
-                                //GameObjectRenderer.DrawOuterBox(_enemyMatches, currTime);
+                                GameObjectRenderer.DrawOuterBox(_enemyMatches, currTime);
                                 GameObjectRenderer.DrawInnerBox(_matchesOf3, currTime);
                                 // BeginShaderMode(WobbleEffect);
                                 GameObjectRenderer.DrawGrid(currTime);

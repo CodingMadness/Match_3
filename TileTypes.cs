@@ -1,6 +1,8 @@
 ﻿using DotNext.Runtime;
 using Match_3.GameTypes;
 
+using RectangleF = System.Drawing.RectangleF;
+
 namespace Match_3;
 
 public struct Scale
@@ -70,7 +72,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
         _elapsedTime = 1f;
     }
     
-    private static readonly Dictionary<Color, string> Strings = new()
+    private static readonly Dictionary<RayColor, string> Strings = new()
     {
         {BLACK, "Black"},
         {BLUE, "Blue"},
@@ -93,10 +95,9 @@ public struct FadeableColor : IEquatable<FadeableColor>
         {YELLOW, "Yellow"}
     };
     
-    public string? ToReadableString()
+    private string ToReadableString()
     {
-        Color compare = _toWrap;
-        compare.a = byte.MaxValue;
+        RayColor compare = _toWrap.AsRayColor();
         return Strings.TryGetValue(compare, out var value) ? value : _toWrap.ToString();
     }
 
@@ -110,19 +111,13 @@ public struct FadeableColor : IEquatable<FadeableColor>
     public FadeableColor Apply()
     {
         _Lerp();
-        return this with { _toWrap = Fade(_toWrap, CurrentAlpha) };
+        return this with { _toWrap = Fade(_toWrap.AsRayColor(), CurrentAlpha).AsSysColor() };
     }
 
-    public static implicit operator FadeableColor(Color color)
-    {
-        return new FadeableColor(color);
-    }
+    public static implicit operator RayColor(FadeableColor color) => color._toWrap.AsRayColor();
+    public static implicit operator FadeableColor(Color color) => new(color);
     
-    public static implicit operator Color(FadeableColor color)
-    {
-        return color._toWrap;
-    }
-
+    public static implicit operator FadeableColor(RayColor color) => new(color.AsSysColor());
     public static bool operator ==(FadeableColor c1, FadeableColor c2)
     {
         int bytes4C1 = Unsafe.As<Color, int>(ref c1._toWrap);
@@ -162,7 +157,6 @@ public enum TileType
 public enum ShapeKind
 {
     Circle,
-    Quader,
     Rectangle,
     Heart,
     Trapez
@@ -178,7 +172,8 @@ public class Shape
     public virtual ShapeKind Form { get; set; }
     public virtual Vector2 AtlasLocation { get; init; }
     public Size Size { get; init; }
-    public Rectangle TextureRect => new(AtlasLocation.X, AtlasLocation.Y, Size.Width, Size.Height);
+    public RectangleF TextureRect => new(AtlasLocation.X, AtlasLocation.Y, Size.Width, Size.Height);
+    
     public Scale Scale;
 
     private FadeableColor _color; 
@@ -193,15 +188,9 @@ public class Shape
         _color = _color.Apply();
         return ref _color;
     }
-    public ref readonly FadeableColor Fade(Color c, float elapsedTime)
-    {
-        return ref Fade(c, 0f, elapsedTime);
-    }
-    public ref readonly FadeableColor ToConstColor(Color c)
-    {
-        return ref Fade(c, 1f, 1f);
-    }
-    public ref readonly FadeableColor FIXED_WHITE => ref ToConstColor(WHITE);
+    public ref readonly FadeableColor Fade(Color c, float elapsedTime) => ref Fade(c, 0f, elapsedTime);
+    public ref readonly FadeableColor ToConstColor(Color c) => ref Fade(c, 1f, 1f);
+    public ref readonly FadeableColor FixedWhite => ref ToConstColor(WHITE.AsSysColor());
 }
 
 public class TileShape : Shape, IEquatable<TileShape>, ICloneable
@@ -213,13 +202,10 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
    
     public bool Equals(TileShape? other) =>
         other is not null && TileType == other.TileType && Layer == other.Layer;
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(FIXED_WHITE, TileType);
-    }
-  
-    public override string ToString() =>
-        $"Tile type: <{TileType}> with Tint: <{FIXED_WHITE}>"; //and Opacitylevel: {FadeTint.CurrentAlpha}";
+    
+    public override int GetHashCode() => HashCode.Combine(FixedWhite, TileType);
+
+    public override string ToString() => $"Tile type: <{TileType}> with Tint: <{FixedWhite}>";  
 
     public object Clone()
     {
@@ -233,20 +219,11 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
         return clone;
     }
 
-    public override bool Equals(object? obj)
-    {
-        return obj is TileShape shape && Equals(shape);
-    }
+    public override bool Equals(object? obj) => obj is TileShape shape && Equals(shape);
 
-    public static bool operator ==(TileShape left, TileShape? right)
-    {
-        return left.Equals(right);
-    }
+    public static bool operator ==(TileShape left, TileShape? right) => left.Equals(right);
 
-    public static bool operator !=(TileShape left, TileShape right)
-    {
-        return !(left == right);
-    }
+    public static bool operator !=(TileShape left, TileShape right) => !(left == right);
 }
 
 [Flags]
@@ -267,11 +244,12 @@ public enum TileState
     Disabled=1, Deleted=2, Hidden=4, Selected=8, Clean=16, Pulsate=32
 }
 
-public class Tile : IEquatable<Tile>
+public class Tile(TileShape body) : IEquatable<Tile>
 {
     private TileState _current;
     private Quest _quest;
-    public Stats EventData;
+    public Stats EventData = new();
+    
     public ref readonly Quest Quest => ref _quest;
     public virtual Options Options { get; set; }
     public TileState TileState
@@ -286,7 +264,7 @@ public class Tile : IEquatable<Tile>
                 _current &= TileState.Disabled;
                 _current &= TileState.Deleted;
                 _current &= TileState.Hidden;
-                Body.ToConstColor(WHITE);
+                Body.ToConstColor(WHITE.AsSysColor());
             }
 
             if ((value & TileState.Pulsate) == TileState.Pulsate)
@@ -316,7 +294,7 @@ public class Tile : IEquatable<Tile>
                 _current &= TileState.Clean;
                 _current &= TileState.Selected; //remove clean flag from set
                 _current &= TileState.Disabled;
-                Body.ToConstColor(WHITE);
+                Body.ToConstColor(WHITE.AsSysColor());
             }
             else if ((value & TileState.Disabled) == TileState.Disabled)
             {
@@ -324,7 +302,7 @@ public class Tile : IEquatable<Tile>
                 _current &= TileState.Selected; //remove clean flag from set
                 _current &= TileState
                     .Deleted; //deleted is reserved as Disabled AND Hidden, so u cannot be both at same time
-                Body.ToConstColor(BLACK);
+                Body.ToConstColor(BLACK.AsSysColor());
             }
 
             _current = value;
@@ -332,21 +310,15 @@ public class Tile : IEquatable<Tile>
     }
     public Vector2 GridCell { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
-    public TileShape Body { get; init; }
-
-    /// <summary>
-    /// WorldCell in WorldCoordinates
-    /// </summary>
+    public TileShape Body { get; } = body;
     public Vector2 WorldCell => GridCell * Size;
-
-    /// <summary>
-    /// End in WorldCoordinates
-    /// </summary>
     public Vector2 End => WorldCell + Vector2.One * Size;
     public bool IsDeleted => TileState.HasFlag(TileState.Deleted);
-    private Rectangle GridBounds => new(GridCell.X, GridCell.Y, 1f, 1f);
-    public Rectangle WorldBounds => GridBounds.ToWorldBox();
+    private RectangleF GridBox => new(GridCell.X, GridCell.Y, 1f, 1f);
+    public RectangleF MapBox => GridBox.RelativeToMap();
     
+    public const int Size = Level.TILE_SIZE;
+
     public void UpdateGoal(EventType eventType, in Quest aQuest)
     {
         _quest = eventType switch
@@ -360,44 +332,34 @@ public class Tile : IEquatable<Tile>
         };
     }
     
-    public const int Size = Level.TILE_SIZE;
-  
-    public Tile()
-    {
-        EventData = new();
-    }
     public override string ToString() => $"Cell: {GridCell}; ---- {Body}";
+    
     public void Disable(bool shallDelete)
     {
-        Body.Fade(BLACK, 0f, 1f);
+        Body.Fade(BLACK.AsSysColor(), 0f, 1f);
         Options = Options.UnMovable | Options.UnShapeable;
         TileState = !shallDelete ? TileState.Disabled : TileState.Deleted;
     }
+   
     public void Enable()
     {
-        Body.Fade(WHITE, 0f, 1f);
+        Body.Fade(WHITE.AsSysColor(), 0f, 1f);
         Options = Options.Movable | Options.Shapeable;
         TileState = TileState.Clean;
     }
 
     public bool Equals(Tile? other) => StateAndBodyComparer.Singleton.Equals(other, this);
 
-    public override bool Equals(object? obj)
-    {
-        return Equals(obj as Tile);
-    }
+    public override bool Equals(object? obj) => Equals(obj as Tile);
 
-    public override int GetHashCode()
-    {
-        return Body.GetHashCode();
-    }
+    public override int GetHashCode() => Body.GetHashCode();
 }
 
-public class EnemyTile : Tile
+public class EnemyTile(TileShape body) : Tile(body)
 {
     public override Options Options => Options.UnMovable;
     
-    public Rectangle Pulsate(float elapsedTime)
+    public RectangleF Pulsate(float elapsedTime)
     {
         if (elapsedTime <= 0f)
             return Body.TextureRect;
@@ -408,7 +370,7 @@ public class EnemyTile : Tile
         var rect = Body.TextureRect.DoScale(Body.Scale.GetFactor());
                 
         Body.Scale.ElapsedTime = elapsedTime;
-        return rect with { X = WorldCell.X, Y = WorldCell.Y };
+        return rect with { X = WorldCell.X, Y = (int)WorldCell.Y };
     }
     
     public void BlockSurroundingTiles(Grid map, bool disable)

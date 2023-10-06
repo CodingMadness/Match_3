@@ -1,4 +1,3 @@
-using Raylib_CsLo;
 
 namespace Match_3.GameTypes;
 
@@ -28,11 +27,11 @@ public struct GameTime
     {
         if (ElapsedSeconds <= MaxTimerValue / 2f)
         {
-            ElapsedSeconds -= Raylib.GetFrameTime() * 1.3f;
+            ElapsedSeconds -= GetFrameTime() * 1.3f;
         }
         // subtract this frame from the globalTimer if it's not allready expired
         if (ElapsedSeconds > 0.000f)
-            ElapsedSeconds -= MathF.Round(Raylib.GetFrameTime(), 2);
+            ElapsedSeconds -= MathF.Round(GetFrameTime(), 2);
 
         //Console.WriteLine((int)ElapsedSeconds + "  time gone");
     }

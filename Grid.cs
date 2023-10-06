@@ -1,7 +1,7 @@
 ﻿//using DotNext;
 
 using Match_3.GameTypes;
-using Microsoft.Toolkit.HighPerformance;
+using CommunityToolkit.HighPerformance;
 
 namespace Match_3;
 

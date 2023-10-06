@@ -39,13 +39,13 @@
   
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.1" />
     <PackageReference Include="DotNext" Version="4.14.0" />
     <PackageReference Include="DotNext.Reflection" Version="4.9.0" />
     <PackageReference Include="ImGui.NET" Version="1.89.9.2" />
     <PackageReference Include="JetBrains.Annotations" Version="2023.2.0-eap2" />
-    <PackageReference Include="Microsoft.Experimental.Collections" Version="1.0.6-e190117-3" />
     <PackageReference Include="NoAlloq" Version="0.2.0" />
-    <PackageReference Include="Raylib-CsLo" Version="4.2.0.9" />
+    <PackageReference Include="Raylib-cs" Version="4.5.0.4" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Extension.cs" />
@@ -65,17 +65,9 @@
        
 
     <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgGameOver.png" />
-       
-
     <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgIngame1.png" />
-       
-
     <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgIngame2.png" />
-       
-
     <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgWelcome1.png" />
-       
-
     <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgWelcome2.png" />
     <EmbeddedResource Include="Wobble_Shader.frag">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -100,15 +92,13 @@
     <EmbeddedResource Include="Assets\Sounds\splash.mp3">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    
     <None Remove="Assets\Sprites\Background\bgIngame1.png" />
     <None Remove="Assets\Sprites\Background\bgIngame2.png" />
     <None Remove="Assets\Sprites\Background\bgWelcome1.png" />
     <None Remove="Assets\Sprites\Background\bgGameOver.png" />
     <None Remove="Assets\Sprites\Background\bgWelcome2.png" />
     <None Remove="Assets\Fonts\candy font.ttf" />
-    <EmbeddedResource Include="Assets\Fonts\candy font.ttf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
     <None Remove="Assets\Shaders\splash.glsl" />
     <EmbeddedResource Include="Assets\Shaders\splash.frag">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
