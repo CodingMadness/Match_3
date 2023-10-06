@@ -1,15 +1,15 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Match_3.GameTypes;
-using Raylib_CsLo;
-
+using Raylib_cs;
 using static Match_3.AssetManager;
 
 namespace Match_3;
 
 public static class UiRenderer
 {
-    private static Color? _questLogColor;
+    private static RayColor? _questLogColor;
 
     private const string SameColor = "SAMECOLOR";
     private const string Message = $"(Black) You have to collect an amount of " +
@@ -18,11 +18,10 @@ public static class UiRenderer
                                    $" ({SameColor}) y seconds " +
                                    $" (Black) for each new match, and also just " +
                                    $" ({SameColor}) z available swaps " +
-                                   $" (Black)for each new match";
+                                   $" (Black) for each new match ";
+    
     //You have to collect an amount of 4 Red tiles and u have in between, 4,5 seconds for each new match, and also only 4 available swaps for each new match
     private static readonly StringBuilder? MessageBuilder = new((int)(Message.Length * 1.25f));
-
-    private static readonly (TileType, Quest)[] MatchGoals = new (TileType, Quest)[(int)TileType.Length - 1];
 
     public static bool? DrawFeatureBtn(out string btnId)
     {
@@ -77,82 +76,67 @@ public static class UiRenderer
         return result;
     }
 
-    public static void CenterAndRenderText(string text, Vector2? begin = null)
+    public static void DrawText(string text)
     {
-        float winWidth = GetScreenWidth(); //ImGui.GetWindowSize().X;
-        float textWidth = ImGui.CalcTextSize(text).X;
-        // calculate the indentation that centers the text on one line, relative
-        // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
-        float textIndentation = (winWidth - textWidth) * 0.5f;
-        // if text is too long to be drawn on one line, `text_indentation` can
-        // become too small or even negative, so we check a minimum indentation
-        const float minIndentation = 20.0f;
-
-        if (textIndentation <= minIndentation)
+        static void ScaleText(string text, float fontSize)
         {
-            textIndentation = minIndentation;
+            //default scale is always to screen
+            var pos = MeasureTextEx(QuestLogText.Src,text, fontSize, 1f).X;
+            float scaleX = MathF.Round(GetScreenWidth() / pos);
+            float x = fontSize * scaleX;
+            ImGui.SetWindowFontScale(x);
         }
-
-        Vector2 currentPos = new(textIndentation,
-            ImGui.GetCursorPos().Y + (begin?.Y ?? ImGui.GetContentRegionAvail().Y) * 0.5f);
-
-        var x = new TextStyleEnumerator(text);
-
-        ImGui.SetCursorPos(currentPos);
-        //ImGui.PushTextWrapPos(wrapPos);
-
+        
+        // float fontsize = ImGui.GetFontSize();
+        // ScaleText(text, fontsize/10f);
+        
+        float winWidth = ImGui.GetWindowWidth(); 
+        Vector2 currentPos = new(25f, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
+        scoped var x = new TextStyleEnumerator(text);
+        Vector2 tmp = default;
+        float totalSize = 0;
+        const float spaceBetween = 5f;
         int counter = 0;
-        Vector2 tmp = Vector2.Zero;
-        int totalSize = 0;
-        //int percentage = (int)(winWidth / 6f);
-        int wrapPosX = (int)(winWidth - textIndentation);
-        bool shallWrap = false;
-
-        foreach (ref readonly var slice in x)
+        
+        void NewLine(Vector2 phraseSize)
         {
-            foreach (var word in slice)
+            tmp.X = currentPos.X; //reset to the X position from the beginning
+            tmp.Y += phraseSize.Y * 1.15f;
+            totalSize = phraseSize.X;
+        }
+        
+        ImGui.SetCursorPos(currentPos);
+        
+        foreach (ref readonly var phrase in x)
+        {
+            // calculate the indentation that centers the text on one line, relative
+            // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
+            
+            float wrapPosX = winWidth - 0f;
+            totalSize += phrase.TextSize.X;
+
+            if (totalSize > wrapPosX)
+            {
+                NewLine(phrase.TextSize);
+            }
+
+            //Draw words as long as they fit in the WINDOW_WIDTH
+            foreach (var word in phrase)
             {
                 tmp = tmp == Vector2.Zero ? currentPos : tmp;
-                totalSize += (int)word.TextSize.X;
-
-                if (totalSize >= wrapPosX - (int)word.TextSize.X)
-                {
-                    tmp = currentPos with { Y = tmp.Y };
-                    tmp.Y += word.TextSize.Y;
-                    totalSize = 0;
-                }
-
                 ImGui.SetCursorPos(tmp);
-                ImGui.PushTextWrapPos(winWidth - textIndentation);
-                ImGui.TextColored(slice.ImGuiColorAsVec4, word.Piece);
+                ImGui.PushTextWrapPos(wrapPosX);
+                //we have to scale the FontSize accordingly to the window-size
+                ImGui.TextColored(word.ColorV4, word.Piece);
                 ImGui.PopTextWrapPos();
-                tmp.X += word.TextSize.X + 4f;
+                tmp.X += word.TextSize.X + spaceBetween;
             }
+
+            // if (totalSize == 0)
+            //     totalSize += phrase.TextSize.X;
+            
+            counter++;
         }
-    }
-
-    public static void TextCentered(string text)
-    {
-        float winWidth = GetScreenWidth(); //ImGui.GetWindowSize().X;
-        float textWidth = ImGui.CalcTextSize(text).X;
-        // calculate the indentation that centers the text on one line, relative
-        // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
-        float textIndentation = (winWidth - textWidth) * 0.5f;
-        // if text is too long to be drawn on one line, `text_indentation` can
-        // become too small or even negative, so we check a minimum indentation
-        const float minIndentation = 20.0f;
-
-        if (textIndentation <= minIndentation)
-        {
-            textIndentation = minIndentation;
-        }
-
-        Vector2 currentPos = new(textIndentation, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
-
-        ImGui.SetCursorPos(currentPos);
-        ImGui.PushTextWrapPos(winWidth - textIndentation);
-        ImGui.TextColored(Utils.AsVec4(BLACK), text);
-        ImGui.PopTextWrapPos();
     }
 
     public static void DrawQuestLog()
@@ -193,19 +177,20 @@ public static class UiRenderer
         ImGui.SetWindowFontScale(1.5f);
         Vector2 begin = (ImGui.GetContentRegionAvail() * 0.5f) with { Y = 0 };
         _questLogColor ??= Utils.GetRndColor();
-
         var questIterator = MatchQuestHandler.Instance.GetSpanEnumerator();
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
+        string mlt = "";
         
         foreach (ref readonly var quest in questIterator)
         {
             BuildMessageFrom(quest);
-            CenterAndRenderText(MessageBuilder.ToString());
+            //ImGui.TextWrapped(MessageBuilder.ToString());
+            DrawText(MessageBuilder.ToString());
             begin *= ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
             MessageBuilder.Clear();
         }
     }
-
+ 
     public static void DrawTimer(float elapsedSeconds)
     {
         //horrible performance: use a stringBuilder to reuse values!
@@ -214,7 +199,7 @@ public static class UiRenderer
         FadeableColor color = elapsedSeconds > 0f ? BLUE : WHITE;
         TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
         TimerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 0f };
-        TimerText.ScaleText(null);
+        TimerText.ScaleText(GetScreenWidth());
         TimerText.Draw(1f);
     }
 
@@ -231,7 +216,7 @@ public static class UiRenderer
             return false;
         }
 
-        CenterAndRenderText(input);
+        DrawText(input);
         return isDone;
     }
 
@@ -240,16 +225,17 @@ public static class UiRenderer
         if (bg is null)
             return;
 
-        Rectangle screen = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
+        RectangleF screen = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
 
-        DrawTexturePro(bg.Texture, bg.Body.TextureRect, screen.DoScale(bg.Body.Scale),
-            Vector2.Zero, 0f, bg.Body.FIXED_WHITE);
+        DrawTexturePro(bg.Texture, bg.Body.TextureRect.AsIntRayRect(),
+                    screen.DoScale(bg.Body.Scale).AsIntRayRect(),
+                        Vector2.Zero, 0f, bg.Body.FixedWhite);
     }
 }
 
 public static class GameObjectRenderer
 {
-    private static void DrawTile(ref Texture atlas, Tile tile, float elapsedTime)
+    private static void DrawTile(ref Texture2D atlas, Tile tile, float elapsedTime)
     {
         static void DrawCoordOnTop(Tile tile)
         {
@@ -257,27 +243,27 @@ public static class GameObjectRenderer
             var begin = tile.End;
             float halfSize = Tile.Size * 0.5f;
             begin = begin with { X = begin.X - halfSize + halfSize / 1.5f, Y = begin.Y - halfSize - halfSize / 3 };
+            
             GameText coordText = new(copy, (tile.GridCell).ToString(), 10.5f)
             {
                 Begin = begin,
                 Color = (tile.TileState & TileState.Selected) == TileState.Selected ? RED : BLACK,
             };
+            
             coordText.Color.AlphaSpeed = 0f;
-            coordText.ScaleText(null);
+            coordText.ScaleText(GetScreenWidth());
             coordText.Draw(1f);
         }
 
         if (tile is EnemyTile enemy)
         {
             enemy.Body.Scale = 1f;
-            //enemy.TileState &= TileState.Selected;
-            DrawTexturePro(atlas, enemy.Body.TextureRect, enemy.Pulsate(elapsedTime),
-                Vector2.Zero, 0f, enemy.Body.Color);
+            DrawTexturePro(atlas, enemy.Body.TextureRect.AsIntRayRect(), enemy.Pulsate(elapsedTime).AsIntRayRect(), Vector2.Zero, 0f, enemy.Body.Color);
             return;
         }
 
         var body = tile.Body;
-        DrawTexturePro(atlas, body.TextureRect, tile.WorldBounds, Vector2.Zero, 0f, body.Color);
+        DrawTexturePro(atlas, body.TextureRect.AsIntRayRect(), tile.MapBox.AsIntRayRect(), Vector2.Zero, 0f, body.Color);
         DrawCoordOnTop(tile);
     }
 
@@ -306,14 +292,16 @@ public static class GameObjectRenderer
         if (match is null)
             return;
 
-        Texture matchTexture = match is not null and not EnemyMatches ? ref DefaultTileAtlas : ref EnemySprite;
+        Texture2D matchTexture = match is not null and not EnemyMatches ? ref DefaultTileAtlas : ref EnemySprite;
 
         for (int i = 0; i < match?.Count; i++)
         {
             var gridCell = match[i].GridCell;
             var tile = Grid.Instance[gridCell];
+            
             if (tile is null)
                 continue;
+            
             DrawTile(ref matchTexture, tile, elapsedTime);
         }
     }
@@ -322,7 +310,7 @@ public static class GameObjectRenderer
     {
         if (matches?.IsMatchActive == true)
         {
-            DrawRectangleRec(matches.WorldBox, matches.Body!.ToConstColor(RED));
+            DrawRectangleRec(matches.WorldBox.AsIntRayRect(), matches.Body!.ToConstColor(RED.AsSysColor()));
         }
     }
 
@@ -334,7 +322,7 @@ public static class GameObjectRenderer
             matches.Body!.Color.AlphaSpeed = 0.2f;
             matches.Body!.Color.ElapsedTime = elapsedTime;
             */
-            DrawRectangleRec(matches.Border, matches.Body!.ToConstColor(RED));
+            DrawRectangleRec(matches.Border.AsIntRayRect(), matches.Body!.ToConstColor(RED.AsSysColor()));
         }
     }
 }
