@@ -68,18 +68,9 @@ public readonly ref struct TextChunk
 {
     public readonly ReadOnlySpan<char> Piece;
     public readonly Vector2 TextSize;
-    public readonly Vector4 ImGuiColorAsVec4;
-    public readonly SysColor SystemColor;
+    public readonly Vector4 ColorV4;
+    public readonly Color SystemColor;
     private readonly char _separator;
-
-    private static Vector4 ToVector4(SysColor color)
-    {
-        return new (
-            color.R / 255.0f,
-            color.G / 255.0f,
-            color.B / 255.0f,
-            color.A / 255.0f);
-    }
 
     /// <summary>
     /// represents the color we want to convert to a Vector4 type
@@ -110,19 +101,21 @@ public readonly ref struct TextChunk
         _separator = separator;
         //FastEnum.Parse<KnownColor, int>(code); for some reason this does not work.....
         var color = Enum.Parse<KnownColor>(code); 
-        SystemColor = SysColor.FromKnownColor(color);
-        ImGuiColorAsVec4 = ToVector4(SystemColor);
+        SystemColor = Color.FromKnownColor(color);
+        ColorV4 = SystemColor.ToVec4();
         Vector2 offset = Vector2.One * 1.5f;
         TextSize = ImGui.CalcTextSize(Piece) + offset;
     }
 
-    public TextChunk(ReadOnlySpan<char> current, SysColor sysCol) :
+    public TextChunk(ReadOnlySpan<char> current, Color sysCol) :
         this(current, sysCol.Name)
     {
     }
 
     [UnscopedRef]
     public WordEnumerator GetEnumerator() => new(this, _separator);
+
+    public override string ToString() => Piece.ToString();
 }
 
 public ref struct WordEnumerator
