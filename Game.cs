@@ -17,7 +17,7 @@ internal static class Game
     private static Background _bgWelcome;
     private static Background? _bgIngame1;
     private static GameTime _gameTimer;
-    private static GameTime[] _questTimers;
+    private static GameTime[]? _questTimers;
     private static EnemyMatchRuleHandler _enemyMatchRuleHandler;
 
     private static bool _enterGame;
@@ -50,11 +50,11 @@ internal static class Game
    
         _bgWelcome = new(WelcomeTexture);
         _bgGameOver = new(GameOverTexture);
-        QuestHandler.InitHandlers();
+        // QuestHandler.InitAllHandlers();
+        
         Grid.Instance.Init(Level);
         //this has to be initialized RIGHT HERE in order to work!
         _questTimers = MatchQuestHandler.Instance.QuestTimers;
-        
         ShaderData = InitShader();
     }
 
@@ -196,7 +196,6 @@ internal static class Game
             OnMatchFound();
             
             //if its the 1.time we set _runQuestTimers=true, but we also check for each new Matched
-            
             _runQuestTimers = true;
         }
 

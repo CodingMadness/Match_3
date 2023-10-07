@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using DotNext.Reflection;
 using Match_3.GameTypes;
 
@@ -199,7 +200,7 @@ public static class SingletonManager
     public static readonly Dictionary<Type, QuestHandler> QuestHandlerStorage = new(MaxQuestHandlerInstances);
     public static readonly Dictionary<Type, RuleHandler> RuleHandlerStorage = new(MaxRuleHandlerInstances);
 
-    public static T GetOrCreateQuestHandler<T>() where T : QuestHandler, new()
+    public static T GetOrCreateQuestHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>() where T : QuestHandler 
     {
         lock (QuestHandlerStorage)
         {
@@ -209,14 +210,15 @@ public static class SingletonManager
                 //got val to return
             }
 
-            toReturn = new T();
+            toReturn = Activator.CreateInstance<T>();
+           
             QuestHandlerStorage.Add(typeof(T), toReturn);
 
             return (T)toReturn;
         }
     }
 
-    public static T GetOrCreateRuleHandler<T>() where T : RuleHandler, new()
+    public static T GetOrCreateRuleHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>() where T : RuleHandler
     {
         lock (QuestHandlerStorage)
         {
@@ -226,7 +228,8 @@ public static class SingletonManager
                 //got val to return
             }
 
-            toReturn = new T();
+            toReturn = Activator.CreateInstance<T>();
+
             RuleHandlerStorage.Add(typeof(T), toReturn);
 
             return (T)toReturn;
@@ -253,6 +256,7 @@ public readonly struct QuestLog
     public static implicit operator QuestLog(in Quest quest) => new(quest);
 }
 
+
 /// <summary>
 ///The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
 ///or about other events
@@ -265,23 +269,39 @@ public readonly struct QuestLog
 /// </summary>
 public abstract class QuestHandler
 {
-    protected virtual Type CachedType => null!;
-
+    private readonly Type _self;
     protected bool IsActive { get; private set; }
 
-    protected static THandler GetInstance<THandler>() where THandler : QuestHandler, new()
+    protected static THandler GetInstance<[DynMembers(DynMemberTypes.PublicParameterlessConstructor)]THandler>() where THandler : QuestHandler 
         => SingletonManager.GetOrCreateQuestHandler<THandler>();
-
+    
     protected int SubGoalCounter { get; set; }
     protected int QuestCountToReach { get; set; }
     protected int GoalsLeft => QuestCountToReach - SubGoalCounter;
     protected bool IsMainGoalReached => GoalsLeft == 0;
 
-    public virtual GameTime[] QuestTimers { get; protected set; } = null!;
-
+    public readonly GameTime[]? QuestTimers;
+    
+    /// <summary>
+    ///The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
+    ///or about other events
+    ///Game -------->(notifies) QuestHandler-------->(compares) "GameState" with "Goal" and based on the comparison, it decides what to do!
+    /// For instance
+    /// Collect N-Type1, N-Type2, N-Type3 up to maxTilesActive
+    ///----->within a TimeSpan of X-sec
+    ///----->without any miss-swap!
+    ///the stats is to make per new Level the Quests harder!!
+    /// </summary>
+    protected QuestHandler(Type self)
+    {
+        _self = self;
+        QuestTimers = new GameTime[(int)TileType.Length - 1];
+        Grid.NotifyOnGridCreationDone += DefineQuest;
+    }
+    
     protected static bool IsSubQuestReached(EventType eventType, in Quest quest, in AllStats allStats, out int direction)
     {
-        direction = int.MaxValue;
+        direction = default;
 
         return eventType switch
         {
@@ -299,21 +319,11 @@ public abstract class QuestHandler
 
     protected abstract void HandleEvent();
 
-    protected virtual void Init() => Grid.NotifyOnGridCreationDone += DefineQuest;
-
-    public static void InitHandlers()
-    {
-        MatchQuestHandler.Instance.Init();
-        SwapQuestHandler.Instance.Init();
-        //TileReplacementOnClickHandler.Instance.Init();
-        DestroyOnClickHandler.Instance.Init();
-    }
-
     public void Subscribe()
     {
         if (IsActive) return;
 
-        SingletonManager.QuestHandlerStorage.TryAdd(CachedType, this);
+        SingletonManager.QuestHandlerStorage.TryAdd(_self, this);
         IsActive = true;
     }
 
@@ -321,17 +331,13 @@ public abstract class QuestHandler
     {
         if (!IsActive) return;
 
-        SingletonManager.QuestHandlerStorage.Remove(CachedType);
+        SingletonManager.QuestHandlerStorage.Remove(_self);
         IsActive = false;
     }
 }
 
 public sealed class SwapQuestHandler : QuestHandler
 {
-    // private static readonly Type CachedType = Type<SwapQuestHandler>.RuntimeType;
-
-    protected override Type CachedType { get; } = Type<SwapQuestHandler>.RuntimeType;
-
     protected override void DefineQuest(Span<byte> maxCountPerType)
     {
         //Define Ruleset for SwapQuestHandler:
@@ -354,10 +360,7 @@ public sealed class SwapQuestHandler : QuestHandler
 
     public static SwapQuestHandler Instance => GetInstance<SwapQuestHandler>();
 
-    public SwapQuestHandler()
-    {
-        Game.OnTileSwapped += HandleEvent;
-    }
+    private SwapQuestHandler() : base(typeof(SwapQuestHandler)) => Game.OnTileSwapped += HandleEvent;
 
     private static bool IsSwapGoalReached(out Quest quest, out AllStats allStats, out int direction)
     {
@@ -376,7 +379,7 @@ public sealed class SwapQuestHandler : QuestHandler
 public sealed class MatchQuestHandler : QuestHandler
 {
     private static Quest[] Quests = null!;
-    private static readonly Quest Empty;
+    private static readonly Quest Empty = default;
 
     private void CompareResults()
     {
@@ -400,16 +403,11 @@ public sealed class MatchQuestHandler : QuestHandler
         }
     }
 
-    protected override Type CachedType { get; } = Type<MatchQuestHandler>.RuntimeType;
-
-    public override GameTime[] QuestTimers { get; protected set; }
-
-    public MatchQuestHandler()
+    private MatchQuestHandler(): base(typeof(MatchQuestHandler))
     {
         Game.OnMatchFound += HandleEvent;
         Game.OnGameOver += CompareResults;
     }
-
 
     public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
 
@@ -437,16 +435,14 @@ public sealed class MatchQuestHandler : QuestHandler
 
             allTypes.CopyTo(toFill);
         }
-
-
+        
         int tileCount = (int)TileType.Length - 1;
         scoped Span<TileType> allTypes = stackalloc TileType[tileCount];
         Fill(allTypes);
         allTypes.Shuffle(Randomizer);
         Quests = new Quest[allTypes.Length];
         scoped FastSpanEnumerator<TileType> enumerator = new(allTypes);
-        QuestTimers = new GameTime[tileCount];
-
+        
         foreach (var type in enumerator)
         {
             int trueIdx = (int)type - 1;
@@ -459,11 +455,10 @@ public sealed class MatchQuestHandler : QuestHandler
             finalInterval = finalInterval <= 2.5f ? 2.5f : finalInterval;
             int toEven = (int)MathF.Round(finalInterval, MidpointRounding.ToEven);
             
-            
             SubQuest match = new(maxCountPerType[trueIdx] / Level.MAX_TILES_PER_MATCH, finalInterval);
             //the both "null" are just for now, to keep it simple, so we focus on handling only the matches for now!
             Quests[QuestCountToReach] = new Quest(type, null, null, match);
-            QuestTimers[QuestCountToReach] = GameTime.GetTimer(toEven);
+            QuestTimers![QuestCountToReach] = GameTime.GetTimer(toEven);
             QuestCountToReach++;
         }
     }
@@ -530,15 +525,16 @@ public sealed class MatchQuestHandler : QuestHandler
 
 public abstract class ClickQuestHandler : QuestHandler
 {
-    protected ClickQuestHandler()
+    protected ClickQuestHandler(Type evenMoreConcrete): base(evenMoreConcrete)
     {
+        Grid.OnTileCreated += DefineQuest;
         Game.OnTileClicked += HandleEvent;
     }
 
-    protected override void Init()
-    {
-        Grid.OnTileCreated += DefineQuest;
-    }
+    // protected override void Init()
+    // {
+    //     Grid.OnTileCreated += DefineQuest;
+    // }
 
     protected override void DefineQuest(Span<byte> maxCountPerType)
     {
@@ -554,6 +550,11 @@ public abstract class ClickQuestHandler : QuestHandler
         GameState.Tile.UpdateGoal(EventType.Clicked, goal);
     }
 
+    protected override void HandleEvent()
+    {
+        throw new NotImplementedException();
+    }
+
     protected static bool IsClickGoalReached(out Quest quest, in AllStats allStats, out int direction)
     {
         var type = GameState.Tile.Body.TileType;
@@ -565,14 +566,11 @@ public abstract class ClickQuestHandler : QuestHandler
 public sealed class DestroyOnClickHandler : ClickQuestHandler
 {
     private byte _matchXCounter;
-    private static readonly Type _cachedType = Type<DestroyOnClickHandler>.RuntimeType;
 
-    public DestroyOnClickHandler()
+    private DestroyOnClickHandler() : base(typeof(DestroyOnClickHandler))
     {
         Bakery.OnEnemyTileCreated += DefineQuest;
     }
-
-    protected override Type CachedType => _cachedType;
 
     public static DestroyOnClickHandler Instance => GetInstance<DestroyOnClickHandler>();
 
@@ -603,14 +601,10 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
     }
 }
 
-public sealed class TileReplacementOnClickHandler : ClickQuestHandler
+public sealed class TileReplacementOnClickHandler() : ClickQuestHandler(typeof(TileReplacementOnClickHandler))
 {
-    private static readonly Type _cachedType = Type<TileReplacementOnClickHandler>.RuntimeType;
-
     public static TileReplacementOnClickHandler Instance => GetInstance<TileReplacementOnClickHandler>();
-
-    protected override Type CachedType => _cachedType;
-
+    
     protected override void HandleEvent()
     {
         if (!IsActive && !GameState.WasFeatureBtnPressed == true)

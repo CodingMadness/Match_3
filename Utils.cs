@@ -1,4 +1,7 @@
-﻿global using System.Drawing;
+﻿global using DynMembers = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
+global using DynMemberTypes = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
+
+global using System.Drawing;
 global using System.Numerics;
 global using System.Runtime.CompilerServices;
 global using System.Runtime.InteropServices;
@@ -14,16 +17,17 @@ global using NoAlloq;
 using DotNext.Collections.Generic;
 using Rectangle = Raylib_cs.Rectangle;
 
+
 namespace Match_3;
 
 public static class Utils
 {
     public static  readonly Random Randomizer =  new(DateTime.UtcNow.Ticks.GetHashCode());
     public static readonly FastNoiseLite NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
-    
-    const byte Min = (int)KnownColor.AliceBlue;
-    const byte Max = (int)KnownColor.YellowGreen;
-    const int TrueColorCount = Max - Min;
+
+    private const byte Min = (int)KnownColor.AliceBlue;
+    private const byte Max = (int)KnownColor.YellowGreen;
+    private const int TrueColorCount = Max - Min;
 
     private static readonly RayColor[] All = new RayColor[TrueColorCount];
     
@@ -36,7 +40,7 @@ public static class Utils
             color.A / 255.0f);
     }
     
-    public static Vector4 ToVector4(this RayColor color)
+    public static Vector4 ToVec4(this RayColor color)
     {
         return new (
             color.r / 255.0f,
