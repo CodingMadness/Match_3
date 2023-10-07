@@ -166,7 +166,7 @@ public static class Bakery
             //--!--
             map[gridCell] = AsEnemy(map[gridCell]!);
             EnemyTile e = (EnemyTile)map[gridCell]!;
-            GameState.Current = e;
+            GameState.Tile = e;
             OnEnemyTileCreated(Span<byte>.Empty);
             //e.BlockSurroundingTiles(map, true);
             list.Add(e);

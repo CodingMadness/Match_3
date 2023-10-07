@@ -43,7 +43,7 @@ public sealed class EnemyMatchRuleHandler : RuleHandler
     
     public override bool Check()
     {
-        var type = GameState.Current.Body.TileType;
+        var type = GameState.Tile.Body.TileType;
         ref int spawnTracker = ref EnemySpawnTracker[(int)type];
         EnemySpawnFactorPerType.TryGetValue(type, out int factor);
         return ++spawnTracker == factor;

@@ -115,7 +115,7 @@ public static unsafe class AssetManager
         InitAudioDevice();
 
         SplashSound = LoadSound("splash.mp3");
-        GameFont = LoadFont("font1.otf");
+        GameFont = LoadFont("font4.otf");
         WelcomeTexture = LoadGuiTexture("Background.bgWelcome1.png");
         FeatureBtn = LoadGuiTexture("Button.btn1.png");
         BgIngameTexture = LoadGuiTexture("Background.bgIngame1.png");

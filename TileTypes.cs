@@ -1,8 +1,6 @@
 ﻿using DotNext.Runtime;
 using Match_3.GameTypes;
 
-using RectangleF = System.Drawing.RectangleF;
-
 namespace Match_3;
 
 public struct Scale
@@ -248,7 +246,7 @@ public class Tile(TileShape body) : IEquatable<Tile>
 {
     private TileState _current;
     private Quest _quest;
-    public Stats EventData = new();
+    public AllStats EventData = new();
     
     public ref readonly Quest Quest => ref _quest;
     public virtual Options Options { get; set; }
@@ -399,17 +397,15 @@ public class EnemyTile(TileShape body) : Tile(body)
                     _ => Vector2.Zero
                 };
             }
-            else
+
+            return direction switch
             {
-                return direction switch
-                {
-                    Grid.Direction.NegativeX => GridCell - Vector2.One,
-                    Grid.Direction.PositiveX => GridCell + Vector2.One,
-                    Grid.Direction.NegativeY => GridCell with { X = GridCell.X + 1, Y = GridCell.Y - 1},
-                    Grid.Direction.PositiveY => GridCell with { X = GridCell.X - 1, Y = GridCell.Y + 1},
-                    _ => Vector2.Zero
-                };
-            }
+                Grid.Direction.NegativeX => GridCell - Vector2.One,
+                Grid.Direction.PositiveX => GridCell + Vector2.One,
+                Grid.Direction.NegativeY => GridCell with { X = GridCell.X + 1, Y = GridCell.Y - 1},
+                Grid.Direction.PositiveY => GridCell with { X = GridCell.X - 1, Y = GridCell.Y + 1},
+                _ => Vector2.Zero
+            };
         }
 
         void RepeatLoop(ref Grid.Direction i, bool shallDoRepeat)

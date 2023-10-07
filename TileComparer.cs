@@ -13,7 +13,7 @@ public sealed class StateAndBodyComparer : EqualityComparer<Tile>
         if ((x.TileState & TileState.Deleted) == TileState.Deleted ||
             (x.TileState & TileState.Disabled) == TileState.Disabled) return false;
         
-        return ((TileShape)x.Body).Equals(y.Body as TileShape);
+        return x.Body.Equals(y.Body);
     }
     public override int GetHashCode(Tile obj)
     {

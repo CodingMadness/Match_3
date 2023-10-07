@@ -12,9 +12,7 @@ global using static Raylib_cs.Raylib;
 global using System.Text.RegularExpressions;
 global using NoAlloq;
 using DotNext.Collections.Generic;
-using Raylib_cs;
-using Color = System.Drawing.Color;
-using Rectangle = System.Drawing.Rectangle;
+using Rectangle = Raylib_cs.Rectangle;
 
 namespace Match_3;
 
@@ -53,7 +51,7 @@ public static class Utils
     
     public static RayColor GetRndColor( ) => All[Randomizer.Next(0, TrueColorCount)];
 
-    public static Raylib_cs.Rectangle AsIntRayRect(this RectangleF floatBox) =>
+    public static Rectangle AsIntRayRect(this RectangleF floatBox) =>
         new(floatBox.X, floatBox.Y, floatBox.Width, floatBox.Height);
     
     static Utils()
@@ -74,7 +72,7 @@ public static class Utils
     
     public static Vector2 GetScreenCoord() => new(GetScreenWidth(), GetScreenHeight());
     
-    public static bool RollADice()
+    public static bool IsMoreThanHalf()
     {
         var val = Randomizer.NextSingle();
         return val.GreaterOrEqual(0.50f, 0.001f);

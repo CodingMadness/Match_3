@@ -107,6 +107,10 @@
     <EmbeddedResource Include="Assets\Sprites\GUI\Button\btn1.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Remove="Assets\fonts\font5.otf" />
+    <EmbeddedResource Include="Assets\fonts\font5.otf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\Fonts\font1.otf">

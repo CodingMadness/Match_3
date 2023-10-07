@@ -1,7 +1,7 @@
 ﻿//using DotNext;
 
-using Match_3.GameTypes;
 using CommunityToolkit.HighPerformance;
+using Match_3.GameTypes;
 
 namespace Match_3;
 
@@ -22,11 +22,11 @@ public sealed class Grid
     
     public int TileWidth;
     public int TileHeight;
-    private static readonly Dictionary<TileType, Stats> TypeStats = new((int)TileType.Length);
+    private static readonly Dictionary<TileType, AllStats> TypeStats = new((int)TileType.Length);
 
     public static event GridAction OnTileCreated;
 
-    public static ref Stats GetStatsByType(TileType t)
+    public static ref AllStats GetStatsByType(TileType t)
     {
         ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out var existedB4);
         if (!existedB4) x = new();
@@ -59,7 +59,7 @@ public sealed class Grid
                 if (tile.Body.TileType is TileType.Empty or TileType.Length)
                     continue;
                 
-                GameState.Current = tile;
+                GameState.Tile = tile;
                 OnTileCreated(Span<byte>.Empty);
                 counts[(byte)tile.Body.TileType]++;
             }
@@ -68,7 +68,7 @@ public sealed class Grid
         NotifyOnGridCreationDone(counts[1..]);
     }
         
-    public ref Stats GetTileStatsBy<T>(T key) where T : notnull
+    public ref AllStats GetTileStatsBy<T>(T key) where T : notnull
     {
         var map = _bitmap.AsSpan();
         ref var eventData = ref map[2].EventData;
