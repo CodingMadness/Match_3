@@ -16,27 +16,30 @@ internal static class Game
     private static Background? _bgGameOver;
     private static Background _bgWelcome;
     private static Background? _bgIngame1;
-    private static GameTime _gameTimer ;
+    private static GameTime _gameTimer;
+    private static GameTime[] _questTimers;
     private static EnemyMatchRuleHandler _enemyMatchRuleHandler;
-    
+
     private static bool _enterGame;
     private static bool _shallCreateEnemies;
-
+    private static bool _runQuestTimers;
+    
     public static event Action OnMatchFound;
     public static event Action OnTileClicked;
     public static event Action OnTileSwapped;
     public static event Action OnGameOver;
-    
+
     private static void Main()
     {
         InitGame();
         MainGameLoop();
         CleanUp();
     }
-    
+
     private static void InitGame()
     {
-        Level = new(0,900, 6, 6, 7);
+        Level = new(0, 900, 6, 12, 10);
+        _runQuestTimers = false;
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         _matchesOf3 = new();
         SetTargetFPS(60);
@@ -44,16 +47,17 @@ internal static class Game
         InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
         SetTextureFilter(BgIngameTexture, TextureFilter.TEXTURE_FILTER_BILINEAR);
         LoadAssets();
-        //InitGameOverTxt();
-        //InitWelcomeTxt();
+   
         _bgWelcome = new(WelcomeTexture);
-        //_bgIngame1 = new(BgIngameTexture);
         _bgGameOver = new(GameOverTexture);
-        QuestHandler.InitGoals();
+        QuestHandler.InitHandlers();
         Grid.Instance.Init(Level);
+        //this has to be initialized RIGHT HERE in order to work!
+        _questTimers = MatchQuestHandler.Instance.QuestTimers;
+        
         ShaderData = InitShader();
     }
-    
+
     private static void DragMouseToEnemies()
     {
         //we only fix the mouse point,
@@ -74,11 +78,11 @@ internal static class Game
                 _secondClicked = null;
                 //enemies were created from the matchesOf3, so we have to
                 //delete all of them, because else we will reference always the base-matches internally which is bad!
-                _enemyMatches.Clear(); 
+                _enemyMatches.Clear();
             }
         }
     }
-    
+
     private static bool TileClicked(out Tile? tile)
     {
         tile = default!;
@@ -92,7 +96,7 @@ internal static class Game
         tile = Grid.Instance[gridPos];
         return tile is not null;
     }
-    
+
     private static void ProcessSelectedTiles()
     {
         if (!TileClicked(out var firstClickedTile))
@@ -106,7 +110,9 @@ internal static class Game
         {
             //TileReplacementOnClickHandler.Instance.UnSubscribe();
             DestroyOnClickHandler.Instance.Subscribe();
-            GameState.Current = firstClickedTile; 
+            //we store our current values inside "GameState" which due to its static nature is then checked upon 
+            //internally inside the QuestHandler's
+            GameState.Tile = firstClickedTile;
             GameState.Matches = _enemyMatches;
             OnTileClicked();
         }
@@ -118,12 +124,13 @@ internal static class Game
                 //and since both event classes are active, we will unsub from the one who destroys on clicks
                 DestroyOnClickHandler.Instance.UnSubscribe();
                 //TileReplacementOnClickHandler.Instance.Subscribe();
-                
-                GameState.Current = firstClickedTile;
-                
+
+                GameState.Tile = firstClickedTile;
+
                 if (GameState.WasFeatureBtnPressed == true)
                     OnTileClicked();
             }
+
             firstClickedTile.TileState |= TileState.Selected;
 
             /*No tile selected yet*/
@@ -133,6 +140,7 @@ internal static class Game
                 _secondClicked = firstClickedTile;
                 return;
             }
+
             /*Same tile selected => deselect*/
             if (StateAndBodyComparer.Singleton.Equals(firstClickedTile, _secondClicked))
             {
@@ -148,8 +156,11 @@ internal static class Game
 
                 if (Grid.Instance.Swap(firstClickedTile, _secondClicked))
                 {
+                    //the moment we have the 1. swap, we notify the MatchQuestHandler for this
+                    //and he begins to count-down
                     GameState.WasSwapped = true;
-                    //OnTileSwapped(State);
+                    OnTileSwapped();
+
                     _secondClicked.TileState &= TileState.Selected;
                 }
                 else
@@ -159,7 +170,7 @@ internal static class Game
             }
         }
     }
-    
+
     private static void ComputeMatches()
     {
         if (!GameState.WasSwapped)
@@ -167,7 +178,7 @@ internal static class Game
 
         void CreateEnemiesIfNeeded()
         {
-            if (_shallCreateEnemies && (_enemyMatches is null || _enemyMatches.Count == 0)) 
+            if (_shallCreateEnemies && (_enemyMatches is null || _enemyMatches.Count == 0))
             {
                 _enemyMatches = Bakery.AsEnemies(Grid.Instance, _matchesOf3!);
                 GameState.EnemiesStillPresent = true;
@@ -175,17 +186,22 @@ internal static class Game
         }
 
         bool shallCreateEnemies;
-        
+
         if (shallCreateEnemies = Grid.Instance.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!))
         {
-            //Console.WriteLine($"HAD A MATCH! with {_matchesOf3.Count} elements in it!");
-            GameState.Current = _secondClicked!;
+            int tileTypeIdx = (int)GameState.Tile.Body.TileType;
+            GameState.Tile = _secondClicked!;
             GameState.Matches = _matchesOf3;
+            GameState.CurrentTime = _questTimers[tileTypeIdx].ElapsedSeconds;
             OnMatchFound();
+            
+            //if its the 1.time we set _runQuestTimers=true, but we also check for each new Matched
+            
+            _runQuestTimers = true;
         }
 
         shallCreateEnemies &= EnemyMatchRuleHandler.Instance.Check();
-        
+
         switch (shallCreateEnemies)
         {
             case true:
@@ -195,11 +211,11 @@ internal static class Game
                 Grid.Instance.Delete(_matchesOf3!);
                 break;
         }
-        
+
         GameState.WasSwapped = false;
         _secondClicked = null;
     }
-    
+
     private static void HardReset()
     {
         if (IsKeyDown(KeyboardKey.KEY_A))
@@ -215,21 +231,21 @@ internal static class Game
             Console.Clear();
         }
     }
-    
+
     private static void MainGameLoop()
     {
         //float seconds = 0.0f;
         GameTime gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown + 10);
         int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
-      
+
         RlImGui.Setup(false);
-        
+
         while (!WindowShouldClose())
         {
             //seconds += GetFrameTime();
             float currTime = _gameTimer.ElapsedSeconds;
             GameState.CurrentTime = currTime;
-            
+
             BeginDrawing();
             {
                 ClearBackground(WHITE);
@@ -244,7 +260,7 @@ internal static class Game
                     if (ImGui.Begin("Screen Overlay", flags))
                     {
                         // ImGui.ShowDemoWindow();
-                        
+
                         ImGui.SetWindowPos(default);
                         ImGui.SetWindowSize(GetScreenCoord());
 
@@ -262,9 +278,26 @@ internal static class Game
                             // UiRenderer.DrawBackground(_bgWelcome);
                             UiRenderer.DrawQuestLog();
                         }
+
                         if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
                         {
                             _gameTimer.Run();
+
+                            int tileTypeIdx = (int)GameState.Tile.Body.TileType;
+                            ref var questTimer = ref _questTimers[tileTypeIdx];
+
+                            //if it got activated in "ComputeMatches()" then we can count down, else it sleeps!
+                            if (_runQuestTimers)
+                                questTimer.Run();
+
+                            
+                            if (_runQuestTimers)
+                                if (questTimer.Done())
+                                { 
+                                }
+                                // Console.WriteLine(questTimer.Done()
+                                //     ? $"YOU MISSED 1 MATCH OF TYPE {GameState.Tile.Body.TileType} AND NOW YOU LOSE BONUS OR GET PUNISHED!"
+                                //     : $"YOU STILL HAVE {questTimer.ElapsedSeconds} TIME LEFT!");
 
                             GameState.IsGameOver = _gameTimer.Done();
 
@@ -315,6 +348,7 @@ internal static class Game
                             _enterGame = true;
                         }
                     }
+
                     ImGui.End();
                 }
                 RlImGui.End();
@@ -322,7 +356,7 @@ internal static class Game
             EndDrawing();
         }
     }
-    
+
     private static void CleanUp()
     {
         UnloadShader(WobbleEffect);
