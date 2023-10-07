@@ -8,18 +8,19 @@ public struct GameTime
 
     }
 
-    public float ElapsedSeconds { get; set; }
+    public float ElapsedSeconds { get; private set; }
 
     public bool IsReset {get; private set;}
 
-    public int MaxTimerValue { get; init; }
+    private int MaxTimerValue { get; init; }
 
     public static GameTime GetTimer(int seconds)
     {
         return new GameTime
         {
             MaxTimerValue = seconds,
-            ElapsedSeconds = /*Raylib.GetFPS() **/ seconds
+            ElapsedSeconds = seconds,
+            IsReset = false
         };
     }
 
@@ -27,9 +28,9 @@ public struct GameTime
     {
         if (ElapsedSeconds <= MaxTimerValue / 2f)
         {
-            ElapsedSeconds -= GetFrameTime() * 1.3f;
+            ElapsedSeconds -= (GetFrameTime() * 1.15f).Trunc(1);
         }
-        // subtract this frame from the globalTimer if it's not allready expired
+        // subtract this frame from the globalTimer if it's not already expired
         if (ElapsedSeconds > 0.000f)
             ElapsedSeconds -= MathF.Round(GetFrameTime(), 2);
 
@@ -38,11 +39,14 @@ public struct GameTime
 
     public readonly bool Done()
     {
-        bool done = ElapsedSeconds <= 0f;
+        //bool done = ElapsedSeconds.Equals(0f, 0.0f);
         //ElapsedSeconds = done ? 0f : ElapsedSeconds;
+        bool done = ElapsedSeconds.Trunc(1) == 0.0f;
         return done;
     }
 
+    public readonly bool IsActive => ElapsedSeconds > 0f;
+    
     public void Reset(float? newStart)
     {
         ElapsedSeconds = newStart ?? MaxTimerValue;
