@@ -12,23 +12,22 @@
  ********************************************************************************************/
 
 using Raylib_cs;
+using Rectangle = Raylib_cs.Rectangle;
 
 namespace Match_3
 {
     public static class RlImGui
     {
-        private static IntPtr ImGuiContext = IntPtr.Zero;
-
+        private static nint ImGuiContext = IntPtr.Zero;
         private static ImGuiMouseCursor CurrentMouseCursor = ImGuiMouseCursor.COUNT;
         private static Dictionary<ImGuiMouseCursor, MouseCursor> MouseCursorMap;
-       // private static KeyboardKey[] KeyEnumMap;
-
+        private static KeyboardKey[] KeyEnumMap;
         private static Texture2D FontTexture;
-
+        
         public static void Setup(bool darkTheme = true)
         {
             MouseCursorMap = new Dictionary<ImGuiMouseCursor, MouseCursor>();
-            // KeyEnumMap = Enum.GetValues(typeof(KeyboardKey)) as KeyboardKey[];
+            KeyEnumMap = Enum.GetValues<KeyboardKey>();
 
             FontTexture.id = 0;
 
@@ -42,7 +41,7 @@ namespace Match_3
             EndInitImGui();
         }
 
-        public static void BeginInitImGui()
+        private static void BeginInitImGui()
         {
             ImGuiContext = ImGui.CreateContext();
         }
@@ -61,14 +60,14 @@ namespace Match_3
             MouseCursorMap[ImGuiMouseCursor.NotAllowed] = MouseCursor.MOUSE_CURSOR_NOT_ALLOWED;
         }
 
-        public static unsafe void ReloadFonts()
+        private static unsafe void ReloadFonts()
         {
             ImGui.SetCurrentContext(ImGuiContext);
             ImGuiIOPtr io = ImGui.GetIO();
 
             io.Fonts.GetTexDataAsRGBA32(out byte* pixels, out int width, out int height, out _);
-
-            Image image = new Image
+           
+            var image = new Image
             {
                 data = pixels,
                 width = width,
@@ -76,18 +75,18 @@ namespace Match_3
                 mipmaps = 1,
                 format = PixelFormat.PIXELFORMAT_UNCOMPRESSED_R8G8B8A8,
             };
-
-            FontTexture = Raylib.LoadTextureFromImage(image);
-
-            io.Fonts.SetTexID(new IntPtr((int)FontTexture.id));
+            
+            FontTexture = LoadTextureFromImage(image);
+    
+            io.Fonts.SetTexID((nint)FontTexture.id);
         }
 
-        public static void EndInitImGui()
+        private static void EndInitImGui()
         {
             SetupMouseCursors();
 
             ImGui.SetCurrentContext(ImGuiContext);
-            var fonts = ImGui.GetIO().Fonts;
+            _ = ImGui.GetIO().Fonts;
             ImGui.GetIO().Fonts.AddFontDefault();
 
             ImGuiIOPtr io = ImGui.GetIO();
@@ -150,11 +149,13 @@ namespace Match_3
             io.MouseDown[1] = IsMouseButtonDown(MouseButton.MOUSE_RIGHT_BUTTON);
             io.MouseDown[2] = IsMouseButtonDown(MouseButton.MOUSE_MIDDLE_BUTTON);
 
-            if (GetMouseWheelMove() > 0)
-                io.MouseWheel += 1;
-            else if (GetMouseWheelMove() < 0)
-                io.MouseWheel -= 1;
+            // if (GetMouseWheelMove() > 0)
+            //     io.MouseWheel += 1;
+            // else if (GetMouseWheelMove() < 0)
+            //     io.MouseWheel -= 1;
 
+            io.MouseWheel = GetMouseWheelMove() > 0 ? io.MouseWheel + 1 : io.MouseWheel - 1;
+            
             if ((io.ConfigFlags & ImGuiConfigFlags.NoMouseCursorChange) == 0)
             {
                 ImGuiMouseCursor imGuiCursor = ImGui.GetMouseCursor();
@@ -182,7 +183,6 @@ namespace Match_3
             }
         }
 
-
         private static void FrameEvents()
         {
             ImGuiIOPtr io = ImGui.GetIO();
@@ -194,36 +194,27 @@ namespace Match_3
                 io.KeysDown[(int)key] = IsKeyDown(key);
             }
 
-            uint pressed = (uint)GetCharPressed();
+            uint pressed;
             
-            while (pressed != 0)
+            while ((pressed = (uint)GetCharPressed()) != 0)
             {
                 io.AddInputCharacter(pressed);
-                pressed = (uint)GetCharPressed();
             }
         }
-
-        public static void Begin()
-        {
-            ImGui.SetCurrentContext(ImGuiContext);
-            NewFrame();
-            FrameEvents();
-            ImGui.NewFrame();
-        }
-
+        
         private static void EnableScissor(float x, float y, float width, float height)
         {
             Rlgl.rlEnableScissorTest();
             Rlgl.rlScissor((int)x, GetScreenHeight() - (int)(y + height), (int)width, (int)height);
         }
 
-        private static void TriangleVert(ImDrawVertPtr idx_vert)
+        private static void TriangleVert(ImDrawVertPtr idxVert)
         {
-            Vector4 color = ImGui.ColorConvertU32ToFloat4(idx_vert.col);
+            Vector4 color = ImGui.ColorConvertU32ToFloat4(idxVert.col);
             
             Rlgl.rlColor4f(color.X, color.Y, color.Z, color.W);
-            Rlgl.rlTexCoord2f(idx_vert.uv.X, idx_vert.uv.Y);
-            Rlgl.rlVertex2f(idx_vert.pos.X, idx_vert.pos.Y);
+            Rlgl.rlTexCoord2f(idxVert.uv.X, idxVert.uv.Y);
+            Rlgl.rlVertex2f(idxVert.pos.X, idxVert.pos.Y);
         }
 
         private static void RenderTriangles(uint count, uint indexStart, ImVector<ushort> indexBuffer, ImPtrVector<ImDrawVertPtr> vertBuffer, IntPtr texturePtr)
@@ -238,9 +229,11 @@ namespace Match_3
             Rlgl.rlBegin(DrawMode.TRIANGLES);
             Rlgl.rlSetTexture(textureId);
 
-            for (int i = 0; i <= (count - 3); i += 3)
+            const byte triangleCount = 3;
+            
+            for (int i = 0; i <= count - triangleCount; i += triangleCount)
             {
-                if (Rlgl.rlCheckRenderBatchLimit(3))
+                if (Rlgl.rlCheckRenderBatchLimit(triangleCount))
                 {
                     Rlgl.rlBegin(DrawMode.TRIANGLES);
                     Rlgl.rlSetTexture(textureId);
@@ -289,8 +282,7 @@ namespace Match_3
                         continue;
                     }
 
-                    RenderTriangles(cmd.ElemCount, cmd.IdxOffset, commandList.IdxBuffer, commandList.VtxBuffer,
-                        cmd.TextureId);
+                    RenderTriangles(cmd.ElemCount, cmd.IdxOffset, commandList.IdxBuffer, commandList.VtxBuffer, cmd.TextureId);
 
                     Rlgl.rlDrawRenderBatchActive();
                 }
@@ -300,6 +292,16 @@ namespace Match_3
             Rlgl.rlDisableScissorTest();
         }
 
+        //PUBLIC METHODS//
+        
+        public static void Begin()
+        {
+            ImGui.SetCurrentContext(ImGuiContext);
+            NewFrame();
+            FrameEvents();
+            ImGui.NewFrame();
+        }
+        
         public static void End()
         {
             ImGui.SetCurrentContext(ImGuiContext);
@@ -328,7 +330,7 @@ namespace Match_3
             ImGui.Image(new IntPtr(image.id), size);
         }
 
-        public static void ImageRect(Texture2D image, int destWidth, int destHeight, Raylib_cs.Rectangle sourceRect)
+        public static void ImageRect(Texture2D image, int destWidth, int destHeight, Rectangle sourceRect)
         {
             Vector2 uv0 = new Vector2();
             Vector2 uv1 = new Vector2();
