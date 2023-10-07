@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Match_3.GameTypes;
@@ -76,27 +75,14 @@ public static class UiRenderer
         return result;
     }
 
-    public static void DrawText(string text)
+    public static void DrawText(string? text)
     {
-        static void ScaleText(string text, float fontSize)
-        {
-            //default scale is always to screen
-            var pos = MeasureTextEx(QuestLogText.Src,text, fontSize, 1f).X;
-            float scaleX = MathF.Round(GetScreenWidth() / pos);
-            float x = fontSize * scaleX;
-            ImGui.SetWindowFontScale(x);
-        }
-        
-        // float fontsize = ImGui.GetFontSize();
-        // ScaleText(text, fontsize/10f);
-        
         float winWidth = ImGui.GetWindowWidth(); 
         Vector2 currentPos = new(25f, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
         scoped var x = new TextStyleEnumerator(text);
         Vector2 tmp = default;
         float totalSize = 0;
         const float spaceBetween = 5f;
-        int counter = 0;
         
         void NewLine(Vector2 phraseSize)
         {
@@ -111,8 +97,7 @@ public static class UiRenderer
         {
             // calculate the indentation that centers the text on one line, relative
             // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
-            
-            float wrapPosX = winWidth - 0f;
+            float wrapPosX = winWidth;
             totalSize += phrase.TextSize.X;
 
             if (totalSize > wrapPosX)
@@ -126,16 +111,10 @@ public static class UiRenderer
                 tmp = tmp == Vector2.Zero ? currentPos : tmp;
                 ImGui.SetCursorPos(tmp);
                 ImGui.PushTextWrapPos(wrapPosX);
-                //we have to scale the FontSize accordingly to the window-size
                 ImGui.TextColored(word.ColorV4, word.Piece);
                 ImGui.PopTextWrapPos();
                 tmp.X += word.TextSize.X + spaceBetween;
             }
-
-            // if (totalSize == 0)
-            //     totalSize += phrase.TextSize.X;
-            
-            counter++;
         }
     }
 
@@ -179,15 +158,13 @@ public static class UiRenderer
         _questLogColor ??= Utils.GetRndColor();
         var questIterator = MatchQuestHandler.Instance.GetSpanEnumerator();
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
-        string mlt = "";
-        
+ 
         foreach (ref readonly var quest in questIterator)
         {
             BuildMessageFrom(quest);
-            //ImGui.TextWrapped(MessageBuilder.ToString());
-            DrawText(MessageBuilder.ToString());
-            begin *= ImGui.GetWindowHeight() / MatchQuestHandler.Instance.GoalCountToReach;
-            MessageBuilder.Clear();
+            DrawText(MessageBuilder?.ToString());
+            begin *= ImGui.GetWindowHeight() * 1.25f; /// MatchQuestHandler.Instance.QuestCountToReach;
+            MessageBuilder?.Clear();
         }
     }
  
@@ -209,7 +186,7 @@ public static class UiRenderer
         WelcomeText.Draw(null);
     }
 
-    public static bool DrawGameOverScreen(bool isDone, bool? gameWon, string input)
+    public static bool DrawGameOverScreen(bool isDone, bool? gameWon, string? input)
     {
         if (gameWon is null)
         {
