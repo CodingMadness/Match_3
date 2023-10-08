@@ -156,14 +156,14 @@ public static class UiRenderer
         ImGui.SetWindowFontScale(1.5f);
         Vector2 begin = (ImGui.GetContentRegionAvail() * 0.5f) with { Y = 0 };
         _questLogColor ??= Utils.GetRndColor();
-        var questIterator = MatchQuestHandler.Instance.GetSpanEnumerator();
+        var questIterator = MatchQuestHandler.Instance.GetQuests();
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
  
         foreach (ref readonly var quest in questIterator)
         {
             BuildMessageFrom(quest);
             DrawText(MessageBuilder?.ToString());
-            begin *= ImGui.GetWindowHeight() * 1.25f; /// MatchQuestHandler.Instance.QuestCountToReach;
+            begin *= ImGui.GetWindowHeight() * 1.25f; // MatchQuestHandler.Instance.QuestCountToReach;
             MessageBuilder?.Clear();
         }
     }

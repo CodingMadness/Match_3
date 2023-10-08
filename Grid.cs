@@ -23,9 +23,7 @@ public sealed class Grid
     public int TileWidth;
     public int TileHeight;
     private static readonly Dictionary<TileType, AllStats> TypeStats = new((int)TileType.Length);
-
-    public static event GridAction OnTileCreated;
-
+    
     public static ref AllStats GetStatsByType(TileType t)
     {
         ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out var existedB4);
@@ -36,6 +34,8 @@ public sealed class Grid
     public delegate void GridAction(Span<byte> countPerType);
 
     public static event GridAction NotifyOnGridCreationDone;
+    
+    public static event GridAction OnTileCreated;
   
     public static Grid Instance { get; } = new();
 
@@ -60,7 +60,8 @@ public sealed class Grid
                     continue;
                 
                 GameState.Tile = tile;
-                OnTileCreated(Span<byte>.Empty);
+                //we yet dont care for side quests and hence we dont need to keep track of ALL tiles, only match-based information
+                /*OnTileCreated(Span<byte>.Empty);*/   
                 counts[(byte)tile.Body.TileType]++;
             }
         }

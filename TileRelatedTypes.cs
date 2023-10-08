@@ -3,32 +3,21 @@ using Match_3.GameTypes;
 
 namespace Match_3;
 
-public struct Scale
+public struct Scale(float minScale, float maxScale)
 {
-    private readonly float _minScale;
-    private readonly float _maxScale;
-    private float _direction;
-    private float _finalScaleFactor;
+    private float _direction = -1f;
+    private float _finalScaleFactor = minScale.Equals(maxScale, 0.1f) ? minScale : 1f;
 
-    public float Speed;
+    public float Speed = 0f;
     public float ElapsedTime;
 
-    public Scale(float minScale, float maxScale)
-    {
-        _minScale = minScale;
-        _maxScale = maxScale;
-         Speed = 0f;
-        _direction = -1f;
-        _finalScaleFactor = minScale.Equals(maxScale, 0.1f) ? minScale : 1f;
-    }
-    
     public float GetFactor()
     {
         if (ElapsedTime <= 0f)
             return _finalScaleFactor;
         
-        if (_finalScaleFactor.Equals(_minScale, 0.1f) || 
-            _finalScaleFactor.Equals(_maxScale, 0.1f))
+        if (_finalScaleFactor.Equals(minScale, 0.1f) || 
+            _finalScaleFactor.Equals(maxScale, 0.1f))
         {
             //so we start at scale1: then it scaled slowly down to "_minScale" and then from there
             //we change the multiplier to now ADD the x to the scale, so we scale back UP
