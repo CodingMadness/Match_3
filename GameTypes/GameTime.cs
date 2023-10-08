@@ -45,7 +45,7 @@ public struct GameTime
         return done;
     }
 
-    public readonly bool IsActive => ElapsedSeconds > 0f;
+    public readonly bool IsInitialized => ElapsedSeconds > 0f;
     
     public void Reset(float? newStart)
     {

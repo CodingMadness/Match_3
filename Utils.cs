@@ -58,13 +58,16 @@ public static class Utils
 
     static Utils()
     {
-        All.Shuffle(Randomizer);
+        All.AsSpan().Shuffle(Randomizer);
 
         NoiseMaker.SetFrequency(25f);
         NoiseMaker.SetFractalType(FastNoiseLite.FractalType.Ridged);
         NoiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
     }
 
+    public static Span<T> Writable<T>(this ReadOnlySpan<T> readOnlySpan) =>
+        MemoryMarshal.CreateSpan(ref Unsafe.AsRef(readOnlySpan[0]), readOnlySpan.Length);
+    
     public static float Trunc(this float value, int digits)
     {
         float mult = MathF.Pow(10.0f, digits);

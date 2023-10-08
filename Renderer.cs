@@ -11,6 +11,7 @@ public static class UiRenderer
     private static RayColor? _questLogColor;
 
     private const string SameColor = "SAMECOLOR";
+
     private const string Message = $"(Black) You have to collect an amount of " +
                                    $" ({SameColor}) x Empty tiles " +
                                    $" (Black) and u have in between, " +
@@ -18,7 +19,9 @@ public static class UiRenderer
                                    $" (Black) for each new match, and also just " +
                                    $" ({SameColor}) z available swaps " +
                                    $" (Black) for each new match ";
-    
+
+    private static string BufferOf3Chars = "   ";
+
     //You have to collect an amount of 4 Red tiles and u have in between, 4,5 seconds for each new match, and also only 4 available swaps for each new match
     private static readonly StringBuilder? MessageBuilder = new((int)(Message.Length * 1.25f));
 
@@ -77,22 +80,22 @@ public static class UiRenderer
 
     public static void DrawText(string? text)
     {
-        float winWidth = ImGui.GetWindowWidth(); 
+        float winWidth = ImGui.GetWindowWidth();
         Vector2 currentPos = new(25f, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
         scoped var x = new TextStyleEnumerator(text);
         Vector2 tmp = default;
         float totalSize = 0;
         const float spaceBetween = 5f;
-        
+
         void NewLine(Vector2 phraseSize)
         {
             tmp.X = currentPos.X; //reset to the X position from the beginning
             tmp.Y += phraseSize.Y * 1.15f;
             totalSize = phraseSize.X;
         }
-        
+
         ImGui.SetCursorPos(currentPos);
-        
+
         foreach (ref readonly var phrase in x)
         {
             // calculate the indentation that centers the text on one line, relative
@@ -122,41 +125,54 @@ public static class UiRenderer
     {
         void BuildMessageFrom(in Quest matchGoal)
         {
-            string? GetNextValue(in Quest data, int offset)
+            string GetNextValue(in Quest data, int offset)
             {
-                Span<char> bufferOf3Chars = stackalloc char[3]; //max 3 places needed
+                int numericValue;
+                const char zero = (char)48;
 
-                int matchCount = data.Match!.Value.Count;
-                
-                //DO NOT change the order of this switch command!
-                return offset switch
+                switch (offset)
                 {
-                    0 => Unsafe.Copy(ref bufferOf3Chars[0],  ref matchCount),
-                    1 => data.Match!.Value.Interval.ToString(CultureInfo.CurrentCulture),
-                    2 => "3", //random BS until i fix logic.., //data.Swap!.Value.Count.ToString(),
-                    _ => null
-                };
-            }
+                    case 0:
+                    {
+                        numericValue = data.Match!.Value.Count;
+                        BufferOf3Chars.AsSpan().Writable()[0] = (char)(zero + numericValue);
+                    }
+                        break;
+                    
+                    case 1:
+                    {
+                        float interval = data.Match!.Value.Interval;
+                        return interval.ToString(CultureInfo.InvariantCulture);
+                    }
+                    case 2:
+                    {
+                        numericValue = 3; /*data.Swap!.Value.Count;*/ //3 is just for now... a debug value
+                        BufferOf3Chars.AsSpan().Writable()[0] = (char)(zero + numericValue);
+                    }
+                        break;
+                }
 
-            string colorAsTxt = $"{matchGoal.ItemType}";
+                return BufferOf3Chars;
+            }
             
+            string colorAsTxt = $"{matchGoal.ItemType}";
+
             //TODO: Implement a custom span.Replace() for efficiency
             var updatedMsg = Message.Replace(SameColor, colorAsTxt).Replace("Empty", colorAsTxt);
             MessageBuilder!.Append(updatedMsg);
-            
+
             var chunkIterator = new TextStyleEnumerator(updatedMsg);
             int counter = 0;
             char begin = 'x';
-            
+
             foreach (ref readonly var chunk in chunkIterator)
             {
                 if (chunk.SystemColor.ToKnownColor() is KnownColor.Black)
                     continue;
 
                 var value = GetNextValue(matchGoal, counter++);
-                
+
                 MessageBuilder?.Replace(begin++.ToString(), value);
-                
             }
         }
 
@@ -165,7 +181,7 @@ public static class UiRenderer
         _questLogColor ??= Utils.GetRndColor();
         var questIterator = MatchQuestHandler.Instance.GetQuests();
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
- 
+
         foreach (ref readonly var quest in questIterator)
         {
             BuildMessageFrom(quest);
@@ -174,7 +190,7 @@ public static class UiRenderer
             MessageBuilder?.Clear();
         }
     }
- 
+
     public static void DrawTimer(float elapsedSeconds)
     {
         //horrible performance: use a stringBuilder to reuse values!
@@ -212,8 +228,8 @@ public static class UiRenderer
         RectangleF screen = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
 
         DrawTexturePro(bg.Texture, bg.Body.TextureRect.AsIntRayRect(),
-                    screen.DoScale(bg.Body.Scale).AsIntRayRect(),
-                        Vector2.Zero, 0f, bg.Body.FixedWhite);
+            screen.DoScale(bg.Body.Scale).AsIntRayRect(),
+            Vector2.Zero, 0f, bg.Body.FixedWhite);
     }
 }
 
@@ -227,13 +243,13 @@ public static class GameObjectRenderer
             var begin = tile.End;
             float halfSize = Tile.Size * 0.5f;
             begin = begin with { X = begin.X - halfSize + halfSize / 1.5f, Y = begin.Y - halfSize - halfSize / 3 };
-            
+
             GameText coordText = new(copy, (tile.GridCell).ToString(), 10.5f)
             {
                 Begin = begin,
                 Color = (tile.TileState & TileState.Selected) == TileState.Selected ? RED : BLACK,
             };
-            
+
             coordText.Color.AlphaSpeed = 0f;
             coordText.ScaleText(GetScreenWidth());
             coordText.Draw(1f);
@@ -242,12 +258,14 @@ public static class GameObjectRenderer
         if (tile is EnemyTile enemy)
         {
             enemy.Body.Scale = 1f;
-            DrawTexturePro(atlas, enemy.Body.TextureRect.AsIntRayRect(), enemy.Pulsate(elapsedTime).AsIntRayRect(), Vector2.Zero, 0f, enemy.Body.Color);
+            DrawTexturePro(atlas, enemy.Body.TextureRect.AsIntRayRect(), enemy.Pulsate(elapsedTime).AsIntRayRect(),
+                Vector2.Zero, 0f, enemy.Body.Color);
             return;
         }
 
         var body = tile.Body;
-        DrawTexturePro(atlas, body.TextureRect.AsIntRayRect(), tile.MapBox.AsIntRayRect(), Vector2.Zero, 0f, body.Color);
+        DrawTexturePro(atlas, body.TextureRect.AsIntRayRect(), tile.MapBox.AsIntRayRect(), Vector2.Zero, 0f,
+            body.Color);
         DrawCoordOnTop(tile);
     }
 
@@ -282,10 +300,10 @@ public static class GameObjectRenderer
         {
             var gridCell = match[i].GridCell;
             var tile = Grid.Instance[gridCell];
-            
+
             if (tile is null)
                 continue;
-            
+
             DrawTile(ref matchTexture, tile, elapsedTime);
         }
     }

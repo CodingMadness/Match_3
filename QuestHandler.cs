@@ -126,7 +126,7 @@ public struct AllStats : IComparable<AllStats>
     }
 }
 
-public readonly record struct SubQuest(int Count, double Interval)  
+public readonly record struct SubQuest(int Count, float Interval)  
 {
     public int CompareTo(EventStats other)
     {
