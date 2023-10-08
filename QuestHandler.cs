@@ -234,24 +234,25 @@ public static class SingletonManager
     }
 }
 
-public readonly struct QuestLog
-{
-    internal readonly TileType Type;
-    internal readonly int TotalMatchCount;
-    internal readonly double MatchInterval;
-    internal readonly int MaxSwapsAllowed;
 
-    private QuestLog(in Quest quest)
-    {
-        Type = quest.ItemType;
-        TotalMatchCount = quest.Match!.Value.Count;
-        MatchInterval = quest.Match.Value.Interval;
-        //-1 for now...!
-        MaxSwapsAllowed = -1; //quest.Swap!.Value.Count;
-    }
-
-    public static implicit operator QuestLog(in Quest quest) => new(quest);
-}
+// public readonly struct QuestLog
+// {
+//     internal readonly TileType Type;
+//     internal readonly int TotalMatchCount;
+//     internal readonly double MatchInterval;
+//     internal readonly int MaxSwapsAllowed;
+//
+//     private QuestLog(in Quest quest)
+//     {
+//         Type = quest.ItemType;
+//         TotalMatchCount = quest.Match!.Value.Count;
+//         MatchInterval = quest.Match.Value.Interval;
+//         //-1 for now...!
+//         MaxSwapsAllowed = -1; //quest.Swap!.Value.Count;
+//     }
+//
+//     public static implicit operator QuestLog(in Quest quest) => new(quest);
+// }
 
 
 /// <summary>
@@ -317,7 +318,7 @@ public abstract class QuestHandler
 
     protected abstract void HandleEvent();
 
-    public FastSpanEnumerator<Quest> GetQuests() => new(Quests.AsSpan(0, GoalsLeft));
+    public FastSpanEnumerator<Quest> GetQuests() => new(Quests.AsSpan(0, QuestCountToReach));
     
     public static void ActivateHandlers()
     {
@@ -465,12 +466,13 @@ public sealed class MatchQuestHandler : QuestHandler
             
             SubQuest match = new(maxCountPerType[trueIdx] / Level.MAX_TILES_PER_MATCH, finalInterval);
             //the both "null" are just for now, to keep it simple, so we focus on handling only the matches for now!
-            Quests[QuestCountToReach] = new Quest(type, null, null, match);
-            QuestTimers![QuestCountToReach] = GameTime.GetTimer(toEven);
-            QuestCountToReach++;
+            Quests[trueIdx] = new Quest(type, null, null, match);
+            QuestTimers![trueIdx] = GameTime.GetTimer(toEven);
         }
 
         bool a = true;
+        Quests.AsSpan().Where(x => x.Match.HasValue).Select(x => x).TakeInto(Quests);
+        QuestTimers.AsSpan().Where(x => x.IsInitialized).Select(x => x).TakeInto(QuestTimers);
     }
 
     private bool IsMatchQuestReached(out Quest? quest, in AllStats allStats, out int direction)
