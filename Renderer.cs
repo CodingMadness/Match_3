@@ -120,21 +120,27 @@ public static class UiRenderer
 
     public static void DrawQuestLog()
     {
-        void BuildMessageFrom(in QuestLog matchGoal)
+        void BuildMessageFrom(in Quest matchGoal)
         {
-            string? GetNextValue(in QuestLog data, int offset)
-            { 
+            string? GetNextValue(in Quest data, int offset)
+            {
+                Span<char> bufferOf3Chars = stackalloc char[3]; //max 3 places needed
+
+                int matchCount = data.Match!.Value.Count;
+                
                 //DO NOT change the order of this switch command!
                 return offset switch
                 {
-                    0 => data.TotalMatchCount.ToString(),
-                    1 => data.MatchInterval.ToString(CultureInfo.CurrentCulture),
-                    2 => data.MaxSwapsAllowed.ToString(),
+                    0 => Unsafe.Copy(ref bufferOf3Chars[0],  ref matchCount),
+                    1 => data.Match!.Value.Interval.ToString(CultureInfo.CurrentCulture),
+                    2 => "3", //random BS until i fix logic.., //data.Swap!.Value.Count.ToString(),
                     _ => null
                 };
             }
+
+            string colorAsTxt = $"{matchGoal.ItemType}";
             
-            string colorAsTxt = matchGoal.Type.ToString();
+            //TODO: Implement a custom span.Replace() for efficiency
             var updatedMsg = Message.Replace(SameColor, colorAsTxt).Replace("Empty", colorAsTxt);
             MessageBuilder!.Append(updatedMsg);
             
@@ -150,6 +156,7 @@ public static class UiRenderer
                 var value = GetNextValue(matchGoal, counter++);
                 
                 MessageBuilder?.Replace(begin++.ToString(), value);
+                
             }
         }
 
