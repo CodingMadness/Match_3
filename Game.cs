@@ -196,6 +196,8 @@ internal static class Game
             int tileTypeIdx = (int)GameState.Tile.Body.TileType;
             GameState.Tile = _secondClicked!;
             GameState.Matches = _matchesOf3;
+            
+            //TODO: Look into this timer problem, cause we dont wanna have TileType.Length timers only those who are in quest!
             GameState.CurrentTime = _questTimers[tileTypeIdx].ElapsedSeconds;
             OnMatchFound();
             
