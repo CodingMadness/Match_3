@@ -1,7 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
-using DotNext.Reflection;
 using Match_3.GameTypes;
-
 using static Match_3.Utils;
 
 namespace Match_3;
@@ -200,7 +197,7 @@ public static class SingletonManager
     public static readonly Dictionary<Type, QuestHandler> QuestHandlerStorage = new(MaxQuestHandlerInstances);
     public static readonly Dictionary<Type, RuleHandler> RuleHandlerStorage = new(MaxRuleHandlerInstances);
 
-    public static T GetOrCreateQuestHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>() where T : QuestHandler 
+    public static T GetOrCreateQuestHandler<T>() where T : QuestHandler 
     {
         lock (QuestHandlerStorage)
         {
@@ -210,15 +207,15 @@ public static class SingletonManager
                 //got val to return
             }
 
-            toReturn = Activator.CreateInstance<T>();
+            toReturn = (QuestHandler?)Activator.CreateInstance(typeof(T), true);
            
-            QuestHandlerStorage.Add(typeof(T), toReturn);
+            QuestHandlerStorage.Add(typeof(T), toReturn!);
 
             return (T)toReturn;
         }
     }
 
-    public static T GetOrCreateRuleHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>() where T : RuleHandler
+    public static T GetOrCreateRuleHandler<T>() where T : RuleHandler
     {
         lock (QuestHandlerStorage)
         {
@@ -228,7 +225,7 @@ public static class SingletonManager
                 //got val to return
             }
 
-            toReturn = Activator.CreateInstance<T>();
+            toReturn = (RuleHandler?)Activator.CreateInstance(typeof(T), true);
 
             RuleHandlerStorage.Add(typeof(T), toReturn);
 
@@ -270,9 +267,12 @@ public readonly struct QuestLog
 public abstract class QuestHandler
 {
     private readonly Type _self;
-    protected bool IsActive { get; private set; }
+    protected static readonly Quest[] Quests = new Quest[(int)TileType.Length-1];
+    public static readonly GameTime[]? QuestTimers = new GameTime[(int)TileType.Length - 1];
 
-    protected static THandler GetInstance<[DynMembers(DynMemberTypes.PublicParameterlessConstructor)]THandler>() where THandler : QuestHandler 
+    private bool IsActive { get; set; }
+    
+    protected static THandler GetInstance<THandler>() where THandler : QuestHandler 
         => SingletonManager.GetOrCreateQuestHandler<THandler>();
     
     protected int SubGoalCounter { get; set; }
@@ -280,7 +280,6 @@ public abstract class QuestHandler
     protected int GoalsLeft => QuestCountToReach - SubGoalCounter;
     protected bool IsMainGoalReached => GoalsLeft == 0;
 
-    public readonly GameTime[]? QuestTimers;
     
     /// <summary>
     ///The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
@@ -295,7 +294,6 @@ public abstract class QuestHandler
     protected QuestHandler(Type self)
     {
         _self = self;
-        QuestTimers = new GameTime[(int)TileType.Length - 1];
         Grid.NotifyOnGridCreationDone += DefineQuest;
     }
     
@@ -319,7 +317,17 @@ public abstract class QuestHandler
 
     protected abstract void HandleEvent();
 
-    public void Subscribe()
+    public FastSpanEnumerator<Quest> GetQuests() => new(Quests.AsSpan(0, GoalsLeft));
+    
+    public static void ActivateHandlers()
+    {
+        MatchQuestHandler.Instance.Subscribe();
+        SwapQuestHandler.Instance.Subscribe();
+    }
+
+    //its private for now until I will need my other Handlers for Clicks and Destruction events, which has to be 
+    //subbed and un-subbed at certain times..
+    private void Subscribe()
     {
         if (IsActive) return;
 
@@ -358,7 +366,7 @@ public sealed class SwapQuestHandler : QuestHandler
         GameState.Tile.UpdateGoal(EventType.Swapped, goal);
     }
 
-    public static SwapQuestHandler Instance => GetInstance<SwapQuestHandler>();
+    public static SwapQuestHandler Instance { get; } = GetInstance<SwapQuestHandler>();
 
     private SwapQuestHandler() : base(typeof(SwapQuestHandler)) => Game.OnTileSwapped += HandleEvent;
 
@@ -378,7 +386,6 @@ public sealed class SwapQuestHandler : QuestHandler
 
 public sealed class MatchQuestHandler : QuestHandler
 {
-    private static Quest[] Quests = null!;
     private static readonly Quest Empty = default;
 
     private void CompareResults()
@@ -409,11 +416,11 @@ public sealed class MatchQuestHandler : QuestHandler
         Game.OnGameOver += CompareResults;
     }
 
-    public static MatchQuestHandler Instance => GetInstance<MatchQuestHandler>();
+    public static MatchQuestHandler Instance { get; } = GetInstance<MatchQuestHandler>();
 
     private ref readonly Quest GetQuestFrom(TileType key)
     {
-        var enumerator = GetSpanEnumerator();
+        var enumerator = GetQuests();
 
         foreach (ref readonly var pair in enumerator)
         {
@@ -437,18 +444,19 @@ public sealed class MatchQuestHandler : QuestHandler
         }
         
         int tileCount = (int)TileType.Length - 1;
-        scoped Span<TileType> allTypes = stackalloc TileType[tileCount];
-        Fill(allTypes);
-        allTypes.Shuffle(Randomizer);
-        Quests = new Quest[allTypes.Length];
-        scoped FastSpanEnumerator<TileType> enumerator = new(allTypes);
+        scoped Span<TileType> subset = stackalloc TileType[tileCount];
+        Fill(subset);
+        subset.Shuffle(Randomizer);
+        subset = subset.TakeRndItemsAtRndPos();
+        scoped FastSpanEnumerator<TileType> subsetEnumerator = new(subset);
+        QuestCountToReach = subset.Length;
         
-        foreach (var type in enumerator)
+        foreach (var type in subsetEnumerator)
         {
             int trueIdx = (int)type - 1;
 
-            //we do netSingle() * 7f to have a real representative value for interval, like:
-            // 0.4f * 5f => 2f will be the time we have left to make a match! and so on....
+            //we do netSingle() * 10f to have a real representative value for interval, like:
+            // 0.4f * 10f => 2f will be the time we have left to make a match! and so on....
             float rndValue = Randomizer.NextSingle().Trunc(1);
             rndValue = rndValue.Equals(0f, 0.0f) ? 0.25f : rndValue;
             float finalInterval = MathF.Round(rndValue * 10f);
@@ -461,6 +469,8 @@ public sealed class MatchQuestHandler : QuestHandler
             QuestTimers![QuestCountToReach] = GameTime.GetTimer(toEven);
             QuestCountToReach++;
         }
+
+        bool a = true;
     }
 
     private bool IsMatchQuestReached(out Quest? quest, in AllStats allStats, out int direction)
@@ -519,10 +529,10 @@ public sealed class MatchQuestHandler : QuestHandler
             // Grid.Instance.Delete(GameState.Matches);
         }
     }
-
-    public FastSpanEnumerator<Quest> GetSpanEnumerator() => new(Quests.AsSpan(..GoalsLeft));
 }
 
+
+/*
 public abstract class ClickQuestHandler : QuestHandler
 {
     protected ClickQuestHandler(Type evenMoreConcrete): base(evenMoreConcrete)
@@ -572,7 +582,7 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
         Bakery.OnEnemyTileCreated += DefineQuest;
     }
 
-    public static DestroyOnClickHandler Instance => GetInstance<DestroyOnClickHandler>();
+    public static DestroyOnClickHandler Instance { get; } = GetInstance<DestroyOnClickHandler>();
 
     protected override void HandleEvent()
     {
@@ -634,3 +644,4 @@ public sealed class TileReplacementOnClickHandler() : ClickQuestHandler(typeof(T
         }
     }
 }
+*/
