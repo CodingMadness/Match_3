@@ -50,11 +50,11 @@ internal static class Game
    
         _bgWelcome = new(WelcomeTexture);
         _bgGameOver = new(GameOverTexture);
-        // QuestHandler.InitAllHandlers();
         
+        QuestHandler.ActivateHandlers();
         Grid.Instance.Init(Level);
         //this has to be initialized RIGHT HERE in order to work!
-        _questTimers = MatchQuestHandler.Instance.QuestTimers;
+        _questTimers = QuestHandler.QuestTimers;
         ShaderData = InitShader();
     }
 
@@ -108,8 +108,9 @@ internal static class Game
         //Enemy tile was clicked on , ofc after a matchX happened!
         if (_enemyMatches?.IsMatchActive == true && Intrinsics.IsExactTypeOf<EnemyTile>(firstClickedTile))
         {
-            //TileReplacementOnClickHandler.Instance.UnSubscribe();
-            DestroyOnClickHandler.Instance.Subscribe();
+            /*DestroyOnClickHandler.Instance.Subscribe();*/
+            /*TileReplacementOnClickHandler.Instance.UnSubscribe();*/
+            
             //we store our current values inside "GameState" which due to its static nature is then checked upon 
             //internally inside the QuestHandler's
             GameState.Tile = firstClickedTile;
@@ -121,9 +122,12 @@ internal static class Game
             if (Intrinsics.IsExactTypeOf<Tile>(firstClickedTile))
             {
                 //Only when a default tile is clicked X-times, we wanna allow it to change
-                //and since both event classes are active, we will unsub from the one who destroys on clicks
-                DestroyOnClickHandler.Instance.UnSubscribe();
-                //TileReplacementOnClickHandler.Instance.Subscribe();
+                //and since both event classes are active,
+                //we will need still to unsub from the one who destroys on clicks
+                //because he still active and listens to click-events, which we dont want
+                
+                /*DestroyOnClickHandler.Instance.UnSubscribe();*/
+                /*TileReplacementOnClickHandler.Instance.Subscribe();*/
 
                 GameState.Tile = firstClickedTile;
 

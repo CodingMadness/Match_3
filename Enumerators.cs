@@ -11,29 +11,29 @@ public ref struct FastSpanEnumerator<TItem>
 {
     private ref TItem _currentItem;
     private readonly ref TItem _lastItemOffsetByOne;
-
-    public FastSpanEnumerator(ReadOnlySpan<TItem> span)
-        : this(ref MemoryMarshal.GetReference(span), span.Length)
-    {
-    }
+    
+    // public FastSpanEnumerator(SpanEnumerable<TItem> enumerator)
+    // {
+    //     _currentItem
+    // }
 
     public FastSpanEnumerator(Span<TItem> span) :
         this(ref MemoryMarshal.GetReference(span), span.Length)
     {
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private FastSpanEnumerator(ref TItem item, nint length)
     {
+        //we store 1 address BEHIND '_currentItem' in order to have an 'invalid' address, so that our "MoveNext()"
+        //func can do + 1 and be at the 0t index! and vice versa with '_lastItemOffsetByOne'
         _currentItem = ref Unsafe.Subtract(ref item, 1);
         _lastItemOffsetByOne = ref Unsafe.Add(ref _currentItem, length + 1);
     }
 
-    [UnscopedRef] public ref TItem Current => ref _currentItem;
+    [UnscopedRef]public ref TItem Current => ref _currentItem;
 
-    /// <summary>
-    ///
-    /// </summary>
-    /// <returns></returns>
+
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool MoveNext()
     {
@@ -51,11 +51,7 @@ public ref struct FastSpanEnumerator<TItem>
         _currentItem = ref Unsafe.Subtract(ref _currentItem, 1);
         return Unsafe.IsAddressLessThan(ref _currentItem, ref _lastItemOffsetByOne);
     }
-
-    /// <summary>
-    ///
-    /// </summary>
-    /// <returns></returns>
+    
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     [UnscopedRef]
     public ref FastSpanEnumerator<TItem> GetEnumerator()
