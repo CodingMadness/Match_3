@@ -84,20 +84,20 @@ public static unsafe class AssetManager
         int speedXLoc = GetShaderLocation(WobbleEffect, "speedX");
         int speedYLoc = GetShaderLocation(WobbleEffect, "speedY");
 
-        // Shader uniform values that can be updated at any time
-        float freqX = 34.0f;
-        float freqY = 50.0f;
-        float ampX = 8.5f;
-        float ampY = 7.33f;
-        float speedX = 8.0f;
-        float speedY = 8.0f;
-
-        SetShaderValue(WobbleEffect, freqXLoc, freqX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, freqYLoc, freqY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, ampXLoc, ampX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, ampYLoc, ampY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, speedXLoc, speedX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, speedYLoc, speedY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        // // Shader uniform values that can be updated at any time
+        // float freqX = 34.0f;
+        // float freqY = 50.0f;
+        // float ampX = 8.5f;
+        // float ampY = 7.33f;
+        // float speedX = 8.0f;
+        // float speedY = 8.0f;
+        //
+        // SetShaderValue(WobbleEffect, freqXLoc, freqX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        // SetShaderValue(WobbleEffect, freqYLoc, freqY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        // SetShaderValue(WobbleEffect, ampXLoc, ampX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        // SetShaderValue(WobbleEffect, ampYLoc, ampY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        // SetShaderValue(WobbleEffect, speedXLoc, speedX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+        // SetShaderValue(WobbleEffect, speedYLoc, speedY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
 
         return (sizeLoc, secondsLoc);
     }
@@ -122,8 +122,8 @@ public static unsafe class AssetManager
         GameOverTexture = LoadGuiTexture("Background.bgGameOver.png");
         DefaultTileAtlas = LoadInGameTexture("set1.png");
         EnemySprite = LoadInGameTexture("set2.png");
-        WobbleEffect = LoadShader("wobble.frag");
-        ShaderData = InitShader();
+        // WobbleEffect = LoadShader("wobble.frag");
+        // ShaderData = InitShader();
         
         WelcomeText.Src = GameFont;
         GameOverText.Src = GameFont;

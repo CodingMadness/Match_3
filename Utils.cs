@@ -38,6 +38,11 @@ public static class Utils
             color.A / 255.0f);
     }
 
+
+    
+    public static Color ToColor(this Vector4 color) => 
+        Color.FromArgb((int)(color.W * 255), (int)(color.X * 255), (int)(color.Y * 255), (int)(color.Z * 255));
+
     public static Vector4 ToVec4(this RayColor color)
     {
         return new(

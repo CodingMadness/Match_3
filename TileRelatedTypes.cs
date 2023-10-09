@@ -310,7 +310,6 @@ public class Tile(TileShape body) : IEquatable<Tile>
     {
         _quest = eventType switch
         {
-            EventType.Clicked => _quest with { Click = aQuest.Click },
             EventType.Swapped => _quest with { Swap = aQuest.Swap },
             EventType.Matched => _quest with { Match = aQuest.Match },
             //EventType.RePainted => _goal with { RePaint = aGoal.RePaint },
