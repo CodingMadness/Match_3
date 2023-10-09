@@ -1,3 +1,4 @@
+using System.Text;
 using Match_3.GameTypes;
 using static Match_3.Utils;
 
@@ -58,7 +59,7 @@ public struct AllStats : IComparable<AllStats>
 
     public EventStats? Swapped = new(count: 0);
     public EventStats? Matched = new(count: 0);
-    public EventStats? RePainted = new(count: 0);
+    public EventStats? Replacements = new(count: 0);
     public EventStats? Destroyed = new(count: 0);
 
     public AllStats()
@@ -84,7 +85,7 @@ public struct AllStats : IComparable<AllStats>
             $"Matches made ->(Count: {Matched?.Count}  - Interval: {Matched?.Interval} {Environment.NewLine}" +
             $"Clicks made  ->(Count: {Clicked?.Count}  - Interval: {Clicked?.Interval}{Environment.NewLine}" +
             $"Swapped made  ->(Count: {Swapped?.Count}  - Interval: {Swapped?.Interval}{Environment.NewLine}" +
-            $"Repaints made ->(Count: {RePainted?.Count}  - Interval: {RePainted?.Interval}{Environment.NewLine}";
+            $"Repaints made ->(Count: {Replacements?.Count}  - Interval: {Replacements?.Interval}{Environment.NewLine}";
         return output;
     }
 
@@ -114,9 +115,9 @@ public struct AllStats : IComparable<AllStats>
                     ref EventStats tmp = ref Unsafe.AsRef(Nullable.GetValueRefOrDefaultRef(Destroyed));
                     return ref tmp;
                 }
-                case EventType.RePainted when RePainted.HasValue:
+                case EventType.RePainted when Replacements.HasValue:
                 {
-                    ref EventStats tmp = ref Unsafe.AsRef(Nullable.GetValueRefOrDefaultRef(RePainted));
+                    ref EventStats tmp = ref Unsafe.AsRef(Nullable.GetValueRefOrDefaultRef(Replacements));
                     return ref tmp;
                 }
                 default:
@@ -126,7 +127,7 @@ public struct AllStats : IComparable<AllStats>
     }
 }
 
-public readonly record struct SubQuest(int Count, float Interval)  
+public readonly record struct SubQuest(int Count, float Interval)
 {
     public int CompareTo(EventStats other)
     {
@@ -135,20 +136,13 @@ public readonly record struct SubQuest(int Count, float Interval)
     }
 }
 
-public readonly record struct Quest(TileType ItemType, SubQuest? Click, SubQuest? Swap, SubQuest? Match)
+public readonly record struct Quest(TileType ItemType, SubQuest? Match, SubQuest? Swap, SubQuest? Replacement)
 {
-    public int CompareClicks(in AllStats? stats)
+    public int CompareReplacements(in AllStats? stats)
     {
-        return stats switch
-        {
-            { Clicked: { } statsClick } when Click is { Count : var count } => count.CompareTo(statsClick.Count),
-            null => 1,
-            { Clicked: null } => 1,
-            { Clicked: not null } when Click is null => -1,
-            _ => throw new ArgumentOutOfRangeException(nameof(stats), stats, null)
-        };
+        return -1;
     }
-
+    
     public int CompareSwaps(in AllStats? stats)
     {
         return stats switch
@@ -166,7 +160,7 @@ public readonly record struct Quest(TileType ItemType, SubQuest? Click, SubQuest
         return stats switch
         {
             /*stats.Matched*/
-            { Matched: var matchedStats } when Match is not null 
+            { Matched: var matchedStats } when Match is not null
                 => Match.Value.CompareTo(matchedStats!.Value),
             null => 1,
             { Matched: null } => 1,
@@ -184,9 +178,8 @@ public static class GameState
     public static Tile Tile;
     public static MatchX? Matches;
     public static bool? WasFeatureBtnPressed;
-    public static float CurrentTime;
     public static bool IsGameOver;
-    public static string? GameOverMessage;
+    public static StringBuilder Logger; //whatever the logger logged, take that to render!
 }
 
 public static class SingletonManager
@@ -197,7 +190,7 @@ public static class SingletonManager
     public static readonly Dictionary<Type, QuestHandler> QuestHandlerStorage = new(MaxQuestHandlerInstances);
     public static readonly Dictionary<Type, RuleHandler> RuleHandlerStorage = new(MaxRuleHandlerInstances);
 
-    public static T GetOrCreateQuestHandler<T>() where T : QuestHandler 
+    public static T GetOrCreateQuestHandler<T>() where T : QuestHandler
     {
         lock (QuestHandlerStorage)
         {
@@ -208,7 +201,7 @@ public static class SingletonManager
             }
 
             toReturn = (QuestHandler?)Activator.CreateInstance(typeof(T), true);
-           
+
             QuestHandlerStorage.Add(typeof(T), toReturn!);
 
             return (T)toReturn;
@@ -234,7 +227,6 @@ public static class SingletonManager
     }
 }
 
-
 // public readonly struct QuestLog
 // {
 //     internal readonly TileType Type;
@@ -254,7 +246,6 @@ public static class SingletonManager
 //     public static implicit operator QuestLog(in Quest quest) => new(quest);
 // }
 
-
 /// <summary>
 ///The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
 ///or about other events
@@ -268,20 +259,35 @@ public static class SingletonManager
 public abstract class QuestHandler
 {
     private readonly Type _self;
-    protected static readonly Quest[] Quests = new Quest[(int)TileType.Length-1];
+    protected static readonly Quest[] Quests = new Quest[(int)TileType.Length - 1];
     public static readonly GameTime[]? QuestTimers = new GameTime[(int)TileType.Length - 1];
 
+
+    private const string SameColor = "SAMECOLOR";
+
+    private const string QuestLog = $" (Black) You have to collect an amount of " +
+                                    $" ({SameColor}) <A> EMPTY Matches " +
+                                    $" (Black) and u have in between those, " +
+                                    $" ({SameColor}) only <B> seconds left " +
+                                    $" (Black) and also just " +
+                                    $" ({SameColor}) <C> swaps available " +
+                                    $" (Black) for each new match " +
+                                    $" (Black) and furthermore, you only are allowed to replace any given tile " +
+                                    $" ({SameColor}) <D> times at max " +
+                                    $" (Black) for your own help ";
+
+    //the length of any string which is inside the GameState class
+    protected static readonly StringBuilder Logger = new(QuestLog);
     private bool IsActive { get; set; }
-    
-    protected static THandler GetInstance<THandler>() where THandler : QuestHandler 
+
+    protected static THandler GetInstance<THandler>() where THandler : QuestHandler
         => SingletonManager.GetOrCreateQuestHandler<THandler>();
-    
+
     protected int SubGoalCounter { get; set; }
     protected int QuestCountToReach { get; set; }
     protected int GoalsLeft => QuestCountToReach - SubGoalCounter;
     protected bool IsMainGoalReached => GoalsLeft == 0;
 
-    
     /// <summary>
     ///The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
     ///or about other events
@@ -296,15 +302,16 @@ public abstract class QuestHandler
     {
         _self = self;
         Grid.NotifyOnGridCreationDone += DefineQuest;
+        GameState.Logger = Logger;
     }
-    
-    protected static bool IsSubQuestReached(EventType eventType, in Quest quest, in AllStats allStats, out int direction)
+
+    protected static bool IsSubQuestReached(EventType eventType, in Quest quest, in AllStats allStats,
+        out int direction)
     {
         direction = default;
 
         return eventType switch
         {
-            EventType.Clicked => (direction = quest.CompareClicks(allStats)) == 0,
             EventType.Swapped => (direction = quest.CompareSwaps(allStats)) == 0,
             EventType.Matched => (direction = quest.CompareMatches(allStats)) == 0,
             _ => false
@@ -318,8 +325,65 @@ public abstract class QuestHandler
 
     protected abstract void HandleEvent();
 
+    public static void BuildQuestFrom(in Quest quest)
+    {
+        double GetNextValue(in Quest data, int offset)
+        {
+            double numericValue = 0d;
+            const char zero = (char)48;
+
+            switch (offset)
+            {
+                case 0:
+                {
+                    numericValue = data.Match!.Value.Count;
+                    break;
+                }
+                case 1:
+                {
+                    numericValue = data.Match!.Value.Interval;
+                    break;
+                }
+                case 2:
+                {
+                    numericValue = data.Swap!.Value.Count;
+                    break;
+                }
+                case 3:
+                {
+                    numericValue = data.Replacement!.Value.Count;
+                    break;
+                }
+            }
+
+            return numericValue;
+        }
+
+        string colorAsTxt = $"{quest.ItemType}";
+
+        //TODO: Implement a custom span.Replace() for efficiency
+        Logger.Replace(SameColor, colorAsTxt).Replace("EMPTY", colorAsTxt);
+
+        var chunkIterator = new TextStyleEnumerator(Logger);
+        int counter = 0;
+        char begin = 'A';
+
+        foreach (ref readonly var phrase in chunkIterator)
+        {
+            if (phrase.SystemColor.ToKnownColor() is KnownColor.Black)
+            {
+                //counter--;
+                continue;
+            }
+
+            var value = GetNextValue(quest, counter++);
+
+            Logger.Replace($"<{begin++}>", $"<{value}>");
+        }
+    }
+
     public FastSpanEnumerator<Quest> GetQuests() => new(Quests.AsSpan(0, QuestCountToReach));
-    
+
     public static void ActivateHandlers()
     {
         MatchQuestHandler.Instance.Subscribe();
@@ -352,12 +416,16 @@ public sealed class SwapQuestHandler : QuestHandler
         //Define Ruleset for SwapQuestHandler:
         /*
          * Swap 3 types only
-         * and if other types ar
+         * and if other types are swapped as well, you get punished
          */
 
         var goal = Game.Level.ID switch
         {
-            0 => new Quest { Swap = new(Randomizer.Next(4, 7), 6f) },
+            0 => new Quest
+            {
+                Swap = new(Randomizer.Next(4, 6), 5f),
+                ItemType = TileType.Red
+            },
             1 => new Quest { Swap = new(Randomizer.Next(3, 6), 4.5f) },
             2 => new Quest { Swap = new(Randomizer.Next(2, 4), 4.0f) },
             3 => new Quest { Swap = new(Randomizer.Next(2, 3), 3.0f) },
@@ -389,32 +457,37 @@ public sealed class MatchQuestHandler : QuestHandler
 {
     private static readonly Quest Empty = default;
 
-    private void CompareResults()
+    private void CompareFinalResults()
     {
+        //clear whatever was written inside the logger, because we are done now anyways and we wanna store inside 
+        //to see what is the final GameState
+        Logger.Clear();
+
         switch (IsMainGoalReached)
         {
             case true when !GameState.IsGameOver:
                 GameState.WasGameWonB4Timeout = true;
-                GameState.GameOverMessage =
-                    "NICE, YOU FINISHED THE ENTIRE MATCH-QUEST BEFORE THE GAME ENDED! WELL DONE Man!";
+                Logger.Append("NICE, YOU FINISHED THE ENTIRE MATCH-QUEST BEFORE THE GAME ENDED! WELL DONE Man!");
                 break;
+
             case false when GameState.IsGameOver:
                 GameState.WasGameWonB4Timeout = false;
-                GameState.GameOverMessage =
+                Logger.Append(
                     "Unlucky, very close, you will do it next time, i am sure :-), but here your results" +
-                    $"So far you have gotten at least {SubGoalCounter} done and you needed actually still {GoalsLeft} more";
+                    $"So far you have gotten at least {SubGoalCounter} done and you needed actually still {GoalsLeft} more");
                 break;
+
             case true when GameState.IsGameOver:
                 GameState.WasGameWonB4Timeout = false;
-                GameState.GameOverMessage = "Good job, you did in time at least, you piece of shit!!";
+                Logger.Append("Good job, you did in time at least, you piece of shit!!");
                 break;
         }
     }
 
-    private MatchQuestHandler(): base(typeof(MatchQuestHandler))
+    private MatchQuestHandler() : base(typeof(MatchQuestHandler))
     {
         Game.OnMatchFound += HandleEvent;
-        Game.OnGameOver += CompareResults;
+        Game.OnGameOver += CompareFinalResults;
     }
 
     public static MatchQuestHandler Instance { get; } = GetInstance<MatchQuestHandler>();
@@ -443,7 +516,7 @@ public sealed class MatchQuestHandler : QuestHandler
 
             allTypes.CopyTo(toFill);
         }
-        
+
         int tileCount = (int)TileType.Length - 1;
         scoped Span<TileType> subset = stackalloc TileType[tileCount];
         Fill(subset);
@@ -451,7 +524,7 @@ public sealed class MatchQuestHandler : QuestHandler
         subset = subset.TakeRndItemsAtRndPos();
         scoped FastSpanEnumerator<TileType> subsetEnumerator = new(subset);
         QuestCountToReach = subset.Length;
-        
+
         foreach (var type in subsetEnumerator)
         {
             int trueIdx = (int)type - 1;
@@ -463,10 +536,13 @@ public sealed class MatchQuestHandler : QuestHandler
             float finalInterval = MathF.Round(rndValue * 10f);
             finalInterval = finalInterval <= 2.5f ? 2.5f : finalInterval;
             int toEven = (int)MathF.Round(finalInterval, MidpointRounding.ToEven);
-            
+
             SubQuest match = new(maxCountPerType[trueIdx] / Level.MAX_TILES_PER_MATCH, finalInterval);
-            //the both "null" are just for now, to keep it simple, so we focus on handling only the matches for now!
-            Quests[trueIdx] = new Quest(type, null, null, match);
+            //-1f is same as to say null, but for comfort i skip float? checks..
+            //3 is just placeholder and is subject to change for "swap" and "replacement"
+            SubQuest swap =  new(3, -1f);
+            SubQuest replacement =  new(4, -1f); 
+            Quests[trueIdx] = new Quest(type, match, swap, replacement);
             QuestTimers![trueIdx] = GameTime.GetTimer(toEven);
         }
 
@@ -517,7 +593,7 @@ public sealed class MatchQuestHandler : QuestHandler
         }
         else
         {
-            CompareResults();
+            CompareFinalResults();
 
             //error-code
             if (compareResult > 1)
@@ -532,7 +608,7 @@ public sealed class MatchQuestHandler : QuestHandler
         }
     }
 }
-
+ 
 
 /*
 public abstract class ClickQuestHandler : QuestHandler
@@ -616,7 +692,7 @@ public sealed class DestroyOnClickHandler : ClickQuestHandler
 public sealed class TileReplacementOnClickHandler() : ClickQuestHandler(typeof(TileReplacementOnClickHandler))
 {
     public static TileReplacementOnClickHandler Instance => GetInstance<TileReplacementOnClickHandler>();
-    
+
     protected override void HandleEvent()
     {
         if (!IsActive && !GameState.WasFeatureBtnPressed == true)
