@@ -1,9 +1,11 @@
 ﻿using System.Globalization;
+using System.Text;
 using DotNext.Runtime;
 using Match_3.GameTypes;
 using Raylib_cs;
 using static Match_3.AssetManager;
 using static Match_3.Utils;
+using Color = System.Drawing.Color;
 
 namespace Match_3;
 
@@ -19,11 +21,12 @@ internal static class Game
     private static GameTime _gameTimer;
     private static GameTime[]? _questTimers;
     private static EnemyMatchRuleHandler _enemyMatchRuleHandler;
+    private static readonly StringBuilder TimeBuilder = new(3);
 
     private static bool _enterGame;
     private static bool _shallCreateEnemies;
     private static bool _runQuestTimers;
-    
+
     public static event Action OnMatchFound;
     public static event Action OnTileClicked;
     public static event Action OnTileSwapped;
@@ -47,15 +50,15 @@ internal static class Game
         InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
         SetTextureFilter(BgIngameTexture, TextureFilter.TEXTURE_FILTER_BILINEAR);
         LoadAssets();
-   
+
         _bgWelcome = new(WelcomeTexture);
         _bgGameOver = new(GameOverTexture);
-        
+
         QuestHandler.ActivateHandlers();
         Grid.Instance.Init(Level);
         //this has to be initialized RIGHT HERE in order to work!
         _questTimers = QuestHandler.QuestTimers;
-        ShaderData = InitShader();
+        // ShaderData = InitShader();
     }
 
     private static void DragMouseToEnemies()
@@ -110,7 +113,7 @@ internal static class Game
         {
             /*DestroyOnClickHandler.Instance.Subscribe();*/
             /*TileReplacementOnClickHandler.Instance.UnSubscribe();*/
-            
+
             //we store our current values inside "GameState" which due to its static nature is then checked upon 
             //internally inside the QuestHandler's
             GameState.Tile = firstClickedTile;
@@ -125,7 +128,7 @@ internal static class Game
                 //and since both event classes are active,
                 //we will need still to unsub from the one who destroys on clicks
                 //because he still active and listens to click-events, which we dont want
-                
+
                 /*DestroyOnClickHandler.Instance.UnSubscribe();*/
                 /*TileReplacementOnClickHandler.Instance.Subscribe();*/
 
@@ -196,11 +199,10 @@ internal static class Game
             int tileTypeIdx = (int)GameState.Tile.Body.TileType;
             GameState.Tile = _secondClicked!;
             GameState.Matches = _matchesOf3;
-            
+
             //TODO: Look into this timer problem, cause we dont wanna have TileType.Length timers only those who are in quest!
-            GameState.CurrentTime = _questTimers[tileTypeIdx].ElapsedSeconds;
             OnMatchFound();
-            
+
             //if its the 1.time we set _runQuestTimers=true, but we also check for each new Matched
             _runQuestTimers = true;
         }
@@ -237,128 +239,106 @@ internal static class Game
         }
     }
 
+    private static void HandleGameInput()
+    {
+        GameTime gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown + 10);
+        // int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
+        float currTime = _gameTimer.ElapsedSeconds;
+        
+        if (_enterGame)
+        {
+            UiRenderer.DrawCurvedText("HELLO LOVELY WORLD!", 0.1f);
+
+            // UiRenderer.RenderCurvedText(ImGui.GetWindowDrawList(), Utils.GetScreenCoord() / 2f, 
+            //     "HELLO DEAR WORLD", 200f, Color.Red, 12f, 0.1f);
+
+            // Vector2 size = GetScreenCoord();
+            // SetShaderValue(WobbleEffect, ShaderData.size, size, ShaderUniformDataType.SHADER_UNIFORM_VEC2);
+            // SetShaderValue(WobbleEffect, ShaderData.time, currTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+            // SetShaderValue(WobbleEffect, shallWobble, 0.1, ShaderUniformDataType.SHADER_UNIFORM_INT);
+        }
+
+        else if (!_enterGame)
+        {
+            // UiRenderer.DrawCurvedText("HELLO LOVELY WORLD!", 0.1f);
+            UiRenderer.DrawQuestLog();
+        }
+
+        if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
+        {
+            _gameTimer.Run();
+
+            // int tileTypeIdx = (int)GameState.Tile.Body.TileType;
+            // ref var questTimer = ref _questTimers[tileTypeIdx];
+            //
+            // //if it got activated in "ComputeMatches()" then we can count down, else it sleeps!
+            // if (_runQuestTimers)
+            //     questTimer.Run();
+            //
+            //
+            // if (_runQuestTimers)
+            //     if (questTimer.Done())
+            //     { 
+            //     }
+            // Console.WriteLine(questTimer.Done()
+            //     ? $"YOU MISSED 1 MATCH OF TYPE {GameState.Tile.Body.TileType} AND NOW YOU LOSE BONUS OR GET PUNISHED!"
+            //     : $"YOU STILL HAVE {questTimer.ElapsedSeconds} TIME LEFT!");
+
+            GameState.IsGameOver = _gameTimer.Done();
+
+            if (GameState.IsGameOver)
+            {
+                OnGameOver();
+                gameOverTimer.Run();
+                TimeBuilder.Append($"{gameOverTimer.ElapsedSeconds}");
+
+                UiRenderer.DrawText(TimeBuilder);
+                UiRenderer.DrawBackground(_bgGameOver);
+                UiRenderer.DrawTimer(gameOverTimer.ElapsedSeconds);
+                ImGui.SetWindowFontScale(2f);
+
+                if (UiRenderer.DrawGameOverScreen(gameOverTimer.Done(), GameState.WasGameWonB4Timeout,
+                        GameState.Logger))
+                    return;
+            }
+            else if (GameState.WasGameWonB4Timeout)
+            {
+                if (UiRenderer.DrawGameOverScreen(_gameTimer.Done(), true, GameState.Logger))
+                {
+                    //Begin new Level!
+                    InitGame();
+                    GameState.WasGameWonB4Timeout = false;
+                    // continue;
+                }
+            }
+            else
+            {
+                // var pressed = UIRenderer.DrawFeatureBtn(out _);
+                // GameState.WasFeatureBtnPressed ??= pressed;
+                // GameState.WasFeatureBtnPressed = pressed ?? GameState.WasFeatureBtnPressed;
+                UiRenderer.DrawBackground(_bgIngame1);
+                UiRenderer.DrawTimer(currTime);
+                DragMouseToEnemies();
+                ProcessSelectedTiles();
+                ComputeMatches();
+                GameObjectRenderer.DrawOuterBox(_enemyMatches, currTime);
+                GameObjectRenderer.DrawInnerBox(_matchesOf3, currTime);
+                // BeginShaderMode(WobbleEffect);
+                GameObjectRenderer.DrawGrid(currTime);
+                GameObjectRenderer.DrawMatches(_enemyMatches, currTime, _shallCreateEnemies);
+                // EndShaderMode();
+                HardReset();
+            }
+
+            _enterGame = true;
+        }
+    }
+
     private static void MainGameLoop()
     {
-        //float seconds = 0.0f;
-        GameTime gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown + 10);
-        int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
-
-        RlImGui.Setup(false);
-
         while (!WindowShouldClose())
         {
-            //seconds += GetFrameTime();
-            float currTime = _gameTimer.ElapsedSeconds;
-            GameState.CurrentTime = currTime;
-
-            BeginDrawing();
-            {
-                ClearBackground(WHITE);
-                //ImGui Context Begin
-                const ImGuiWindowFlags flags = ImGuiWindowFlags.NoDecoration |
-                                               ImGuiWindowFlags.NoScrollbar |
-                                               ImGuiWindowFlags.NoBackground |
-                                               ImGuiWindowFlags.NoMove;
-
-                RlImGui.Begin();
-                {
-                    if (ImGui.Begin("Screen Overlay", flags))
-                    {
-                        // ImGui.ShowDemoWindow();
-
-                        ImGui.SetWindowPos(default);
-                        ImGui.SetWindowSize(GetScreenCoord());
-
-                        if (_enterGame)
-                        {
-                            Vector2 size = GetScreenCoord();
-                            SetShaderValue(WobbleEffect, ShaderData.size, size,
-                                ShaderUniformDataType.SHADER_UNIFORM_VEC2);
-                            SetShaderValue(WobbleEffect, ShaderData.time, currTime,
-                                ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-                            // SetShaderValue(WobbleEffect, shallWobble, 0.1, ShaderUniformDataType.SHADER_UNIFORM_INT);
-                        }
-                        else if (!_enterGame)
-                        {
-                            // UiRenderer.DrawBackground(_bgWelcome);
-                            UiRenderer.DrawQuestLog();
-                        }
-
-                        if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
-                        {
-                            _gameTimer.Run();
-
-                            int tileTypeIdx = (int)GameState.Tile.Body.TileType;
-                            ref var questTimer = ref _questTimers[tileTypeIdx];
-
-                            //if it got activated in "ComputeMatches()" then we can count down, else it sleeps!
-                            if (_runQuestTimers)
-                                questTimer.Run();
-
-                            
-                            if (_runQuestTimers)
-                                if (questTimer.Done())
-                                { 
-                                }
-                                // Console.WriteLine(questTimer.Done()
-                                //     ? $"YOU MISSED 1 MATCH OF TYPE {GameState.Tile.Body.TileType} AND NOW YOU LOSE BONUS OR GET PUNISHED!"
-                                //     : $"YOU STILL HAVE {questTimer.ElapsedSeconds} TIME LEFT!");
-
-                            GameState.IsGameOver = _gameTimer.Done();
-
-                            if (GameState.IsGameOver)
-                            {
-                                OnGameOver();
-                                gameOverTimer.Run();
-                                var value = gameOverTimer.ElapsedSeconds.ToString(CultureInfo.InvariantCulture);
-                                UiRenderer.DrawText(value);
-                                UiRenderer.DrawBackground(_bgGameOver);
-                                UiRenderer.DrawTimer(gameOverTimer.ElapsedSeconds);
-                                ImGui.SetWindowFontScale(2f);
-
-                                if (UiRenderer.DrawGameOverScreen(gameOverTimer.Done(),
-                                        GameState.WasGameWonB4Timeout,
-                                        GameState.GameOverMessage))
-                                    return;
-                            }
-                            else if (GameState.WasGameWonB4Timeout)
-                            {
-                                if (UiRenderer.DrawGameOverScreen(_gameTimer.Done(), true, GameState.GameOverMessage))
-                                {
-                                    //Begin new Level!
-                                    InitGame();
-                                    GameState.WasGameWonB4Timeout = false;
-                                    continue;
-                                }
-                            }
-                            else
-                            {
-                                // var pressed = UIRenderer.DrawFeatureBtn(out _);
-                                // GameState.WasFeatureBtnPressed ??= pressed;
-                                // GameState.WasFeatureBtnPressed = pressed ?? GameState.WasFeatureBtnPressed;
-                                UiRenderer.DrawBackground(_bgIngame1);
-                                UiRenderer.DrawTimer(currTime);
-                                DragMouseToEnemies();
-                                ProcessSelectedTiles();
-                                ComputeMatches();
-                                GameObjectRenderer.DrawOuterBox(_enemyMatches, currTime);
-                                GameObjectRenderer.DrawInnerBox(_matchesOf3, currTime);
-                                // BeginShaderMode(WobbleEffect);
-                                GameObjectRenderer.DrawGrid(currTime);
-                                GameObjectRenderer.DrawMatches(_enemyMatches, currTime, _shallCreateEnemies);
-                                // EndShaderMode();
-                                HardReset();
-                            }
-
-                            _enterGame = true;
-                        }
-                    }
-
-                    ImGui.End();
-                }
-                RlImGui.End();
-            }
-            EndDrawing();
+            UiRenderer.BeginRenderCycle(HandleGameInput);
         }
     }
 
