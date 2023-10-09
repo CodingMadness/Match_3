@@ -3,27 +3,47 @@ using System.Text;
 using Match_3.GameTypes;
 using Raylib_cs;
 using static Match_3.AssetManager;
+using Color = System.Drawing.Color;
+using Vector2 = System.Numerics.Vector2;
 
 namespace Match_3;
 
 public static class UiRenderer
 {
-    private static RayColor? _questLogColor;
+    static UiRenderer()
+    {
+        RlImGui.Setup(false);
+    }
+    
+    public static void BeginRenderCycle(Action mainGameLoop)
+    {
+        BeginDrawing();
+        {
+            ClearBackground(WHITE);
+            //ImGui Context Begin
+            const ImGuiWindowFlags flags = ImGuiWindowFlags.NoDecoration |
+                                           ImGuiWindowFlags.NoScrollbar |
+                                           ImGuiWindowFlags.NoBackground |
+                                           ImGuiWindowFlags.NoMove;
 
-    private const string SameColor = "SAMECOLOR";
+            RlImGui.Begin();
+            {
+                if (ImGui.Begin("Screen Overlay", flags))
+                {
+                    // ImGui.ShowDemoWindow();
 
-    private const string Message = $"(Black) You have to collect an amount of " +
-                                   $" ({SameColor}) x Empty tiles " +
-                                   $" (Black) and u have in between, " +
-                                   $" ({SameColor}) y seconds " +
-                                   $" (Black) for each new match, and also just " +
-                                   $" ({SameColor}) z available swaps " +
-                                   $" (Black) for each new match ";
+                    ImGui.SetWindowPos(default);
+                    ImGui.SetWindowSize(Utils.GetScreenCoord());
 
-    private static string BufferOf3Chars = "   ";
+                    mainGameLoop();
+                }
 
-    //You have to collect an amount of 4 Red tiles and u have in between, 4,5 seconds for each new match, and also only 4 available swaps for each new match
-    private static readonly StringBuilder? MessageBuilder = new((int)(Message.Length * 1.25f));
+                ImGui.End();
+            }
+            RlImGui.End();
+        }
+        EndDrawing();
+    }
 
     public static bool? DrawFeatureBtn(out string btnId)
     {
@@ -78,14 +98,17 @@ public static class UiRenderer
         return result;
     }
 
-    public static void DrawText(string? text)
+    public static void DrawText(StringBuilder text)
     {
+        // calculate the indentation that centers the text on one line, relative
+        // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
         float winWidth = ImGui.GetWindowWidth();
         Vector2 currentPos = new(25f, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
-        scoped var x = new TextStyleEnumerator(text);
-        Vector2 tmp = default;
+        scoped var iterator = new TextStyleEnumerator(text);
         float totalSize = 0;
         const float spaceBetween = 5f;
+        Vector2 tmp = currentPos;
+        float wrapPosX = winWidth - 20f;
 
         void NewLine(Vector2 phraseSize)
         {
@@ -96,11 +119,8 @@ public static class UiRenderer
 
         ImGui.SetCursorPos(currentPos);
 
-        foreach (ref readonly var phrase in x)
+        foreach (ref readonly var phrase in iterator)
         {
-            // calculate the indentation that centers the text on one line, relative
-            // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
-            float wrapPosX = winWidth;
             totalSize += phrase.TextSize.X;
 
             if (totalSize > wrapPosX)
@@ -111,10 +131,9 @@ public static class UiRenderer
             //Draw words as long as they fit in the WINDOW_WIDTH
             foreach (var word in phrase)
             {
-                tmp = tmp == Vector2.Zero ? currentPos : tmp;
                 ImGui.SetCursorPos(tmp);
                 ImGui.PushTextWrapPos(wrapPosX);
-                ImGui.TextColored(word.ColorV4, word.Piece);
+                ImGui.TextColored(word.ColorV4, word.Text2Color);
                 ImGui.PopTextWrapPos();
                 tmp.X += word.TextSize.X + spaceBetween;
             }
@@ -123,71 +142,17 @@ public static class UiRenderer
 
     public static void DrawQuestLog()
     {
-        void BuildMessageFrom(in Quest matchGoal)
-        {
-            string GetNextValue(in Quest data, int offset)
-            {
-                int numericValue;
-                const char zero = (char)48;
-
-                switch (offset)
-                {
-                    case 0:
-                    {
-                        numericValue = data.Match!.Value.Count;
-                        BufferOf3Chars.AsSpan().Writable()[0] = (char)(zero + numericValue);
-                    }
-                        break;
-                    
-                    case 1:
-                    {
-                        float interval = data.Match!.Value.Interval;
-                        return interval.ToString(CultureInfo.InvariantCulture);
-                    }
-                    case 2:
-                    {
-                        numericValue = 3; /*data.Swap!.Value.Count;*/ //3 is just for now... a debug value
-                        BufferOf3Chars.AsSpan().Writable()[0] = (char)(zero + numericValue);
-                    }
-                        break;
-                }
-
-                return BufferOf3Chars;
-            }
-            
-            string colorAsTxt = $"{matchGoal.ItemType}";
-
-            //TODO: Implement a custom span.Replace() for efficiency
-            var updatedMsg = Message.Replace(SameColor, colorAsTxt).Replace("Empty", colorAsTxt);
-            MessageBuilder!.Append(updatedMsg);
-
-            var chunkIterator = new TextStyleEnumerator(updatedMsg);
-            int counter = 0;
-            char begin = 'x';
-
-            foreach (ref readonly var chunk in chunkIterator)
-            {
-                if (chunk.SystemColor.ToKnownColor() is KnownColor.Black)
-                    continue;
-
-                var value = GetNextValue(matchGoal, counter++);
-
-                MessageBuilder?.Replace(begin++.ToString(), value);
-            }
-        }
-
         ImGui.SetWindowFontScale(1.5f);
-        Vector2 begin = (ImGui.GetContentRegionAvail() * 0.5f) with { Y = 0 };
-        _questLogColor ??= Utils.GetRndColor();
+
         var questIterator = MatchQuestHandler.Instance.GetQuests();
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
 
         foreach (ref readonly var quest in questIterator)
         {
-            BuildMessageFrom(quest);
-            DrawText(MessageBuilder?.ToString());
-            begin *= ImGui.GetWindowHeight() * 1.25f; // MatchQuestHandler.Instance.QuestCountToReach;
-            MessageBuilder?.Clear();
+            QuestHandler.BuildQuestFrom(quest);
+            DrawText(GameState.Logger);
+            // begin *= ImGui.GetWindowHeight() * 1.25f; // MatchQuestHandler.Instance.QuestCountToReach;
+            // GameState.Logger.Clear();
         }
     }
 
@@ -203,13 +168,40 @@ public static class UiRenderer
         TimerText.Draw(1f);
     }
 
+    /// <summary>
+    /// NICE WE CAN DRAW NOW TEXT IN CURVY FASHION
+    /// </summary>
+    /// <param name="text"></param>
+    /// <param name="curvature"></param>
+    public static void DrawCurvedText(ReadOnlySpan<char> text, float curvature = 0.05f)
+    {
+        float radius = 200; // Adjust the radius of the curve
+
+        // Calculate the total angle spanned by the curved text
+
+        for (int i = 0; i < text.Length; i++)
+        {
+            // Calculate the angle for each character along the curve
+            float angle = (i - (text.Length - 1) / 2.0f) * curvature;
+
+            // Calculate the position of the character along the curve
+            Vector2 position = new Vector2(
+                GetScreenWidth() / 2f + radius * (float)Math.Sin(angle),
+                GetScreenHeight() / 2f + radius * (1 - (float)Math.Cos(angle))
+            );
+
+            // Draw the character at the calculated position
+            DrawTextEx(GetFontDefault(), text[i].ToString(), position, 11f, 0f, BLACK);
+        }
+    }
+
     public static void DrawWelcomeScreen()
     {
         InitWelcomeTxt();
         WelcomeText.Draw(null);
     }
 
-    public static bool DrawGameOverScreen(bool isDone, bool? gameWon, string? input)
+    public static bool DrawGameOverScreen(bool isDone, bool? gameWon, StringBuilder input)
     {
         if (gameWon is null)
         {
