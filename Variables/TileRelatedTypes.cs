@@ -1,136 +1,10 @@
-﻿using DotNext.Runtime;
-using Match_3.GameTypes;
+﻿using System.Drawing;
+using System.Numerics;
+using DotNext.Runtime;
+using Match_3.Service;
+using Match_3.Workflow;
 
-namespace Match_3;
-
-public struct Scale(float minScale, float maxScale)
-{
-    private float _direction = -1f;
-    private float _finalScaleFactor = minScale.Equals(maxScale, 0.1f) ? minScale : 1f;
-
-    public float Speed = 0f;
-    public float ElapsedTime;
-
-    public float GetFactor()
-    {
-        if (ElapsedTime <= 0f)
-            return _finalScaleFactor;
-        
-        if (_finalScaleFactor.Equals(minScale, 0.1f) || 
-            _finalScaleFactor.Equals(maxScale, 0.1f))
-        {
-            //so we start at scale1: then it scaled slowly down to "_minScale" and then from there
-            //we change the multiplier to now ADD the x to the scale, so we scale back UP
-            //this created this scaling flow
-            _direction *= -1;  
-        }
-        float x = Speed * (1 / ElapsedTime); 
-        return _finalScaleFactor += (_direction * x);
-    }
-    
-    public static implicit operator Scale(float size) => new(size, size)
-    {
-        ElapsedTime = 0f,
-        //_direction = 0,
-    };
-}
-
-public struct FadeableColor : IEquatable<FadeableColor>
-{
-    private Color _toWrap;
-    public float CurrentAlpha, TargetAlpha;
-    private float _elapsedTime;
-    /// <summary>
-    /// The greater this Value, the faster it fades!
-    /// </summary>
-    public float AlphaSpeed;
-
-    public void AddTime(float elapsedTime)
-    {
-        _elapsedTime = !elapsedTime.Equals(0f, 0.001f) ? elapsedTime : 1f;
-    }
-    
-    private FadeableColor(Color color)
-    {
-        _toWrap = color;
-        AlphaSpeed = 0.5f; 
-        CurrentAlpha = 1.0f;
-        TargetAlpha = 0.0f;
-        _elapsedTime = 1f;
-    }
-    
-    private static readonly Dictionary<RayColor, string> Strings = new()
-    {
-        {BLACK, "Black"},
-        {BLUE, "Blue"},
-        {BROWN, "Brown"},
-        {DARKGRAY, "DarkGray"},
-        {GOLD, "Gold"},
-        {GRAY, "Gray"},
-        {GREEN, "Green"},
-        {LIGHTGRAY, "LightGray"},
-        {MAGENTA, "Magenta"},
-        {MAROON, "Maroon"},
-        {ORANGE, "Orange"},
-        {PINK, "Pink"},
-        {PURPLE, "Purple"},
-        {RAYWHITE, "RayWhite"},
-        {RED, "Red"},
-        {SKYBLUE, "SkyBlue"},
-        {VIOLET, "Violet"},
-        {WHITE, "White"},
-        {YELLOW, "Yellow"}
-    };
-    
-    private string ToReadableString()
-    {
-        RayColor compare = _toWrap.AsRayColor();
-        return Strings.TryGetValue(compare, out var value) ? value : _toWrap.ToString();
-    }
-
-    private void _Lerp()
-    {
-        //if u wanna maybe stop fading at 0.5f so we explicitly check if currAlpha > Target-Alpha
-        if (CurrentAlpha > TargetAlpha)  
-            CurrentAlpha -= AlphaSpeed * (1f / _elapsedTime);
-    }
-    
-    public FadeableColor Apply()
-    {
-        _Lerp();
-        return this with { _toWrap = Fade(_toWrap.AsRayColor(), CurrentAlpha).AsSysColor() };
-    }
-
-    public static implicit operator RayColor(FadeableColor color) => color._toWrap.AsRayColor();
-    public static implicit operator FadeableColor(Color color) => new(color);
-    
-    public static implicit operator FadeableColor(RayColor color) => new(color.AsSysColor());
-    public static bool operator ==(FadeableColor c1, FadeableColor c2)
-    {
-        int bytes4C1 = Unsafe.As<Color, int>(ref c1._toWrap);
-        int bytes4C2 = Unsafe.As<Color, int>(ref c2._toWrap);
-        return bytes4C1 == bytes4C2;
-    }
-
-    public bool Equals(FadeableColor other)
-    {
-        return this == other;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is FadeableColor other && this == other;
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(_toWrap, CurrentAlpha);
-    }
-
-    public static bool operator !=(FadeableColor c1, FadeableColor c2) => !(c1 == c2);
-
-    public override string ToString() => ToReadableString()!;
-}
+namespace Match_3.Variables;
 
 /// <summary>
 /// DefaultTile hardcoded type which is created from a look into the AngryBallsTexture!
@@ -141,27 +15,31 @@ public enum TileType
     Length = 9
 }
 
-public enum ShapeKind
+[Flags]
+public enum Options
 {
-    Circle,
-    Rectangle,
-    Heart,
-    Trapez
+    UnDestroyable = 0,
+    UnMovable = 1,
+    UnShapeable = 2,
+    
+    Destroyable = 4,
+    Movable = 8,
+    Shapeable = 16
 }
 
-public enum Coat
+[Flags]
+public enum TileState
 {
-    A, B, C, D, E, F, G, H
+    Disabled=1, Deleted=2, Hidden=4, Selected=8, Clean=16, Pulsate=32
 }
 
 public class Shape
 {
-    public virtual ShapeKind Form { get; set; }
     public virtual Vector2 AtlasLocation { get; init; }
     public Size Size { get; init; }
     public RectangleF TextureRect => new(AtlasLocation.X, AtlasLocation.Y, Size.Width, Size.Height);
     
-    public Scale Scale;
+    public ScaleableFloat ScaleableFloat;
 
     private FadeableColor _color; 
     public ref readonly  FadeableColor Color => ref _color;
@@ -183,12 +61,10 @@ public class Shape
 public class TileShape : Shape, IEquatable<TileShape>, ICloneable
 {
     public TileType TileType { get; init; }
-    public Coat Layer { get; init; }
-    public override ShapeKind Form { get; set; }
     public override Vector2 AtlasLocation { get; init; }
    
     public bool Equals(TileShape? other) =>
-        other is not null && TileType == other.TileType && Layer == other.Layer;
+        other is not null && TileType == other.TileType;
     
     public override int GetHashCode() => HashCode.Combine(FixedWhite, TileType);
 
@@ -199,8 +75,6 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
         TileShape clone = new()
         {
             TileType = TileType,
-            Form = Form,
-            Layer = Layer,
             AtlasLocation = AtlasLocation,
         };
         return clone;
@@ -211,24 +85,6 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
     public static bool operator ==(TileShape left, TileShape? right) => left.Equals(right);
 
     public static bool operator !=(TileShape left, TileShape right) => !(left == right);
-}
-
-[Flags]
-public enum Options
-{
-    UnDestroyable = 0,
-    UnMovable = 1,
-    UnShapeable = 2,
-    
-    Destroyable = 4,
-    Movable = 8,
-    Shapeable = 16
-}
-
-[Flags]
-public enum TileState
-{
-    Disabled=1, Deleted=2, Hidden=4, Selected=8, Clean=16, Pulsate=32
 }
 
 public class Tile(TileShape body) : IEquatable<Tile>
@@ -304,7 +160,7 @@ public class Tile(TileShape body) : IEquatable<Tile>
     private RectangleF GridBox => new(GridCell.X, GridCell.Y, 1f, 1f);
     public RectangleF MapBox => GridBox.RelativeToMap();
     
-    public const int Size = Level.TILE_SIZE;
+    public const int Size = Level.TileSize;
 
     public void UpdateGoal(EventType eventType, in Quest aQuest)
     {
@@ -350,12 +206,12 @@ public class EnemyTile(TileShape body) : Tile(body)
         if (elapsedTime <= 0f)
             return Body.TextureRect;
 
-        if (Body.Scale.Speed == 0f)
-            Body.Scale.Speed = 20.25f;
+        if (Body.ScaleableFloat.Speed == 0f)
+            Body.ScaleableFloat.Speed = 20.25f;
         
-        var rect = Body.TextureRect.DoScale(Body.Scale.GetFactor());
+        var rect = Body.TextureRect.DoScale(Body.ScaleableFloat.GetFactor());
                 
-        Body.Scale.ElapsedTime = elapsedTime;
+        Body.ScaleableFloat.ElapsedTime = elapsedTime;
         return rect with { X = WorldCell.X, Y = (int)WorldCell.Y };
     }
     
@@ -426,4 +282,181 @@ public class EnemyTile(TileShape body) : Tile(body)
             }
         }
     }
+}
+
+public class MatchX
+{
+    protected readonly SortedSet<Tile> Matches = new(CellComparer.Singleton);
+
+    private Vector2 _direction;
+    private RectangleF _worldRect;
+    public TimeOnly DeletedAt { get; private set; }
+    public TimeOnly CreatedAt { get; private set; }
+    protected bool IsRowBased { get; private set; }
+    public int Count => Matches.Count;
+    public bool IsMatchActive => Count == Level.MaxTilesPerMatch;
+    public TileShape? Body { get; private set; }
+    public RectangleF WorldBox => _worldRect;
+    public Vector2 WorldPos { get; private set; }
+
+    public Tile this[int index] => Matches.ElementAt(index);
+    public Tile this[Index index] => Matches.ElementAt(index);
+    /// <summary>
+    /// investigate this function cause this shall be the one at how i will iterate thru the tiles!
+    /// </summary>
+    /// <param name="i"></param>
+    /// <returns></returns>
+    public Vector2? Move(int i = 0)
+    {
+        if (i < 0 || i > Count-1 || _worldRect.IsEmpty)
+            return null;
+
+        var pos = WorldPos / Tile.Size;
+
+        return IsRowBased 
+            ? pos with { X = pos.X + (i * _direction).X }
+            : pos with { Y = pos.Y + (i * _direction).Y };
+    }
+    /// <summary>
+    /// Reorder the Matched if it has a structure like: (x0,x1,y2) or similar
+    /// </summary>
+    public void Add(Tile matchTile)
+    {
+        if (Matches.Add(matchTile) && !IsMatchActive)
+        {
+            if (Count is > 1 and < 3)
+            {
+                //INSPECT THIS, so that I can use Move(x) instead of ElementAt(0)
+                var cell0 = Matches.ElementAt(0).GridCell;
+                var cell1 = Matches.ElementAt(1).GridCell;
+                var dir = cell0.GetDirectionTo(cell1);
+                _direction = dir.Direction;
+                IsRowBased = dir.isRow;
+            }
+            
+            Body ??= matchTile.Body.Clone() as TileShape;
+            _worldRect.Add(matchTile.MapBox);
+        }
+       
+        else if (IsMatchActive)
+        {
+            var cell0 = Matches.ElementAt(0);
+            var cellLast = Matches.ElementAt(^1);
+            
+            if (IsRowBased)
+                if (cell0.GridCell != cellLast.GridCell)
+                {
+                    var cellRight = cell0.GridCell - Vector2.UnitX;
+                }
+            
+            WorldPos = cell0.WorldCell;
+
+            CreatedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
+        }
+    }
+    
+    public void Clear()
+    {
+        _worldRect = Utils.InvalidRect;
+        IsRowBased = false;
+        Matches.Clear();
+        Body = null;
+        DeletedAt = TimeOnly.FromDateTime(DateTime.UtcNow);
+    }
+}
+
+public class EnemyMatches : MatchX
+{
+    private RectangleF _border;
+    
+    private RectangleF BuildBorder()
+    {
+        if (Matches.Count == 0)
+            return new(0,0,0,0);
+            
+        int match3RectWidth;
+        int match3RectHeight;
+        var firstSlot = WorldBox.GetCellPos();
+        var next = firstSlot - Vector2.One;
+        
+        if (IsRowBased)
+        {
+            //its row based rectangle
+            //-----------------|
+            // X     Y      Z  |
+            //-----------------|
+            match3RectWidth = Count + 2;
+            match3RectHeight = Count;
+        }
+        else
+        {
+            //its column based rectangle
+            //-*--*--*--|
+            // *  X  *  |
+            // *  Y  *  |
+            // *  Z  *  |
+            // *  *  *  |
+            //----------|
+            match3RectWidth = Count;
+            match3RectHeight = Count+2;
+        }
+        return Utils.NewWorldRect(next, match3RectWidth, match3RectHeight);
+    }
+   
+    public RectangleF Border
+    {
+        get
+        {
+            if (_border.IsEmpty)
+            {
+                _border = BuildBorder();
+                return _border;
+            }
+
+            return _border;
+        }
+    }
+}
+
+
+public sealed class StateAndBodyComparer : EqualityComparer<Tile>
+{
+    public override bool Equals(Tile? x, Tile? y)
+    {
+        if (x is not { }) return false;
+        if (y is not { }) return false;
+        if (ReferenceEquals(x, y)) return true;
+        if (ReferenceEquals(x, null)) return false;
+        if (ReferenceEquals(y, null)) return false;
+        if (x.GetType() != y.GetType()) return false;
+        if ((x.TileState & TileState.Deleted) == TileState.Deleted ||
+            (x.TileState & TileState.Disabled) == TileState.Disabled) return false;
+        
+        return x.Body.Equals(y.Body);
+    }
+    public override int GetHashCode(Tile obj)
+    {
+        return HashCode.Combine((int)obj.TileState, obj.Body);
+    }
+    public static StateAndBodyComparer Singleton => new();
+}
+
+public sealed class CellComparer : EqualityComparer<Tile>, IComparer<Tile>
+{
+    public override bool Equals(Tile? x, Tile? y)
+    {
+        return Compare(x, y) == 0;
+    }
+    public override int GetHashCode(Tile obj)
+    {
+        return obj.GridCell.GetHashCode();
+    }
+    public int Compare(Tile? a, Tile? b)
+    {
+        if (a is null) return -1;
+        if (a == b) return 0;
+        if (b is null) return 1;
+        return a.GridCell.CompareTo(b.GridCell);
+    }
+    public static CellComparer Singleton => new();
 }

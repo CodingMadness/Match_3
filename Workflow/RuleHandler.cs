@@ -1,4 +1,6 @@
-namespace Match_3;
+using Match_3.Variables;
+
+namespace Match_3.Workflow;
 
 public abstract class RuleHandler
 {
@@ -20,7 +22,7 @@ public sealed class EnemyMatchRuleHandler : RuleHandler
         EnemySpawnFactorPerType = new();
         EnemySpawnTracker = new int[(int)TileType.Length];
         
-        var countToMatch = Game.Level.ID switch
+        var countToMatch = Game.Level.Id switch
         {
             0 => Random.Shared.Next(2, 4),
             1 => Random.Shared.Next(3, 5),

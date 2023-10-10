@@ -48,9 +48,11 @@
 // https://github.com/Auburn/FastNoise
 
 // Switch between using floats or doubles for input GridCoords
+
+using System.Runtime.CompilerServices;
 using FNLfloat = System.Single;
 //using FNLfloat = System.Double;
-namespace Match_3;
+namespace Match_3.Service;
 
 public class FastNoiseLite
 {
@@ -155,7 +157,7 @@ public class FastNoiseLite
     /// <remarks>
     /// DefaultTileAtlas: 1337
     /// </remarks>
-    public void SetSeed(int seed) { mSeed = seed; }
+    private void SetSeed(int seed) { mSeed = seed; }
 
     /// <summary>
     /// Sets frequency for all noise types

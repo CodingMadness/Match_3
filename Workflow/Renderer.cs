@@ -1,12 +1,16 @@
-using System.Globalization;
+using System.Diagnostics;
+using System.Drawing;
+using System.Numerics;
 using System.Text;
-using Match_3.GameTypes;
+using ImGuiNET;
+using Match_3.Service;
+using Match_3.Setup;
+using Match_3.Variables;
 using Raylib_cs;
-using static Match_3.AssetManager;
-using Color = System.Drawing.Color;
+using static Match_3.Setup.AssetManager;
 using Vector2 = System.Numerics.Vector2;
 
-namespace Match_3;
+namespace Match_3.Workflow;
 
 public static class UiRenderer
 {
@@ -149,10 +153,8 @@ public static class UiRenderer
 
         foreach (ref readonly var quest in questIterator)
         {
-            QuestHandler.BuildQuestFrom(quest);
+            QuestBuilder.BuildQuestMsgFrom(quest);
             DrawText(GameState.Logger);
-            // begin *= ImGui.GetWindowHeight() * 1.25f; // MatchQuestHandler.Instance.QuestCountToReach;
-            // GameState.Logger.Clear();
         }
     }
 
@@ -220,7 +222,7 @@ public static class UiRenderer
         RectangleF screen = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
 
         DrawTexturePro(bg.Texture, bg.Body.TextureRect.AsIntRayRect(),
-            screen.DoScale(bg.Body.Scale).AsIntRayRect(),
+            screen.DoScale(bg.Body.ScaleableFloat).AsIntRayRect(),
             Vector2.Zero, 0f, bg.Body.FixedWhite);
     }
 }
@@ -249,7 +251,7 @@ public static class GameObjectRenderer
 
         if (tile is EnemyTile enemy)
         {
-            enemy.Body.Scale = 1f;
+            enemy.Body.ScaleableFloat = 1f;
             DrawTexturePro(atlas, enemy.Body.TextureRect.AsIntRayRect(), enemy.Pulsate(elapsedTime).AsIntRayRect(),
                 Vector2.Zero, 0f, enemy.Body.Color);
             return;

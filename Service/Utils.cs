@@ -1,22 +1,19 @@
 ﻿global using DynMembers = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
 global using DynMemberTypes = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
-global using System.Drawing;
-global using System.Numerics;
-global using System.Runtime.CompilerServices;
-global using System.Runtime.InteropServices;
-global using DotNext;
-global using ImGuiNET;
 global using static Raylib_cs.Color;
 global using RayColor = Raylib_cs.Color;
 global using static Raylib_cs.Raylib;
-global using System.Text.RegularExpressions;
-global using NoAlloq;
-using DotNext.Collections.Generic;
-using Match_3.GameTypes;
+using System.Drawing;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using DotNext;
+using Match_3.Variables;
+using Match_3.Workflow;
 using Rectangle = Raylib_cs.Rectangle;
 
 
-namespace Match_3;
+namespace Match_3.Service;
 
 public static class Utils
 {
@@ -93,12 +90,12 @@ public static class Utils
     {
         int offset = Randomizer.Next(0, items.Length - 1);
         int len = items.Length;
-        int amount2Take = Game.Level.ID switch
+        int amount2Take = Game.Level.Id switch
         {
             0 => Randomizer.Next(2, 4),
             1 => Randomizer.Next(5, 7),
             2 => Randomizer.Next(7, 10),
-            _ => throw new ArgumentOutOfRangeException(nameof(Game.Level.ID))
+            _ => throw new ArgumentOutOfRangeException(nameof(Game.Level.Id))
         };
 
         return offset + amount2Take < len
@@ -164,7 +161,7 @@ public static class Utils
             worldRect.Height / Tile.Size);
     }
 
-    public static RectangleF DoScale(this RectangleF rayRect, Scale factor)
+    public static RectangleF DoScale(this RectangleF rayRect, ScaleableFloat factor)
     {
         return rayRect with
         {

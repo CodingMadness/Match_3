@@ -1,23 +1,23 @@
-﻿using System.Globalization;
+﻿using System.Numerics;
 using System.Text;
 using DotNext.Runtime;
-using Match_3.GameTypes;
+using ImGuiNET;
+using Match_3.Variables;
 using Raylib_cs;
-using static Match_3.AssetManager;
-using static Match_3.Utils;
-using Color = System.Drawing.Color;
+using static Match_3.Setup.AssetManager;
+using static Match_3.Service.Utils;
 
-namespace Match_3;
+namespace Match_3.Workflow;
 
 internal static class Game
 {
-    public static Level Level { get; private set; }
+    public static Level Level { get; private set; } = null!;
     private static MatchX? _matchesOf3;
     private static EnemyMatches? _enemyMatches;
     private static Tile? _secondClicked;
     private static Background? _bgGameOver;
-    private static Background _bgWelcome;
-    private static Background? _bgIngame1;
+    private static Background _bgWelcome = null!;
+    private static Background? _bgInGame1 = null!;
     private static GameTime _gameTimer;
     private static GameTime[]? _questTimers;
     private static EnemyMatchRuleHandler _enemyMatchRuleHandler;
@@ -200,7 +200,7 @@ internal static class Game
             GameState.Tile = _secondClicked!;
             GameState.Matches = _matchesOf3;
 
-            //TODO: Look into this timer problem, cause we dont wanna have TileType.Length timers only those who are in quest!
+            //TODO: Look into this timer problem, cause we dont wanna have TileType.Length timers only those who are in request!
             OnMatchFound();
 
             //if its the 1.time we set _runQuestTimers=true, but we also check for each new Matched
@@ -308,7 +308,6 @@ internal static class Game
                     //Begin new Level!
                     InitGame();
                     GameState.WasGameWonB4Timeout = false;
-                    // continue;
                 }
             }
             else
@@ -316,7 +315,7 @@ internal static class Game
                 // var pressed = UIRenderer.DrawFeatureBtn(out _);
                 // GameState.WasFeatureBtnPressed ??= pressed;
                 // GameState.WasFeatureBtnPressed = pressed ?? GameState.WasFeatureBtnPressed;
-                UiRenderer.DrawBackground(_bgIngame1);
+                UiRenderer.DrawBackground(_bgInGame1);
                 UiRenderer.DrawTimer(currTime);
                 DragMouseToEnemies();
                 ProcessSelectedTiles();

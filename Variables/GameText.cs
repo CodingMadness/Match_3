@@ -1,6 +1,7 @@
-﻿using Raylib_cs;
+﻿using System.Numerics;
+using Raylib_cs;
 
-namespace Match_3.GameTypes;
+namespace Match_3.Variables;
 
 public class GameText(Font src, string text, float initSize) 
 {

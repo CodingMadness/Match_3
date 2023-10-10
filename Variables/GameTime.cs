@@ -1,13 +1,10 @@
 
-namespace Match_3.GameTypes;
+using Match_3.Service;
+
+namespace Match_3.Variables;
 
 public struct GameTime
 {
-    public GameTime()
-    {
-
-    }
-
     public float ElapsedSeconds { get; private set; }
 
     public bool IsReset {get; private set;}

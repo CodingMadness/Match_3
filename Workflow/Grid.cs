@@ -1,9 +1,12 @@
 ﻿//using DotNext;
 
+using System.Numerics;
+using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
-using Match_3.GameTypes;
+using Match_3.Service;
+using Match_3.Variables;
 
-namespace Match_3;
+namespace Match_3.Workflow;
 
 public sealed class Grid
 {
@@ -201,7 +204,7 @@ public sealed class Grid
             {
                 switch (matches.Count)
                 {
-                    case Level.MAX_TILES_PER_MATCH:
+                    case Level.MaxTilesPerMatch:
                         return false;
                 }
 

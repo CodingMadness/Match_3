@@ -1,8 +1,15 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using DotNext.Buffers;
+using ImGuiNET;
+using NoAlloq;
 
-namespace Match_3;
+namespace Match_3.Service;
 
 /// <summary>
 /// A faster span enumerator than .NET currently provides

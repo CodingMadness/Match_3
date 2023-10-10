@@ -1,4 +1,8 @@
-﻿namespace Match_3;
+﻿using System.Numerics;
+using Match_3.Service;
+using Match_3.Variables;
+
+namespace Match_3.Workflow;
 
 public static class Bakery
 {
@@ -44,72 +48,56 @@ public static class Bakery
                 TileType = TileType.Green,
                 AtlasLocation = new Vector2(0f, 0f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
-                Form = ShapeKind.Circle,
-                Layer = Coat.A,
-                Scale = 1f,
+                ScaleableFloat = 1f,
             },
             TileType.Purple => new()
             {
                 TileType = TileType.Purple,
                 AtlasLocation = new Vector2(1f, 0f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
-                Form = ShapeKind.Circle,
-                Layer = Coat.B,
-                Scale = 1f,
+                ScaleableFloat = 1f,
             },
             TileType.Orange => new()
             {
                 TileType = TileType.Orange,
                 AtlasLocation = new Vector2(2f, 0f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
-                Form = ShapeKind.Circle,
-                Layer = Coat.C,
-                Scale = 1f,
+                ScaleableFloat = 1f,
             },
             TileType.Yellow => new()
             {
                 TileType = TileType.Yellow,
                 AtlasLocation = new Vector2(3f, 0f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
-                Form = ShapeKind.Circle,
-                Layer = Coat.D,
-                Scale = 1f,
+                ScaleableFloat = 1f,
             },
             TileType.Red => new()
             {
                 TileType = TileType.Red,
                 AtlasLocation = new Vector2(0f, 1f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
-                Form = ShapeKind.Circle,
-                Layer = Coat.E,
-                Scale = 1f,
+                ScaleableFloat = 1f,
             },
             TileType.Blue => new()
             {
                 TileType = TileType.Blue,
                 AtlasLocation = new Vector2(1f, 1f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
-                Form = ShapeKind.Circle,
-                Layer = Coat.F,
-                Scale = 1f,
+                ScaleableFloat = 1f,
             },
             TileType.Brown => new()
             {
                 TileType = TileType.Brown,
                 AtlasLocation = new Vector2(2f, 1f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
-                Form = ShapeKind.Circle,
-                Layer = Coat.G,
-                Scale = 1f,
+                ScaleableFloat = 1f,
             },
             TileType.Violet => new()
             {
                 TileType = TileType.Violet,
                 AtlasLocation = new Vector2(3f, 1f) * Tile.Size,
                 Size = new(Tile.Size, Tile.Size),
-                Form = ShapeKind.Circle,
-                Layer = Coat.H,
-                Scale = 1f,
+                ScaleableFloat = 1f,
             },
 
             _ => throw new ArgumentOutOfRangeException()
@@ -132,15 +120,13 @@ public static class Bakery
     {
         var body = new TileShape
         {
-            Scale = new(0.7f, 1.15f)
+            ScaleableFloat = new(0.7f, 1.15f)
             {
                 ElapsedTime = 0f, Speed = 0.2f
             },
-            Form = ShapeKind.Trapez,
             AtlasLocation = matchTile.Body.AtlasLocation,
             Size = new(Tile.Size, Tile.Size),
             TileType = matchTile.Body is { } c0 ? c0.TileType : TileType.Empty,
-            Layer = matchTile.Body is { } c1 ? c1.Layer : (Coat)(-1)
         };
             
         EnemyTile blockTile = new(body)

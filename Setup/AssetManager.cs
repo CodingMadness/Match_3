@@ -1,10 +1,11 @@
 using System.Reflection;
-using Match_3.GameTypes;
+using Match_3.Service;
+using Match_3.Variables;
 using Raylib_cs;
 
-namespace Match_3;
+namespace Match_3.Setup;
 
-public static unsafe class AssetManager
+public static class AssetManager
 {
     public static Texture2D WelcomeTexture;
     public static Texture2D GameOverTexture;
@@ -45,9 +46,7 @@ public static unsafe class AssetManager
     private static Sound LoadSound(string relativePath)
     {
         var buffer = GetEmbeddedResource($"Sounds.{relativePath}");
-        var first = (byte*)Unsafe.AsPointer(ref buffer[0]);
-        sbyte* x = (sbyte*)Unsafe.AsPointer(ref Unsafe.AsRef(".mp3"[0]));
-        var wave = LoadWaveFromMemory(x, first, buffer.Length);
+        var wave = LoadWaveFromMemory(".mp3", buffer);
         return LoadSoundFromWave(wave);
     }
 

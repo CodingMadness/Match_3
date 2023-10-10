@@ -11,23 +11,25 @@
  *
  ********************************************************************************************/
 
+using System.Numerics;
+using System.Runtime.InteropServices;
+using ImGuiNET;
+using Match_3.Service;
 using Raylib_cs;
 using Rectangle = Raylib_cs.Rectangle;
 
-namespace Match_3
+namespace Match_3.Setup
 {
     public static class RlImGui
     {
-        private static nint ImGuiContext = IntPtr.Zero;
+        private static nint ImGuiContext;
         private static ImGuiMouseCursor CurrentMouseCursor = ImGuiMouseCursor.COUNT;
-        private static Dictionary<ImGuiMouseCursor, MouseCursor> MouseCursorMap;
-        private static KeyboardKey[] KeyEnumMap;
+        private static Dictionary<ImGuiMouseCursor, MouseCursor>? MouseCursorMap;
         private static Texture2D FontTexture;
         
         public static void Setup(bool darkTheme = true)
         {
-            MouseCursorMap = new Dictionary<ImGuiMouseCursor, MouseCursor>();
-            KeyEnumMap = Enum.GetValues<KeyboardKey>();
+            MouseCursorMap = new Dictionary<ImGuiMouseCursor, MouseCursor>((int)ImGuiMouseCursor.COUNT);
 
             FontTexture.id = 0;
 
@@ -48,14 +50,14 @@ namespace Match_3
 
         private static void SetupMouseCursors()
         {
-            MouseCursorMap.Clear();
-            MouseCursorMap[ImGuiMouseCursor.Arrow] = MouseCursor.MOUSE_CURSOR_ARROW;
-            MouseCursorMap[ImGuiMouseCursor.TextInput] = MouseCursor.MOUSE_CURSOR_IBEAM;
-            MouseCursorMap[ImGuiMouseCursor.Hand] = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
-            MouseCursorMap[ImGuiMouseCursor.ResizeAll] = MouseCursor.MOUSE_CURSOR_RESIZE_ALL;
-            MouseCursorMap[ImGuiMouseCursor.ResizeEW] = MouseCursor.MOUSE_CURSOR_RESIZE_EW;
+            MouseCursorMap!.Clear();
+            MouseCursorMap[ImGuiMouseCursor.Arrow]      = MouseCursor.MOUSE_CURSOR_ARROW;
+            MouseCursorMap[ImGuiMouseCursor.TextInput]  = MouseCursor.MOUSE_CURSOR_IBEAM;
+            MouseCursorMap[ImGuiMouseCursor.Hand]       = MouseCursor.MOUSE_CURSOR_POINTING_HAND;
+            MouseCursorMap[ImGuiMouseCursor.ResizeAll]  = MouseCursor.MOUSE_CURSOR_RESIZE_ALL;
+            MouseCursorMap[ImGuiMouseCursor.ResizeEW]   = MouseCursor.MOUSE_CURSOR_RESIZE_EW;
             MouseCursorMap[ImGuiMouseCursor.ResizeNESW] = MouseCursor.MOUSE_CURSOR_RESIZE_NESW;
-            MouseCursorMap[ImGuiMouseCursor.ResizeNS] = MouseCursor.MOUSE_CURSOR_RESIZE_NS;
+            MouseCursorMap[ImGuiMouseCursor.ResizeNS]   = MouseCursor.MOUSE_CURSOR_RESIZE_NS;
             MouseCursorMap[ImGuiMouseCursor.ResizeNWSE] = MouseCursor.MOUSE_CURSOR_RESIZE_NWSE;
             MouseCursorMap[ImGuiMouseCursor.NotAllowed] = MouseCursor.MOUSE_CURSOR_NOT_ALLOWED;
         }
@@ -84,12 +86,10 @@ namespace Match_3
         private static void EndInitImGui()
         {
             SetupMouseCursors();
-
             ImGui.SetCurrentContext(ImGuiContext);
-            _ = ImGui.GetIO().Fonts;
-            ImGui.GetIO().Fonts.AddFontDefault();
-
-            ImGuiIOPtr io = ImGui.GetIO();
+            
+            var io = ImGui.GetIO();
+            io.Fonts.AddFontDefault();
             io.KeyMap[(int)ImGuiKey.Tab] = (int)KeyboardKey.KEY_TAB;
             io.KeyMap[(int)ImGuiKey.LeftArrow] = (int)KeyboardKey.KEY_LEFT;
             io.KeyMap[(int)ImGuiKey.RightArrow] = (int)KeyboardKey.KEY_RIGHT;
@@ -116,7 +116,7 @@ namespace Match_3
 
         private static void NewFrame()
         {
-            ImGuiIOPtr io = ImGui.GetIO();
+            var io = ImGui.GetIO();
 
             if (IsWindowFullscreen())
             {
@@ -148,13 +148,7 @@ namespace Match_3
             io.MouseDown[0] = IsMouseButtonDown(MouseButton.MOUSE_LEFT_BUTTON);
             io.MouseDown[1] = IsMouseButtonDown(MouseButton.MOUSE_RIGHT_BUTTON);
             io.MouseDown[2] = IsMouseButtonDown(MouseButton.MOUSE_MIDDLE_BUTTON);
-
-            // if (GetMouseWheelMove() > 0)
-            //     io.MouseWheel += 1;
-            // else if (GetMouseWheelMove() < 0)
-            //     io.MouseWheel -= 1;
-
-            io.MouseWheel = GetMouseWheelMove() > 0 ? io.MouseWheel + 1 : io.MouseWheel - 1;
+            io.MouseWheel     = GetMouseWheelMove() > 0 ? io.MouseWheel + 1 : io.MouseWheel - 1;
             
             if ((io.ConfigFlags & ImGuiConfigFlags.NoMouseCursorChange) == 0)
             {
@@ -219,7 +213,9 @@ namespace Match_3
 
         private static void RenderTriangles(uint count, uint indexStart, ImVector<ushort> indexBuffer, ImPtrVector<ImDrawVertPtr> vertBuffer, IntPtr texturePtr)
         {
-            if (count < 3)
+            const byte triangleCount = 3;
+
+            if (count < triangleCount)
                 return;
 
             uint textureId = 0;
@@ -228,8 +224,6 @@ namespace Match_3
 
             Rlgl.rlBegin(DrawMode.TRIANGLES);
             Rlgl.rlSetTexture(textureId);
-
-            const byte triangleCount = 3;
             
             for (int i = 0; i <= count - triangleCount; i += triangleCount)
             {
@@ -275,7 +269,7 @@ namespace Match_3
                         cmd.ClipRect.Z - (cmd.ClipRect.X - data.DisplayPos.X),
                         cmd.ClipRect.W - (cmd.ClipRect.Y - data.DisplayPos.Y));
 
-                    if (cmd.UserCallback != IntPtr.Zero)
+                    if (cmd.UserCallback != nint.Zero)
                     {
                         Callback cb = Marshal.GetDelegateForFunctionPointer<Callback>(cmd.UserCallback);
                         cb(commandList, cmd);
@@ -292,8 +286,8 @@ namespace Match_3
             Rlgl.rlDisableScissorTest();
         }
 
+       
         //PUBLIC METHODS//
-        
         public static void Begin()
         {
             ImGui.SetCurrentContext(ImGuiContext);
@@ -332,13 +326,13 @@ namespace Match_3
 
         public static void ImageRect(Texture2D image, int destWidth, int destHeight, Rectangle sourceRect)
         {
-            Vector2 uv0 = new Vector2();
-            Vector2 uv1 = new Vector2();
+            Vector2 uv0 = Vector2.Zero;
+            Vector2 uv1 = Vector2.Zero;
 
             if (sourceRect.width < 0)
             {
                 uv0.X = -(sourceRect.x / image.width);
-                uv1.X = (uv0.X - Math.Abs(sourceRect.width) / image.width);
+                uv1.X = uv0.X - Math.Abs(sourceRect.width) / image.width;
             }
             else
             {
@@ -349,7 +343,7 @@ namespace Match_3
             if (sourceRect.height < 0)
             {
                 uv0.Y = -(sourceRect.y / image.height);
-                uv1.Y = (uv0.Y - Math.Abs(sourceRect.height) / image.height);
+                uv1.Y = uv0.Y - Math.Abs(sourceRect.height) / image.height;
             }
             else
             {
@@ -357,7 +351,7 @@ namespace Match_3
                 uv1.Y = uv0.Y + sourceRect.height / image.height;
             }
 
-            ImGui.Image(new IntPtr(image.id), new Vector2(destWidth, destHeight), uv0, uv1);
+            ImGui.Image((nint)image.id, new Vector2(destWidth, destHeight), uv0, uv1);
         }
     }
 }
