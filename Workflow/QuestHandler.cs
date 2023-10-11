@@ -1,5 +1,3 @@
-using System.Drawing;
-using System.Text;
 using DotNext;
 using Match_3.Service;
 using Match_3.Variables;
@@ -78,8 +76,8 @@ public abstract class QuestHandler
         => SingletonManager.GetOrCreateQuestHandler<THandler>();
 
     protected int SubGoalCounter { get; set; }
-    protected int QuestCountToReach { get; set; }
-    protected int GoalsLeft => QuestCountToReach - SubGoalCounter;
+    public int QuestCount { get; protected set; }
+    protected int GoalsLeft => QuestCount - SubGoalCounter;
     protected bool IsMainGoalReached => GoalsLeft == 0;
 
     /// <summary>
@@ -119,7 +117,7 @@ public abstract class QuestHandler
     protected abstract void HandleEvent();
 
 
-    public FastSpanEnumerator<Quest> GetQuests() => new(Quests.AsSpan(0, QuestCountToReach));
+    public FastSpanEnumerator<Quest> GetQuests() => new(Quests.AsSpan(0, QuestCount));
 
     public static void ActivateHandlers()
     {
@@ -161,14 +159,14 @@ public sealed class SwapQuestHandler : QuestHandler
             0 => new Quest
             {
                 Swap = new(Randomizer.Next(4, 6), 5f),
-                ItemType = TileType.Red
+                TileColor = TileType.Red
             },
             1 => new Quest { Swap = new(Randomizer.Next(3, 6), 4.5f) },
             2 => new Quest { Swap = new(Randomizer.Next(2, 4), 4.0f) },
             3 => new Quest { Swap = new(Randomizer.Next(2, 3), 3.0f) },
             _ => default
         };
-        QuestCountToReach++;
+        QuestCount++;
         GameState.Tile.UpdateGoal(EventType.Swapped, goal);
     }
 
@@ -236,7 +234,7 @@ public sealed class MatchQuestHandler : QuestHandler
 
         foreach (ref readonly var pair in enumerator)
         {
-            if (pair.ItemType == key)
+            if (pair.TileColor == key)
                 return ref pair;
         }
 
@@ -245,6 +243,8 @@ public sealed class MatchQuestHandler : QuestHandler
 
     protected override void DefineQuest(Span<byte> maxCountPerType)
     {
+        int tileCount = (int)TileType.Length - 1;
+
         void Fill(Span<TileType> toFill)
         {
             Span<TileType> allTypes = stackalloc TileType[(int)TileType.Length - 1];
@@ -255,13 +255,12 @@ public sealed class MatchQuestHandler : QuestHandler
             allTypes.CopyTo(toFill);
         }
 
-        int tileCount = (int)TileType.Length - 1;
         scoped Span<TileType> subset = stackalloc TileType[tileCount];
         Fill(subset);
         subset.Shuffle(Randomizer);
         subset = subset.TakeRndItemsAtRndPos();
         scoped FastSpanEnumerator<TileType> subsetEnumerator = new(subset);
-        QuestCountToReach = subset.Length;
+        QuestCount = subset.Length;
 
         foreach (var type in subsetEnumerator)
         {
