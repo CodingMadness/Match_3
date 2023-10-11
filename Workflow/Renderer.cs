@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
 using System.Text;
@@ -108,7 +107,7 @@ public static class UiRenderer
         // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
         float winWidth = ImGui.GetWindowWidth();
         Vector2 currentPos = new(25f, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
-        scoped var iterator = new TextStyleEnumerator(text);
+        scoped var iterator = new PhraseEnumerator(text);
         float totalSize = 0;
         const float spaceBetween = 5f;
         Vector2 tmp = currentPos;
@@ -137,13 +136,55 @@ public static class UiRenderer
             {
                 ImGui.SetCursorPos(tmp);
                 ImGui.PushTextWrapPos(wrapPosX);
-                ImGui.TextColored(word.ColorV4, word.Text2Color);
+                ImGui.TextColored(word.ColorV4ToApply, word.Slice2Color);
                 ImGui.PopTextWrapPos();
                 tmp.X += word.TextSize.X + spaceBetween;
             }
         }
     }
 
+    public static void DrawText(String text)
+    {
+        // calculate the indentation that centers the text on one line, relative
+        // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
+        float winWidth = ImGui.GetWindowWidth();
+        Vector2 currentPos = new(25f, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
+        scoped var iterator = new PhraseEnumerator(text);
+        float totalSize = 0;
+        const float spaceBetween = 5f;
+        Vector2 tmp = currentPos;
+        float wrapPosX = winWidth - 20f;
+
+        void NewLine(Vector2 phraseSize)
+        {
+            tmp.X = currentPos.X; //reset to the X position from the beginning
+            tmp.Y += phraseSize.Y * 1.15f;
+            totalSize = phraseSize.X;
+        }
+
+        ImGui.SetCursorPos(currentPos);
+
+        foreach (ref readonly var phrase in iterator)
+        {
+            totalSize += phrase.TextSize.X;
+
+            if (totalSize > wrapPosX)
+            {
+                NewLine(phrase.TextSize);
+            }
+
+            //Draw words as long as they fit in the WINDOW_WIDTH
+            foreach (var word in phrase)
+            {
+                ImGui.SetCursorPos(tmp);
+                ImGui.PushTextWrapPos(wrapPosX);
+                ImGui.TextColored(word.ColorV4ToApply, word.Slice2Color);
+                ImGui.PopTextWrapPos();
+                tmp.X += word.TextSize.X + spaceBetween;
+            }
+        }
+    }
+    
     public static void DrawQuestLog()
     {
         ImGui.SetWindowFontScale(1.5f);
@@ -151,10 +192,19 @@ public static class UiRenderer
         var questIterator = MatchQuestHandler.Instance.GetQuests();
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
 
-        foreach (ref readonly var quest in questIterator)
+        int counter = 0;
+        
+        if (!QuestLoggerBuilder.ShallRecycle)
         {
-            QuestBuilder.BuildQuestMsgFrom(quest);
-            DrawText(GameState.Logger);
+            foreach (ref readonly var quest in questIterator)
+            {
+                var logger = QuestLoggerBuilder.BuildQuestLoggerFrom(quest); 
+                DrawText(logger);
+            }
+        }
+        else
+        {
+            //call here the logs repeatedly from the pool!....
         }
     }
 
