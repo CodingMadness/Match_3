@@ -1,6 +1,6 @@
 ﻿namespace Match_3.Variables;
 
-public readonly record struct Quest(TileType ItemType, SubQuest? Match, SubQuest? Swap, SubQuest? Replacement)
+public readonly record struct Quest(TileType TileColor, SubQuest? Match, SubQuest? Swap, SubQuest? Replacement)
 {
     public int CompareReplacements(in AllStats? stats)
     {
@@ -32,4 +32,9 @@ public readonly record struct Quest(TileType ItemType, SubQuest? Match, SubQuest
             _ => throw new ArgumentOutOfRangeException(nameof(stats), stats, null)
         };
     }
+    
+    public const string MatchCountName    = nameof(Quest.Match)+ "." + nameof(Quest.Match.Value.Count);
+    public const string MatchIntervalName = nameof(Quest.Match)+ "." + nameof(Quest.Match.Value.Interval);
+    public const string SwapCountName = nameof(Quest.Swap)+ "." + nameof(Quest.Swap.Value.Count);
+    public const string ReplacementCountName = nameof(Quest.Replacement)+ "." + nameof(Quest.Replacement.Value.Count);
 }
