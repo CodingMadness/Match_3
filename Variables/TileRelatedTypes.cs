@@ -4,11 +4,13 @@ using DotNext.Runtime;
 using Match_3.Service;
 using Match_3.Workflow;
 
+[assembly: FastEnumToString(typeof(Match_3.Variables.TileType), IsPublic = true, ExtensionMethodNamespace = "Match_3.Variables.Extensions")]
 namespace Match_3.Variables;
 
 /// <summary>
 /// DefaultTile hardcoded type which is created from a look into the AngryBallsTexture!
 /// </summary>
+
 public enum TileType
 {
     Empty =0, Red=1, Blue, Green, Purple, Orange, Yellow, Brown, Violet,
