@@ -1,3 +1,4 @@
+using Match_3.Service;
 using Match_3.Variables;
 
 namespace Match_3.Workflow;
@@ -12,7 +13,7 @@ public abstract class RuleHandler
 
 public sealed class EnemyMatchRuleHandler : RuleHandler
 {
-    private static Dictionary<TileType, int> EnemySpawnFactorPerType;
+    private static Dictionary<TileColor, int> EnemySpawnFactorPerType;
     private static int[] EnemySpawnTracker;
 
     public static EnemyMatchRuleHandler Instance => GetInstance<EnemyMatchRuleHandler>();
@@ -20,7 +21,7 @@ public sealed class EnemyMatchRuleHandler : RuleHandler
     protected override void DefineRule()
     {
         EnemySpawnFactorPerType = new();
-        EnemySpawnTracker = new int[(int)TileType.Length];
+        EnemySpawnTracker = new int[Utils.TileColorLen];
         
         var countToMatch = Game.Level.Id switch
         {
@@ -31,9 +32,9 @@ public sealed class EnemyMatchRuleHandler : RuleHandler
             _ => default
         };
         
-        for (int i = 1; i < (int)TileType.Length; i++)
+        for (int i = 1; i < Utils.TileColorLen; i++)
         {
-            EnemySpawnFactorPerType.Add((TileType)i, countToMatch);
+            EnemySpawnFactorPerType.Add((TileColor)i, countToMatch);
             EnemySpawnTracker[i] = 0;
         }
     }
@@ -45,7 +46,7 @@ public sealed class EnemyMatchRuleHandler : RuleHandler
     
     public override bool Check()
     {
-        var type = GameState.Tile.Body.TileType;
+        var type = GameState.Tile.Body.TileColor;
         ref int spawnTracker = ref EnemySpawnTracker[(int)type];
         EnemySpawnFactorPerType.TryGetValue(type, out int factor);
         return ++spawnTracker == factor;
