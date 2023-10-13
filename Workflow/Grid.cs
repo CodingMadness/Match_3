@@ -25,9 +25,9 @@ public sealed class Grid
     
     public int TileWidth;
     public int TileHeight;
-    private static readonly Dictionary<TileType, AllStats> TypeStats = new((int)TileType.Length);
+    private static readonly Dictionary<TileColor, AllStats> TypeStats = new(Utils.TileColorLen);
     
-    public static ref AllStats GetStatsByType(TileType t)
+    public static ref AllStats GetStatsByType(TileColor t)
     {
         ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out var existedB4);
         if (!existedB4) x = new();
@@ -49,7 +49,7 @@ public sealed class Grid
         
     private void CreateMap()
     {
-        Span<byte> counts = stackalloc byte[(int)TileType.Length];
+        Span<byte> counts = stackalloc byte[Utils.TileColorLen];
         
         for (int x = 0; x < TileWidth; x++)
         {
@@ -58,14 +58,11 @@ public sealed class Grid
                 Vector2 current = new(x, y);
                 float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
                 var tile = _bitmap[x, y] = Bakery.CreateTile(current, noise);
-                
-                if (tile.Body.TileType is TileType.Empty or TileType.Length)
-                    continue;
-                
                 GameState.Tile = tile;
                 //we yet dont care for side quests and hence we dont need to keep track of ALL tiles, only match-based information
-                /*OnTileCreated(Span<byte>.Empty);*/   
-                counts[(byte)tile.Body.TileType]++;
+                /*OnTileCreated(Span<byte>.Empty);*/
+                int index = tile.Body.TileColor.ToIndex();
+                counts[index]++;
             }
         }
         
@@ -99,8 +96,8 @@ public sealed class Grid
                             if (x.Equals(tile))
                                 eventData = ref tile.EventData;
                             break;
-                        case TileType type:
-                            if (tile.Body.TileType == type)
+                        case TileColor type:
+                            if (tile.Body.TileColor == type)
                                 eventData = ref tile.EventData;
                             break;
                         case Vector2 pos:
@@ -138,8 +135,8 @@ public sealed class Grid
                             if (x.Equals(tile))
                                 eventData = ref tile.Quest;
                             break;
-                        case TileType type:
-                            if (tile.Body.TileType == type)
+                        case TileColor type:
+                            if (tile.Body.TileColor == type)
                                 eventData = ref tile.Quest;
                             break;
                         case Vector2 pos:
@@ -249,12 +246,12 @@ public sealed class Grid
             }
         }
 
-        switch (matches.IsMatchActive)
-        {
+        if (!matches.IsMatchActive &&
             //if he could not get a match by the 2.tile which was clicked, try the 1.clicked tile!
-            case false when ++_match3FuncCounter <= 1:
-                matches.Clear();
-                return WasAMatchInAnyDirection(this[_lastMatchTrigger.CoordsB4Swap]!, matches);
+            ++_match3FuncCounter <= 1)
+        {
+            matches.Clear();
+            return WasAMatchInAnyDirection(this[_lastMatchTrigger.CoordsB4Swap]!, matches);
         }
 
         _match3FuncCounter = _match3FuncCounter switch
