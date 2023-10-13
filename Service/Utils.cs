@@ -7,6 +7,8 @@ using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.JavaScript;
+using System.Text;
 using DotNext;
 using Match_3.Variables;
 using Match_3.Workflow;
@@ -24,6 +26,18 @@ public static class Utils
     private const byte Max = (int)KnownColor.YellowGreen;
     private const int TrueColorCount = Max - Min;
 
+    private static readonly TileColor[] AllTileColors =
+    {
+        TileColor.Blue,
+        TileColor.Brown,
+        TileColor.Green,
+        TileColor.Orange,
+        TileColor.Purple,
+        TileColor.Red,
+        TileColor.Violet,
+        TileColor.Yellow,
+    };
+
     private static readonly RayColor[] All = new RayColor[TrueColorCount];
 
     public static Vector4 ToVec4(this Color color)
@@ -36,8 +50,7 @@ public static class Utils
     }
 
 
-    
-    public static Color ToColor(this Vector4 color) => 
+    public static Color ToColor(this Vector4 color) =>
         Color.FromArgb((int)(color.W * 255), (int)(color.X * 255), (int)(color.Y * 255), (int)(color.Z * 255));
 
     public static Vector4 ToVec4(this RayColor color)
@@ -55,6 +68,314 @@ public static class Utils
 
     public static RayColor GetRndColor() => All[Randomizer.Next(0, TrueColorCount)];
 
+    public static int ToIndex(this TileColor color)
+    {
+        return color switch
+        {
+            KnownColor.Blue => 0,
+            KnownColor.Brown => 1,
+            KnownColor.Green => 2,
+            KnownColor.Orange => 3,
+            KnownColor.Purple => 4,
+            KnownColor.Red => 5,
+            KnownColor.Violet => 6,
+            KnownColor.Yellow => 7,
+            _ => -1
+        };
+    }
+
+    public static ref readonly TileColor ToColor(this int color)
+    {
+        if (color < TileColorLen)
+        {
+            return ref AllTileColors[color];
+        }
+
+        throw new IndexOutOfRangeException(nameof(color));
+    }
+
+    public static StringBuilder Replace(this StringBuilder input,
+        ReadOnlySpan<char> oldValue,
+        ReadOnlySpan<char> newValue)
+    {
+        //nested helper functions!
+        static Span<char> GetSpan(StringBuilder self)
+        {
+            foreach (var chunk in self.GetChunks())
+            {
+                var span = chunk.Span;
+                return span.AsWriteable();
+            }
+
+            return Span<char>.Empty;
+        }
+
+
+        if (oldValue.Length == 0)
+            throw new ArgumentException("Old value could not be found!", nameof(oldValue));
+
+        var span = GetSpan(input);
+        int matchIndex = -1;
+        int replacementLength = newValue.Length;
+        int resultLength = input.Length;
+        int searchIndex = 0;
+
+        while ((matchIndex = span.Slice(searchIndex).IndexOf(oldValue)) != -1)
+        {
+            searchIndex += matchIndex;
+
+            resultLength = resultLength - oldValue.Length + replacementLength;
+
+            if (resultLength > input.Length)
+            {
+                throw new InvalidOperationException("Resulting span length exceeds input span length.");
+            }
+
+            if (replacementLength == 0)
+            {
+                // Remove the old value
+                span.Slice(searchIndex, oldValue.Length)
+                    .CopyTo(span[(searchIndex + replacementLength)..]);
+            }
+            else
+            {
+                // Replace the old value with the new value
+                span[(searchIndex + oldValue.Length)..].CopyTo(span[(searchIndex + replacementLength)..]);
+                newValue.CopyTo(span.Slice(searchIndex, replacementLength));
+            }
+        }
+
+        var area = span[..resultLength];
+        return input;
+    }
+
+    public static void Replace(this ReadOnlySpan<char> input,
+        ReadOnlySpan<char> oldValue,
+        ReadOnlySpan<char> newValue)
+    {
+        int oldValueLen = oldValue.Length;
+
+        if (oldValueLen == 0)
+            throw new ArgumentException("Old value could not be found!", nameof(oldValue));
+
+        var span = input.AsWriteable();
+        int matchIndex;
+        int newValueLen = newValue.Length;
+        int resultLength = input.Length;
+        int searchIndex = 0;
+
+        while ((matchIndex = span.Slice(searchIndex).IndexOf(oldValue)) != -1)
+        {
+            searchIndex += matchIndex;
+
+            //we compute the difference in length between
+            //the old and newValue and check if the be
+            resultLength = resultLength - oldValueLen + newValueLen;
+
+            // if (resultLength > input.Length)
+            // {
+            //     throw new InvalidOperationException("Resulting span length exceeds input span length.");
+            // }
+
+            if (newValueLen == 0)
+            {
+                // Remove the old value
+                span.Slice(searchIndex, oldValueLen)
+                    .CopyTo(span[(searchIndex + newValueLen)..]);
+            }
+            else
+            {
+                // Replace the old value with the new value
+                span[(searchIndex + oldValueLen)..].CopyTo(span[(searchIndex + newValueLen)..]);
+                newValue.CopyTo(span.Slice(searchIndex, newValueLen));
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Move<T>(this ReadOnlySpan<T> input, Range sliceToMove, int start)
+        where T : struct, IEquatable<T>
+    {
+        var r = sliceToMove.GetOffsetAndLength(input.Length);
+        var areaToCopyInto = input.Slice(start, r.Length);
+        input[sliceToMove].CopyTo(areaToCopyInto.AsWriteable());
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void MoveBy<T>(this ReadOnlySpan<T> input,
+        Range area2Move, int moveBy,
+        T fillEmpties = default)
+        where T : struct, IEquatable<T>
+    {
+        var r = area2Move.GetOffsetAndLength(input.Length);
+        int newOffset = r.Offset + moveBy;
+        Range areaToCopyInto = newOffset..(r.Length + newOffset);
+        input[area2Move].CopyTo(input[areaToCopyInto].AsWriteable());
+        input[area2Move][..moveBy].AsWriteable().Fill(fillEmpties);
+    }
+
+    private static unsafe bool InSameBlock<T>(this ReadOnlySpan<T> mainSpan, ReadOnlySpan<T> x, ReadOnlySpan<T> y)
+        where T : unmanaged, INumber<T>
+    {
+        if (mainSpan == ReadOnlySpan<T>.Empty || x == ReadOnlySpan<T>.Empty || y == ReadOnlySpan<T>.Empty)
+            return false;
+
+        nint adrOfFirst = (nint)Unsafe.AsPointer(ref mainSpan.AsWriteable()[0]);
+        nint adrOfLast = (nint)Unsafe.AsPointer(ref mainSpan.AsWriteable()[^1]);
+        long totalLen = Math.Abs(adrOfFirst - adrOfLast) / sizeof(T);
+
+        nint adrOfX = (nint)Unsafe.AsPointer(ref x.AsWriteable()[0]);
+        nint adrOfY = (nint)Unsafe.AsPointer(ref y.AsWriteable()[0]);
+
+        long x2Y = Math.Abs(adrOfX - adrOfY) / sizeof(T);
+        return x2Y <= totalLen;
+    }
+
+
+    /// <summary>
+    /// Swaps 2 different slices within a span and returns back to the caller if x or y is greater!
+    /// </summary>
+    /// <param name="input">the base span to modify</param>
+    /// <param name="x">the first in order, means x comes before y in the span</param>
+    /// <param name="y">the last in order, means y comes before x in the span</param>
+    /// <param name="voidFiller">a value which functions as a delimiter to say when a new block of an arbitrary numeric value begins and ends..</param>
+    /// <typeparam name="T">The type of the span</typeparam>
+    /// <returns>gives back to the caller if either x or y was greater when compared to each-other in length!
+    /// since we use the "x - y" comparison, the result: -1 means that y > x and 1 means x > y !</returns>
+    private static short Swap<T>(this ReadOnlySpan<T> input, scoped ReadOnlySpan<T> x, scoped ReadOnlySpan<T> y,
+        T voidFiller = default)
+        where T : unmanaged, IEquatable<T>, IComparable<T>, INumber<T>
+    {
+        if (!input.InSameBlock(x, y))
+            return -1; //no Swap is possible when x and y are not existent within the same span!
+
+        int yLoc = input.IndexOf(y);
+        int xLoc = input.IndexOf(x);
+
+        if (xLoc == yLoc)
+            return 0;
+
+        scoped ReadOnlySpan<T> first, last;
+        int idxOfFirst, idxOfLast;
+
+        //x comes first, then y
+        if (yLoc > xLoc)
+        {
+            // startOfSmallOne = yLoc + y.Length;
+            first = x;
+            last = y;
+            idxOfFirst = xLoc;
+            idxOfLast = yLoc;
+        }
+        //y comes first, then x
+        else
+        {
+            // startOfSmallOne = xLoc + x.Length;
+            first = y;
+            last = x;
+            idxOfFirst = yLoc;
+            idxOfLast = xLoc;
+        }
+
+        short diffToMove = (short)Math.Abs(first.Length - last.Length);
+
+        //compare the length and decide which one to copy where!
+        if (first.Length > last.Length)
+        {
+            //first > last ===> first=largeOne; last=smallOne
+            int startOfLargeOne = idxOfFirst;
+            int startOfSmallOne = idxOfLast;
+            int smallerLen = last.Length;
+            int greaterLen = first.Length;
+
+            //store a copy of the 'smallOne'
+            scoped Span<T> smallOne = stackalloc T[smallerLen];
+            last.CopyTo(smallOne);
+
+            //store a copy of the larger one
+            scoped Span<T> largeOne = stackalloc T[greaterLen];
+            first.CopyTo(largeOne);
+
+            //we have to clear the 'smallOne' from the input, before we can copy in order for .IndexOf() 
+            //to find the match of the "largeOne" because otherwise there will be 2x
+
+            T invalid = default;
+            //we clear the area where the 'largeOne' resides!
+            input.Slice(startOfLargeOne, greaterLen).AsWriteable().Fill(invalid);
+            //copy the 'smallOne' into the area of the 'largeOne'
+            smallOne.CopyTo(input.Slice(startOfLargeOne, smallerLen).AsWriteable());
+            //'minStart' => is the first <empty> (in case of char, its ' ') value which comes
+            // RIGHT AFTER the new position of 'smallOne' value, so the 
+            //'end'     => is the last <empty> (in case of char, its ' ') value which comes
+            // RIGHT AFTER the new position of 'largeOne' value, so the
+
+            //'area2MoveBack' begins where 'largeOne' ENDS til the end of 'smallOne'
+            // endOfSmallOne begins at 'startOfSmallOne' + 'greaterLen' because we have to consider 
+            //the area of 'smallerOne' is filled by the length of the 'greaterOne'
+            int endOfLargeOne = startOfLargeOne + greaterLen;
+            int endOfSmallOne = startOfSmallOne + smallerLen; 
+            Range area2MoveBack = endOfLargeOne..endOfSmallOne;
+            Span<T> debugSpan = stackalloc T[29];
+            input[area2MoveBack].CopyTo(debugSpan);
+            
+            //Now we move the area to where the 'largerOne' is but only 'smallerLen' further, because
+            //we wanna override the remaining 'null'(\0) values! 
+            input.Move(area2MoveBack, startOfLargeOne + smallerLen);
+
+            //Finally we copy the 'largeOne' back to  
+            largeOne.CopyTo(input.Slice(startOfSmallOne - diffToMove, largeOne.Length).AsWriteable());
+
+            return diffToMove;
+        }
+        else if (first.Length == last.Length)
+        {
+            //store a copy of the smaller one
+            scoped Span<T> lastCopy = stackalloc T[last.Length];
+            last.CopyTo(lastCopy);
+
+            first.CopyTo(input.Slice(idxOfLast, first.Length).AsWriteable());
+            lastCopy.CopyTo(input.Slice(idxOfFirst, lastCopy.Length).AsWriteable());
+
+            return 0;
+        }
+        else
+        {
+            //first < last ===> first=smallOne  && last=largeOne
+            int startOfGreaterOne = idxOfLast;
+            int startOfSmallerOne = idxOfFirst;
+            int smallerLen = first.Length;
+            int greaterLen = last.Length;
+
+            /*store a copy of the smaller one*/
+            scoped Span<T> smallerOne = stackalloc T[smallerLen];
+            first.CopyTo(smallerOne);
+
+            /*store a copy of the larger one*/
+            scoped Span<T> greaterOne = stackalloc T[greaterLen];
+            last.CopyTo(greaterOne);
+
+            /*step1: copy 'largeOne' into 'smallOne' until 'smallOne' is filled*/
+            greaterOne[..smallerLen].CopyTo(input.Slice(startOfSmallerOne, smallerLen).AsWriteable());
+
+            /*step1.5:*/
+            smallerOne.CopyTo(input.Slice(startOfGreaterOne, greaterLen).AsWriteable());
+
+            /*step2: compute the difference in length between large and small
+                       as well as the 'correctStart' and 'end'*/
+            startOfSmallerOne -= diffToMove;
+            int minStart = startOfSmallerOne + smallerLen;
+            int afterSmallOne = minStart + 1;
+
+            //step3: create a range from AFTER 'smallOne' to END of 'greaterOne' minus 'diffToMove'
+            Range area2Move = afterSmallOne..startOfSmallerOne;
+
+            return -1;
+        }
+    }
+
+    public static short Swap(this ReadOnlySpan<char> input, scoped ReadOnlySpan<char> x, scoped ReadOnlySpan<char> y)
+        => input.Swap(x, y, (char)32);
+
     public static Rectangle AsIntRayRect(this RectangleF floatBox) =>
         new(floatBox.X, floatBox.Y, floatBox.Width, floatBox.Height);
 
@@ -67,9 +388,9 @@ public static class Utils
         NoiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
     }
 
-    public static Span<T> Writable<T>(this ReadOnlySpan<T> readOnlySpan) =>
+    private static Span<T> AsWriteable<T>(this ReadOnlySpan<T> readOnlySpan) =>
         MemoryMarshal.CreateSpan(ref Unsafe.AsRef(readOnlySpan[0]), readOnlySpan.Length);
-    
+
     public static float Trunc(this float value, int digits)
     {
         float mult = MathF.Pow(10.0f, digits);
@@ -79,7 +400,7 @@ public static class Utils
 
     public static Vector2 GetScreenCoord() => new(GetScreenWidth(), GetScreenHeight());
 
-    public static bool IsMoreThanHalf()
+    public static bool CoinFlip()
     {
         var val = Randomizer.NextSingle();
         return val.GreaterOrEqual(0.50f, 0.001f);
@@ -107,7 +428,6 @@ public static class Utils
         /* rayRect.x == 0 && rayRect.y == 0 &&*/ rayRect is { Width: 0, Height: 0 };
 
     public static readonly RectangleF InvalidRect = new(-1, -1, 0, 0);
-    public static Vector2 InvalidCell { get; } = -Vector2.One; //this will be computed only once!
 
     public static void Add(ref this RectangleF a, RectangleF b)
     {
@@ -132,11 +452,11 @@ public static class Utils
         if (pair.isRow)
         {
             //a=10, b=10, result= a + b * 1
-            width = (a.Width + b.Width);
+            width = a.Width + b.Width;
         }
         else
         {
-            height = (a.Height + b.Height);
+            height = a.Height + b.Height;
         }
 
         a = new(first.X, first.Y, width, height);
@@ -147,18 +467,18 @@ public static class Utils
 
     public static RectangleF RelativeToMap(this RectangleF cellRect)
     {
-        return new(cellRect.X * Tile.Size,
-            cellRect.Y * Tile.Size,
-            cellRect.Width * Tile.Size,
-            cellRect.Height * Tile.Size);
+        return new(cellRect.X * Size,
+            cellRect.Y * Size,
+            cellRect.Width * Size,
+            cellRect.Height * Size);
     }
 
     public static RectangleF RelativeToGrid(this RectangleF worldRect)
     {
-        return new(worldRect.X / Tile.Size,
-            worldRect.Y / Tile.Size,
-            worldRect.Width / Tile.Size,
-            worldRect.Height / Tile.Size);
+        return new(worldRect.X / Size,
+            worldRect.Y / Size,
+            worldRect.Width / Size,
+            worldRect.Height / Size);
     }
 
     public static RectangleF DoScale(this RectangleF rayRect, ScaleableFloat factor)
@@ -266,18 +586,23 @@ public static class Utils
     }
 
     private static Vector2 GetWorldPos(this RectangleF a) => new(a.X, a.Y);
-    public static Vector2 GetCellPos(this RectangleF a) => GetWorldPos(a) / Tile.Size;
 
-    public static void SetMouseToWorldPos(Vector2 position, int scale = Tile.Size)
+    public static Vector2 GetCellPos(this RectangleF a) => GetWorldPos(a) / Size;
+
+    public static void SetMouseToWorldPos(Vector2 position, int scale = Size)
     {
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);
     }
 
     public static RectangleF NewWorldRect(Vector2 begin, int width, int height)
     {
-        return new(begin.X * Tile.Size,
-            begin.Y * Tile.Size,
-            width * Tile.Size,
-            height * Tile.Size);
+        return new(begin.X * Size,
+            begin.Y * Size,
+            width * Size,
+            height * Size);
     }
+
+    public const int TileColorLen = 8;
+    public const int Size = Level.TileSize;
+    public static readonly Vector2 InvalidCell = -Vector2.One; //this will be computed only once!
 }
