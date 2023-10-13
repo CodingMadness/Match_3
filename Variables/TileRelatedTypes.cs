@@ -1,21 +1,14 @@
-﻿using System.Drawing;
+﻿global using TileColor = System.Drawing.KnownColor;
+
+using System.Drawing;
 using System.Numerics;
 using DotNext.Runtime;
 using Match_3.Service;
 using Match_3.Workflow;
 
-[assembly: FastEnumToString(typeof(Match_3.Variables.TileType), IsPublic = true, ExtensionMethodNamespace = "Match_3.Variables.Extensions")]
+
+[assembly: FastEnumToString(typeof(TileColor), IsPublic = true, ExtensionMethodNamespace = "Match_3.Variables.Extensions")]
 namespace Match_3.Variables;
-
-/// <summary>
-/// DefaultTile hardcoded type which is created from a look into the AngryBallsTexture!
-/// </summary>
-
-public enum TileType
-{
-    Empty =0, Red=1, Blue, Green, Purple, Orange, Yellow, Brown, Violet,
-    Length = 9
-}
 
 [Flags]
 public enum Options
@@ -62,21 +55,21 @@ public class Shape
 
 public class TileShape : Shape, IEquatable<TileShape>, ICloneable
 {
-    public TileType TileType { get; init; }
+    public TileColor TileColor { get; init; }
     public override Vector2 AtlasLocation { get; init; }
    
     public bool Equals(TileShape? other) =>
-        other is not null && TileType == other.TileType;
+        other is not null && TileColor == other.TileColor;
     
-    public override int GetHashCode() => HashCode.Combine(FixedWhite, TileType);
+    public override int GetHashCode() => HashCode.Combine(FixedWhite, TileColor);
 
-    public override string ToString() => $"Tile type: <{TileType}> with Tint: <{FixedWhite}>";  
+    public override string ToString() => $"Tile type: <{TileColor}> with Tint: <{FixedWhite}>";  
 
     public object Clone()
     {
         TileShape clone = new()
         {
-            TileType = TileType,
+            TileColor = TileColor,
             AtlasLocation = AtlasLocation,
         };
         return clone;
@@ -156,13 +149,11 @@ public class Tile(TileShape body) : IEquatable<Tile>
     public Vector2 GridCell { get; set; }
     public Vector2 CoordsB4Swap { get; set; }
     public TileShape Body { get; } = body;
-    public Vector2 WorldCell => GridCell * Size;
-    public Vector2 End => WorldCell + Vector2.One * Size;
+    public Vector2 WorldCell => GridCell * Utils.Size;
+    public Vector2 End => WorldCell + Vector2.One * Utils.Size;
     public bool IsDeleted => TileState.HasFlag(TileState.Deleted);
     private RectangleF GridBox => new(GridCell.X, GridCell.Y, 1f, 1f);
     public RectangleF MapBox => GridBox.RelativeToMap();
-    
-    public const int Size = Level.TileSize;
 
     public void UpdateGoal(EventType eventType, in Quest aQuest)
     {
@@ -313,7 +304,7 @@ public class MatchX
         if (i < 0 || i > Count-1 || _worldRect.IsEmpty)
             return null;
 
-        var pos = WorldPos / Tile.Size;
+        var pos = WorldPos / Utils.Size;
 
         return IsRowBased 
             ? pos with { X = pos.X + (i * _direction).X }
