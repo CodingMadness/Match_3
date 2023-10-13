@@ -341,11 +341,12 @@ public static class Utils
         else
         {
             //first < last ===> first=smallOne  && last=largeOne
-            int startOfGreaterOne = idxOfLast;
-            int startOfSmallerOne = idxOfFirst;
             int smallerLen = first.Length;
             int greaterLen = last.Length;
-
+            int startOfGreaterOne = idxOfLast;
+            int startOfSmallerOne = idxOfFirst;
+            int endOfSmallerOne = idxOfFirst + smallerLen;
+       
             /*store a copy of the smaller one*/
             scoped Span<T> smallerOne = stackalloc T[smallerLen];
             first.CopyTo(smallerOne);
@@ -362,14 +363,25 @@ public static class Utils
 
             /*step2: compute the difference in length between large and small
                        as well as the 'correctStart' and 'end'*/
-            startOfSmallerOne -= diffToMove;
-            int minStart = startOfSmallerOne + smallerLen;
-            int afterSmallOne = minStart + 1;
-
+            int afterSmallOne = endOfSmallerOne + 1;
+            int endOfGreaterOne = startOfGreaterOne + smallerLen; 
             //step3: create a range from AFTER 'smallOne' to END of 'greaterOne' minus 'diffToMove'
-            Range area2Move = afterSmallOne..startOfSmallerOne;
+            Range area2Move = afterSmallOne..endOfGreaterOne;
 
-            return -1;
+            //step4: copy the 'remaining' parts of 'greaterOne'
+            var remainderSlice = input.Slice(startOfGreaterOne + smallerLen, diffToMove);
+            Span<T> remainderCopy = stackalloc T[remainderSlice.Length];
+            remainderSlice.CopyTo(remainderCopy);
+            //step5: Move now the slice by "remainder.Length" towards the end  
+            input.MoveBy(area2Move, diffToMove, voidFiller);
+            
+            //step6: Copy now the "remainder" to the end of "smallOne"
+            Range area2CopyRemainInto = startOfSmallerOne..(startOfSmallerOne + greaterLen);
+            Range remainingArea2Copy = ^diffToMove..;
+            smallerOne = input[area2CopyRemainInto].AsWriteable();
+            remainderCopy.CopyTo(smallerOne[remainingArea2Copy]);
+            
+            return diffToMove;
         }
     }
 
