@@ -6,7 +6,7 @@ namespace Match_3.Workflow;
 
 public static class Bakery
 {
-    private static TileType GetTileTypeTypeByNoise(float noise)
+    private static TileColor GetTileTypeTypeByNoise(float noise)
     {
         noise = noise.Trunc(2);
 
@@ -21,15 +21,14 @@ public static class Bakery
 
         var result = noise switch
         {
-            > 0.0f and <= 0.15f => (TileType.Brown, noise),
-            > 0.15f and <= 0.25f => (TileType.Red, noise),
-            > 0.25f and <= 0.35f => (TileType.Orange, noise),
-            > 0.35f and <= 0.45f => (TileType.Blue, noise),
-            > 0.45f and <= 0.55f => (TileType.Green, noise),
-            > 0.55f and <= 0.65f => (TileType.Purple, noise),
-            > 0.65f and <= 0.75f => (TileType.Violet, noise),
-            > 0.75f and <= 1f => (TileType.Yellow, noise),
-            _ => (TileType.Empty, noise),
+            > 0.0f and <= 0.15f => (TileColor.Brown, noise),
+            > 0.15f and <= 0.25f => (TileColor.Red, noise),
+            > 0.25f and <= 0.35f => (TileColor.Orange, noise),
+            > 0.35f and <= 0.45f => (TileColor.Blue, noise),
+            > 0.45f and <= 0.55f => (TileColor.Green, noise),
+            > 0.55f and <= 0.65f => (TileColor.Purple, noise),
+            > 0.65f and <= 0.75f => (TileColor.Violet, noise),
+            > 0.75f and <= 1f => (TileColor.Yellow, noise),
         };
         return result.Item1;
     }
@@ -38,65 +37,65 @@ public static class Bakery
     {
         TileShape tmp = new()
         {
-            TileType = GetTileTypeTypeByNoise(noise)
+            TileColor = GetTileTypeTypeByNoise(noise)
         };
 
-        return tmp.TileType switch
+        return tmp.TileColor switch
         {
-            TileType.Green => new()
+            TileColor.Green => new()
             {
-                TileType = TileType.Green,
-                AtlasLocation = new Vector2(0f, 0f) * Tile.Size,
-                Size = new(Tile.Size, Tile.Size),
+                TileColor = TileColor.Green,
+                AtlasLocation = new Vector2(0f, 0f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
-            TileType.Purple => new()
+            TileColor.Purple => new()
             {
-                TileType = TileType.Purple,
-                AtlasLocation = new Vector2(1f, 0f) * Tile.Size,
-                Size = new(Tile.Size, Tile.Size),
+                TileColor = TileColor.Purple,
+                AtlasLocation = new Vector2(1f, 0f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
-            TileType.Orange => new()
+            TileColor.Orange => new()
             {
-                TileType = TileType.Orange,
-                AtlasLocation = new Vector2(2f, 0f) * Tile.Size,
-                Size = new(Tile.Size, Tile.Size),
+                TileColor = TileColor.Orange,
+                AtlasLocation = new Vector2(2f, 0f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
-            TileType.Yellow => new()
+            TileColor.Yellow => new()
             {
-                TileType = TileType.Yellow,
-                AtlasLocation = new Vector2(3f, 0f) * Tile.Size,
-                Size = new(Tile.Size, Tile.Size),
+                TileColor = TileColor.Yellow,
+                AtlasLocation = new Vector2(3f, 0f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
-            TileType.Red => new()
+            TileColor.Red => new()
             {
-                TileType = TileType.Red,
-                AtlasLocation = new Vector2(0f, 1f) * Tile.Size,
-                Size = new(Tile.Size, Tile.Size),
+                TileColor = TileColor.Red,
+                AtlasLocation = new Vector2(0f, 1f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
-            TileType.Blue => new()
+            TileColor.Blue => new()
             {
-                TileType = TileType.Blue,
-                AtlasLocation = new Vector2(1f, 1f) * Tile.Size,
-                Size = new(Tile.Size, Tile.Size),
+                TileColor = TileColor.Blue,
+                AtlasLocation = new Vector2(1f, 1f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
-            TileType.Brown => new()
+            TileColor.Brown => new()
             {
-                TileType = TileType.Brown,
-                AtlasLocation = new Vector2(2f, 1f) * Tile.Size,
-                Size = new(Tile.Size, Tile.Size),
+                TileColor = TileColor.Brown,
+                AtlasLocation = new Vector2(2f, 1f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
-            TileType.Violet => new()
+            TileColor.Violet => new()
             {
-                TileType = TileType.Violet,
-                AtlasLocation = new Vector2(3f, 1f) * Tile.Size,
-                Size = new(Tile.Size, Tile.Size),
+                TileColor = TileColor.Violet,
+                AtlasLocation = new Vector2(3f, 1f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
 
@@ -125,8 +124,8 @@ public static class Bakery
                 ElapsedTime = 0f, Speed = 0.2f
             },
             AtlasLocation = matchTile.Body.AtlasLocation,
-            Size = new(Tile.Size, Tile.Size),
-            TileType = matchTile.Body is { } c0 ? c0.TileType : TileType.Empty,
+            Size = new(Utils.Size, Utils.Size),
+            TileColor = matchTile.Body is { } c0 ? c0.TileColor : TileColor.Transparent,
         };
             
         EnemyTile blockTile = new(body)
