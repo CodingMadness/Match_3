@@ -7,7 +7,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using DotNext.Buffers;
 using ImGuiNET;
-using Match_3.Variables;
+using Match_3.Variables.Extensions;
+using Match_3.Workflow;
 using NoAlloq;
 
 namespace Match_3.Service;
@@ -20,11 +21,6 @@ public ref struct FastSpanEnumerator<TItem>
 {
     private ref TItem _currentItem;
     private readonly ref TItem _lastItemOffsetByOne;
-
-    // public FastSpanEnumerator(SpanEnumerable<TItem> enumerator)
-    // {
-    //     _currentItem
-    // }
 
     public FastSpanEnumerator(Span<TItem> span) :
         this(ref MemoryMarshal.GetReference(span), span.Length)
@@ -75,9 +71,10 @@ public readonly ref struct TextInfo
     public readonly ReadOnlySpan<char> Slice2Color;
     public readonly Vector2 TextSize;
     public readonly Vector4 ColorV4ToApply;
-    public readonly Color SystemColor;
+    // public readonly Color SystemColor;
+    public readonly TileColor TileColor;
     private readonly char _separator;
-
+    
     /// <summary>
     /// represents the color we want to convert to a Vector4 type
     /// </summary>
@@ -108,13 +105,13 @@ public readonly ref struct TextInfo
         _separator = separator;
         //FastEnum.Parse<KnownColor, int>(code); for some reason this does not work.....
         var color = Enum.Parse<KnownColor>(code);
-        SystemColor = Color.FromKnownColor(color);
-        ColorV4ToApply = SystemColor.ToVec4();
+        TileColor = color;//Color.FromKnownColor(color);
+        ColorV4ToApply = Color.FromKnownColor(color).ToVec4();
         Vector2 offset = Vector2.One * 1.5f;
         TextSize = ImGui.CalcTextSize(slice2Color) + offset;
-        Variable2Replace = variable2Replace;  
+        Variable2Replace = variable2Replace;
     }
-
+    
     public TextInfo(ReadOnlySpan<char> current, Color sysCol, ReadOnlySpan<char> valuePlaceHolder) :
         this(current, sysCol.Name, valuePlaceHolder)
     {
@@ -182,7 +179,7 @@ public ref struct WordEnumerator
             _remainder = _remainder[(word.Length + 1)..];
         }
 
-        _tmp = new(word, _original.SystemColor, "dataType");
+        _tmp = new(word, _original.TileColor.ToStringFast(), "---");
 
         return word.Length > 0;
     }
@@ -193,9 +190,9 @@ public ref struct WordEnumerator
     }
 }
 
-public ref struct PhraseEnumerator
+public ref partial struct PhraseEnumerator 
 {
-    private static readonly Regex Rgx = new(@"\([a-zA-Z]+\)", RegexOptions.Singleline);
+    private static readonly Regex Rgx = MyRegex();
     private TextInfo _current;
     private readonly Span<(int idx, int len)> colorPositions;
     private int _relativeStart, _relativeEnd;
@@ -206,7 +203,7 @@ public ref struct PhraseEnumerator
     public PhraseEnumerator(ReadOnlySpan<char> text)
     {
         //dont know a value yet for this but we use 50 for now
-        _matchPool = new(50);
+        _matchPool = new(15);
         _position = 0;
         _text = text;
         //var result = rgx.Split(_text);
@@ -274,13 +271,17 @@ public ref struct PhraseEnumerator
             _relativeStart = 1;
         }
 
+        
         var slice2Colorize = _text.Slice(okayBegin, _relativeEnd - _relativeStart)[(match.len + 1)..^1];
+
+        // bool twoSameSpans = QuestBuilder.QuestLog.AsSpan() == _text;
+            
         bool isAMemberName = slice2Colorize.Contains('.'); //like: Match.Count and so on...
 
         var variable2Replace = isAMemberName
                                                   ? slice2Colorize[..slice2Colorize.IndexOf(' ')]
                                                   : ReadOnlySpan<char>.Empty;
-
+        
         _current = new(slice2Colorize, color2Use, variable2Replace);
         _position++;
 
@@ -294,4 +295,6 @@ public ref struct PhraseEnumerator
     }
 
     public void Dispose() => _matchPool.Dispose();
+    [GeneratedRegex("\\([a-zA-Z]+\\)", RegexOptions.Singleline)]
+    private static partial Regex MyRegex();
 }
