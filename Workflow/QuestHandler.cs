@@ -1,8 +1,5 @@
-using DotNext;
-using Match_3.Service;
+using System.Diagnostics.CodeAnalysis;
 using Match_3.Variables;
-using NoAlloq;
-using static Match_3.Service.Utils;
 
 namespace Match_3.Workflow;
 
@@ -14,7 +11,7 @@ public static class SingletonManager
     public static readonly Dictionary<Type, QuestHandler> QuestHandlerStorage = new(MaxQuestHandlerInstances);
     public static readonly Dictionary<Type, RuleHandler> RuleHandlerStorage = new(MaxRuleHandlerInstances);
 
-    public static T GetOrCreateQuestHandler<T>() where T : QuestHandler
+    public static T GetOrCreateQuestHandler<[DynMembers(DynamicallyAccessedMemberTypes.NonPublicConstructors)]T>() where T : QuestHandler
     {
         lock (QuestHandlerStorage)
         {
@@ -65,21 +62,18 @@ public static class SingletonManager
 public abstract class QuestHandler
 {
     private readonly Type _self;
-   
-    public static readonly GameTime[]? QuestTimers = new GameTime[(int)TileType.Length - 1];
     
-    protected static readonly Quest[] Quests = new Quest[(int)TileType.Length - 1];
+    protected int QuestCounter { get; set; }
 
+    protected int QuestLeft => QuestBuilder.QuestCount - QuestCounter;
+    
+    protected bool IsMainGoalReached => QuestLeft == 0;
+    
     private bool IsActive { get; set; }
 
     protected static THandler GetInstance<THandler>() where THandler : QuestHandler
         => SingletonManager.GetOrCreateQuestHandler<THandler>();
-
-    protected int SubGoalCounter { get; set; }
-    public int QuestCount { get; protected set; }
-    protected int GoalsLeft => QuestCount - SubGoalCounter;
-    protected bool IsMainGoalReached => GoalsLeft == 0;
-
+    
     /// <summary>
     ///The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
     ///or about other events
@@ -93,7 +87,6 @@ public abstract class QuestHandler
     protected QuestHandler(Type self)
     {
         _self = self;
-        Grid.NotifyOnGridCreationDone += DefineQuest;
     }
 
     protected static bool IsSubQuestReached(EventType eventType, in Quest quest, in AllStats allStats,
@@ -109,16 +102,8 @@ public abstract class QuestHandler
         };
     }
 
-    /// <summary>
-    /// This will be called automatically when Grid is done with its bitmap creation!
-    /// </summary>
-    protected abstract void DefineQuest(Span<byte> maxCountPerType);
-
     protected abstract void HandleEvent();
-
-
-    public FastSpanEnumerator<Quest> GetQuests() => new(Quests.AsSpan(0, QuestCount));
-
+    
     public static void ActivateHandlers()
     {
         MatchQuestHandler.Instance.Subscribe();
@@ -146,41 +131,10 @@ public abstract class QuestHandler
 
 public sealed class SwapQuestHandler : QuestHandler
 {
-    protected override void DefineQuest(Span<byte> maxCountPerType)
-    {
-        //Define Ruleset for SwapQuestHandler:
-        /*
-         * Swap 3 types only
-         * and if other types are swapped as well, you get punished
-         */
-
-        var goal = Game.Level.Id switch
-        {
-            0 => new Quest
-            {
-                Swap = new(Randomizer.Next(4, 6), 5f),
-                TileColor = TileType.Red
-            },
-            1 => new Quest { Swap = new(Randomizer.Next(3, 6), 4.5f) },
-            2 => new Quest { Swap = new(Randomizer.Next(2, 4), 4.0f) },
-            3 => new Quest { Swap = new(Randomizer.Next(2, 3), 3.0f) },
-            _ => default
-        };
-        QuestCount++;
-        GameState.Tile.UpdateGoal(EventType.Swapped, goal);
-    }
-
     public static SwapQuestHandler Instance { get; } = GetInstance<SwapQuestHandler>();
 
-    private SwapQuestHandler() : base(typeof(SwapQuestHandler)) => Game.OnTileSwapped += HandleEvent;
-
-    private static bool IsSwapGoalReached(out Quest quest, out AllStats allStats, out int direction)
-    {
-        var type = GameState.Tile.Body.TileType;
-        quest = Grid.Instance.GetTileQuestBy(GameState.Tile);
-        allStats = Grid.Instance.GetTileStatsBy(type);
-        return IsSubQuestReached(EventType.Swapped, quest, allStats, out direction);
-    }
+    private SwapQuestHandler() : base(typeof(SwapQuestHandler)) 
+        => Game.OnTileSwapped += HandleEvent;
 
     protected override void HandleEvent()
     {
@@ -190,8 +144,6 @@ public sealed class SwapQuestHandler : QuestHandler
 
 public sealed class MatchQuestHandler : QuestHandler
 {
-    private static readonly Quest Empty = default;
-
     private void CompareFinalResults()
     {
         //clear whatever was written inside the logger, because we are done now anyways and we wanna store inside 
@@ -210,7 +162,7 @@ public sealed class MatchQuestHandler : QuestHandler
                 GameState.WasGameWonB4Timeout = false;
                 GameState.Logger.Append(
                     "Unlucky, very close, you will do it next time, i am sure :-), but here your results" +
-                    $"So far you have gotten at least {SubGoalCounter} done and you needed actually still {GoalsLeft} more");
+                    $"So far you have gotten at least {QuestCounter} done and you needed actually still {QuestLeft} more");
                 break;
 
             case true when GameState.IsGameOver:
@@ -223,72 +175,11 @@ public sealed class MatchQuestHandler : QuestHandler
     private MatchQuestHandler() : base(typeof(MatchQuestHandler))
     {
         Game.OnMatchFound += HandleEvent;
-        Game.OnGameOver += CompareFinalResults;
     }
 
     public static MatchQuestHandler Instance { get; } = GetInstance<MatchQuestHandler>();
-
-    private ref readonly Quest GetQuestFrom(TileType key)
-    {
-        var enumerator = GetQuests();
-
-        foreach (ref readonly var pair in enumerator)
-        {
-            if (pair.TileColor == key)
-                return ref pair;
-        }
-
-        return ref Empty;
-    }
-
-    protected override void DefineQuest(Span<byte> maxCountPerType)
-    {
-        int tileCount = (int)TileType.Length - 1;
-
-        void Fill(Span<TileType> toFill)
-        {
-            Span<TileType> allTypes = stackalloc TileType[(int)TileType.Length - 1];
-
-            for (int i = 1; i < allTypes.Length + 1; i++)
-                allTypes[i - 1] = (TileType)i;
-
-            allTypes.CopyTo(toFill);
-        }
-
-        scoped Span<TileType> subset = stackalloc TileType[tileCount];
-        Fill(subset);
-        subset.Shuffle(Randomizer);
-        subset = subset.TakeRndItemsAtRndPos();
-        scoped FastSpanEnumerator<TileType> subsetEnumerator = new(subset);
-        QuestCount = subset.Length;
-
-        foreach (var type in subsetEnumerator)
-        {
-            int trueIdx = (int)type - 1;
-
-            //we do netSingle() * 10f to have a real representative value for interval, like:
-            // 0.4f * 10f => 2f will be the time we have left to make a match! and so on....
-            float rndValue = Randomizer.NextSingle().Trunc(1);
-            rndValue = rndValue.Equals(0f, 0.0f) ? 0.25f : rndValue;
-            float finalInterval = MathF.Round(rndValue * 10f);
-            finalInterval = finalInterval <= 2.5f ? 2.5f : finalInterval;
-            int toEven = (int)MathF.Round(finalInterval, MidpointRounding.ToEven);
-
-            SubQuest match = new(maxCountPerType[trueIdx] / Level.MaxTilesPerMatch, finalInterval);
-            //-1f is same as to say null, but for comfort i skip float? checks..
-            //3 is just placeholder and is subject to change for "swap" and "replacement"
-            SubQuest swap =  new(3, -1f);
-            SubQuest replacement =  new(4, -1f); 
-            Quests[trueIdx] = new Quest(type, match, swap, replacement);
-            QuestTimers![trueIdx] = GameTime.GetTimer(toEven);
-        }
-
-        //sort and filter the null's out
-        Quests.AsSpan().Where(x => x.Match.HasValue).Select(x => x).TakeInto(Quests);
-        QuestTimers.AsSpan().Where(x => x.IsInitialized).Select(x => x).TakeInto(QuestTimers);
-    }
-
-    private bool IsMatchQuestReached(out Quest? quest, in AllStats allStats, out int direction)
+    
+    private static bool IsMatchQuestReached(out Quest? quest, in AllStats allStats, out int direction)
     {
         if (allStats.Matched is null)
         {
@@ -297,14 +188,14 @@ public sealed class MatchQuestHandler : QuestHandler
             return false;
         }
 
-        var type = GameState.Tile.Body.TileType;
-        quest = GetQuestFrom(type);
+        var type = GameState.Tile.Body.TileColor;
+        quest = QuestBuilder.GetQuestFrom(type);
         return IsSubQuestReached(EventType.Matched, quest.Value, allStats, out direction);
     }
 
     protected override void HandleEvent()
     {
-        var type = GameState.Matches!.Body!.TileType;
+        var type = GameState.Matches!.Body!.TileColor;
         ref var stats = ref Grid.GetStatsByType(type);
 
         if (stats.Matched is null)
@@ -317,9 +208,9 @@ public sealed class MatchQuestHandler : QuestHandler
 
         if (IsMatchQuestReached(out var goal, stats, out int compareResult))
         {
-            SubGoalCounter++;
+            QuestCounter++;
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Sub goals done:  {SubGoalCounter}");
+            Console.WriteLine($"Sub goals done:  {QuestCounter}");
             Console.ResetColor();
             //Console.WriteLine($"yea, we got {stats.Matched!.Value.Count} match of type: {type} within");
             //Console.WriteLine($"current match goal:  {goal?.Match}");
