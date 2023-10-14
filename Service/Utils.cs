@@ -1,13 +1,10 @@
-﻿global using DynMembers = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
-global using DynMemberTypes = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
-global using static Raylib_cs.Color;
+﻿global using static Raylib_cs.Color;
 global using RayColor = Raylib_cs.Color;
 global using static Raylib_cs.Raylib;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using DotNext;
 using Match_3.Datatypes;
@@ -116,7 +113,7 @@ public static class Utils
             throw new ArgumentException("Old value could not be found!", nameof(oldValue));
 
         var span = GetSpan(input);
-        int matchIndex = -1;
+        int matchIndex;
         int replacementLength = newValue.Length;
         int resultLength = input.Length;
         int searchIndex = 0;
@@ -146,7 +143,7 @@ public static class Utils
             }
         }
 
-        var area = span[..resultLength];
+        // var area = span[..resultLength];
         return input;
     }
 
@@ -213,9 +210,6 @@ public static class Utils
     }
 
     
-  
-
-    
     /// <summary>
     /// Swaps 2 different slices within a span and returns back to the caller if x or y is greater!
     /// </summary>
@@ -224,58 +218,31 @@ public static class Utils
     /// <param name="y">the last in order, means y comes before x in the span</param>
     /// <param name="delimiter">a value which functions as a delimiter to say when a new block of an arbitrary numeric value begins and ends..</param>
     /// <typeparam name="T">The type of the span</typeparam>
-    private static void Swap<T>(this ReadOnlySpan<T> input, scoped ReadOnlySpan<T> x, scoped ReadOnlySpan<T> y,
+    private static void Swap<T>(this scoped ReadOnlySpan<T> input, scoped ReadOnlySpan<T> x, scoped ReadOnlySpan<T> y,
         T delimiter = default)
         where T : unmanaged, IEquatable<T>, IComparable<T>, INumber<T>
     {
         //get all the needed information about the occuring spans here!
-        var info = new SpanInfo<T>(input, x, y);
+        scoped var info = new SpanInfo<T>(input, x, y);
         
         //use the "info" type for the future in this function!.....
+        int diffToMove = info.LengthDiff;
+        scoped ReadOnlySpan<T> first = info.First, last = info.Last;
+        int idxOfFirst = info.IndexOfFirst, idxOfLast = info.IndexOfLast;
 
-        int yLoc = input.IndexOf(y);
-        int xLoc = input.IndexOf(x);
-
-        if (xLoc == yLoc)
-            return;
-        
-        const byte maxSpaceBetweenXy = 3;
-        short diffToMove = (short)Math.Abs(x.Length - y.Length);
-        bool next2EachOther = Math.Abs(yLoc - xLoc) == maxSpaceBetweenXy;
-
-        scoped ReadOnlySpan<T> first, last;
-        int idxOfFirst, idxOfLast;
-        
-        //x comes first, then y
-        if (yLoc > xLoc)
-        {
-            first = x;
-            last = y;
-            idxOfFirst = xLoc;
-            idxOfLast = yLoc;
-        }
-        //y comes first, then x
-        else
-        {
-            first = y;
-            last = x;
-            idxOfFirst = yLoc;
-            idxOfLast = xLoc;
-        }
-
-        if (first.Length == last.Length)
+        if (info.AreSameLength)
         {
             //store a copy of the smaller one
             scoped Span<T> lastCopy = stackalloc T[last.Length];
             last.CopyTo(lastCopy);
 
-            first.CopyTo(input.Slice(idxOfLast, first.Length).AsWriteable());
-            lastCopy.CopyTo(input.Slice(idxOfFirst, lastCopy.Length).AsWriteable());
+            first.CopyTo(input.Slice(info.IndexOfLast, first.Length).AsWriteable());
+            lastCopy.CopyTo(input.Slice(info.IndexOfFirst, lastCopy.Length).AsWriteable());
             
             return;
         }
 
-        if (next2EachOther)
+        if (info.AreXYNext2EachOther)
         {
             if (first.Length > last.Length)
             {
@@ -441,6 +408,36 @@ public static class Utils
         }
     }
 
+    public static void TestSwap()
+    {
+        //scenario1:  we test for DISTANT words, where xLen < bLen  ====> FAILS
+        var text = "Hallo du so verrückte liebe und zugleich merkwürdige Erde1".AsSpan();
+        var x = text.Slice(text.IndexOf("verrückte"), "verrückte".Length);
+        var y = text.Slice(text.IndexOf("merkwürdige"), "merkwürdige".Length);
+        text.Swap(x, y);
+        //output should be:          "Hallo du so merkwürdige liebe und zugleich verrückte Welt
+        var output = text.ToString(); 
+        
+        //scenario1:  we test for DISTANT words, where xLen > bLen  ====> WORKS
+        var text2 = "Hallo du so merkwürdige liebe und zugleich verrückte Erde2".AsSpan();
+        int s = 1;
+        x = text2.Slice(text2.IndexOf("verrückte"), "verrückte".Length);
+        y = text2.Slice(text2.IndexOf("merkwürdige"), "merkwürdige".Length);
+        text2.Swap(x, y);
+        //output should be:          "Hallo du so verrückte liebe und zugleich merkwürdige Welt
+        output = text2.ToString();
+        
+        //scenario1:  we test for CLOSE words, where xLen < bLen  ====> WORKS
+        var text3 = "Hallo du so verrückte liebe und zugleich merkwürdige Erde3".AsSpan();
+        int d = 1;
+        x = text3.Slice(text3.IndexOf("so"), "so".Length);
+        y = text3.Slice(text3.IndexOf("verrückte"), "verrückte".Length);
+        d++;
+        text3.Swap(x, y);
+        //output should be:          "Hallo du verrückte so liebe und zugleich merkwürdige Erde2
+        output = text3.ToString();
+    }
+    
     public static void Swap(this ReadOnlySpan<char> input, 
                             scoped ReadOnlySpan<char> x,
                             scoped ReadOnlySpan<char> y)
