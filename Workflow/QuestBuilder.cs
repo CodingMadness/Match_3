@@ -139,10 +139,10 @@ public static class QuestBuilder
         // using MemoryRental<char> logger = new(,);
         // ReadOnlySpan<char> tmpBuffer = logger.Span;
 
-        var text = "Hallo du merkwürdige so liebe und zugleich verrückte Welt!".AsSpan();
+        var text = "Hallo du so merkwürdige liebe und zugleich verrückte Welt!".AsSpan();
         var a = text.Slice(text.IndexOf("merkwürdige"), "merkwürdige".Length);
         var b = text.Slice(text.IndexOf("so"), "so".Length);
-        var res = text.Swap(a, b);
+        text.Swap(a, b);
         
         
         var tmpBuffer = QuestLog.AsSpan();
