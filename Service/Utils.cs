@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using DotNext;
+using Match_3.Datatypes;
 using Match_3.Variables;
 using Match_3.Workflow;
 using Rectangle = Raylib_cs.Rectangle;
@@ -211,29 +212,8 @@ public static class Utils
         return newOffset + r.Length;
     }
 
-    private static unsafe bool InSameBlock<T>(this ReadOnlySpan<T> mainSpan, ReadOnlySpan<T> x, ReadOnlySpan<T> y)
-        where T : unmanaged, INumber<T>
-    {
-        //1 of these at least is empty which is bad!
-        if (mainSpan == ReadOnlySpan<T>.Empty || x == ReadOnlySpan<T>.Empty || y == ReadOnlySpan<T>.Empty)
-            return false;
-
-        nint adrOfX = (nint)Unsafe.AsPointer(ref x.AsWriteable()[0]);
-        nint adrOfY = (nint)Unsafe.AsPointer(ref y.AsWriteable()[0]);
-
-        long x2Y = Math.Abs(adrOfX - adrOfY) / sizeof(T);
-
-        //its same or invalid address
-        if (x2Y <= 0)
-            return false;
-
-        nint adrOfFirst = (nint)Unsafe.AsPointer(ref mainSpan.AsWriteable()[0]);
-        nint adrOfLast = (nint)Unsafe.AsPointer(ref mainSpan.AsWriteable()[^1]);
-        long totalLen = Math.Abs(adrOfFirst - adrOfLast) / sizeof(T);
-
-        //check if within same range!
-        return x2Y <= totalLen;
-    }
+    
+  
 
     
     /// <summary>
@@ -248,21 +228,24 @@ public static class Utils
         T delimiter = default)
         where T : unmanaged, IEquatable<T>, IComparable<T>, INumber<T>
     {
-        //Check if Swap is possible and if x and y are existent within the same span!
-        if (!input.InSameBlock(x, y))
-            return;
+        //get all the needed information about the occuring spans here!
+        var info = new SpanInfo<T>(input, x, y);
+        
+        //use the "info" type for the future in this function!.....
 
         int yLoc = input.IndexOf(y);
         int xLoc = input.IndexOf(x);
-        bool next2EachOther;
 
         if (xLoc == yLoc)
             return;
         
+        const byte maxSpaceBetweenXy = 3;
+        short diffToMove = (short)Math.Abs(x.Length - y.Length);
+        bool next2EachOther = Math.Abs(yLoc - xLoc) == maxSpaceBetweenXy;
+
         scoped ReadOnlySpan<T> first, last;
         int idxOfFirst, idxOfLast;
-        short diffToMove = (short)Math.Abs(x.Length - y.Length);
-
+        
         //x comes first, then y
         if (yLoc > xLoc)
         {
@@ -270,7 +253,6 @@ public static class Utils
             last = y;
             idxOfFirst = xLoc;
             idxOfLast = yLoc;
-            next2EachOther = input.Slice(xLoc, x.Length + 1 + y.Length).Contains(delimiter);
         }
         //y comes first, then x
         else
@@ -279,7 +261,6 @@ public static class Utils
             last = x;
             idxOfFirst = yLoc;
             idxOfLast = xLoc;
-            next2EachOther = input.Slice(yLoc, y.Length + 1 + x.Length).Contains(delimiter);
         }
 
         if (first.Length == last.Length)
@@ -449,7 +430,7 @@ public static class Utils
                 Span<T> remainderCopy = stackalloc T[remainderSlice.Length];
                 remainderSlice.CopyTo(remainderCopy);
                 //step5: Move now the slice by "remainder.Length" towards the end  
-                input.MoveBy(area2Move, diffToMove, delimiter);
+                input.MoveBy(area2Move, diffToMove, delimiter); //---->this here breaks somehow!! investigate!
 
                 //step6: Copy now the "remainder" to the end of "smallOne"
                 Range area2CopyRemainInto = startOfSmallerOne..(startOfSmallerOne + greaterLen);
@@ -477,7 +458,7 @@ public static class Utils
         NoiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
     }
 
-    private static Span<T> AsWriteable<T>(this ReadOnlySpan<T> readOnlySpan) =>
+    public static Span<T> AsWriteable<T>(this ReadOnlySpan<T> readOnlySpan) =>
         MemoryMarshal.CreateSpan(ref Unsafe.AsRef(readOnlySpan[0]), readOnlySpan.Length);
 
     public static float Trunc(this float value, int digits)
