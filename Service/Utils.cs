@@ -202,16 +202,31 @@ public static class Utils
         int newOffset = r.Offset + moveBy;
         Range areaToCopyInto = newOffset..(r.Length + newOffset);
         input[area2Move].CopyTo(input[areaToCopyInto].AsWriteable());
-        int endOfArea2Move = r.Length + r.Offset;
-        int begin2Clear = moveBy > 0 ? endOfArea2Move - moveBy : endOfArea2Move + moveBy;
+
+        int endOfArea2Move;
+        int begin2Clear;
+
+        if (moveBy < 0)
+        {
+            endOfArea2Move = r.Offset + r.Length;
+            //go "moveBy" back
+            begin2Clear = endOfArea2Move + moveBy; 
+        }
+        else
+        {
+            begin2Clear = r.Offset;
+            endOfArea2Move = begin2Clear + moveBy;
+        }
+        
         Range area2Clear = begin2Clear..endOfArea2Move;
         input[area2Clear].AsWriteable().Fill(fillEmpties);
+        
         return newOffset + r.Length;
     }
 
     
     /// <summary>
-    /// Swaps 2 different slices within a span and returns back to the caller if x or y is greater!
+    /// Swaps 2 different slices within a span and returns back to the caller if x or y is larger!
     /// </summary>
     /// <param name="input">the base span to modify</param>
     /// <param name="x">the first in order, means x comes before y in the span</param>
@@ -320,17 +335,19 @@ public static class Utils
             if (first.Length > last.Length)
             {
                 //first > last ===> first=largeOne; last=smallOne
-                int startOfLargeOne = idxOfFirst;
-                int startOfSmallOne = idxOfLast;
+                int startOfSmallOne = idxOfFirst;
+                int startOfLargeOne = idxOfLast;
                 int smallerLen = last.Length;
-                int greaterLen = first.Length;
-
+                int largerLen = first.Length;
+                int endOfLargeOne = startOfLargeOne + largerLen;
+                int endOfSmallOne = startOfSmallOne + smallerLen;
+                
                 //store a copy of the 'smallOne'
                 scoped Span<T> smallOne = stackalloc T[smallerLen];
                 last.CopyTo(smallOne);
 
                 //store a copy of the larger one
-                scoped Span<T> largeOne = stackalloc T[greaterLen];
+                scoped Span<T> largeOne = stackalloc T[largerLen];
                 first.CopyTo(largeOne);
 
                 //we have to clear the 'smallOne' from the input, before we can copy in order for .IndexOf() 
@@ -338,7 +355,7 @@ public static class Utils
 
                 T invalid = default;
                 //we clear the area where the 'largeOne' resides!
-                input.Slice(startOfLargeOne, greaterLen).AsWriteable().Fill(invalid);
+                input.Slice(startOfLargeOne, largerLen).AsWriteable().Fill(invalid);
                 //copy the 'smallOne' into the area of the 'largeOne'
                 smallOne.CopyTo(input.Slice(startOfLargeOne, smallerLen).AsWriteable());
                 //'minStart' => is the first <empty> (in case of char, its ' ') value which comes
@@ -348,13 +365,9 @@ public static class Utils
 
                 //'area2MoveBack' begins where 'largeOne' ENDS til the end of 'smallOne'
                 // endOfSmallOne begins at 'startOfSmallOne' + 'greaterLen' because we have to consider 
-                //the area of 'smallerOne' is filled by the length of the 'greaterOne'
-                int endOfLargeOne = startOfLargeOne + greaterLen;
-                int endOfSmallOne = startOfSmallOne + smallerLen;
+                // the area of 'smallerOne' is filled by the length of the 'largerOne'
                 Range area2MoveBack = endOfLargeOne..endOfSmallOne;
-                Span<T> debugSpan = stackalloc T[29];
-                input[area2MoveBack].CopyTo(debugSpan);
-
+ 
                 //Now we move the area to where the 'largerOne' is but only 'smallerLen' further, because
                 //we wanna override the remaining 'null'(\0) values! 
                 input.Move2(area2MoveBack, startOfLargeOne + smallerLen);
@@ -375,27 +388,28 @@ public static class Utils
                 scoped Span<T> smallerOne = stackalloc T[smallerLen];
                 first.CopyTo(smallerOne);
 
-                /*store a copy of the larger one*/
-                scoped Span<T> greaterOne = stackalloc T[greaterLen];
-                last.CopyTo(greaterOne);
+                /*store a copy of the largerOne*/
+                scoped Span<T> largerOne = stackalloc T[greaterLen];
+                last.CopyTo(largerOne);
 
                 /*step1: copy 'largeOne' into 'smallOne' until 'smallOne' is filled*/
-                greaterOne[..smallerLen].CopyTo(input.Slice(startOfSmallerOne, smallerLen).AsWriteable());
+                largerOne[..smallerLen].CopyTo(input.Slice(startOfSmallerOne, smallerLen).AsWriteable());
 
-                /*step1.5:*/
+                /*step1.5: copy 'smallerOne' into 'largerOne' until 'smallOne' is filled* /*/
                 smallerOne.CopyTo(input.Slice(startOfGreaterOne, greaterLen).AsWriteable());
 
                 /*step2: compute the difference in length between large and small
                            as well as the 'correctStart' and 'end'*/
                 int afterSmallOne = endOfSmallerOne + 1;
                 int endOfGreaterOne = startOfGreaterOne + smallerLen;
-                //step3: create a range from AFTER 'smallOne' to END of 'greaterOne' minus 'diffToMove'
+                //step3: create a range from AFTER 'smallOne' to END of 'largerOne' minus 'diffToMove'
                 Range area2Move = afterSmallOne..endOfGreaterOne;
 
-                //step4: copy the 'remaining' parts of 'greaterOne'
+                //step4: copy the 'remaining' parts of 'largerOne'
                 var remainderSlice = input.Slice(startOfGreaterOne + smallerLen, diffToMove);
                 Span<T> remainderCopy = stackalloc T[remainderSlice.Length];
                 remainderSlice.CopyTo(remainderCopy);
+                
                 //step5: Move now the slice by "remainder.Length" towards the end  
                 input.MoveBy(area2Move, diffToMove, delimiter); //---->this here breaks somehow!! investigate!
 
@@ -436,6 +450,16 @@ public static class Utils
         text3.Swap(x, y);
         //output should be:          "Hallo du verrückte so liebe und zugleich merkwürdige Erde2
         output = text3.ToString();
+        
+        //scenario1:  we test for CLOSE words, where xLen < bLen  ====> WORKS
+        var text4 = "Hallo du verrückte so liebe und zugleich merkwürdige Erde3".AsSpan();
+        d++;
+        x = text4.Slice(text4.IndexOf("so"), "so".Length);
+        y = text4.Slice(text4.IndexOf("verrückte"), "verrückte".Length);
+        d++;
+        text4.Swap(x, y);
+        //output should be:          "Hallo du verrückte so liebe und zugleich merkwürdige Erde2
+        output = text4.ToString();
     }
     
     public static void Swap(this ReadOnlySpan<char> input, 
