@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+using DotNext.Runtime;
 using Match_3.Service;
 
 namespace Match_3.Datatypes;
@@ -21,7 +22,8 @@ public readonly unsafe ref struct SpanInfo<T>
     public readonly int IndexOfLast;
     public readonly bool AreNext2EachOther;
     public readonly bool AreSameLength;
-    
+    public readonly int LengthDiff;
+
     public SpanInfo(scoped in ReadOnlySpan<T> src, 
                     scoped in ReadOnlySpan<T> x,
                     scoped in ReadOnlySpan<T> y)
@@ -30,31 +32,34 @@ public readonly unsafe ref struct SpanInfo<T>
         if (src == ReadOnlySpan<T>.Empty || x == ReadOnlySpan<T>.Empty || y == ReadOnlySpan<T>.Empty)
            throw new ArgumentException("ALL of the spans MUST be valid");
 
-        nint adrOfX = (nint)Unsafe.AsPointer(ref x.AsWriteable()[0]);
-        nint adrOfY = (nint)Unsafe.AsPointer(ref y.AsWriteable()[0]);
+        nint adrOfX = Intrinsics.AddressOf(x[0]);
+        nint adrOfY = Intrinsics.AddressOf(y[0]);
         long x2Y = Math.Abs(adrOfX - adrOfY) / sizeof(T);
 
         //its same or invalid address
         if (x2Y <= 0)
             throw new ArgumentException("spans cannot be the same or empty");
-
-        nint adrOfFirst = (nint)Unsafe.AsPointer(ref src.AsWriteable()[0]);
-        nint adrOfLast = (nint)Unsafe.AsPointer(ref src.AsWriteable()[^1]);
+        
+        nint adrOfFirst = Intrinsics.AddressOf(src[0]);
+        nint adrOfLast = Intrinsics.AddressOf(src[^1]);
         long totalLen = Math.Abs(adrOfFirst - adrOfLast) / sizeof(T);
-
+        
         //check if just 1 is within same range!, if not,
         //then the entire method based on this struct will be fruitless
-        bool sameRange = adrOfX <= totalLen;
+        var sameMemory = x2Y <= totalLen;
 
-        First = sameRange && adrOfX < adrOfY ? x : y;
-        Last = sameRange && adrOfX < adrOfY ? y : x;
-
-        IndexOfFirst = (int)(adrOfFirst / sizeof(T));
-        IndexOfLast = (int)(adrOfLast / sizeof(T));
-
+        if (!sameMemory)
+            throw new ArgumentException("x and y are not pointing to the same memory region!");
+        
+        First = adrOfX < adrOfY ? x : y;
+        Last =  adrOfX < adrOfY ? y : x;
+        
+        IndexOfFirst = (int)Math.Abs(adrOfFirst - adrOfX) / sizeof(T);  
+        IndexOfLast = (int)Math.Abs(adrOfFirst - adrOfY) / sizeof(T);
         //when they are really close and only split by a delimiter from each other
         //then the addition of idxOfFirst + firstLen + sizeof(T) should be same as IndexOfLast 
         AreNext2EachOther = IndexOfLast == IndexOfFirst + First.Length + sizeof(T) * 1;
-        AreSameLength = First.Length == Last.Length;
+        LengthDiff = Math.Abs(First.Length - Last.Length);
+        AreSameLength = LengthDiff == 0;
     }
 }
