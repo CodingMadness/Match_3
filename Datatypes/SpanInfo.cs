@@ -15,6 +15,13 @@ namespace Match_3.Datatypes;
 public readonly unsafe ref struct SpanInfo<T>
     where T : unmanaged, IEquatable<T>, IComparable<T>, INumber<T>
 {
+    public readonly ReadOnlySpan<T> First;
+    public readonly ReadOnlySpan<T> Last;
+    public readonly int IndexOfFirst;
+    public readonly int IndexOfLast;
+    public readonly bool AreNext2EachOther;
+    public readonly bool AreSameLength;
+    
     public SpanInfo(scoped in ReadOnlySpan<T> src, 
                     scoped in ReadOnlySpan<T> x,
                     scoped in ReadOnlySpan<T> y)
@@ -48,13 +55,6 @@ public readonly unsafe ref struct SpanInfo<T>
         //when they are really close and only split by a delimiter from each other
         //then the addition of idxOfFirst + firstLen + sizeof(T) should be same as IndexOfLast 
         AreNext2EachOther = IndexOfLast == IndexOfFirst + First.Length + sizeof(T) * 1;
+        AreSameLength = First.Length == Last.Length;
     }
-    
-    public ReadOnlySpan<T> First { get; private init; }
-    public ReadOnlySpan<T> Last { get; private init; }
-
-    public int IndexOfFirst { get; } 
-    public int IndexOfLast { get; } 
-    
-    public bool AreNext2EachOther { get; }
 }
