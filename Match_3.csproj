@@ -41,9 +41,12 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.1" />
     <PackageReference Include="DotNext" Version="4.14.0" />
-    <PackageReference Include="DotNext.Reflection" Version="4.9.0" />
     <PackageReference Include="ImGui.NET" Version="1.89.9.2" />
     <PackageReference Include="JetBrains.Annotations" Version="2023.2.0-eap2" />
+    <PackageReference Include="Meziantou.Framework.FastEnumToStringGenerator" Version="1.0.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="NoAlloq" Version="0.2.0" />
     <PackageReference Include="Raylib-cs" Version="4.5.0.4" />
   </ItemGroup>
@@ -131,10 +134,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FastEnum">
-      <HintPath>..\..\..\..\..\FastEnum\FastEnum\src\FastEnum\bin\Release\net7.0\FastEnum.dll</HintPath>
-    </Reference>
-    <Reference Include="rlImGui_old">
-      <HintPath>..\..\Projects\rlImGui-cs\rlImGui_old\bin\Debug\net7.0\rlImGui_old.dll</HintPath>
+      <HintPath>..\..\Desktop\FastEnum\FastEnum\FastEnum\src\FastEnum\bin\Debug\net7.0\FastEnum.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>

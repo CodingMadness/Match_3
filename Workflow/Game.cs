@@ -9,6 +9,38 @@ using static Match_3.Service.Utils;
 
 namespace Match_3.Workflow;
 
+using System;
+using System.Collections.Specialized;
+
+public class BitsetExample
+{
+    private BitVector32 bitVector = new BitVector32(0);
+
+    public void SetBit(int index)
+    {
+        if (index < 0 || index > 31)
+            throw new ArgumentOutOfRangeException("Index out of range.");
+        
+        bitVector[1 << index] = true;
+    }
+
+    public int[] GetSetValues()
+    {
+        var values = new List<int>();
+        int index = 0;
+        while (index < 32)
+        {
+            if (bitVector[1 << index])
+            {
+                values.Add(index);
+            }
+            index++;
+        }
+        return values.ToArray();
+    }
+}
+
+
 internal static class Game
 {
     public static Level Level { get; private set; } = null!;
@@ -41,6 +73,12 @@ internal static class Game
 
     private static void InitGame()
     {
+        // var src = "hello dear beloved world";
+        // var builder = new StringBuilder(src, src.Length * 2);
+        // var find = "beloved".AsSpan();
+        // var newVal = "behated!".AsSpan();
+        // var res = builder.Replace(find, newVal);
+        
         Level = new(0, 900, 6, 12, 10);
         _runQuestTimers = false;
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
@@ -54,10 +92,11 @@ internal static class Game
         _bgWelcome = new(WelcomeTexture);
         _bgGameOver = new(GameOverTexture);
 
+        //this has to be initialized RIGHT HERE in order to work!
+        _questTimers = QuestBuilder.QuestTimers;
         QuestHandler.ActivateHandlers();
         Grid.Instance.Init(Level);
-        //this has to be initialized RIGHT HERE in order to work!
-        _questTimers = QuestHandler.QuestTimers;
+     
         // ShaderData = InitShader();
     }
 
@@ -95,7 +134,7 @@ internal static class Game
 
         var mouseVec2 = GetMousePosition();
         Vector2 gridPos = new Vector2((int)mouseVec2.X, (int)mouseVec2.Y);
-        gridPos /= Tile.Size;
+        gridPos /= Size;
         tile = Grid.Instance[gridPos];
         return tile is not null;
     }
@@ -196,7 +235,7 @@ internal static class Game
 
         if (shallCreateEnemies = Grid.Instance.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!))
         {
-            int tileTypeIdx = (int)GameState.Tile.Body.TileType;
+            int tileTypeIdx = (int)GameState.Tile.Body.TileColor;
             GameState.Tile = _secondClicked!;
             GameState.Matches = _matchesOf3;
 
@@ -335,6 +374,25 @@ internal static class Game
 
     private static void MainGameLoop()
     {
+        // BitsetExample bitsetExample = new BitsetExample();
+        //
+        // // Set bits to represent values
+        // bitsetExample.SetBit(5);
+        // bitsetExample.SetBit(6);
+        // bitsetExample.SetBit(13);
+        // bitsetExample.SetBit(14);
+        // bitsetExample.SetBit(15);
+        // bitsetExample.SetBit(19);
+        // bitsetExample.SetBit(20);
+        // bitsetExample.SetBit(23);
+        //
+        // // Get the original values
+        // int[] values = bitsetExample.GetSetValues();
+        // foreach (int value in values)
+        // {
+        //     Console.WriteLine("Value: " + value);
+        // }
+        
         while (!WindowShouldClose())
         {
             UiRenderer.BeginRenderCycle(HandleGameInput);

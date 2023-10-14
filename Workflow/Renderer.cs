@@ -101,6 +101,8 @@ public static class UiRenderer
         return result;
     }
 
+    
+    //TODO: Remove the StringBuilder version of "DrawText()" and rework the Drawing to work without the WordEnumerator
     public static void DrawText(StringBuilder text)
     {
         // calculate the indentation that centers the text on one line, relative
@@ -189,16 +191,16 @@ public static class UiRenderer
     {
         ImGui.SetWindowFontScale(1.5f);
 
-        var questIterator = MatchQuestHandler.Instance.GetQuests();
+        var questIterator = QuestBuilder.GetQuests();
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
 
         int counter = 0;
         
-        if (!QuestLoggerBuilder.ShallRecycle)
+        if (!QuestBuilder.ShallRecycle)
         {
-            foreach (ref readonly var quest in questIterator)
+            foreach (ref readonly Quest quest in questIterator)
             {
-                var logger = QuestLoggerBuilder.BuildQuestLoggerFrom(quest); 
+                var logger = QuestBuilder.BuildQuestLoggerFrom(quest); 
                 DrawText(logger);
             }
         }
@@ -285,7 +287,7 @@ public static class GameObjectRenderer
         {
             Font copy = GetFontDefault() with { baseSize = 800 };
             var begin = tile.End;
-            float halfSize = Tile.Size * 0.5f;
+            float halfSize = Utils.Size * 0.5f;
             begin = begin with { X = begin.X - halfSize + halfSize / 1.5f, Y = begin.Y - halfSize - halfSize / 3 };
 
             GameText coordText = new(copy, (tile.GridCell).ToString(), 10.5f)
