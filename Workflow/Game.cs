@@ -2,6 +2,7 @@
 using System.Text;
 using DotNext.Runtime;
 using ImGuiNET;
+using Match_3.Service;
 using Match_3.Variables;
 using Raylib_cs;
 using static Match_3.Setup.AssetManager;
@@ -66,6 +67,8 @@ internal static class Game
 
     private static void Main()
     {
+        TestSwap();
+        
         InitGame();
         MainGameLoop();
         CleanUp();

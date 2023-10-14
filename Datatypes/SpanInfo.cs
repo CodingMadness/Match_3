@@ -1,7 +1,5 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
 using DotNext.Runtime;
-using Match_3.Service;
 
 namespace Match_3.Datatypes;
 
@@ -20,7 +18,7 @@ public readonly unsafe ref struct SpanInfo<T>
     public readonly ReadOnlySpan<T> Last;
     public readonly int IndexOfFirst;
     public readonly int IndexOfLast;
-    public readonly bool AreNext2EachOther;
+    public readonly bool AreXYNext2EachOther;
     public readonly bool AreSameLength;
     public readonly int LengthDiff;
 
@@ -58,7 +56,7 @@ public readonly unsafe ref struct SpanInfo<T>
         IndexOfLast = (int)Math.Abs(adrOfFirst - adrOfY) / sizeof(T);
         //when they are really close and only split by a delimiter from each other
         //then the addition of idxOfFirst + firstLen + sizeof(T) should be same as IndexOfLast 
-        AreNext2EachOther = IndexOfLast == IndexOfFirst + First.Length + sizeof(T) * 1;
+        AreXYNext2EachOther = IndexOfLast == IndexOfFirst + First.Length + sizeof(T) * 1;
         LengthDiff = Math.Abs(First.Length - Last.Length);
         AreSameLength = LengthDiff == 0;
     }

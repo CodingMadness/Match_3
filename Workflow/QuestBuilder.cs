@@ -1,9 +1,5 @@
-﻿using System.Collections.Specialized;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Diagnostics;
 using DotNext;
-using DotNext.Buffers;
 using Match_3.Service;
 using Match_3.Variables;
 using Match_3.Variables.Extensions;
@@ -104,7 +100,7 @@ public static class QuestBuilder
         Fill(subset);
         subset.Shuffle(Utils.Randomizer);
         subset = subset.TakeRndItemsAtRndPos();
-        scoped Service.FastSpanEnumerator<TileColor> subsetEnumerator = new(subset);
+        scoped FastSpanEnumerator<TileColor> subsetEnumerator = new(subset);
         QuestCount = subset.Length;
         int trueIdx = 0;
 
@@ -138,13 +134,7 @@ public static class QuestBuilder
 
         // using MemoryRental<char> logger = new(,);
         // ReadOnlySpan<char> tmpBuffer = logger.Span;
-
-        var text = "Hallo du so merkwürdige liebe und zugleich verrückte Welt!".AsSpan();
-        var a = text.Slice(text.IndexOf("merkwürdige"), "merkwürdige".Length);
-        var b = text.Slice(text.IndexOf("so"), "so".Length);
-        text.Swap(a, b);
-        
-        
+      
         var tmpBuffer = QuestLog.AsSpan();
         tmpBuffer.Replace("COLOR".AsSpan(), quest.TileColor.ToStringFast().AsSpan());
    

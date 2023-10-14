@@ -11,7 +11,7 @@ public static class SingletonManager
     public static readonly Dictionary<Type, QuestHandler> QuestHandlerStorage = new(MaxQuestHandlerInstances);
     public static readonly Dictionary<Type, RuleHandler> RuleHandlerStorage = new(MaxRuleHandlerInstances);
 
-    public static T GetOrCreateQuestHandler<[DynMembers(DynamicallyAccessedMemberTypes.NonPublicConstructors)]T>() where T : QuestHandler
+    public static T GetOrCreateQuestHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicConstructors)]T>() where T : QuestHandler
     {
         lock (QuestHandlerStorage)
         {
@@ -71,7 +71,7 @@ public abstract class QuestHandler
     
     private bool IsActive { get; set; }
 
-    protected static THandler GetInstance<THandler>() where THandler : QuestHandler
+    protected static THandler GetInstance<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicConstructors)]THandler>() where THandler : QuestHandler
         => SingletonManager.GetOrCreateQuestHandler<THandler>();
     
     /// <summary>
