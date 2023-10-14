@@ -204,8 +204,10 @@ public static class Utils
         int newOffset = r.Offset + moveBy;
         Range areaToCopyInto = newOffset..(r.Length + newOffset);
         input[area2Move].CopyTo(input[areaToCopyInto].AsWriteable());
-        input[area2Move].AsWriteable().Fill(fillEmpties);
-        //input[area2Move][..moveBy].AsWriteable().Fill(fillEmpties);
+        int endOfArea2Move = r.Length + r.Offset;
+        int begin2Clear = moveBy > 0 ? endOfArea2Move - moveBy : endOfArea2Move + moveBy;
+        Range area2Clear = begin2Clear..endOfArea2Move;
+        input[area2Clear].AsWriteable().Fill(fillEmpties);
         return newOffset + r.Length;
     }
 
@@ -233,9 +235,7 @@ public static class Utils
         return x2Y <= totalLen;
     }
 
-
-    //private static bool AreNext2EachOther()
-
+    
     /// <summary>
     /// Swaps 2 different slices within a span and returns back to the caller if x or y is greater!
     /// </summary>
@@ -244,23 +244,21 @@ public static class Utils
     /// <param name="y">the last in order, means y comes before x in the span</param>
     /// <param name="delimiter">a value which functions as a delimiter to say when a new block of an arbitrary numeric value begins and ends..</param>
     /// <typeparam name="T">The type of the span</typeparam>
-    /// <returns>gives back to the caller if either x or y was greater when compared to each-other in length!
-    /// since we use the "x - y" comparison, the result: -1 means that y > x and 1 means x > y !</returns>
-    private static short Swap<T>(this ReadOnlySpan<T> input, scoped ReadOnlySpan<T> x, scoped ReadOnlySpan<T> y,
+    private static void Swap<T>(this ReadOnlySpan<T> input, scoped ReadOnlySpan<T> x, scoped ReadOnlySpan<T> y,
         T delimiter = default)
         where T : unmanaged, IEquatable<T>, IComparable<T>, INumber<T>
     {
         //Check if Swap is possible and if x and y are existent within the same span!
         if (!input.InSameBlock(x, y))
-            return -1;
+            return;
 
         int yLoc = input.IndexOf(y);
         int xLoc = input.IndexOf(x);
         bool next2EachOther;
 
         if (xLoc == yLoc)
-            return 0;
-
+            return;
+        
         scoped ReadOnlySpan<T> first, last;
         int idxOfFirst, idxOfLast;
         short diffToMove = (short)Math.Abs(x.Length - y.Length);
@@ -292,8 +290,8 @@ public static class Utils
 
             first.CopyTo(input.Slice(idxOfLast, first.Length).AsWriteable());
             lastCopy.CopyTo(input.Slice(idxOfFirst, lastCopy.Length).AsWriteable());
-
-            return 0;
+            
+            return;
         }
 
         if (next2EachOther)
@@ -336,7 +334,36 @@ public static class Utils
             }
             else
             {
-                //....
+                //first < last ===> first=smallOne; last=largeOne
+                (int startOfSmallOne, int smallOneLen) = (idxOfFirst, first.Length);
+                int endOfSmallOne = startOfSmallOne + smallOneLen;
+                (int startOfLargeOne, int largeOneLen) = (idxOfLast, last.Length);
+                int endOfLargeOne = startOfLargeOne + largeOneLen;
+                
+                //TEMP-instructions:
+                    //slice "smallOne"
+                    var smallOne = first;
+                    //slice "largeOne"
+                    var largeOne = last;
+                    //slice "smallOne" from "largeOne"
+                    var slice = largeOne[..smallOneLen];
+                    //copy "smallOne" locally  
+                    Span<T> copyOfSmallOne = stackalloc T[smallOneLen]; 
+                    smallOne.CopyTo(copyOfSmallOne);
+                    //compute the last index of slice from the largeOne
+                    int idxOfSlice = startOfLargeOne + smallOneLen;
+                    //compute Range from where it shall move to another location
+                    int len2Copy = Math.Abs(endOfSmallOne - idxOfSlice);
+                    //Define the remaining area from "largeOne"
+                    Range remainder2Move = idxOfSlice..endOfLargeOne;    
+                    
+                //MUTATING instructions:
+                    //swap instantly a subset of largeOne with smallOne
+                    input.Swap(smallOne, slice, delimiter);
+                    //move remainder to the "endOfSmallOne" 
+                    int idxOfSmallOne = input.MoveBy(remainder2Move, -len2Copy, delimiter) + 1; //+1 for delimiter
+                    //copy back the "smallOne" to the end of "largeOne"
+                    copyOfSmallOne.CopyTo(input[idxOfSmallOne..].AsWriteable());
             }
         }
         else
@@ -386,8 +413,6 @@ public static class Utils
 
                 //Finally we copy the 'largeOne' back to  
                 largeOne.CopyTo(input.Slice(startOfSmallOne - diffToMove, largeOne.Length).AsWriteable());
-
-                return diffToMove;
             }
             else if (first.Length < last.Length)
             {
@@ -431,15 +456,13 @@ public static class Utils
                 Range remainingArea2Copy = ^diffToMove..;
                 smallerOne = input[area2CopyRemainInto].AsWriteable();
                 remainderCopy.CopyTo(smallerOne[remainingArea2Copy]);
-
-                return diffToMove;
             }
         }
-
-        return -1;
     }
 
-    public static short Swap(this ReadOnlySpan<char> input, scoped ReadOnlySpan<char> x, scoped ReadOnlySpan<char> y)
+    public static void Swap(this ReadOnlySpan<char> input, 
+                            scoped ReadOnlySpan<char> x,
+                            scoped ReadOnlySpan<char> y)
         => input.Swap(x, y, (char)32);
 
     public static Rectangle AsIntRayRect(this RectangleF floatBox) =>
