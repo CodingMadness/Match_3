@@ -3,31 +3,21 @@ using System.Runtime.InteropServices;
 using DotNext.Runtime;
 
 namespace Match_3.Datatypes;
-
-/// <summary>
-/// write a custom struct which has 2 spans as fields and have the ability to:
-///  * compare the 2 spans
-///  * can get back the relative order of both
-///  * can check if they point within the same memory block
-///  * can get back who is larger than the other, in length
-///  * can retrieve for both the actual 
-/// </summary>
+ 
 [StructLayout(LayoutKind.Auto)]
 public readonly unsafe ref struct SpanInfo<T>
     where T : unmanaged, IEquatable<T>, IComparable<T>, INumber<T>
 {
     private readonly int SrcLength;
-    public readonly ReadOnlySpan<T> First;
-    public readonly ReadOnlySpan<T> Last;
+    public readonly ReadOnlySpan<T> First, Between, Last;
     public readonly int IndexOfFirst;
     public readonly int IndexOfLast;
     public readonly bool AreXYNext2EachOther;
     public readonly bool AreSameLength;
     public readonly bool IsFirstLargerThanLast;
     public readonly int LengthDiff;
-
     public readonly Range LargeOne, SmallOne;
-
+    
     public SpanInfo(scoped in ReadOnlySpan<T> src,
         scoped in ReadOnlySpan<T> x,
         scoped in ReadOnlySpan<T> y)
@@ -59,7 +49,6 @@ public readonly unsafe ref struct SpanInfo<T>
 
         First = adrOfX < adrOfY ? x : y;
         Last = adrOfX < adrOfY ? y : x;
-
         nint adrOfFirst = Intrinsics.AddressOf(First[0]);
         nint adrOfLast =  Intrinsics.AddressOf(Last[0]);
         
@@ -67,11 +56,13 @@ public readonly unsafe ref struct SpanInfo<T>
         
         IndexOfFirst = (int)Math.Abs(adrOfAbsFirst - adrOfFirst) / sizeof(T);
         IndexOfLast = (int)Math.Abs(adrOfAbsFirst - adrOfLast) / sizeof(T);
-        
 
+        Between = src[(IndexOfFirst + First.Length)..IndexOfLast];
+        
         //when they are really close and only split by a delimiter from each other
         //then the addition of idxOfFirst + firstLen + sizeof(T) should be same as IndexOfLast
         AreXYNext2EachOther = IndexOfLast == IndexOfFirst + First.Length + sizeof(T) * 1;
+        
         LengthDiff = Math.Abs(First.Length - Last.Length);
         AreSameLength = LengthDiff == 0;
 
