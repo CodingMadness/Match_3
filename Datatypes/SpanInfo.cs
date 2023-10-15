@@ -60,23 +60,34 @@ public readonly unsafe ref struct SpanInfo<T>
         First = adrOfX < adrOfY ? x : y;
         Last = adrOfX < adrOfY ? y : x;
 
+        nint adrOfFirst = Intrinsics.AddressOf(First[0]);
+        nint adrOfLast =  Intrinsics.AddressOf(Last[0]);
+        
         IsFirstLargerThanLast = First.Length > Last.Length;
         
-        IndexOfFirst = (int)Math.Abs(adrOfAbsFirst - adrOfX) / sizeof(T);
-        IndexOfLast = (int)Math.Abs(adrOfAbsFirst - adrOfY) / sizeof(T);
+        /*TODO: Investigate later, why this pointer math does not return the proper for all cases!!*/
+        IndexOfFirst = (int)Math.Abs(adrOfAbsFirst - adrOfFirst) / sizeof(T);
+        IndexOfLast = (int)Math.Abs(adrOfAbsFirst - adrOfLast) / sizeof(T);
+        
+        // IndexOfFirst = src.IndexOf(First); 
+        // IndexOfLast = src.IndexOf(Last);   
         //when they are really close and only split by a delimiter from each other
         //then the addition of idxOfFirst + firstLen + sizeof(T) should be same as IndexOfLast 
+        
         AreXYNext2EachOther = IndexOfLast == IndexOfFirst + First.Length + sizeof(T) * 1;
         LengthDiff = Math.Abs(First.Length - Last.Length);
         AreSameLength = LengthDiff == 0;
 
-        SmallOne = First.Length < Last.Length
-            ? IndexOfFirst..(IndexOfFirst + First.Length)
-            : IndexOfLast..(IndexOfLast + Last.Length);
-
-        LargeOne = First.Length > Last.Length
-            ? IndexOfFirst..(IndexOfFirst + First.Length)
-            : IndexOfLast..(IndexOfLast + Last.Length);
+        if (First.Length < Last.Length)
+        {
+            SmallOne = IndexOfFirst..(IndexOfFirst + First.Length);
+            LargeOne = IndexOfLast..(IndexOfLast + Last.Length);
+        }
+        else
+        {
+            LargeOne = IndexOfFirst..(IndexOfFirst + First.Length);
+            SmallOne = IndexOfLast..(IndexOfLast + Last.Length);
+        }
     }
 
     public (int start, int len, int end) DeconstructLargeOne()
