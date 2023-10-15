@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using DotNext.Runtime;
 
 namespace Match_3.Datatypes;
- 
+
 [StructLayout(LayoutKind.Auto)]
 public readonly unsafe ref struct SpanInfo<T>
     where T : unmanaged, IEquatable<T>, IComparable<T>, INumber<T>
@@ -17,11 +17,22 @@ public readonly unsafe ref struct SpanInfo<T>
     public readonly bool IsFirstLargerThanLast;
     public readonly int LengthDiff;
     public readonly Range LargeOne, SmallOne;
-    
+
     public SpanInfo(scoped in ReadOnlySpan<T> src,
         scoped in ReadOnlySpan<T> x,
         scoped in ReadOnlySpan<T> y)
     {
+        static T GetEmptyValue()
+        {
+            T tmp = default;
+
+            return tmp switch
+            {
+                char => T.CreateSaturating((char)32),
+                _ => tmp
+            };
+        }
+        
         //1 of these at least is empty which is bad!
         if (src == ReadOnlySpan<T>.Empty || x == ReadOnlySpan<T>.Empty || y == ReadOnlySpan<T>.Empty)
             throw new ArgumentException("ALL of the spans MUST be valid");
@@ -50,21 +61,25 @@ public readonly unsafe ref struct SpanInfo<T>
         First = adrOfX < adrOfY ? x : y;
         Last = adrOfX < adrOfY ? y : x;
         nint adrOfFirst = Intrinsics.AddressOf(First[0]);
-        nint adrOfLast =  Intrinsics.AddressOf(Last[0]);
-        
+        nint adrOfLast = Intrinsics.AddressOf(Last[0]);
+
         IsFirstLargerThanLast = First.Length > Last.Length;
-        
+
         IndexOfFirst = (int)Math.Abs(adrOfAbsFirst - adrOfFirst) / sizeof(T);
         IndexOfLast = (int)Math.Abs(adrOfAbsFirst - adrOfLast) / sizeof(T);
 
-        Between = src[(IndexOfFirst + First.Length)..IndexOfLast];
-        
         //when they are really close and only split by a delimiter from each other
         //then the addition of idxOfFirst + firstLen + sizeof(T) should be same as IndexOfLast
         AreXYNext2EachOther = IndexOfLast == IndexOfFirst + First.Length + sizeof(T) * 1;
-        
         LengthDiff = Math.Abs(First.Length - Last.Length);
         AreSameLength = LengthDiff == 0;
+        int endOfFirstOne = IndexOfFirst + First.Length;
+        /*            
+            int startOfNextOne = src[endOfFirstOne..IndexOfLast].IndexOf(GetEmptyValue()) + 1;
+        */
+        Between = AreXYNext2EachOther
+            ? src[endOfFirstOne..IndexOfLast]
+            : ReadOnlySpan<T>.Empty; //src.Slice(endOfFirstOne, startOfNextOne);
 
         if (First.Length < Last.Length)
         {
