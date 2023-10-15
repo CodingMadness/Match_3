@@ -301,12 +301,10 @@ public static class Utils
             else
             {
                 /*This is ...........*/
-
-
+                
                 //first < last ===> first=smallOne; last=largeOne
                 (_, int smallOneLen, int endOfSmallOne) = info.DeconstructSmallOne();
                 (int startOfLargeOne, _, int endOfLargeOne) = info.DeconstructLargeOne();
-
 
                 //TEMP-instructions:
                 //slice "smallOne"
@@ -389,8 +387,8 @@ public static class Utils
             {
                 //first < last ===> first=smallOne  && last=largeOne
                 (int startOfSmallOne, int smallOneLen, int endOfSmallOne) = info.DeconstructSmallOne();
-                (int startOfLargeOne, int largeOneLen, int endOfLargeOne) = info.DeconstructLargeOne();
-
+                (int startOfLargeOne, int largeOneLen, _) = info.DeconstructLargeOne();
+                
                 /*store a copy of the smaller one*/
                 scoped Span<T> smallerOne = stackalloc T[smallOneLen];
                 first.CopyTo(smallerOne);
@@ -398,18 +396,17 @@ public static class Utils
                 /*store a copy of the largerOne*/
                 scoped Span<T> largerOne = stackalloc T[largeOneLen];
                 last.CopyTo(largerOne);
-
+               
                 /*step1: copy 'largeOne' into 'smallOne' until 'smallOne' is filled*/
                 largerOne[..smallOneLen].CopyTo(input.Slice(startOfSmallOne, smallOneLen).AsWriteable());
 
                 /*step1.5: copy 'smallerOne' into 'largerOne' until 'smallOne' is filled* /*/
                 smallerOne.CopyTo(input.Slice(startOfLargeOne, largeOneLen).AsWriteable());
 
-                /*step2: compute the difference in length between large and small
-                           as well as the 'correctStart' and 'end'*/
-                int afterSmallOne = endOfSmallOne + 1;
+                /*step2: ......*/
+                int afterSmallOne = endOfSmallOne;
                 int endOfGreaterOne = startOfLargeOne + smallOneLen;
-                //step3: create a range from AFTER 'smallOne' to END of 'largerOne' minus 'diffToMove'
+                //step3: create a range which reflects the part which has to be moved to the right-side
                 Range area2Move = afterSmallOne..endOfGreaterOne;
 
                 //step4: copy the 'remaining' parts of 'largerOne' locally
@@ -425,13 +422,6 @@ public static class Utils
                 Range remainingArea2Copy = ^diffToMove..;
                 smallerOne = input[area2CopyRemainInto].AsWriteable();
                 remainderCopy.CopyTo(smallerOne[remainingArea2Copy]);
-
-                //step 7: replace the '\0' with ''=(char)32 because 0s are not recognized in a string
-                //and are as such removed from it, so we dont have empty spaces in a string
-
-                if (delimiter is char c)
-                {
-                }
             }
         }
     }
@@ -445,7 +435,7 @@ public static class Utils
     {
         //Works in all fashions EXCEPT when there are <special> chars in it, like:
         //!,.:;#*+-/\)'
-        var text = "Hello world, damn but so and adventures cool and lovely, crazy".AsSpan();
+        var text = "Hello world# damn but so, and adventures cool and lovely, crazy".AsSpan();
         var x = text.Slice(text.IndexOf("adventures"), "adventures".Length);
         var y = text.Slice(text.IndexOf("world"), "world".Length);
         text.Swap(x, y);
