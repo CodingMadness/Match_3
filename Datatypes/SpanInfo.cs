@@ -65,15 +65,12 @@ public readonly unsafe ref struct SpanInfo<T>
         
         IsFirstLargerThanLast = First.Length > Last.Length;
         
-        /*TODO: Investigate later, why this pointer math does not return the proper for all cases!!*/
         IndexOfFirst = (int)Math.Abs(adrOfAbsFirst - adrOfFirst) / sizeof(T);
         IndexOfLast = (int)Math.Abs(adrOfAbsFirst - adrOfLast) / sizeof(T);
         
-        // IndexOfFirst = src.IndexOf(First); 
-        // IndexOfLast = src.IndexOf(Last);   
+
         //when they are really close and only split by a delimiter from each other
-        //then the addition of idxOfFirst + firstLen + sizeof(T) should be same as IndexOfLast 
-        
+        //then the addition of idxOfFirst + firstLen + sizeof(T) should be same as IndexOfLast
         AreXYNext2EachOther = IndexOfLast == IndexOfFirst + First.Length + sizeof(T) * 1;
         LengthDiff = Math.Abs(First.Length - Last.Length);
         AreSameLength = LengthDiff == 0;
