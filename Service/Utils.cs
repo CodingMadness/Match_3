@@ -1,16 +1,19 @@
 ﻿global using static Raylib_cs.Color;
 global using RayColor = Raylib_cs.Color;
 global using static Raylib_cs.Raylib;
+
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using CommunityToolkit.HighPerformance;
 using DotNext;
 using Match_3.Datatypes;
+using Match_3.Setup;
 using Match_3.Variables;
 using Match_3.Workflow;
+using Raylib_cs;
+using Color = System.Drawing.Color;
 using Rectangle = Raylib_cs.Rectangle;
 
 
@@ -47,8 +50,7 @@ public static class Utils
             color.B / 255.0f,
             color.A / 255.0f);
     }
-
-
+    
     public static Color ToColor(this Vector4 color) =>
         Color.FromArgb((int)(color.W * 255), (int)(color.X * 255), (int)(color.Y * 255), (int)(color.Z * 255));
 
@@ -93,27 +95,26 @@ public static class Utils
         throw new IndexOutOfRangeException(nameof(color));
     }
 
+    //nested helper functions!
+    public static Span<char> AsSpan(this StringBuilder self)
+    {
+        foreach (var chunk in self.GetChunks())
+        {
+            return chunk.Span.AsWriteable();
+        }
+
+        return Span<char>.Empty;
+    }
+    
     public static StringBuilder Replace(this StringBuilder input,
         ReadOnlySpan<char> oldValue,
         ReadOnlySpan<char> newValue)
     {
-        //nested helper functions!
-        static Span<char> GetSpan(StringBuilder self)
-        {
-            foreach (var chunk in self.GetChunks())
-            {
-                var span = chunk.Span;
-                return span.AsWriteable();
-            }
-
-            return Span<char>.Empty;
-        }
-
 
         if (oldValue.Length == 0)
             throw new ArgumentException("Old value could not be found!", nameof(oldValue));
 
-        var span = GetSpan(input);
+        var span = AsSpan(input);
         int matchIndex;
         int replacementLength = newValue.Length;
         int resultLength = input.Length;
@@ -158,32 +159,43 @@ public static class Utils
             throw new ArgumentException("Old value could not be found!", nameof(oldValue));
 
         var span = input.AsWriteable();
-        int matchIndex;
-        int newValueLen = newValue.Length;
-        int resultLength = input.Length;
+        var old = oldValue.AsWriteable();
+        var next = newValue.AsWriteable();
+        int newValueLen = next.Length;
         int searchIndex = 0;
 
-        resultLength = resultLength - oldValueLen + newValueLen;
-
-        while ((matchIndex = span.Slice(searchIndex).IndexOf(oldValue)) != -1)
+        if (oldValueLen >= newValueLen)
         {
-            searchIndex += matchIndex;
+            int matchIndex;
+            
+            while ((matchIndex = span.Slice(searchIndex).IndexOf(oldValue)) != -1)
+            {
+                searchIndex += matchIndex;
+                var tmpOld = span.Slice(searchIndex, old.Length);
+                //copy parts of newValue  to oldValue
 
-            // Replace the old value with the new value
-            span[(searchIndex + oldValueLen)..].CopyTo(span[(searchIndex + newValueLen)..]);
-            newValue.CopyTo(span.Slice(searchIndex, newValueLen));
+                next.CopyTo(tmpOld[..newValueLen]);
+                tmpOld[newValueLen..].Fill(default);
+            }
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void Move2<T>(this ReadOnlySpan<T> input, Range sliceToMove, int start)
+    public static void Move2<T>(this ReadOnlySpan<T> input, Range sliceToMove, int newPos)
         where T : struct, IEquatable<T>
     {
         var r = sliceToMove.GetOffsetAndLength(input.Length);
-        var areaToCopyInto = input.Slice(start, r.Length);
+        var areaToCopyInto = input.Slice(newPos, r.Length);
         input[sliceToMove].CopyTo(areaToCopyInto.AsWriteable());
+        input[sliceToMove].AsWriteable().Clear();
     }
 
+    public static void Move2<T>(this ReadOnlySpan<T> input, Range sliceToMove, Index newPos)
+        where T : struct, IEquatable<T>
+    {
+        //int newLoc = newPos.IsFromEnd && sliceToMove.End
+    }
+    
     /// <summary>
     /// Moves a slice within the input span by "moveBy" steps, if that value is > 0
     /// it moves to the right, else to the left 
@@ -224,7 +236,7 @@ public static class Utils
 
         return newOffset + r.Length;
     }
-
+    
 
     /// <summary>
     /// Swaps 2 different slices within the same span!
@@ -258,7 +270,7 @@ public static class Utils
 
             first.CopyTo(input.Slice(info.IndexOfLast, first.Length).AsWriteable());
             lastCopy.CopyTo(input.Slice(info.IndexOfFirst, lastCopy.Length).AsWriteable());
-
+            
             return;
         }
 
@@ -433,10 +445,8 @@ public static class Utils
 
     public static void TestSwap()
     {
-        //Works in all fashions EXCEPT when there are <special> chars in it, like:
-        //!,.:;#*+-/\)'
-        var text = "Hello world# damn but so, and adventures cool and lovely, crazy".AsSpan();
-        var x = text.Slice(text.IndexOf("adventures"), "adventures".Length);
+        var text = "Hello cool #world, I welcome you every morning with a bright smile".AsSpan();
+        var x = text.Slice(text.IndexOf("morning"), "morning".Length);
         var y = text.Slice(text.IndexOf("world"), "world".Length);
         text.Swap(x, y);
     }
@@ -444,6 +454,24 @@ public static class Utils
     public static Rectangle AsIntRayRect(this RectangleF floatBox) =>
         new(floatBox.X, floatBox.Y, floatBox.Width, floatBox.Height);
 
+    public static void SetShaderVal<T>(int locInShader, T value) where T:unmanaged
+    {
+        switch (value)
+        {
+            case int or bool or long :
+                SetShaderValue(AssetManager.WobbleEffect, locInShader, value, ShaderUniformDataType.SHADER_UNIFORM_INT);
+                break;
+            
+            case float or double or Half :
+                SetShaderValue(AssetManager.WobbleEffect, locInShader, value, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+                break;
+            
+            case Vector2 :
+                SetShaderValue(AssetManager.WobbleEffect, locInShader, value, ShaderUniformDataType.SHADER_UNIFORM_VEC2);
+                break;
+        }
+    }
+    
     static Utils()
     {
         All.AsSpan().Shuffle(Randomizer);
@@ -471,8 +499,7 @@ public static class Utils
         return val.GreaterOrEqual(0.50f, 0.001f);
     }
 
-    public static Span<T> TakeRndItemsAtRndPos<T>(this Span<T> items)
-        where T : unmanaged
+    public static Span<T> TakeRndItemsAtRndPos<T>(this Span<T> items) where T : unmanaged
     {
         int offset = Randomizer.Next(0, items.Length - 1);
         int len = items.Length;
