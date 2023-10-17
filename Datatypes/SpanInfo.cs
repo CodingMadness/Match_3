@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DotNext.Runtime;
 
@@ -22,23 +23,12 @@ public readonly unsafe ref struct SpanInfo<T>
         scoped in ReadOnlySpan<T> x,
         scoped in ReadOnlySpan<T> y)
     {
-        static T GetEmptyValue()
-        {
-            T tmp = default;
-
-            return tmp switch
-            {
-                char => T.CreateSaturating((char)32),
-                _ => tmp
-            };
-        }
-        
         //1 of these at least is empty which is bad!
         if (src == ReadOnlySpan<T>.Empty || x == ReadOnlySpan<T>.Empty || y == ReadOnlySpan<T>.Empty)
             throw new ArgumentException("ALL of the spans MUST be valid");
 
         SrcLength = src.Length;
-
+        
         nint adrOfX = Intrinsics.AddressOf(x[0]);
         nint adrOfY = Intrinsics.AddressOf(y[0]);
         long x2Y = Math.Abs(adrOfX - adrOfY) / sizeof(T);
@@ -74,12 +64,10 @@ public readonly unsafe ref struct SpanInfo<T>
         LengthDiff = Math.Abs(First.Length - Last.Length);
         AreSameLength = LengthDiff == 0;
         int endOfFirstOne = IndexOfFirst + First.Length;
-        /*            
-            int startOfNextOne = src[endOfFirstOne..IndexOfLast].IndexOf(GetEmptyValue()) + 1;
-        */
+      
         Between = AreXYNext2EachOther
             ? src[endOfFirstOne..IndexOfLast]
-            : ReadOnlySpan<T>.Empty; //src.Slice(endOfFirstOne, startOfNextOne);
+            : ReadOnlySpan<T>.Empty; 
 
         if (First.Length < Last.Length)
         {
