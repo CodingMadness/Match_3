@@ -51,15 +51,15 @@ public readonly record struct Quest(TileColor TileColor,
     {
         //FOR NOW we compare the contents but only until I have written a replace method to work merely on 
         // Spans and does not create a new copy!!!
-        if (name.BitwiseCompare(MatchCountName) == 0)
+        if (name.BitwiseEquals(MatchCountName))
             return Match!.Value.Count;
-        else if (name == MatchIntervalName)
+        else if (name.BitwiseEquals(MatchIntervalName))
             return (int)Match!.Value.Interval;
-        else if (name == SwapCountName)
+        else if (name.BitwiseEquals(SwapCountName))
             return Swap!.Value.Count;
-        else if (name == ReplacementCountName)
+        else if (name.BitwiseEquals(ReplacementCountName))
             return Replacement!.Value.Count;
-        else if (name == MissMatchName)
+        else if (name.BitwiseEquals(MissMatchName))
             return MissMatch!.Value.Count;
 
         throw new ArgumentException("this code should not be reached at all!");
