@@ -1,4 +1,7 @@
 ﻿using System.Diagnostics;
+using System.Text;
+using CommunityToolkit.HighPerformance;
+using CommunityToolkit.HighPerformance.Buffers;
 using DotNext;
 using Match_3.Service;
 using Match_3.Variables;
@@ -27,25 +30,22 @@ public static class QuestBuilder
 
     private static readonly Quest Empty = default;
 
-    private static string QuestLog= $"(Black) You have to collect an amount of" +
-                                    $" (COLOR) {Quest.MatchCountName} COLOR Matches" +
-                                    $" (Black) and u have in between those only" +
-                                    $" (COLOR) {Quest.MatchIntervalName} seconds left" +
-                                    $" (Black) and also just" +
-                                    $" (COLOR) {Quest.SwapCountName} swaps available" +
-                                    $" (Black) for each new match" +
-                                    $" (Black) and furthermore, you only are allowed to replace any given tile" +
-                                    $" (COLOR) {Quest.ReplacementCountName} times at max" +
-                                    $" (Black) for your own help as well as there is the tolerance for" +
-                                    $" (COLOR) {Quest.MissMatchName} miss matches" +
-                                    $"                                           ";
-                       
-    // private static readonly StringBuilder
+    private static readonly string QuestLog = $"(Black) You have to collect an amount of" +
+                                              $" ({TileColor.Transparent.ToStringFast()}) {Quest.MatchCountName} {TileColor.Transparent.ToStringFast()} Matches" +
+                                              $" (Black) and u have in between those only" +
+                                              $" ({TileColor.Transparent.ToStringFast()}) {Quest.MatchIntervalName} seconds left" +
+                                              $" (Black) and also just" +
+                                              $" ({TileColor.Transparent.ToStringFast()}) {Quest.SwapCountName} swaps available" +
+                                              $" (Black) for each new match" +
+                                              $" (Black) and furthermore, you only are allowed to replace any given tile" +
+                                              $" ({TileColor.Transparent.ToStringFast()}) {Quest.ReplacementCountName} times at max" +
+                                              $" (Black) for your own help as well as there is the tolerance for" +
+                                              $" ({TileColor.Transparent.ToStringFast()}) {Quest.MissMatchName} miss matches";
 
-    private const byte MaxSubQuestCount = 3;
-
+    private static readonly StringBuilder LogBuilder = new(QuestLog.Length);
     public static readonly GameTime[]? QuestTimers = new GameTime[Utils.TileColorLen];
     private static readonly Quest[] QuestForAllColors = new Quest[Utils.TileColorLen];
+    public static int _questCounter;
     
     public static ref readonly Quest GetQuestFrom(TileColor key)
     {
@@ -62,7 +62,7 @@ public static class QuestBuilder
 
     public static int QuestCount { get; private set; }
 
-    public static bool ShallRecycle { get; }
+    public static bool ShallRecycle => _questCounter == QuestCount;
 
     public static FastSpanEnumerator<Quest> GetQuests()
         => new(QuestForAllColors.AsSpan(0, QuestCount));
@@ -75,7 +75,7 @@ public static class QuestBuilder
         //TODO:   (bits[3] = 28)  + (bits[5] = 63) + (bits[2] = 24)  ===> 221 as an example
         // Span<byte> bytes = stackalloc byte[] {10, 15, 20};
         // BitArray bits = new BitArray(bytes.ToArray());
-        
+
         void Fill(Span<TileColor> toFill)
         {
             for (int i = 0; i < Utils.TileColorLen; i++)
@@ -123,37 +123,23 @@ public static class QuestBuilder
         QuestTimers.AsSpan().Where(x => x.IsInitialized).Select(x => x).TakeInto(QuestTimers);
     }
 
-    public static string BuildQuestLoggerFrom(Quest quest)
+    public static ReadOnlySpan<char> BuildQuestLoggerFrom(Quest quest)
     {
-        //TODO: change all .Replace() with the more performant custom version of .Replace()
-        //Hardcoded function to match the hardcoded questLog
-        // (double value, string subQuestMember) =>
-        //          value is either: (Color, integerValue or floatingValue)
-        //          subQuestMember is either subQuest.Count, or subQuest.Interval
-        //          depending WHICH SubQuest it is currently
-
-        // using MemoryRental<char> logger = new(,);
-        // ReadOnlySpan<char> tmpBuffer = logger.Span;
-      
-        var tmpBuffer = QuestLog.AsSpan();
-        tmpBuffer.Replace("COLOR".AsSpan(), quest.TileColor.ToStringFast().AsSpan());
-   
-        //Implement a buffering technique...
-        var questIterator = new PhraseEnumerator(QuestLog);
-
-        foreach (TextInfo partOfQuest in questIterator)
+        var questIterator = new PhraseEnumerator(LogBuilder.Clear().Append(QuestLog), true);
+        
+        foreach (TextInfo questPiece in questIterator)
         {
-            if (partOfQuest.TileColor is TileColor.Black)
-                continue;
-
-            int value = quest.GetValueByMemberName(partOfQuest.Variable2Replace);
-            QuestLog
-                .AsSpan()
-                  .Replace(partOfQuest.Variable2Replace, value.ToString()
-                    .AsSpan());
+            var placeHolderColor = questPiece.ColorAsText.AsWriteable();
+            var newColor = quest.TileColor.ToStringFast().AsSpan().AsWriteable();
+            newColor.CopyTo(placeHolderColor);
+            placeHolderColor[newColor.Length..].Clear();
+            var memberName = questPiece.Variable2Replace.AsWriteable();
+            var value = quest.GetValueByMemberName(memberName).ToString();
+            value.CopyTo(memberName);
+            memberName[value.Length..].Clear();
         }
 
-        Debug.WriteLine(QuestLog);
-        return QuestLog;
+        _questCounter++;
+        return StringPool.Shared.GetOrAdd(LogBuilder.AsSpan());
     }
 }
