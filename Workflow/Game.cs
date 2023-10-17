@@ -1,8 +1,10 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using System.Text;
 using DotNext.Runtime;
 using ImGuiNET;
 using Match_3.Service;
+using Match_3.Setup;
 using Match_3.Variables;
 using Raylib_cs;
 using static Match_3.Setup.AssetManager;
@@ -11,36 +13,6 @@ using static Match_3.Service.Utils;
 namespace Match_3.Workflow;
 
 using System;
-using System.Collections.Specialized;
-
-public class BitsetExample
-{
-    private BitVector32 bitVector = new BitVector32(0);
-
-    public void SetBit(int index)
-    {
-        if (index < 0 || index > 31)
-            throw new ArgumentOutOfRangeException("Index out of range.");
-        
-        bitVector[1 << index] = true;
-    }
-
-    public int[] GetSetValues()
-    {
-        var values = new List<int>();
-        int index = 0;
-        while (index < 32)
-        {
-            if (bitVector[1 << index])
-            {
-                values.Add(index);
-            }
-            index++;
-        }
-        return values.ToArray();
-    }
-}
-
 
 internal static class Game
 {
@@ -67,8 +39,6 @@ internal static class Game
 
     private static void Main()
     {
-        TestSwap();
-        
         InitGame();
         MainGameLoop();
         CleanUp();
@@ -76,13 +46,7 @@ internal static class Game
 
     private static void InitGame()
     {
-        // var src = "hello dear beloved world";
-        // var builder = new StringBuilder(src, src.Length * 2);
-        // var find = "beloved".AsSpan();
-        // var newVal = "behated!".AsSpan();
-        // var res = builder.Replace(find, newVal);
-        
-        Level = new(0, 900, 6, 12, 10);
+        Level = new(0, 60, 6, 12, 10);
         _runQuestTimers = false;
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         _matchesOf3 = new();
@@ -90,8 +54,8 @@ internal static class Game
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
         SetTextureFilter(BgIngameTexture, TextureFilter.TEXTURE_FILTER_BILINEAR);
-        LoadAssets();
-
+        LoadAssets(new(Level.GridWidth, Level.GridHeight));
+        ShaderData = InitWobble2(GetScreenCoord());
         _bgWelcome = new(WelcomeTexture);
         _bgGameOver = new(GameOverTexture);
 
@@ -99,8 +63,6 @@ internal static class Game
         _questTimers = QuestBuilder.QuestTimers;
         QuestHandler.ActivateHandlers();
         Grid.Instance.Init(Level);
-     
-        // ShaderData = InitShader();
     }
 
     private static void DragMouseToEnemies()
@@ -286,18 +248,17 @@ internal static class Game
         GameTime gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown + 10);
         // int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
         float currTime = _gameTimer.ElapsedSeconds;
-        
+
+        double t = GetTime() * 10f;
         if (_enterGame)
         {
-            UiRenderer.DrawCurvedText("HELLO LOVELY WORLD!", 0.1f);
+            // UiRenderer.DrawCurvedText("HELLO LOVELY WORLD!", 0.1f);
 
-            // UiRenderer.RenderCurvedText(ImGui.GetWindowDrawList(), Utils.GetScreenCoord() / 2f, 
-            //     "HELLO DEAR WORLD", 200f, Color.Red, 12f, 0.1f);
-
-            // Vector2 size = GetScreenCoord();
-            // SetShaderValue(WobbleEffect, ShaderData.size, size, ShaderUniformDataType.SHADER_UNIFORM_VEC2);
-            // SetShaderValue(WobbleEffect, ShaderData.time, currTime, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-            // SetShaderValue(WobbleEffect, shallWobble, 0.1, ShaderUniformDataType.SHADER_UNIFORM_INT);
+            Vector2 size = new(Size, Size);
+            // Debug.WriteLine(currTime);
+            SetShaderVal(ShaderData.gridSizeLoc, size);
+            SetShaderVal(ShaderData.secondsLoc, currTime);
+            SetShaderVal(ShaderData.shouldWobbleLoc, CoinFlip());
         }
 
         else if (!_enterGame)
@@ -354,6 +315,7 @@ internal static class Game
             }
             else
             {
+                Debug.WriteLine(currTime);
                 // var pressed = UIRenderer.DrawFeatureBtn(out _);
                 // GameState.WasFeatureBtnPressed ??= pressed;
                 // GameState.WasFeatureBtnPressed = pressed ?? GameState.WasFeatureBtnPressed;
@@ -364,10 +326,10 @@ internal static class Game
                 ComputeMatches();
                 GameObjectRenderer.DrawOuterBox(_enemyMatches, currTime);
                 GameObjectRenderer.DrawInnerBox(_matchesOf3, currTime);
-                // BeginShaderMode(WobbleEffect);
+
                 GameObjectRenderer.DrawGrid(currTime);
-                GameObjectRenderer.DrawMatches(_enemyMatches, currTime, _shallCreateEnemies);
-                // EndShaderMode();
+                //GameObjectRenderer.DrawMatches(_enemyMatches, currTime, _shallCreateEnemies);
+
                 HardReset();
             }
 
@@ -395,7 +357,7 @@ internal static class Game
         // {
         //     Console.WriteLine("Value: " + value);
         // }
-        
+
         while (!WindowShouldClose())
         {
             UiRenderer.BeginRenderCycle(HandleGameInput);
