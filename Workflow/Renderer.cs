@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
 using System.Text;
+using CommunityToolkit.HighPerformance.Buffers;
 using ImGuiNET;
 using Match_3.Service;
 using Match_3.Setup;
@@ -17,7 +19,7 @@ public static class UiRenderer
     {
         RlImGui.Setup(false);
     }
-    
+
     public static void BeginRenderCycle(Action mainGameLoop)
     {
         BeginDrawing();
@@ -101,9 +103,9 @@ public static class UiRenderer
         return result;
     }
 
-    
+
     //TODO: Remove the StringBuilder version of "DrawText()" and rework the Drawing to work without the WordEnumerator
-    public static void DrawText(StringBuilder text)
+    public static void DrawText(DotNext.Buffers.MemoryOwner<char> text)
     {
         // calculate the indentation that centers the text on one line, relative
         // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
@@ -138,14 +140,14 @@ public static class UiRenderer
             {
                 ImGui.SetCursorPos(tmp);
                 ImGui.PushTextWrapPos(wrapPosX);
-                ImGui.TextColored(word.ColorV4ToApply, word.Slice2Color);
+                ImGui.TextColored(word.ColorV4ToApply, word.Slice2Colorize);
                 ImGui.PopTextWrapPos();
                 tmp.X += word.TextSize.X + spaceBetween;
             }
         }
     }
 
-    public static void DrawText(String text)
+    public static void DrawText(ReadOnlySpan<char> text)
     {
         // calculate the indentation that centers the text on one line, relative
         // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
@@ -175,18 +177,24 @@ public static class UiRenderer
                 NewLine(phrase.TextSize);
             }
 
+            ImGui.SetCursorPos(tmp);
+            ImGui.PushTextWrapPos(wrapPosX);
+            ImGui.TextColored(phrase.ColorV4ToApply, phrase.Slice2Colorize);
+            ImGui.PopTextWrapPos();
+            tmp.X += totalSize;
+            
             //Draw words as long as they fit in the WINDOW_WIDTH
-            foreach (var word in phrase)
-            {
-                ImGui.SetCursorPos(tmp);
-                ImGui.PushTextWrapPos(wrapPosX);
-                ImGui.TextColored(word.ColorV4ToApply, word.Slice2Color);
-                ImGui.PopTextWrapPos();
-                tmp.X += word.TextSize.X + spaceBetween;
-            }
+            // foreach (var word in phrase)
+            // {
+            //     ImGui.SetCursorPos(tmp);
+            //     ImGui.PushTextWrapPos(wrapPosX);
+            //     ImGui.TextColored(word.ColorV4ToApply, word.Slice2Colorize);
+            //     ImGui.PopTextWrapPos();
+            //     tmp.X += word.TextSize.X + spaceBetween;
+            // }
         }
     }
-    
+
     public static void DrawQuestLog()
     {
         ImGui.SetWindowFontScale(1.5f);
@@ -194,19 +202,20 @@ public static class UiRenderer
         var questIterator = QuestBuilder.GetQuests();
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
 
-        int counter = 0;
+        ReadOnlySpan<char> logger;
         
         if (!QuestBuilder.ShallRecycle)
         {
             foreach (ref readonly Quest quest in questIterator)
             {
-                var logger = QuestBuilder.BuildQuestLoggerFrom(quest); 
+                logger = QuestBuilder.BuildQuestLoggerFrom(quest);
                 DrawText(logger);
             }
         }
         else
         {
-            //call here the logs repeatedly from the pool!....
+             
+            //Draw here the logs repeatedly from the pool!....
         }
     }
 
@@ -317,19 +326,23 @@ public static class GameObjectRenderer
 
     public static void DrawGrid(float elapsedTime)
     {
-        for (int x = 0; x < Grid.Instance.TileWidth; x++)
+        BeginShaderMode(WobbleEffect);
         {
-            for (int y = 0; y < Grid.Instance.TileHeight; y++)
+            for (int x = 0; x < Grid.Instance.TileWidth; x++)
             {
-                Vector2 current = new(x, y);
-                var basicTile = Grid.Instance[current];
-
-                if (basicTile is not null && !basicTile.IsDeleted && basicTile is not EnemyTile)
+                for (int y = 0; y < Grid.Instance.TileHeight; y++)
                 {
-                    DrawTile(ref DefaultTileAtlas, basicTile, elapsedTime);
+                    Vector2 current = new(x, y);
+                    var basicTile = Grid.Instance[current];
+
+                    if (basicTile is not null && !basicTile.IsDeleted && basicTile is not EnemyTile)
+                    {
+                        DrawTile(ref DefaultTileAtlas, basicTile, elapsedTime);
+                    }
                 }
             }
         }
+        EndShaderMode();
     }
 
     public static void DrawMatches(MatchX? match, float elapsedTime, bool shallCreateEnemies)
