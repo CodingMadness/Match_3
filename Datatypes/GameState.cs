@@ -1,6 +1,6 @@
-﻿using System.Text;
+﻿using Match_3.Variables;
 
-namespace Match_3.Variables;
+namespace Match_3.Datatypes;
 
 public static class GameState
 {
@@ -9,7 +9,6 @@ public static class GameState
     public static bool WasGameWonB4Timeout;
     public static Tile Tile;
     public static MatchX? Matches;
-    public static bool? WasFeatureBtnPressed;
     public static bool IsGameOver;
-    public static StringBuilder Logger; //whatever the logger logged, take that to render!
+    public static GameStateMessagePool Logger; //whatever the logger logged, take that to render!
 }
