@@ -1,13 +1,13 @@
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.RegularExpressions;
+
 using DotNext.Buffers;
 using ImGuiNET;
-using Match_3.Variables.Extensions;
 using NoAlloq;
 
 namespace Match_3.Service;
@@ -115,77 +115,7 @@ public readonly ref struct TextInfo
     {
     }
 
-    [UnscopedRef]
-    public WordEnumerator GetEnumerator() => new(this, _separator);
-
     public override string ToString() => Slice2Colorize.ToString();
-}
-
-public ref struct WordEnumerator
-{
-    private readonly char _separator;
-    private readonly TextInfo _original;
-    private TextInfo _tmp;
-    private ReadOnlySpan<char> _remainder;
-
-    [UnscopedRef] public ref readonly TextInfo Current => ref _tmp;
-
-    /// <summary>
-    /// An Enumerator who iterates over an array of string interpreted as an array of words, stored as ROS
-    /// </summary>
-    /// <param name="stringArray">the ROS which is interpreted as an array of words</param>
-    /// <param name="separator">the character who will be used to split the ROS</param>
-    private WordEnumerator(ReadOnlySpan<char> stringArray, char separator)
-    {
-        _separator = separator;
-
-        _remainder = stringArray.Contains(separator) ? stringArray[1..] : stringArray;
-
-        if (!stringArray.Contains(separator))
-            throw new ArgumentException(
-                "The Enumerator expects a char which shall function as line splitter! If there is none" +
-                "it cannot slice the ROS which shall be viewed as string[]");
-    }
-
-    public WordEnumerator(in TextInfo original, char separator) : this(original.Slice2Colorize, separator)
-    {
-        _original = original;
-    }
-
-    public bool MoveNext()
-    {
-        //ReadOnlySpan<char> items = "abc <separator> def <separator> ghi <separator> jkl <separator> mno"
-        int idxOfSeperator = _remainder.IndexOf(_separator);
-        ReadOnlySpan<char> word;
-
-        //this separate check serves 2 purposes:
-        //1. when "idxOfChar" is -1 and "separator" as well as "_remainder" are empty than indeed
-        //its safe to assume that the entire thing is empty or was built up badly...
-        if (idxOfSeperator == -1)
-        {
-            if (_separator is (char)32 && _remainder.Length == 0)
-                return false;
-
-            //the 2. purpose is to determine, when the above if condition is false, that there is really
-            //only 1 word left and we have to treat this separately...
-            word = _remainder;
-            _remainder = ReadOnlySpan<char>.Empty;
-        }
-        else
-        {
-            word = _remainder[..idxOfSeperator];
-            _remainder = _remainder[(word.Length + 1)..];
-        }
-
-        _tmp = new(word, _original.TileColor.ToStringFast(), "---");
-
-        return word.Length > 0;
-    }
-
-    public WordEnumerator GetEnumerator()
-    {
-        return this;
-    }
 }
 
 public ref partial struct PhraseEnumerator
@@ -200,7 +130,7 @@ public ref partial struct PhraseEnumerator
     public PhraseEnumerator(ReadOnlySpan<char> text, bool skipBlackColor=false)
     {
         //dont know a value yet for this but we use 15 for now
-        _matchPool = new(15, false);
+        _matchPool = new(5, false);
         
         _position = 0;
         _text = text;
@@ -211,7 +141,7 @@ public ref partial struct PhraseEnumerator
 
         //slice from 0..7 should be (Black), always!
         var colorFinder = skipBlackColor ? FindNonBlackColorCodes() : FindColorCodes();
-            
+        
         foreach (var enumerateMatch in colorFinder.EnumerateMatches(text))
         {
             //reset:
@@ -221,34 +151,12 @@ public ref partial struct PhraseEnumerator
             }
         }
 
-        _colorPositions = _colorPositions.Where(x => x is { idx: >= 0, len: > 0 }).CopyInto(_colorPositions);
+        //ArrayPool<char>.Shared.Return(,);
+        int d=1;
+        _colorPositions = _colorPositions[.._position];
         _position = 0;
     }
-
-    public PhraseEnumerator(scoped in MemoryOwner<char> text, bool skipBlackColor=false)
-    {
-        //dont know a value yet for this but we use 50 for now
-        _matchPool = new(50);
-        _position = 0;
-        _colorPositions = _matchPool.Span;
-
-        //{Black} This is a {Red} super nice {Green} shiny looking text
-        var colorFinder = skipBlackColor ? FindNonBlackColorCodes() : FindColorCodes();
-        _text = text.Span;
-        
-        foreach (var enumerateMatch in colorFinder.EnumerateMatches(_text))
-        {
-            //reset:
-            if (_position < _colorPositions.Length)
-            {
-                _colorPositions[_position++] = (enumerateMatch.Index, enumerateMatch.Length);
-            }
-        }
-
-        _colorPositions = _colorPositions.Slice(0, _position);
-        _position = 0;
-    }
-
+    
     [UnscopedRef] public ref readonly TextInfo Current => ref _current;
 
     private bool GetNextNonBlackColor()
@@ -321,9 +229,13 @@ public ref partial struct PhraseEnumerator
         return ref this;
     }
 
-    public void Dispose() => _matchPool.Dispose();
-    
-    [GeneratedRegex(pattern: @"\([a-zA-Z]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
+    public void Dispose()
+    {
+        // _matchPool.Span.Clear();
+        _matchPool.Dispose();
+    }
+
+    [GeneratedRegex(pattern: @"\([a-zA-Z]+\)", RegexOptions.Singleline)]
     private static partial Regex FindColorCodes();
     
     [GeneratedRegex(pattern: @"\((?!black\b|Black\b)[A-Za-z]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
