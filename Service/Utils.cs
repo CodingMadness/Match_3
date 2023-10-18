@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using CommunityToolkit.HighPerformance.Buffers;
 using DotNext;
 using Match_3.Datatypes;
 using Match_3.Setup;
@@ -188,12 +189,6 @@ public static class Utils
         var areaToCopyInto = input.Slice(newPos, r.Length);
         input[sliceToMove].CopyTo(areaToCopyInto.AsWriteable());
         input[sliceToMove].AsWriteable().Clear();
-    }
-
-    public static void Move2<T>(this ReadOnlySpan<T> input, Range sliceToMove, Index newPos)
-        where T : struct, IEquatable<T>
-    {
-        //int newLoc = newPos.IsFromEnd && sliceToMove.End
     }
     
     /// <summary>
@@ -454,7 +449,7 @@ public static class Utils
     public static Rectangle AsIntRayRect(this RectangleF floatBox) =>
         new(floatBox.X, floatBox.Y, floatBox.Width, floatBox.Height);
 
-    public static void SetShaderVal<T>(int locInShader, T value) where T:unmanaged
+    public static void Send2Shader<T>(int locInShader, T value) where T:unmanaged
     {
         switch (value)
         {
