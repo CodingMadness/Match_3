@@ -1,15 +1,13 @@
-using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
-using System.Text;
-using CommunityToolkit.HighPerformance.Buffers;
 using ImGuiNET;
 using Match_3.Service;
 using Match_3.Setup;
 using Match_3.Variables;
 using Raylib_cs;
-using static Match_3.Setup.AssetManager;
 using Vector2 = System.Numerics.Vector2;
+
+using static Match_3.Setup.AssetManager;
 
 namespace Match_3.Workflow;
 
@@ -103,59 +101,14 @@ public static class UiRenderer
         return result;
     }
 
-
-    //TODO: Remove the StringBuilder version of "DrawText()" and rework the Drawing to work without the WordEnumerator
-    public static void DrawText(DotNext.Buffers.MemoryOwner<char> text)
-    {
-        // calculate the indentation that centers the text on one line, relative
-        // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
-        float winWidth = ImGui.GetWindowWidth();
-        Vector2 currentPos = new(25f, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
-        scoped var iterator = new PhraseEnumerator(text);
-        float totalSize = 0;
-        const float spaceBetween = 5f;
-        Vector2 tmp = currentPos;
-        float wrapPosX = winWidth - 20f;
-
-        void NewLine(Vector2 phraseSize)
-        {
-            tmp.X = currentPos.X; //reset to the X position from the beginning
-            tmp.Y += phraseSize.Y * 1.15f;
-            totalSize = phraseSize.X;
-        }
-
-        ImGui.SetCursorPos(currentPos);
-
-        foreach (ref readonly var phrase in iterator)
-        {
-            totalSize += phrase.TextSize.X;
-
-            if (totalSize > wrapPosX)
-            {
-                NewLine(phrase.TextSize);
-            }
-
-            //Draw words as long as they fit in the WINDOW_WIDTH
-            foreach (var word in phrase)
-            {
-                ImGui.SetCursorPos(tmp);
-                ImGui.PushTextWrapPos(wrapPosX);
-                ImGui.TextColored(word.ColorV4ToApply, word.Slice2Colorize);
-                ImGui.PopTextWrapPos();
-                tmp.X += word.TextSize.X + spaceBetween;
-            }
-        }
-    }
-
     public static void DrawText(ReadOnlySpan<char> text)
     {
         // calculate the indentation that centers the text on one line, relative
         // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
         float winWidth = ImGui.GetWindowWidth();
         Vector2 currentPos = new(25f, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
-        scoped var iterator = new PhraseEnumerator(text);
+        using scoped var iterator = new PhraseEnumerator(text);
         float totalSize = 0;
-        const float spaceBetween = 5f;
         Vector2 tmp = currentPos;
         float wrapPosX = winWidth - 20f;
 
@@ -199,23 +152,21 @@ public static class UiRenderer
     {
         ImGui.SetWindowFontScale(1.5f);
 
-        var questIterator = QuestBuilder.GetQuests();
+        scoped var questIterator = QuestBuilder.GetQuests();
         //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
 
-        ReadOnlySpan<char> logger;
-        
         if (!QuestBuilder.ShallRecycle)
         {
             foreach (ref readonly Quest quest in questIterator)
             {
-                logger = QuestBuilder.BuildQuestLoggerFrom(quest);
+                var logger = QuestBuilder.BuildQuestMessageFrom(quest);
                 DrawText(logger);
             }
         }
         else
         {
-             
             //Draw here the logs repeatedly from the pool!....
+            DrawText(QuestBuilder.GetPooledQuestMessage());
         }
     }
 
@@ -264,7 +215,7 @@ public static class UiRenderer
         WelcomeText.Draw(null);
     }
 
-    public static bool DrawGameOverScreen(bool isDone, bool? gameWon, StringBuilder input)
+    public static bool DrawGameOverScreen(bool isDone, bool? gameWon, ReadOnlySpan<char> input)
     {
         if (gameWon is null)
         {
