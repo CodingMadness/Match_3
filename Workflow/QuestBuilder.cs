@@ -1,8 +1,6 @@
 ﻿using System.Diagnostics;
-using System.Text;
-using CommunityToolkit.HighPerformance;
-using CommunityToolkit.HighPerformance.Buffers;
 using DotNext;
+using Match_3.Datatypes;
 using Match_3.Service;
 using Match_3.Variables;
 using Match_3.Variables.Extensions;
@@ -11,7 +9,7 @@ using TextInfo = Match_3.Service.TextInfo;
 
 namespace Match_3.Workflow;
 
-public static class QuestBuilder
+public static class QuestBuilder 
 {
     /*
      * The Core algorithm is:
@@ -21,8 +19,6 @@ public static class QuestBuilder
      *   - When we have successfully created "QuestCount" Questlogs we will
      *   - Just return from now on the respective string from the pool
      */
-
-
     static QuestBuilder()
     {
         Grid.NotifyOnGridCreationDone += DefineQuest;
@@ -42,11 +38,12 @@ public static class QuestBuilder
                                               $" (Black) for your own help as well as there is the tolerance for" +
                                               $" ({TileColor.Transparent.ToStringFast()}) {Quest.MissMatchName} miss matches";
 
-    private static readonly StringBuilder LogBuilder = new(QuestLog.Length);
+    private static GameStateMessagePool logPool;
     public static readonly GameTime[]? QuestTimers = new GameTime[Utils.TileColorLen];
     private static readonly Quest[] QuestForAllColors = new Quest[Utils.TileColorLen];
-    public static int _questCounter;
     
+    public static int _questCounter;
+        
     public static ref readonly Quest GetQuestFrom(TileColor key)
     {
         var enumerator = GetQuests();
@@ -59,14 +56,14 @@ public static class QuestBuilder
 
         return ref Empty;
     }
-
+    
     public static int QuestCount { get; private set; }
-
+        
     public static bool ShallRecycle => _questCounter == QuestCount;
-
+    
     public static FastSpanEnumerator<Quest> GetQuests()
         => new(QuestForAllColors.AsSpan(0, QuestCount));
-
+    
     private static void DefineQuest(Span<byte> maxCountPerType)
     {
         //TODO: Write an implementation in where I am able
@@ -118,28 +115,41 @@ public static class QuestBuilder
             trueIdx++;
         }
 
-        //sort and filter the null's out
+        //sort and filter the null out
         QuestForAllColors.AsSpan().Where(x => x.Match.HasValue).Select(x => x).TakeInto(QuestForAllColors);
         QuestTimers.AsSpan().Where(x => x.IsInitialized).Select(x => x).TakeInto(QuestTimers);
+        //+1 for SPACE between the logs!
+        logPool = new(QuestCount, (QuestLog.Length + 1)); 
     }
-
-    public static ReadOnlySpan<char> BuildQuestLoggerFrom(Quest quest)
+    
+    public static ReadOnlySpan<char> BuildQuestMessageFrom(Quest quest)
     {
-        var questIterator = new PhraseEnumerator(LogBuilder.Clear().Append(QuestLog), true);
+        // var questIterator = new PhraseEnumerator(LogBuilder.Clear().Append(QuestLog), true);
+        
+        Debug.WriteLine($"There are:  {QuestCount} Quests to solve");
+        
+        //there is a defect in here....!
+        var currLog = logPool.Enqueue(QuestLog);  
+        using scoped var questIterator = new PhraseEnumerator(currLog, true);
         
         foreach (TextInfo questPiece in questIterator)
         {
+            //swap (Transparent) with (<WhatEverColoIUse>)
             var placeHolderColor = questPiece.ColorAsText.AsWriteable();
             var newColor = quest.TileColor.ToStringFast().AsSpan().AsWriteable();
             newColor.CopyTo(placeHolderColor);
             placeHolderColor[newColor.Length..].Clear();
+            
+            //e.g: Swap Quest.Member=Match.Count with <anyNumber>
             var memberName = questPiece.Variable2Replace.AsWriteable();
             var value = quest.GetValueByMemberName(memberName).ToString();
             value.CopyTo(memberName);
             memberName[value.Length..].Clear();
         }
-
+ 
         _questCounter++;
-        return StringPool.Shared.GetOrAdd(LogBuilder.AsSpan());
+        return currLog;
     }
+
+    public static ReadOnlySpan<char> GetPooledQuestMessage() => logPool.Dequeue();
 }
