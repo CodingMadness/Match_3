@@ -3,8 +3,8 @@ using System.Numerics;
 using System.Text;
 using DotNext.Runtime;
 using ImGuiNET;
+using Match_3.Datatypes;
 using Match_3.Service;
-using Match_3.Setup;
 using Match_3.Variables;
 using Raylib_cs;
 using static Match_3.Setup.AssetManager;
@@ -25,10 +25,9 @@ internal static class Game
     private static Background? _bgInGame1 = null!;
     private static GameTime _gameTimer;
     private static GameTime[]? _questTimers;
-    private static EnemyMatchRuleHandler _enemyMatchRuleHandler;
     private static readonly StringBuilder TimeBuilder = new(3);
 
-    private static bool _enterGame;
+    private static bool _inGame;
     private static bool _shallCreateEnemies;
     private static bool _runQuestTimers;
 
@@ -138,8 +137,8 @@ internal static class Game
 
                 GameState.Tile = firstClickedTile;
 
-                if (GameState.WasFeatureBtnPressed == true)
-                    OnTileClicked();
+                // if (GameState.WasFeatureBtnPressed == true)
+                //     OnTileClicked();
             }
 
             firstClickedTile.TileState |= TileState.Selected;
@@ -211,7 +210,7 @@ internal static class Game
             _runQuestTimers = true;
         }
 
-        shallCreateEnemies &= EnemyMatchRuleHandler.Instance.Check();
+        // shallCreateEnemies &= EnemyMatchRuleHandler.Instance.Check();
 
         switch (shallCreateEnemies)
         {
@@ -249,25 +248,19 @@ internal static class Game
         // int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
         float currTime = _gameTimer.ElapsedSeconds;
 
-        double t = GetTime() * 10f;
-        if (_enterGame)
+        if (!_inGame)
         {
-            // UiRenderer.DrawCurvedText("HELLO LOVELY WORLD!", 0.1f);
-
-            Vector2 size = new(Size, Size);
-            // Debug.WriteLine(currTime);
-            SetShaderVal(ShaderData.gridSizeLoc, size);
-            SetShaderVal(ShaderData.secondsLoc, currTime);
-            SetShaderVal(ShaderData.shouldWobbleLoc, CoinFlip());
-        }
-
-        else if (!_enterGame)
-        {
-            // UiRenderer.DrawCurvedText("HELLO LOVELY WORLD!", 0.1f);
             UiRenderer.DrawQuestLog();
         }
 
-        if (IsKeyDown(KeyboardKey.KEY_ENTER) || _enterGame)
+        else if (_inGame)
+        {
+            Send2Shader(ShaderData.gridSizeLoc, GetScreenCoord());
+            Send2Shader(ShaderData.secondsLoc, currTime);
+            Send2Shader(ShaderData.shouldWobbleLoc, CoinFlip());
+        }
+
+        if (IsKeyDown(KeyboardKey.KEY_ENTER) || _inGame)
         {
             _gameTimer.Run();
 
@@ -295,18 +288,19 @@ internal static class Game
                 gameOverTimer.Run();
                 TimeBuilder.Append($"{gameOverTimer.ElapsedSeconds}");
 
-                UiRenderer.DrawText(TimeBuilder);
+                UiRenderer.DrawText(TimeBuilder.AsSpan());
                 UiRenderer.DrawBackground(_bgGameOver);
                 UiRenderer.DrawTimer(gameOverTimer.ElapsedSeconds);
                 ImGui.SetWindowFontScale(2f);
 
-                if (UiRenderer.DrawGameOverScreen(gameOverTimer.Done(), GameState.WasGameWonB4Timeout,
-                        GameState.Logger))
+                if (UiRenderer.DrawGameOverScreen(gameOverTimer.Done(), 
+                        GameState.WasGameWonB4Timeout,
+                        GameState.Logger.Dequeue()))
                     return;
             }
             else if (GameState.WasGameWonB4Timeout)
             {
-                if (UiRenderer.DrawGameOverScreen(_gameTimer.Done(), true, GameState.Logger))
+                if (UiRenderer.DrawGameOverScreen(_gameTimer.Done(), true, GameState.Logger.Dequeue()))
                 {
                     //Begin new Level!
                     InitGame();
@@ -333,7 +327,7 @@ internal static class Game
                 HardReset();
             }
 
-            _enterGame = true;
+            _inGame = true;
         }
     }
 
