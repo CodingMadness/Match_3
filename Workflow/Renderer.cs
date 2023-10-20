@@ -6,7 +6,6 @@ using Match_3.Service;
 using Match_3.Setup;
 using Raylib_cs;
 using Vector2 = System.Numerics.Vector2;
-
 using static Match_3.Setup.AssetManager;
 
 namespace Match_3.Workflow;
@@ -121,7 +120,7 @@ public static class UiRenderer
 
         ImGui.SetCursorPos(currentPos);
 
-        foreach (ref readonly var phrase in iterator)
+        foreach (var phrase in iterator)
         {
             totalSize += phrase.TextSize.X;
 
@@ -130,24 +129,20 @@ public static class UiRenderer
                 NewLine(phrase.TextSize);
             }
 
-            ImGui.SetCursorPos(tmp);
-            ImGui.PushTextWrapPos(wrapPosX);
-            ImGui.TextColored(phrase.ColorV4ToApply, phrase.Slice2Colorize);
-            ImGui.PopTextWrapPos();
-            tmp.X += totalSize;
+            // Draw words as long as they fit in the WINDOW_WIDTH
             
-            //Draw words as long as they fit in the WINDOW_WIDTH
-            // foreach (var word in phrase)
-            // {
-            //     ImGui.SetCursorPos(tmp);
-            //     ImGui.PushTextWrapPos(wrapPosX);
-            //     ImGui.TextColored(word.ColorV4ToApply, word.Slice2Colorize);
-            //     ImGui.PopTextWrapPos();
-            //     tmp.X += word.TextSize.X + spaceBetween;
-            // }
+            foreach (var word in phrase)
+            {
+                ImGui.SetCursorPos(tmp);
+                ImGui.PushTextWrapPos(wrapPosX);
+                ImGui.TextColored(word.ColorV4ToApply, word.Slice2Colorize);
+                ImGui.PopTextWrapPos();
+                tmp.X += word.TextSize.X + 5f;
+            }
         }
     }
-
+    
+    
     public static void DrawQuestLog()
     {
         ImGui.SetWindowFontScale(1.5f);
@@ -169,7 +164,7 @@ public static class UiRenderer
             DrawText(QuestBuilder.GetPooledQuestMessage());
         }
     }
-
+    
     public static void DrawTimer(float elapsedSeconds)
     {
         //horrible performance: use a stringBuilder to reuse values!
