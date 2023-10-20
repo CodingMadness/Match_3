@@ -268,7 +268,7 @@ internal static class Game
 
     private static void HandleGameInput()
     {
-        static bool IsGameAbout2Finish()
+        static bool IsGameStillRunning()
         {
             if (GameState.IsGameOver)
             {
@@ -280,9 +280,11 @@ internal static class Game
                 UiRenderer.DrawBackground(_bgGameOver);
                 UiRenderer.DrawTimer(_gameOverTimer.ElapsedSeconds);
                 ImGui.SetWindowFontScale(2f);
-                return UiRenderer.DrawGameOverScreen(_gameOverTimer.Done(),
-                    GameState.WasGameWonB4Timeout,
-                    GameState.Logger!.Dequeue());
+                
+                return 
+                    !UiRenderer.DrawGameOverScreen(_gameOverTimer.Done(),
+                                                  GameState.WasGameWonB4Timeout,
+                                                 GameState.Logger!.Dequeue());
             }
             else if (GameState.WasGameWonB4Timeout)
             {
@@ -296,15 +298,14 @@ internal static class Game
                     GameState.EnemiesStillPresent = false;
                     GameState.CurrentData = null;
                 }
-                return true;
+                return false;
             }
             else
             {
-                return false;
+                return true;
             }
         }
         
-        // int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
         float currTime = _gameTimer.ElapsedSeconds;
         _inGame |= IsKeyDown(KeyboardKey.KEY_ENTER);
 
@@ -319,26 +320,11 @@ internal static class Game
 
                 UpdateShader(ShaderData.gridSizeLoc, GetScreenCoord());
                 UpdateShader(ShaderData.secondsLoc, currTime);
-                UpdateShader(ShaderData.shouldWobbleLoc, CoinFlip());
-                // int tileTypeIdx = (int)GameState.Tile.Body.TileType;
-                // ref var questTimer = ref _questTimers[tileTypeIdx];
-                //
-                // //if it got activated in "ComputeMatches()" then we can count down, else it sleeps!
-                // if (_runQuestTimers)
-                //     questTimer.Run();
-                //
-                //
-                // if (_runQuestTimers)
-                //     if (questTimer.Done())
-                //     { 
-                //     }
-                // Console.WriteLine(questTimer.Done()
-                //     ? $"YOU MISSED 1 MATCH OF TYPE {GameState.Tile.Body.TileType} AND NOW YOU LOSE BONUS OR GET PUNISHED!"
-                //     : $"YOU STILL HAVE {questTimer.ElapsedSeconds} TIME LEFT!");
+                UpdateShader(ShaderData.shouldWobbleLoc, true);
 
                 GameState.IsGameOver = _gameTimer.Done();
 
-                if (!IsGameAbout2Finish())
+                if (IsGameStillRunning())
                 {
                     UiRenderer.DrawBackground(_bgInGame1);
                     UiRenderer.DrawTimer(currTime);
@@ -348,8 +334,6 @@ internal static class Game
                     GameObjectRenderer.DrawGrid(currTime);
                     HardReset();
                 }
-
-                _inGame = true;
                 break;
             }
         }
