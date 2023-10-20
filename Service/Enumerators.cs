@@ -189,12 +189,12 @@ public ref struct WordEnumerator
 
 public ref partial struct PhraseEnumerator
 {
-    private TextInfo _current;
+    private readonly bool _skipBlackColor;
     private readonly Span<(int idx, int len)> _colorPositions;
     private readonly ReadOnlySpan<char> _text;
+    private TextInfo _current;
     private MemoryRental<(int idx, int len)> _matchPool;
     private int _position;
-    private readonly bool _skipBlackColor;
 
     public PhraseEnumerator(ReadOnlySpan<char> text, bool skipBlackColor=false)
     {
@@ -207,11 +207,12 @@ public ref partial struct PhraseEnumerator
         //var result = rgx.Split(_text);
         //{Black} This is a {Red} super nice {Green} shiny looking text
         _colorPositions = _matchPool.Span;
-
-        //slice from 0..7 should be (Black), always!
-        var colorFinder = skipBlackColor ? FindNonBlackColorCodes() : FindColorCodes();
         
-        foreach (var enumerateMatch in colorFinder.EnumerateMatches(text))
+        var finder = skipBlackColor 
+                            ? FindNonBlackColorCodes().EnumerateMatches(text)
+                            : FindAllColorCodes().EnumerateMatches(text);
+        
+        foreach (var enumerateMatch in finder)
         {
             //reset:
             if (_position < _colorPositions.Length)
@@ -220,8 +221,6 @@ public ref partial struct PhraseEnumerator
             }
         }
 
-        //ArrayPool<char>.Shared.Return(,);
-        int d=1;
         _colorPositions = _colorPositions[.._position];
         _position = 0;
     }
@@ -260,8 +259,11 @@ public ref partial struct PhraseEnumerator
 
         var color2Use = _text.Slice(match.idx, match.len);
         int beginOfBlack = match.idx + 1;
-        int relativeEnd = _text[beginOfBlack..].IndexOf('(') + beginOfBlack ;
         int okayBegin = match.idx + match.len;
+        int relativeEnd = _position == _colorPositions.Length - 1
+            ? _text[beginOfBlack..].IndexOf('(') + beginOfBlack
+            : _text.Length - okayBegin;
+        
         _current = new(_text[okayBegin..relativeEnd], color2Use, ReadOnlySpan<char>.Empty);
         
         _position++;
@@ -287,8 +289,8 @@ public ref partial struct PhraseEnumerator
         _matchPool.Dispose();
     }
 
-    [GeneratedRegex(pattern: @"\([a-zA-Z]+\)", RegexOptions.Singleline)]
-    private static partial Regex FindColorCodes();
+    [GeneratedRegex(pattern: @"\([a-zA-Z]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
+    private static partial Regex FindAllColorCodes();
     
     [GeneratedRegex(pattern: @"\((?!black\b|Black\b)[A-Za-z]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex FindNonBlackColorCodes();
