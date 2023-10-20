@@ -207,12 +207,12 @@ public ref partial struct PhraseEnumerator
         //var result = rgx.Split(_text);
         //{Black} This is a {Red} super nice {Green} shiny looking text
         _colorPositions = _matchPool.Span;
+
+        var colorFinder = skipBlackColor
+            ? FindNonBlackColorCodes().EnumerateMatches(text)
+            : FindAllColorCodes().EnumerateMatches(text);
         
-        var finder = skipBlackColor 
-                            ? FindNonBlackColorCodes().EnumerateMatches(text)
-                            : FindAllColorCodes().EnumerateMatches(text);
-        
-        foreach (var enumerateMatch in finder)
+        foreach (var enumerateMatch in colorFinder)
         {
             //reset:
             if (_position < _colorPositions.Length)
@@ -286,10 +286,10 @@ public ref partial struct PhraseEnumerator
     public void Dispose()
     {
         // _matchPool.Span.Clear();
-        _matchPool.Dispose();
+        // _matchPool.Dispose();
     }
 
-    [GeneratedRegex(pattern: @"\([a-zA-Z]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
+    [GeneratedRegex(pattern: @$"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex FindAllColorCodes();
     
     [GeneratedRegex(pattern: @"\((?!black\b|Black\b)[A-Za-z]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
