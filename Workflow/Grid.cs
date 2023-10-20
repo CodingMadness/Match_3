@@ -3,8 +3,9 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
+using DotNext.Runtime;
+using Match_3.Datatypes;
 using Match_3.Service;
-using Match_3.Variables;
 
 namespace Match_3.Workflow;
 
@@ -25,9 +26,9 @@ public sealed class Grid
     
     public int TileWidth;
     public int TileHeight;
-    private static readonly Dictionary<TileColor, AllStats> TypeStats = new(Utils.TileColorLen);
+    private static readonly Dictionary<TileColor, EventStats> TypeStats = new(Utils.TileColorLen);
     
-    public static ref AllStats GetStatsByType(TileColor t)
+    public static ref EventStats GetStatsByType(TileColor t)
     {
         ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out var existedB4);
         if (!existedB4) x = new();
@@ -53,12 +54,15 @@ public sealed class Grid
         
         for (int x = 0; x < TileWidth; x++)
         {
-            for (int y = 2; y < TileHeight; y++)
+            for (int y = 0; y < TileHeight; y++)
             {
                 Vector2 current = new(x, y);
-                float noise = Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
+                var img = GenImagePerlinNoise(TileWidth, TileHeight, x, y, 0.89f);
+                var f = LoadTextureFromImage(img);
+                //Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
+                Intrinsics.Bitcast(f, out float noise);
                 var tile = _bitmap[x, y] = Bakery.CreateTile(current, noise);
-                GameState.Tile = tile;
+                //EventStats.TileX = tile;
                 //we yet dont care for side quests and hence we dont need to keep track of ALL tiles, only match-based information
                 /*OnTileCreated(Span<byte>.Empty);*/
                 int index = tile.Body.TileColor.ToIndex();
@@ -69,7 +73,7 @@ public sealed class Grid
         NotifyOnGridCreationDone(counts[1..]);
     }
         
-    public ref AllStats GetTileStatsBy<T>(T key) where T : notnull
+    public ref EventStats GetTileStatsBy<T>(T key) where T : notnull
     {
         var map = _bitmap.AsSpan();
         ref var eventData = ref map[2].EventData;
@@ -158,7 +162,7 @@ public sealed class Grid
     public void Init(Level current)
     {
         TileWidth = current.GridWidth;
-        TileHeight = current.GridHeight-2;
+        TileHeight = current.GridHeight;
         _bitmap = new Tile[TileWidth, TileHeight];
         CreateMap();
     }
