@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
+using Match_3.Datatypes;
 using Match_3.Service;
-using Match_3.Variables;
 
 namespace Match_3.Workflow;
 
@@ -151,7 +151,7 @@ public static class Bakery
             //--!--
             map[gridCell] = AsEnemy(map[gridCell]!);
             EnemyTile e = (EnemyTile)map[gridCell]!;
-            GameState.Tile = e;
+            GameState.CurrentData.TileX = e;
             OnEnemyTileCreated(Span<byte>.Empty);
             //e.BlockSurroundingTiles(map, true);
             list.Add(e);

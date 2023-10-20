@@ -2,7 +2,6 @@
 using DotNext;
 using Match_3.Datatypes;
 using Match_3.Service;
-using Match_3.Variables;
 using Match_3.Variables.Extensions;
 using NoAlloq;
 using TextInfo = Match_3.Service.TextInfo;
@@ -37,7 +36,7 @@ public static class QuestBuilder
                                               $" ({TileColor.Transparent.ToStringFast()}) {Quest.ReplacementCountName} times at max" +
                                               $" (Black) for your own help as well as there is the tolerance for" +
                                               $" ({TileColor.Transparent.ToStringFast()}) {Quest.MissMatchName} miss matches";
-
+        
     private static GameStateMessagePool logPool;
     public static readonly GameTime[]? QuestTimers = new GameTime[Utils.TileColorLen];
     private static readonly Quest[] QuestForAllColors = new Quest[Utils.TileColorLen];

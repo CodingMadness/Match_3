@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using Match_3.Service;
 
-namespace Match_3.Variables;
+namespace Match_3.Datatypes;
 
 public struct FadeableColor : IEquatable<FadeableColor>
 {

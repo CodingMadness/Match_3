@@ -1,5 +1,4 @@
 ﻿global using TileColor = System.Drawing.KnownColor;
-
 using System.Drawing;
 using System.Numerics;
 using DotNext.Runtime;
@@ -8,7 +7,7 @@ using Match_3.Workflow;
 
 
 [assembly: FastEnumToString(typeof(TileColor), IsPublic = true, ExtensionMethodNamespace = "Match_3.Variables.Extensions")]
-namespace Match_3.Variables;
+namespace Match_3.Datatypes;
 
 [Flags]
 public enum Options
@@ -86,7 +85,7 @@ public class Tile(TileShape body) : IEquatable<Tile>
 {
     private TileState _current;
     private Quest _quest;
-    public AllStats EventData = new();
+    public EventStats EventData = new();
     
     public ref readonly Quest Quest => ref _quest;
     public virtual Options Options { get; set; }
@@ -410,7 +409,6 @@ public class EnemyMatches : MatchX
         }
     }
 }
-
 
 public sealed class StateAndBodyComparer : EqualityComparer<Tile>
 {

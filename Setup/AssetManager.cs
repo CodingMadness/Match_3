@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Reflection;
+using Match_3.Datatypes;
 using Match_3.Service;
-using Match_3.Variables;
 using Raylib_cs;
 
 namespace Match_3.Setup;

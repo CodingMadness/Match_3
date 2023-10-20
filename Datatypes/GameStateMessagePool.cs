@@ -16,7 +16,8 @@ public sealed class GameStateMessagePool(int approxCount, int length) : IDisposa
     private bool _shallClearPool;
     
     /// <summary>
-    /// Enqueues a span/string into the message pool and gives you back the same span for comfortable reuse
+    /// Enqueues a span/string into the message pool and
+    /// gives you back the span from the pool
     /// </summary>
     /// <param name="fullLog"></param>
     /// <returns></returns>

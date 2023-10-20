@@ -39,6 +39,7 @@
   
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.9" />
     <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.1" />
     <PackageReference Include="DotNext" Version="4.14.0" />
     <PackageReference Include="ImGui.NET" Version="1.89.9.2" />
@@ -67,18 +68,17 @@
     <None Remove="Wobble_Shader.frag" />
        
 
+    <EmbeddedResource Include="Assets\Shaders\wobble2.frag">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+       
+
     <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgGameOver.png" />
     <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgIngame1.png" />
     <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgIngame2.png" />
     <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgWelcome1.png" />
     <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgWelcome2.png" />
-    <EmbeddedResource Include="Wobble_Shader.frag">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
     <None Remove="Assets\Shaders\wobble.frag" />
-    <EmbeddedResource Include="Assets\Shaders\wobble.frag">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
     <None Remove="Assets\Sprites\Tiles\set1.png" />
     <EmbeddedResource Include="Assets\Sprites\Tiles\set1.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

@@ -1,9 +1,9 @@
 using System.Drawing;
 using System.Numerics;
 using ImGuiNET;
+using Match_3.Datatypes;
 using Match_3.Service;
 using Match_3.Setup;
-using Match_3.Variables;
 using Raylib_cs;
 using Vector2 = System.Numerics.Vector2;
 

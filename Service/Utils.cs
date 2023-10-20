@@ -7,11 +7,9 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using CommunityToolkit.HighPerformance.Buffers;
 using DotNext;
 using Match_3.Datatypes;
 using Match_3.Setup;
-using Match_3.Variables;
 using Match_3.Workflow;
 using Raylib_cs;
 using Color = System.Drawing.Color;
@@ -181,7 +179,8 @@ public static class Utils
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Move2<T>(this ReadOnlySpan<T> input, Range sliceToMove, int newPos)
         where T : struct, IEquatable<T>
     {
@@ -241,9 +240,9 @@ public static class Utils
     /// <param name="y">the 2. span to swap with the 1. one</param>
     /// <param name="delimiter">a value which functions as a delimiter to say when a new block of an arbitrary numeric value begins and ends..</param>
     /// <typeparam name="T">The type of the span</typeparam>
-    private static void Swap<T>(this scoped ReadOnlySpan<T> input,
-        scoped ReadOnlySpan<T> x,
-        scoped ReadOnlySpan<T> y,
+    private static void Swap<T>(this ReadOnlySpan<T> input,
+        ReadOnlySpan<T> x,
+        ReadOnlySpan<T> y,
         T delimiter = default)
         where T : unmanaged, IEquatable<T>, IComparable<T>, INumber<T>
     {
@@ -434,10 +433,11 @@ public static class Utils
     }
 
     public static void Swap(this ReadOnlySpan<char> input,
-        scoped ReadOnlySpan<char> x,
-        scoped ReadOnlySpan<char> y)
+         ReadOnlySpan<char> x,
+         ReadOnlySpan<char> y)
         => input.Swap(x, y, (char)32);
 
+    
     public static void TestSwap()
     {
         var text = "Hello cool #world, I welcome you every morning with a bright smile".AsSpan();
@@ -449,7 +449,7 @@ public static class Utils
     public static Rectangle AsIntRayRect(this RectangleF floatBox) =>
         new(floatBox.X, floatBox.Y, floatBox.Width, floatBox.Height);
 
-    public static void Send2Shader<T>(int locInShader, T value) where T:unmanaged
+    public static void UpdateShader<T>(int locInShader, T value) where T:unmanaged
     {
         switch (value)
         {

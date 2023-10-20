@@ -1,9 +1,7 @@
 ﻿using System.Numerics;
 using System.Text;
-using BenchmarkDotNet.Running;
 using DotNext.Runtime;
 using ImGuiNET;
-using Match_3.Benchmarks;
 using Match_3.Datatypes;
 using Match_3.Service;
 using Raylib_cs;

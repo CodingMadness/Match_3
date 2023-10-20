@@ -1,4 +1,4 @@
-﻿namespace Match_3.Variables;
+﻿namespace Match_3.Datatypes;
 
 public enum EventType : byte
 {
