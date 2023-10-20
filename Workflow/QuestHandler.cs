@@ -1,18 +1,15 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using Match_3.Datatypes;
 
 namespace Match_3.Workflow;
 
-public static class SingletonManager
+file static class SingletonManager
 {
     private const byte MaxQuestHandlerInstances = 5;
 
     public static readonly Dictionary<Type, QuestHandler> QuestHandlerStorage = new(MaxQuestHandlerInstances);
 
-    public static T GetOrCreateQuestHandler<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-        T>() where T : QuestHandler
+    public static T GetOrCreateQuestHandler<[DAM(DAMTypes.NonPublicConstructors)]T>() where T : QuestHandler
     {
         lock (QuestHandlerStorage)
         {
@@ -54,10 +51,7 @@ public abstract class QuestHandler
 
     private bool IsActive { get; set; }
 
-    protected static THandler GetInstance<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-        THandler>()
-        where THandler : QuestHandler
+    protected static THandler GetInstance<[DAM(DAMTypes.NonPublicConstructors)] THandler>() where THandler : QuestHandler
         => SingletonManager.GetOrCreateQuestHandler<THandler>();
 
     /// <summary>
@@ -132,7 +126,7 @@ public sealed class MatchQuestHandler : QuestHandler
         foreach (var quest in questRunner)
         {
             int swaps2Do = quest.Swap!.Value.Count;
-            EventStats? currData = GameState.CurrentData;
+            EventState? currData = GameState.CurrentData;
             float swapTimeAllowed = quest.Swap!.Value.Interval;
             int matchQuest = quest.Match!.Value.Count;
             

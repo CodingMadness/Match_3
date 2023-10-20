@@ -26,9 +26,9 @@ public sealed class Grid
     
     public int TileWidth;
     public int TileHeight;
-    private static readonly Dictionary<TileColor, EventStats> TypeStats = new(Utils.TileColorLen);
+    private static readonly Dictionary<TileColor, EventState> TypeStats = new(Utils.TileColorLen);
     
-    public static ref EventStats GetStatsByType(TileColor t)
+    public static ref EventState GetStatsByType(TileColor t)
     {
         ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out var existedB4);
         if (!existedB4) x = new();
@@ -73,7 +73,7 @@ public sealed class Grid
         NotifyOnGridCreationDone(counts[1..]);
     }
         
-    public ref EventStats GetTileStatsBy<T>(T key) where T : notnull
+    public ref EventState GetTileStatsBy<T>(T key) where T : notnull
     {
         var map = _bitmap.AsSpan();
         ref var eventData = ref map[2].EventData;

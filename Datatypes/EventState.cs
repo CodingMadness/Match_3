@@ -1,6 +1,6 @@
 ﻿namespace Match_3.Datatypes;
 
-public class EventStats
+public class EventState
 {
     public float Interval;
     public int Count;

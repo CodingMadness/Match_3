@@ -1,4 +1,3 @@
-
 using Match_3.Service;
 
 namespace Match_3.Datatypes;
@@ -29,7 +28,9 @@ public struct GameTime
         }
         // subtract this frame from the globalTimer if it's not already expired
         if (ElapsedSeconds > 0.000f)
-            ElapsedSeconds -= MathF.Round(GetFrameTime(), 2);
+        {
+            ElapsedSeconds-= MathF.Round(GetFrameTime(), 1);
+        }
 
         //Console.WriteLine((int)ElapsedSeconds + "  time gone");
     }

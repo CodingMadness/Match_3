@@ -85,7 +85,7 @@ public class Tile(TileShape body) : IEquatable<Tile>
 {
     private TileState _current;
     private Quest _quest;
-    public EventStats EventData = new();
+    public EventState EventData = new();
     
     public ref readonly Quest Quest => ref _quest;
     public virtual Options Options { get; set; }

@@ -1,6 +1,8 @@
 ﻿global using static Raylib_cs.Color;
 global using RayColor = Raylib_cs.Color;
 global using static Raylib_cs.Raylib;
+global using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute; 
+global using DAMTypes = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes; 
 
 using System.Drawing;
 using System.Numerics;
