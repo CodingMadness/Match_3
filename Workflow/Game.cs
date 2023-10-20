@@ -1,11 +1,11 @@
-﻿using System.Diagnostics;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Text;
+using BenchmarkDotNet.Running;
 using DotNext.Runtime;
 using ImGuiNET;
+using Match_3.Benchmarks;
 using Match_3.Datatypes;
 using Match_3.Service;
-using Match_3.Variables;
 using Raylib_cs;
 using static Match_3.Setup.AssetManager;
 using static Match_3.Service.Utils;
@@ -25,14 +25,16 @@ internal static class Game
     private static Background? _bgInGame1 = null!;
     private static GameTime _gameTimer;
     private static GameTime[]? _questTimers;
+    private static TimeOnly _whenTileClicked, _whenEventRaised;
     private static readonly StringBuilder TimeBuilder = new(3);
 
     private static bool _inGame;
     private static bool _shallCreateEnemies;
     private static bool _runQuestTimers;
+    private static GameTime _gameOverTimer;
 
     public static event Action OnMatchFound;
-    public static event Action OnTileClicked;
+    // public static event Action OnTileClicked;
     public static event Action OnTileSwapped;
     public static event Action OnGameOver;
 
@@ -45,9 +47,10 @@ internal static class Game
 
     private static void InitGame()
     {
-        Level = new(0, 60, 6, 12, 10);
+        Level = new(0, 600, 6, 12, 12);
         _runQuestTimers = false;
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
+        _gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown + 10);
         _matchesOf3 = new();
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
@@ -62,6 +65,8 @@ internal static class Game
         _questTimers = QuestBuilder.QuestTimers;
         QuestHandler.ActivateHandlers();
         Grid.Instance.Init(Level);
+        GameState.CurrentData = new();
+        // GameState.Quests = QuestBuilder.GetQuests();
     }
 
     private static void DragMouseToEnemies()
@@ -108,6 +113,8 @@ internal static class Game
         if (!TileClicked(out var firstClickedTile))
             return;
 
+        _whenTileClicked = TimeOnly.FromDateTime(DateTime.UtcNow);
+
         if (firstClickedTile!.IsDeleted)
             return;
 
@@ -119,9 +126,12 @@ internal static class Game
 
             //we store our current values inside "GameState" which due to its static nature is then checked upon 
             //internally inside the QuestHandler's
-            GameState.Tile = firstClickedTile;
-            GameState.Matches = _enemyMatches;
-            OnTileClicked();
+            _whenEventRaised = TimeOnly.FromDateTime(DateTime.UtcNow);
+            float elapsedTime = (_whenTileClicked - _whenEventRaised).Seconds;
+            GameState.CurrentData!.TileX = firstClickedTile;
+            GameState.CurrentData.Matches = _enemyMatches;
+
+            //OnTileClicked();
         }
         else
         {
@@ -135,7 +145,7 @@ internal static class Game
                 /*DestroyOnClickHandler.Instance.UnSubscribe();*/
                 /*TileReplacementOnClickHandler.Instance.Subscribe();*/
 
-                GameState.Tile = firstClickedTile;
+                GameState.CurrentData!.TileX = firstClickedTile;
 
                 // if (GameState.WasFeatureBtnPressed == true)
                 //     OnTileClicked();
@@ -168,7 +178,13 @@ internal static class Game
                 {
                     //the moment we have the 1. swap, we notify the MatchQuestHandler for this
                     //and he begins to count-down
-                    GameState.WasSwapped = true;
+                    _whenEventRaised = TimeOnly.FromDateTime(DateTime.UtcNow);
+                    var eventData = GameState.CurrentData!;
+                    eventData.WasSwapped = true;
+                    eventData.Count++;
+                    eventData.Interval = (_whenTileClicked - _whenEventRaised).Seconds;
+                    eventData.TileX = firstClickedTile;
+                    eventData.TileY = _secondClicked;
                     OnTileSwapped();
 
                     _secondClicked.TileState &= TileState.Selected;
@@ -183,7 +199,7 @@ internal static class Game
 
     private static void ComputeMatches()
     {
-        if (!GameState.WasSwapped)
+        if (!GameState.CurrentData!.WasSwapped)
             return;
 
         void CreateEnemiesIfNeeded()
@@ -199,12 +215,15 @@ internal static class Game
 
         if (shallCreateEnemies = Grid.Instance.WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!))
         {
-            int tileTypeIdx = (int)GameState.Tile.Body.TileColor;
-            GameState.Tile = _secondClicked!;
-            GameState.Matches = _matchesOf3;
+            var eventData = GameState.CurrentData;
+            eventData.WasSwapped = true;
+            eventData.Count++;
+            eventData.TileX = _secondClicked!;
+            eventData.Matches = _matchesOf3;
+            int tileTypeIdx = (int)eventData.TileX!.Body.TileColor;
 
             //TODO: Look into this timer problem, cause we dont wanna have TileType.Length timers only those who are in request!
-            OnMatchFound();
+            //OnMatchFound();
 
             //if its the 1.time we set _runQuestTimers=true, but we also check for each new Matched
             _runQuestTimers = true;
@@ -222,7 +241,7 @@ internal static class Game
                 break;
         }
 
-        GameState.WasSwapped = false;
+        GameState.CurrentData.WasSwapped = false;
         _secondClicked = null;
     }
 
@@ -237,125 +256,111 @@ internal static class Game
             GameState.EnemiesStillPresent = false;
             _shallCreateEnemies = false;
             _secondClicked = null;
-            GameState.WasSwapped = false;
+            GameState.CurrentData!.WasSwapped = false;
             Console.Clear();
         }
     }
+    
+    /// <summary>
+    /// this checks for a lot of scenarios in which the game could end, either by failure OR win in time!
+    /// </summary>
+    /// <returns></returns>
+    
+    //------------------------------------------------------------
 
     private static void HandleGameInput()
     {
-        GameTime gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown + 10);
-        // int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
-        float currTime = _gameTimer.ElapsedSeconds;
-
-        if (!_inGame)
+        static bool IsGameAbout2Finish()
         {
-            UiRenderer.DrawQuestLog();
-        }
-
-        else if (_inGame)
-        {
-            Send2Shader(ShaderData.gridSizeLoc, GetScreenCoord());
-            Send2Shader(ShaderData.secondsLoc, currTime);
-            Send2Shader(ShaderData.shouldWobbleLoc, CoinFlip());
-        }
-
-        if (IsKeyDown(KeyboardKey.KEY_ENTER) || _inGame)
-        {
-            _gameTimer.Run();
-
-            // int tileTypeIdx = (int)GameState.Tile.Body.TileType;
-            // ref var questTimer = ref _questTimers[tileTypeIdx];
-            //
-            // //if it got activated in "ComputeMatches()" then we can count down, else it sleeps!
-            // if (_runQuestTimers)
-            //     questTimer.Run();
-            //
-            //
-            // if (_runQuestTimers)
-            //     if (questTimer.Done())
-            //     { 
-            //     }
-            // Console.WriteLine(questTimer.Done()
-            //     ? $"YOU MISSED 1 MATCH OF TYPE {GameState.Tile.Body.TileType} AND NOW YOU LOSE BONUS OR GET PUNISHED!"
-            //     : $"YOU STILL HAVE {questTimer.ElapsedSeconds} TIME LEFT!");
-
-            GameState.IsGameOver = _gameTimer.Done();
-
             if (GameState.IsGameOver)
             {
                 OnGameOver();
-                gameOverTimer.Run();
-                TimeBuilder.Append($"{gameOverTimer.ElapsedSeconds}");
+                _gameOverTimer.Run();
+                TimeBuilder.Append($"{_gameOverTimer.ElapsedSeconds}");
 
                 UiRenderer.DrawText(TimeBuilder.AsSpan());
                 UiRenderer.DrawBackground(_bgGameOver);
-                UiRenderer.DrawTimer(gameOverTimer.ElapsedSeconds);
+                UiRenderer.DrawTimer(_gameOverTimer.ElapsedSeconds);
                 ImGui.SetWindowFontScale(2f);
-
-                if (UiRenderer.DrawGameOverScreen(gameOverTimer.Done(), 
-                        GameState.WasGameWonB4Timeout,
-                        GameState.Logger.Dequeue()))
-                    return;
+                return UiRenderer.DrawGameOverScreen(_gameOverTimer.Done(),
+                    GameState.WasGameWonB4Timeout,
+                    GameState.Logger!.Dequeue());
             }
             else if (GameState.WasGameWonB4Timeout)
             {
-                if (UiRenderer.DrawGameOverScreen(_gameTimer.Done(), true, GameState.Logger.Dequeue()))
+                if (UiRenderer.DrawGameOverScreen(_gameTimer.Done(), true, GameState.Logger!.Dequeue()))
                 {
-                    //Begin new Level!
+                    //Begin new Level and reset values!
                     InitGame();
+                    GameState.Logger.Clear();
                     GameState.WasGameWonB4Timeout = false;
+                    GameState.IsGameOver = false;
+                    GameState.EnemiesStillPresent = false;
+                    GameState.CurrentData = null;
                 }
+                return true;
             }
             else
             {
-                Debug.WriteLine(currTime);
-                // var pressed = UIRenderer.DrawFeatureBtn(out _);
-                // GameState.WasFeatureBtnPressed ??= pressed;
-                // GameState.WasFeatureBtnPressed = pressed ?? GameState.WasFeatureBtnPressed;
-                UiRenderer.DrawBackground(_bgInGame1);
-                UiRenderer.DrawTimer(currTime);
-                DragMouseToEnemies();
-                ProcessSelectedTiles();
-                ComputeMatches();
-                GameObjectRenderer.DrawOuterBox(_enemyMatches, currTime);
-                GameObjectRenderer.DrawInnerBox(_matchesOf3, currTime);
-
-                GameObjectRenderer.DrawGrid(currTime);
-                //GameObjectRenderer.DrawMatches(_enemyMatches, currTime, _shallCreateEnemies);
-
-                HardReset();
+                return false;
             }
+        }
+        
+        // int shallWobble = GetShaderLocation(WobbleEffect, "shallWobble");
+        float currTime = _gameTimer.ElapsedSeconds;
+        _inGame |= IsKeyDown(KeyboardKey.KEY_ENTER);
 
-            _inGame = true;
+        switch (_inGame)
+        {
+            case false:
+                UiRenderer.DrawQuestLog();
+                break;
+            case true:
+            {
+                _gameTimer.Run();
+
+                UpdateShader(ShaderData.gridSizeLoc, GetScreenCoord());
+                UpdateShader(ShaderData.secondsLoc, currTime);
+                UpdateShader(ShaderData.shouldWobbleLoc, CoinFlip());
+                // int tileTypeIdx = (int)GameState.Tile.Body.TileType;
+                // ref var questTimer = ref _questTimers[tileTypeIdx];
+                //
+                // //if it got activated in "ComputeMatches()" then we can count down, else it sleeps!
+                // if (_runQuestTimers)
+                //     questTimer.Run();
+                //
+                //
+                // if (_runQuestTimers)
+                //     if (questTimer.Done())
+                //     { 
+                //     }
+                // Console.WriteLine(questTimer.Done()
+                //     ? $"YOU MISSED 1 MATCH OF TYPE {GameState.Tile.Body.TileType} AND NOW YOU LOSE BONUS OR GET PUNISHED!"
+                //     : $"YOU STILL HAVE {questTimer.ElapsedSeconds} TIME LEFT!");
+
+                GameState.IsGameOver = _gameTimer.Done();
+
+                if (!IsGameAbout2Finish())
+                {
+                    UiRenderer.DrawBackground(_bgInGame1);
+                    UiRenderer.DrawTimer(currTime);
+                    DragMouseToEnemies();
+                    ProcessSelectedTiles();
+                    ComputeMatches();
+                    GameObjectRenderer.DrawGrid(currTime);
+                    HardReset();
+                }
+
+                _inGame = true;
+                break;
+            }
         }
     }
 
     private static void MainGameLoop()
     {
-        // BitsetExample bitsetExample = new BitsetExample();
-        //
-        // // Set bits to represent values
-        // bitsetExample.SetBit(5);
-        // bitsetExample.SetBit(6);
-        // bitsetExample.SetBit(13);
-        // bitsetExample.SetBit(14);
-        // bitsetExample.SetBit(15);
-        // bitsetExample.SetBit(19);
-        // bitsetExample.SetBit(20);
-        // bitsetExample.SetBit(23);
-        //
-        // // Get the original values
-        // int[] values = bitsetExample.GetSetValues();
-        // foreach (int value in values)
-        // {
-        //     Console.WriteLine("Value: " + value);
-        // }
-
         while (!WindowShouldClose())
-        {
             UiRenderer.BeginRenderCycle(HandleGameInput);
-        }
     }
 
     private static void CleanUp()
