@@ -3,6 +3,11 @@ using DotNext.Buffers;
 
 namespace Match_3.Datatypes;
 
+///This Pool has the following attributes:
+///  * It is a recycable pool, so when End reached it begins from 0 again.
+///  * It also checks for, if the incoming span is already in to avoid copy.
+///  * It works like a FIFO-Queue, and gives you back the first -> last in that order
+///  * It gives you only back spans
 public sealed class GameStateMessagePool(int approxCount, int length) : IDisposable
 {
     private MemoryOwner<char> _logPool = new(ArrayPool<char>.Shared, approxCount * length);
