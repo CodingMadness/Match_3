@@ -250,7 +250,7 @@ public ref partial struct PhraseEnumerator
         return slice2Colorize.Length > 0;
     }
     
-    public bool GetNextColor()
+    private bool GetNextColor()
     {
         if (_position >= _colorPositions.Length)
             return false;
@@ -262,7 +262,7 @@ public ref partial struct PhraseEnumerator
         int okayBegin = match.idx + match.len;
         int relativeEnd = _position == _colorPositions.Length - 1
             ? _text[beginOfBlack..].IndexOf('(') + beginOfBlack
-            : _text.Length - okayBegin;
+            : _text.Length;
         
         _current = new(_text[okayBegin..relativeEnd], color2Use, ReadOnlySpan<char>.Empty);
         
@@ -286,7 +286,7 @@ public ref partial struct PhraseEnumerator
     public void Dispose()
     {
         // _matchPool.Span.Clear();
-        // _matchPool.Dispose();
+        _matchPool.Dispose();
     }
 
     [GeneratedRegex(pattern: @$"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
