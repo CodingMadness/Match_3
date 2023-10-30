@@ -99,8 +99,8 @@ public readonly ref struct TextInfo
         Slice2Colorize = slice2Colorize;
         _separator = separator;
         //FastEnum.Parse<KnownColor, int>(code); for some reason this does not work.....
-        ColorAsText = code;
-        var color = Enum.Parse<KnownColor>(code);
+        ColorAsText = code.TrimEnd('\0');
+        var color = Enum.Parse<KnownColor>(ColorAsText);
         TileColor = color; 
         ColorV4ToApply = Color.FromKnownColor(color).ToVec4();
         Vector2 offset = Vector2.One * 1.5f;
@@ -260,7 +260,7 @@ public ref partial struct PhraseEnumerator
         var color2Use = _text.Slice(match.idx, match.len);
         int beginOfBlack = match.idx + 1;
         int okayBegin = match.idx + match.len;
-        int relativeEnd = _position == _colorPositions.Length - 1
+        int relativeEnd = _position < _colorPositions.Length - 1
             ? _text[beginOfBlack..].IndexOf('(') + beginOfBlack
             : _text.Length;
         
