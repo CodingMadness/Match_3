@@ -1,8 +1,9 @@
 ﻿using System.Buffers;
 using DotNext;
 using DotNext.Buffers;
+using Match_3.StateHolder;
 
-namespace Match_3.StateHolder;
+namespace Match_3.Service;
 
 /// <summary>
 /// This Pool has the following attributes:
