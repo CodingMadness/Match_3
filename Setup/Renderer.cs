@@ -2,13 +2,14 @@ using System.Drawing;
 using System.Numerics;
 using ImGuiNET;
 using Match_3.Service;
-using Match_3.Setup;
 using Match_3.StateHolder;
+using Match_3.Workflow;
 using Raylib_cs;
+
 using Vector2 = System.Numerics.Vector2;
 using static Match_3.Setup.AssetManager;
 
-namespace Match_3.Workflow;
+namespace Match_3.Setup;
 
 public static class UiRenderer
 {
@@ -17,7 +18,7 @@ public static class UiRenderer
         RlImGui.Setup(false);
     }
 
-    public static void BeginRenderCycle(Action mainGameLoop)
+    public static void BeginRendering(Action mainGameLoop)
     {
         BeginDrawing();
         {
@@ -106,7 +107,7 @@ public static class UiRenderer
         // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
         float winWidth = ImGui.GetWindowWidth();
         Vector2 currentPos = new(25f, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
-        using scoped var iterator = new PhraseEnumerator(text);
+        using scoped var iterator = new QuestLineEnumerator(text);
         float totalSize = 0;
         Vector2 tmp = currentPos;
         float wrapPosX = winWidth - 20f;
@@ -259,14 +260,16 @@ public static class GameObjectRenderer
         if (tile is EnemyTile enemy)
         {
             enemy.Body.ScaleableFloat = 1f;
-            DrawTexturePro(atlas, enemy.Body.TextureRect.AsIntRayRect(), enemy.Pulsate(elapsedTime).AsIntRayRect(),
-                Vector2.Zero, 0f, enemy.Body.Color);
+            DrawTexturePro(atlas, enemy.Body.TextureRect.AsIntRayRect(), 
+                        enemy.Pulsate(elapsedTime).AsIntRayRect(),
+                           Vector2.Zero, 0f, enemy.Body.Color);
             return;
         }
 
         var body = tile.Body;
-        DrawTexturePro(atlas, body.TextureRect.AsIntRayRect(), tile.MapBox.AsIntRayRect(), Vector2.Zero, 0f,
-            body.Color);
+        DrawTexturePro(atlas, body.TextureRect.AsIntRayRect(), 
+                   tile.MapBox.AsIntRayRect(), 
+                       Vector2.Zero, 0f, body.Color);
         DrawCoordOnTop(tile);
     }
 
@@ -274,13 +277,15 @@ public static class GameObjectRenderer
     {
         BeginShaderMode(WobbleEffect);
         {
-            for (int x = 0; x < Grid.Instance.TileWidth; x++)
+            (int tileWidth, int tileHeight) = 
+                (GameState.CurrentLvl!.GridWidth, GameState.CurrentLvl.GridHeight);
+            
+            for (int x = 0; x < tileWidth; x++)
             {
-                for (int y = 0; y < Grid.Instance.TileHeight; y++)
+                for (int y = 0; y < tileHeight; y++)
                 {
-                    Vector2 current = new(x, y);
-                    var basicTile = Grid.Instance[current];
-
+                    Tile? basicTile = Grid.GetTile(new(x, y));
+                    
                     if (basicTile is not null && !basicTile.IsDeleted && basicTile is not EnemyTile)
                     {
                         DrawTile(ref DefaultTileAtlas, basicTile, elapsedTime);
@@ -303,8 +308,10 @@ public static class GameObjectRenderer
 
         for (int i = 0; i < match?.Count; i++)
         {
-            var gridCell = match[i].GridCell;
-            var tile = Grid.Instance[gridCell];
+            GameState.CurrData!.Coords = match[i].GridCell;
+            //change this to: "OnGetTile?.Invoke();"  
+
+            Tile? tile = GameState.CurrData.TileX;
 
             if (tile is null)
                 continue;
