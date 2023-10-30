@@ -173,23 +173,30 @@ public class ClickHandler : QuestHandler
             {
                 Console.Clear();
                 //Console.WriteLine($"{tmpFirst.GridCell} was clicked AGAIN!");
-                secondClicked.TileState &= TileState.Selected;
+                secondClicked.TileState &= ~TileState.Selected;
                 secondClicked = null;
             }
             /*Different tile selected ==> swap*/
             else
             {
-                firstClicked.TileState &= TileState.Selected;
-
+                firstClicked.TileState &= ~TileState.Selected;
+                
                 currData.TileY = secondClicked;
                 currData.TileX = firstClicked;
                 OnSwapTile?.Invoke();
                 
                 if (currData.WasSwapped)
                 {
+                    Debug.WriteLine("SWAPPED 2 tiles!!!!!!!!!!!!!!!!!");
                     //the moment we have the 1. swap, we notify the SwapHandler for this
                     //and he begins to keep track of (HOW LONG did the swap took) and
                     //(HOW MANY MISS-SWAPS HAPPENED!)
+                    firstClicked.TileState &= ~TileState.Selected;
+                    secondClicked = null;  //he is the first now
+                }
+                else
+                {
+                    firstClicked.TileState &= ~TileState.Selected;
                 }
             }
         }

@@ -66,7 +66,6 @@ internal static class Game
         {
             var currState = GameState.CurrData!;
             currState.TileX = firstClickedTile;
-            currState.TileY = _secondClicked; //this may be NULL! check to see when and how..
             OnTileClicked?.Invoke();
         }
     }
@@ -173,7 +172,6 @@ internal static class Game
         
         float currTime = _gameTimer.ElapsedSeconds;
         _inGame |= IsKeyDown(KeyboardKey.KEY_ENTER);
-        Debug.WriteLine(currTime);
         
         switch (_inGame)
         {
