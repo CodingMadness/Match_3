@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using DotNext;
-using Match_3.Datatypes;
 using Match_3.Service;
+using Match_3.StateHolder;
 using Match_3.Variables.Extensions;
 using NoAlloq;
 using TextInfo = Match_3.Service.TextInfo;
@@ -37,7 +37,7 @@ public static class QuestBuilder
                                               $" (Black) for your own help as well as there is the tolerance for" +
                                               $" ({TileColor.Transparent.ToStringFast()}) {Quest.MissMatchName} miss matches";
         
-    private static GameStateMessagePool logPool;
+    private static SpanQueue<char> _logPool;
     public static readonly GameTime[]? QuestTimers = new GameTime[Utils.TileColorLen];
     private static readonly Quest[] QuestForAllColors = new Quest[Utils.TileColorLen];
     
@@ -65,13 +65,6 @@ public static class QuestBuilder
     
     private static void DefineQuest(Span<byte> maxCountPerType)
     {
-        //TODO: Write an implementation in where I am able
-        //TODO: to store multiple different values in one dataStructure and store also the operation
-        //TODO: like-> consider BigEndian-System and this theoretical example:
-        //TODO:   (bits[3] = 28)  + (bits[5] = 63) + (bits[2] = 24)  ===> 221 as an example
-        // Span<byte> bytes = stackalloc byte[] {10, 15, 20};
-        // BitArray bits = new BitArray(bytes.ToArray());
-
         void Fill(Span<TileColor> toFill)
         {
             for (int i = 0; i < Utils.TileColorLen; i++)
@@ -118,17 +111,15 @@ public static class QuestBuilder
         QuestForAllColors.AsSpan().Where(x => x.Match.HasValue).Select(x => x).TakeInto(QuestForAllColors);
         QuestTimers.AsSpan().Where(x => x.IsInitialized).Select(x => x).TakeInto(QuestTimers);
         //+1 for SPACE between the logs!
-        logPool = new(QuestCount, (QuestLog.Length + 1)); 
+        _logPool = new(QuestCount * (QuestLog.Length + 1)); 
     }
     
     public static ReadOnlySpan<char> BuildQuestMessageFrom(Quest quest)
     {
-        // var questIterator = new PhraseEnumerator(LogBuilder.Clear().Append(QuestLog), true);
-        
         Debug.WriteLine($"There are:  {QuestCount} Quests to solve");
         
         //there is a defect in here....!
-        var currLog = logPool.Enqueue(QuestLog);  
+        var currLog = _logPool.Enqueue(QuestLog);  
         using scoped var questIterator = new PhraseEnumerator(currLog, true);
         
         foreach (TextInfo questPiece in questIterator)
@@ -150,5 +141,5 @@ public static class QuestBuilder
         return currLog;
     }
 
-    public static ReadOnlySpan<char> GetPooledQuestMessage() => logPool.Dequeue();
+    public static ReadOnlySpan<char> GetPooledQuestLog() => _logPool.Dequeue();
 }
