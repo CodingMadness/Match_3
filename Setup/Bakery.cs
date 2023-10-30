@@ -1,11 +1,14 @@
 ﻿using System.Numerics;
 using Match_3.Service;
 using Match_3.StateHolder;
+using Match_3.Workflow;
 
-namespace Match_3.Workflow;
+namespace Match_3.Setup;
 
 public static class Bakery
 {
+    private static readonly EnemyMatches Enemies = new();
+    
     private static TileColor GetTileTypeTypeByNoise(float noise)
     {
         noise = noise.Trunc(2);
@@ -137,29 +140,29 @@ public static class Bakery
         };
         return blockTile;
     }
-
-    public static event Grid.GridAction OnEnemyTileCreated;
-
-    public static EnemyMatches AsEnemies(Grid map, MatchX match)
+    
+    public static EnemyMatches AsEnemies(MatchX match)
     {
-        EnemyMatches list = new();
-
+        var currData = GameState.CurrData!;
+        
         for (int i = 0; i < match.Count; i++)
         {
             //var gridCell = match.Move(i) ?? throw new ArgumentOutOfRangeException("bla bla");
-            var gridCell = match[(i)].GridCell;
-            //--!--
-            map[gridCell] = AsEnemy(map[gridCell]!);
-            EnemyTile e = (EnemyTile)map[gridCell]!;
-            GameState.CurrentData.TileX = e;
-            OnEnemyTileCreated(Span<byte>.Empty);
+            var gridCell = match[i].GridCell;
+            currData.Coords = gridCell;
+            var tile = Grid.GetTile(gridCell)!;
+            var enemyTile = AsEnemy(tile);
+            Grid.SetTile(enemyTile);
+            // currData.TileY = enemyTile;
+            // OnSetTileInGrid?.Invoke();
+            //OnEnemyTileCreated(Span<byte>.Empty);
             //e.BlockSurroundingTiles(map, true);
-            list.Add(e);
+            Enemies.Add(enemyTile);
         }
 
         match.Clear();
         //now match has become an enemy match and we dont need the other
         //one anymore
-        return list;
+        return Enemies;
     }
 }
