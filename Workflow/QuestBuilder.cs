@@ -36,28 +36,11 @@ public static class QuestBuilder
         
     private static SpanQueue<char> _logPool;
     private static readonly Quest[] QuestForAllColors = new Quest[Utils.TileColorLen];
-
     private static int _questCounter;
-        
-    public static ref readonly Quest GetQuestFrom(TileColor key)
-    {
-        var enumerator = GetQuests();
-
-        foreach (ref readonly var pair in enumerator)
-        {
-            if (pair.TileColor == key)
-                return ref pair;
-        }
-
-        return ref Empty;
-    }
-    
+   
     public static int QuestCount { get; private set; }
-        
-    public static bool ShallRecycle => _questCounter == QuestCount;
     
-    public static FastSpanEnumerator<Quest> GetQuests()
-        => new(QuestForAllColors.AsSpan(0, QuestCount));
+    public static bool ShallRecycle => _questCounter == QuestCount;
     
     private static void DefineQuest(Span<byte> maxCountPerType)
     {
@@ -102,10 +85,9 @@ public static class QuestBuilder
             trueIdx++;
         }
 
-        //sort and filter the null out
-        QuestForAllColors.AsSpan().Where(x => x.Match.HasValue).Select(x => x).TakeInto(QuestForAllColors);
-        //+1 for SPACE between the logs!
-        _logPool = new(QuestCount * (QuestLog.Length + 1)); 
+        GameState.QuestCount = QuestCount;
+        GameState.Quests = QuestForAllColors;
+        GameState.Logger = _logPool = new(QuestCount * (QuestLog.Length + 1)); 
     }
     
     public static ReadOnlySpan<char> BuildQuestMessageFrom(Quest quest)
@@ -134,6 +116,6 @@ public static class QuestBuilder
         _questCounter++;
         return currLog;
     }
-
+    
     public static ReadOnlySpan<char> GetPooledQuestLog() => _logPool.Dequeue(true);
 }
