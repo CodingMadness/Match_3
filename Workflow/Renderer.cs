@@ -1,9 +1,9 @@
 using System.Drawing;
 using System.Numerics;
 using ImGuiNET;
-using Match_3.Datatypes;
 using Match_3.Service;
 using Match_3.Setup;
+using Match_3.StateHolder;
 using Raylib_cs;
 using Vector2 = System.Numerics.Vector2;
 using static Match_3.Setup.AssetManager;
@@ -161,7 +161,7 @@ public static class UiRenderer
         else
         {
             //Draw here the logs repeatedly from the pool!....
-            DrawText(QuestBuilder.GetPooledQuestMessage());
+            DrawText(QuestBuilder.GetPooledQuestLog());
         }
     }
     

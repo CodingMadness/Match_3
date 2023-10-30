@@ -7,7 +7,7 @@ using Match_3.Workflow;
 
 
 [assembly: FastEnumToString(typeof(TileColor), IsPublic = true, ExtensionMethodNamespace = "Match_3.Variables.Extensions")]
-namespace Match_3.Datatypes;
+namespace Match_3.StateHolder;
 
 [Flags]
 public enum Options

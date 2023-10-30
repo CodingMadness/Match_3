@@ -1,6 +1,6 @@
 ﻿using DotNext;
 
-namespace Match_3.Datatypes;
+namespace Match_3.StateHolder;
 
 public readonly record struct Quest(TileColor TileColor, 
                                     SubQuest? Match, 

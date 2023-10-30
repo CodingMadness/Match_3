@@ -1,4 +1,4 @@
-﻿namespace Match_3.Datatypes;
+﻿namespace Match_3.StateHolder;
 
 public readonly record struct SubQuest(int Count, float Interval)
 {

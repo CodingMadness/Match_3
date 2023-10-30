@@ -1,4 +1,4 @@
-﻿namespace Match_3.Datatypes;
+﻿namespace Match_3.StateHolder;
 
 public record Level(int Id, 
     int GameBeginAt, int GameOverScreenCountdown,

@@ -270,6 +270,7 @@ public ref partial struct PhraseEnumerator
         
         return true;
     }
+   
     public bool MoveNext()
     {
         return _skipBlackColor 
@@ -285,7 +286,6 @@ public ref partial struct PhraseEnumerator
     
     public void Dispose()
     {
-        // _matchPool.Span.Clear();
         _matchPool.Dispose();
     }
 

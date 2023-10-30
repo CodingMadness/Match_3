@@ -2,8 +2,8 @@
 using System.Text;
 using DotNext.Runtime;
 using ImGuiNET;
-using Match_3.Datatypes;
 using Match_3.Service;
+using Match_3.StateHolder;
 using Raylib_cs;
 using static Match_3.Setup.AssetManager;
 using static Match_3.Service.Utils;
@@ -284,7 +284,7 @@ internal static class Game
                 return 
                     !UiRenderer.DrawGameOverScreen(_gameOverTimer.Done(),
                                                   GameState.WasGameWonB4Timeout,
-                                                 GameState.Logger!.Dequeue());
+                                                 GameState.Logger!.Value.Dequeue());
             }
             else if (GameState.WasGameWonB4Timeout)
             {
@@ -292,7 +292,7 @@ internal static class Game
                 {
                     //Begin new Level and reset values!
                     InitGame();
-                    GameState.Logger.Clear();
+                    GameState.Logger!.Value.Clear();
                     GameState.WasGameWonB4Timeout = false;
                     GameState.IsGameOver = false;
                     GameState.EnemiesStillPresent = false;
