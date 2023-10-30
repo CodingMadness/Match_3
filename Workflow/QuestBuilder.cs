@@ -18,10 +18,7 @@ public static class QuestBuilder
      *   - When we have successfully created "QuestCount" Questlogs we will
      *   - Just return from now on the respective string from the pool
      */
-    static QuestBuilder()
-    {
-        Grid.NotifyOnGridCreationDone += DefineQuest;
-    }
+    public static void Init() =>  Grid.NotifyOnGridCreationDone += DefineQuest;
 
     private static readonly Quest Empty = default;
 
@@ -38,10 +35,9 @@ public static class QuestBuilder
                                               $" ({TileColor.Transparent.ToStringFast()}) {Quest.MissMatchName} miss matches";
         
     private static SpanQueue<char> _logPool;
-    public static readonly GameTime[]? QuestTimers = new GameTime[Utils.TileColorLen];
     private static readonly Quest[] QuestForAllColors = new Quest[Utils.TileColorLen];
-    
-    public static int _questCounter;
+
+    private static int _questCounter;
         
     public static ref readonly Quest GetQuestFrom(TileColor key)
     {
@@ -102,14 +98,12 @@ public static class QuestBuilder
             SubQuest swap = new(4, -1f);
             SubQuest replacement = new(5, -1f);
             SubQuest tolerance = new(6, -1f);
-            QuestForAllColors[trueIdx] = new Quest(type, match, swap, replacement, tolerance);
-            QuestTimers![trueIdx] = GameTime.GetTimer(toEven);
+            QuestForAllColors[trueIdx] = new Quest(type, GameTime.GetTimer(toEven), match, swap, replacement, tolerance);
             trueIdx++;
         }
 
         //sort and filter the null out
         QuestForAllColors.AsSpan().Where(x => x.Match.HasValue).Select(x => x).TakeInto(QuestForAllColors);
-        QuestTimers.AsSpan().Where(x => x.IsInitialized).Select(x => x).TakeInto(QuestTimers);
         //+1 for SPACE between the logs!
         _logPool = new(QuestCount * (QuestLog.Length + 1)); 
     }
@@ -120,7 +114,7 @@ public static class QuestBuilder
         
         //there is a defect in here....!
         var currLog = _logPool.Enqueue(QuestLog);  
-        using scoped var questIterator = new PhraseEnumerator(currLog, true);
+        using scoped var questIterator = new QuestLineEnumerator(currLog, true);
         
         foreach (TextInfo questPiece in questIterator)
         {
