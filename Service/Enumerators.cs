@@ -187,7 +187,7 @@ public ref struct WordEnumerator
     }
 }
 
-public ref partial struct PhraseEnumerator
+public ref partial struct QuestLineEnumerator
 {
     private readonly bool _skipBlackColor;
     private readonly Span<(int idx, int len)> _colorPositions;
@@ -196,7 +196,7 @@ public ref partial struct PhraseEnumerator
     private MemoryRental<(int idx, int len)> _matchPool;
     private int _position;
 
-    public PhraseEnumerator(ReadOnlySpan<char> text, bool skipBlackColor=false)
+    public QuestLineEnumerator(ReadOnlySpan<char> text, bool skipBlackColor=false)
     {
         //dont know a value yet for this but we use 15 for now
         _matchPool = new(5, false);
@@ -279,7 +279,7 @@ public ref partial struct PhraseEnumerator
     }
     
     [UnscopedRef]
-    public ref readonly PhraseEnumerator GetEnumerator()
+    public ref readonly QuestLineEnumerator GetEnumerator()
     {
         return ref this;
     }
