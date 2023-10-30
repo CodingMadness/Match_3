@@ -284,7 +284,7 @@ internal static class Game
                 return 
                     !UiRenderer.DrawGameOverScreen(_gameOverTimer.Done(),
                                                   GameState.WasGameWonB4Timeout,
-                                                 GameState.Logger!.Value.Dequeue());
+                                                 GameState.Logger!.Dequeue());
             }
             else if (GameState.WasGameWonB4Timeout)
             {
@@ -292,7 +292,7 @@ internal static class Game
                 {
                     //Begin new Level and reset values!
                     InitGame();
-                    GameState.Logger!.Value.Clear();
+                    GameState.Logger.Clear();
                     GameState.WasGameWonB4Timeout = false;
                     GameState.IsGameOver = false;
                     GameState.EnemiesStillPresent = false;

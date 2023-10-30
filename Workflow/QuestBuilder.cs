@@ -141,5 +141,5 @@ public static class QuestBuilder
         return currLog;
     }
 
-    public static ReadOnlySpan<char> GetPooledQuestLog() => _logPool.Dequeue();
+    public static ReadOnlySpan<char> GetPooledQuestLog() => _logPool.Dequeue(true);
 }

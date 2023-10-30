@@ -310,7 +310,6 @@ public static class Utils
         return newOffset + r.Length;
     }
 
-
     /// <summary>
     /// Swaps 2 different slices within the same span!
     /// </summary>
@@ -500,8 +499,7 @@ public static class Utils
     }
 
     public static void Swap(this scoped ReadOnlySpan<char> input, Range x, Range y) => input.Swap(x, y, ' ');
-
-
+    
     public static Rectangle AsIntRayRect(this RectangleF floatBox) =>
         new(floatBox.X, floatBox.Y, floatBox.Width, floatBox.Height);
 
