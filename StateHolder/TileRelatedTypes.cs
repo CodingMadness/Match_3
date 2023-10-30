@@ -182,7 +182,7 @@ public class Tile(TileShape body) : IEquatable<Tile>
         TileState = TileState.Clean;
     }
 
-    public bool Equals(Tile? other) => StateAndBodyComparer.Singleton.Equals(other, this);
+    public bool Equals(Tile? other) => Comparer.StateAndBodyComparer.Singleton.Equals(other, this);
 
     public override bool Equals(object? obj) => Equals(obj as Tile);
 
@@ -192,7 +192,7 @@ public class Tile(TileShape body) : IEquatable<Tile>
 public class EnemyTile(TileShape body) : Tile(body)
 {
     public override Options Options => Options.UnMovable;
-    
+
     public RectangleF Pulsate(float elapsedTime)
     {
         if (elapsedTime <= 0f)
@@ -207,7 +207,7 @@ public class EnemyTile(TileShape body) : Tile(body)
         return rect with { X = WorldCell.X, Y = (int)WorldCell.Y };
     }
     
-    public void BlockSurroundingTiles(Grid map, bool disable)
+    public void BlockSurroundingTiles(bool disable)
     {
         bool goDiagonal = false;
         const Grid.Direction lastDir = (Grid.Direction)4;
@@ -261,16 +261,15 @@ public class EnemyTile(TileShape body) : Tile(body)
             RepeatLoop(ref i, false);
 
             Vector2 next = NextCell(i);
-
-            if (Intrinsics.IsExactTypeOf<Tile>(map[next]))
+            var neighborTile = Grid.GetTile(next);
+            
+            if (Intrinsics.IsExactTypeOf<Tile>(neighborTile))
             {
-                var t = map[next];
-
                 if (disable)
-                    t!.Disable(false);
+                    neighborTile!.Disable(false);
 
                 else
-                    t!.Enable();
+                    neighborTile!.Enable();
             }
         }
     }
@@ -278,7 +277,7 @@ public class EnemyTile(TileShape body) : Tile(body)
 
 public class MatchX
 {
-    protected readonly SortedSet<Tile> Matches = new(CellComparer.Singleton);
+    protected readonly SortedSet<Tile> Matches = new(Comparer.CellComparer.Singleton);
 
     private Vector2 _direction;
     private RectangleF _worldRect;
@@ -410,44 +409,3 @@ public class EnemyMatches : MatchX
     }
 }
 
-public sealed class StateAndBodyComparer : EqualityComparer<Tile>
-{
-    public override bool Equals(Tile? x, Tile? y)
-    {
-        if (x is not { }) return false;
-        if (y is not { }) return false;
-        if (ReferenceEquals(x, y)) return true;
-        if (ReferenceEquals(x, null)) return false;
-        if (ReferenceEquals(y, null)) return false;
-        if (x.GetType() != y.GetType()) return false;
-        if ((x.TileState & TileState.Deleted) == TileState.Deleted ||
-            (x.TileState & TileState.Disabled) == TileState.Disabled) return false;
-        
-        return x.Body.Equals(y.Body);
-    }
-    public override int GetHashCode(Tile obj)
-    {
-        return HashCode.Combine((int)obj.TileState, obj.Body);
-    }
-    public static StateAndBodyComparer Singleton => new();
-}
-
-public sealed class CellComparer : EqualityComparer<Tile>, IComparer<Tile>
-{
-    public override bool Equals(Tile? x, Tile? y)
-    {
-        return Compare(x, y) == 0;
-    }
-    public override int GetHashCode(Tile obj)
-    {
-        return obj.GridCell.GetHashCode();
-    }
-    public int Compare(Tile? a, Tile? b)
-    {
-        if (a is null) return -1;
-        if (a == b) return 0;
-        if (b is null) return 1;
-        return a.GridCell.CompareTo(b.GridCell);
-    }
-    public static CellComparer Singleton => new();
-}
