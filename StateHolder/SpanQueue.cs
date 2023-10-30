@@ -24,14 +24,13 @@ public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, 
      */
     private MemoryOwner<T> _content = new(ArrayPool<T>.Shared, length + 1);
     private BitPack64 _lengthPack = new();
-
-    private uint
-        _enQCount, _deQCount;
  
     private uint
+        _enQCount, 
         _enQCharIdx,
         _deQCharIdx,
-        _currLogLen;
+        _currLogLen, 
+        _nextLen;
 
     /// <summary>
     /// This one is only for internal use, like for performance-based algorithms,
@@ -61,8 +60,8 @@ public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, 
         //check if we are already at max or the current "items" is already in the span, if so, just return back the one from the pool!
         // if (_Infos.Span[_enQCount].hash == items.BitwiseHashCode())
         //     return ReadOnlySpan<T>.Empty;
-        Span<T> entireSpan=_content.Span, withoutEmpties = default;
-        
+        var entireSpan=_content.Span;
+
         if (entireSpan.Length == _enQCharIdx)
             return ReadOnlySpan<T>.Empty;
 
@@ -70,8 +69,8 @@ public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, 
         //OR if the current pool is only a slice of "items"
         if (_enQCharIdx > 0)
         {
-            withoutEmpties = _content.Span.TrimLength((int)_enQCharIdx);
-            
+            var withoutEmpties = _content.Span.TrimLength((int)_enQCharIdx);
+
             if ((entireSpan.IndexOf(input)) != -1)
                 return withoutEmpties;
 
@@ -89,27 +88,33 @@ public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, 
         return copyOfPoolSlice;
     }
     
-    /// <summary>
-    /// Returns based on FIFO-principle the first log from the Queue
-    /// </summary>
-    /// <returns></returns>
-    public ReadOnlySpan<T> Dequeue()
+     /// <summary>
+     /// Gives you back, based on FIFO model, the current frame of the Pool
+     /// </summary>
+     /// <param name="shallRecycle">A value indicating if the very 1. valid return of this method
+     /// shall give you the same span over and over again</param>
+     /// <returns></returns>
+    public ReadOnlySpan<T> Dequeue(bool shallRecycle=false)
     {
         if (_enQCount == 0)
             return ReadOnlySpan<T>.Empty;
 
         var span = _content.Span;
-
+        //we have to avoid somehow, that once the "nextLen" is obtained we need to check 
+        //if the value is already in the pack, so it doesnt iterate the entire pack if it can just 
+        //give you back the same stuff over and over!
+        _nextLen = _lengthPack.Unpack() ?? _nextLen;
+        var currPart = span.Slice((int)_deQCharIdx, (int)_nextLen);
+        
         //when the 'End=_lengthPack.Count' is reached, we will just recycle and begin from 0 again..
-        if (_deQCount == _lengthPack.Count)
+        if (!shallRecycle)
         {
-            _deQCount = 0;
-            _deQCharIdx = 0;
-        }
+            if (_deQCharIdx == span.Length)
+                _deQCharIdx = 0;
 
-        uint nextLen = _lengthPack.Unpack();
-        var currPart = span.Slice((int)_deQCharIdx, (int)nextLen);
-        _deQCharIdx += nextLen;
+            _deQCharIdx += _nextLen;
+        }
+        
         return currPart;
     }
 
@@ -117,7 +122,6 @@ public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, 
     {
         _enQCharIdx = 0;
         _enQCount = 0;
-        _deQCount = 0;
         _deQCharIdx = 0;
     }
 
