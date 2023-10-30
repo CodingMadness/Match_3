@@ -135,13 +135,13 @@ public static class UiRenderer
             {
                 ImGui.SetCursorPos(tmp);
                 ImGui.PushTextWrapPos(wrapPosX);
-                ImGui.TextColored(word.ColorV4ToApply, word.Slice2Colorize);
+                var onlyValue = word.Slice2Colorize.TrimEnd('\0');
+                ImGui.TextColored(word.ColorV4ToApply, onlyValue);
                 ImGui.PopTextWrapPos();
-                tmp.X += word.TextSize.X + 5f;
+                tmp.X += word.TextSize.X + 3.5f;
             }
         }
     }
-    
     
     public static void DrawQuestLog()
     {
