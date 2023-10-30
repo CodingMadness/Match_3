@@ -5,11 +5,12 @@ using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using DotNext.Runtime;
 using Match_3.Service;
+using Match_3.Setup;
 using Match_3.StateHolder;
 
 namespace Match_3.Workflow;
 
-public sealed class Grid
+public static class Grid
 {
     public enum Direction : byte
     {
@@ -19,36 +20,43 @@ public sealed class Grid
         NegativeY = 3,
     }
 
-    private Tile[,] _bitmap;
-    private static Tile _lastMatchTrigger;
-    private byte _match3FuncCounter;
-    private bool _hasBeenSorted;
-    
-    public int TileWidth;
-    public int TileHeight;
-    private static readonly Dictionary<TileColor, EventState> TypeStats = new(Utils.TileColorLen);
-    
-    public static ref EventState GetStatsByType(TileColor t)
-    {
-        ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(TypeStats, t, out var existedB4);
-        if (!existedB4) x = new();
-        return ref x; 
-    }
+    private static Tile[,]? _bitmap;
+    private static Tile? _lastMatchTrigger;
+    private static byte _match3FuncCounter;
+    private static int TileWidth;
+    private static int TileHeight;
 
     public delegate void GridAction(Span<byte> countPerType);
 
-    public static event GridAction NotifyOnGridCreationDone;
-    
-    public static event GridAction OnTileCreated;
-  
-    public static Grid Instance { get; } = new();
+    public static event GridAction? NotifyOnGridCreationDone;
+    public static event Action? OnMatchFound;
 
-    private Grid()
+    private static void CheckForMatch()
     {
+        if (!GameState.CurrData!.WasSwapped)
+            return;
+
+        var currData = GameState.CurrData;
+        ref var _secondClicked = ref currData.TileY;
+        var _matchesOf3 = currData.Matches;
         
+        if (WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!))
+        {
+            var eventData = GameState.CurrData;
+            eventData.WasSwapped = true;
+            eventData.Count++;
+            eventData.TileX = _secondClicked!;
+            eventData.Matches = _matchesOf3;
+            OnMatchFound?.Invoke();
+        }
+        else return;
+
+        //reset data old state, in order to allow the entire process to cycle again!
+        GameState.CurrData.WasSwapped = false;
+        _secondClicked = null;
     }
-        
-    private void CreateMap()
+    
+    private static void CreateMap()
     {
         Span<byte> counts = stackalloc byte[Utils.TileColorLen];
         
@@ -61,7 +69,7 @@ public sealed class Grid
                 var f = LoadTextureFromImage(img);
                 //Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
                 Intrinsics.Bitcast(f, out float noise);
-                var tile = _bitmap[x, y] = Bakery.CreateTile(current, noise);
+                var tile = _bitmap![x, y] = Bakery.CreateTile(current, noise);
                 //EventStats.TileX = tile;
                 //we yet dont care for side quests and hence we dont need to keep track of ALL tiles, only match-based information
                 /*OnTileCreated(Span<byte>.Empty);*/
@@ -70,138 +78,64 @@ public sealed class Grid
             }
         }
         
-        NotifyOnGridCreationDone(counts[1..]);
+        NotifyOnGridCreationDone?.Invoke(counts[1..]);
     }
         
-    public ref EventState GetTileStatsBy<T>(T key) where T : notnull
+    public static void Init()//--> RECEIVER!
     {
-        var map = _bitmap.AsSpan();
-        ref var eventData = ref map[2].EventData;
-        
-        if (!_hasBeenSorted)
-        {
-            map.Sort();
-            _hasBeenSorted = true;
-        }
-
-        var iterator = new FastSpanEnumerator<Tile>(map);
-            
-        foreach (Tile tile in iterator)
-        {
-            switch (tile)
-            {
-                case null:
-                    continue;
-                
-                default:
-                    switch (key)
-                    {
-                        case Tile x:
-                            if (x.Equals(tile))
-                                eventData = ref tile.EventData;
-                            break;
-                        case TileColor type:
-                            if (tile.Body.TileColor == type)
-                                eventData = ref tile.EventData;
-                            break;
-                        case Vector2 pos:
-                            if (tile.GridCell == pos)
-                                eventData = ref tile.EventData;
-                            break;
-                        case TileShape body:
-                            if (tile.Body == body)
-                                eventData = ref tile.EventData;
-                            break;
-                    } 
-                    break;
-            }
-        }
-        return ref eventData;
-    }
-
-    public ref readonly Quest GetTileQuestBy<T>(T key) where T : notnull
-    {
-        var map = _bitmap.AsSpan();
-        ref readonly var eventData = ref map[2].Quest;
-        var iterator = new FastSpanEnumerator<Tile>(map);
-        
-        foreach (var tile in iterator)
-        {
-            switch (tile)
-            {
-                case null:
-                    continue;
-                
-                default:
-                    switch (key)
-                    {
-                        case Tile x:
-                            if (x.Equals(tile))
-                                eventData = ref tile.Quest;
-                            break;
-                        case TileColor type:
-                            if (tile.Body.TileColor == type)
-                                eventData = ref tile.Quest;
-                            break;
-                        case Vector2 pos:
-                            if (tile.GridCell == pos)
-                                eventData = ref tile.Quest;
-                            break;
-                        case TileShape body:
-                            if (tile.Body == body)
-                                eventData = ref tile.Quest;
-                            break;
-                    }
-                    break;
-            }
-        }
-
-        return ref eventData;
-    }
-        
-    public void Init(Level current)
-    {
+        // ----> The "NOTIFIER" has to DECLARE the event-type!  AND has to invoke() it in his own code-base somewhere!
+        // ----> The "RECEIVER" has to REGISTER the event AND handle with appropriate code logic the specific event-case!
+         
+        ClickHandler.Instance.OnSwapTile += Swap;                           //--> registration!
+        SwapHandler.Instance.OnCheckForMatch += CheckForMatch;   //--> registration!
+        // EnemyTile.OnStoreTileInGameState += StoreTileInGameState;
+        // Bakery.OnStoreTileInGameState += StoreTileInGameState;
+        // Game.OnTileClicked += StoreTileInGameState;
+        var current = GameState.CurrentLvl!;
         TileWidth = current.GridWidth;
         TileHeight = current.GridHeight;
         _bitmap = new Tile[TileWidth, TileHeight];
         CreateMap();
     }
-        
-    public Tile? this[Vector2 coord]
+
+    public static Tile? GetTile(Vector2 coord)
     {
-        get
+        Tile? tmp = null;
+        
+        switch (coord.X)
         {
-            Tile? tmp = null;
-                
-            switch (coord.X)
+            case >= 0 when coord.X < TileWidth && coord.Y >= 0 && coord.Y < TileHeight:
             {
-                case >= 0 when coord.X < TileWidth && coord.Y >= 0 && coord.Y < TileHeight:
-                {
-                    //its within bounds!
-                    tmp = _bitmap[(int)coord.X, (int)coord.Y];
-                    tmp = tmp is { IsDeleted: true } ? null : tmp;
-                    break;
-                }
+                //its within bounds!
+                tmp = _bitmap![(int)coord.X, (int)coord.Y];
+                tmp = tmp is { IsDeleted: true } ? null : tmp;
+                break;
             }
+        }
 
-            return tmp;
-        }
-        set
-        {
-            _bitmap[(int)coord.X, (int)coord.Y] = coord.X switch
-            {
-                >= 0 when coord.Y >= 0 && coord.X < TileWidth && coord.Y < TileHeight => 
-                    value ?? throw new NullReferenceException("You cannot store NULL inside the Grid anymore, use Grid.Delete(vector2) instead"),
-                _ => _bitmap[(int)coord.X, (int)coord.Y]
-            };
-        }
+        return tmp;
     }
-
-    public bool WasAMatchInAnyDirection(Tile match3Trigger, MatchX matches)
+    
+    public static void SetTile(Tile? value, Vector2? newCoord=null)
+    {
+        if (value is null)
+            throw new ArgumentException("you cannot Add a NULL tile! check your tile-creation logic!");
+        
+        Vector2 coord = newCoord ?? value.GridCell;
+        
+        _bitmap![(int)coord.X, (int)coord.Y] = coord.X switch
+        {
+            >= 0 when coord.Y >= 0 && coord.X < TileWidth && coord.Y < TileHeight 
+                => value ?? throw new NullReferenceException("You cannot store NULL inside the Grid anymore, use Grid.Delete(vector2) instead"),
+            _   => _bitmap[(int)coord.X, (int)coord.Y]
+        };
+    }
+    
+    private static bool WasAMatchInAnyDirection(Tile? match3Trigger, MatchX matches)
     {
         bool AddWhenEqual(Tile? first, Tile? next)
         {
-            if (StateAndBodyComparer.Singleton.Equals(first, next))
+            if (Comparer.StateAndBodyComparer.Singleton.Equals(first, next))
             {
                 switch (matches.Count)
                 {
@@ -238,7 +172,7 @@ public sealed class Grid
         for (Direction i = 0; i < lastDir; i++)
         {
             Vector2 nextCoords = Next(_lastMatchTrigger.GridCell, i);
-            var next = this[nextCoords]; //when a new tile is give back, the state == 0??
+            var next = GetTile(nextCoords); //when a new tile is give back, the state == 0??
 
             while (AddWhenEqual(_lastMatchTrigger, next))
             {
@@ -246,7 +180,7 @@ public sealed class Grid
                 //we found a match between a -> b, now we check
                 //a -> c and so on
                 nextCoords = Next(nextCoords, i);
-                next = this[nextCoords];
+                next = GetTile(nextCoords);
             }
         }
 
@@ -255,7 +189,7 @@ public sealed class Grid
             ++_match3FuncCounter <= 1)
         {
             matches.Clear();
-            return WasAMatchInAnyDirection(this[_lastMatchTrigger.CoordsB4Swap]!, matches);
+            return WasAMatchInAnyDirection(GetTile(_lastMatchTrigger!.CoordsB4Swap), matches);
         }
 
         _match3FuncCounter = _match3FuncCounter switch
@@ -266,31 +200,43 @@ public sealed class Grid
         return matches.IsMatchActive;
     }
         
-    public bool Swap(Tile? a, Tile? b)
+    private static void Swap()
     {
+        var currData = GameState.CurrData!;
+        
+        Tile? a= currData.TileX,
+              b= currData.TileY;
+        
         if (a is null || b is null || 
             a.IsDeleted || b.IsDeleted)
         {
-            return false;
+            currData.WasSwapped = false;
+            return;
         }
+
         if (a.Options.HasFlag(Options.UnMovable) ||
             (b.Options & Options.UnMovable) == Options.UnMovable)
-            return false;
-            
-        this[a.GridCell] = b;
-        this[b.GridCell] = a;
+        {
+            currData.WasSwapped = false;
+            return;
+        }
+        
+        SetTile(b, a.GridCell);
+        SetTile(a, b.GridCell);
         a.CoordsB4Swap = a.GridCell;
         b.CoordsB4Swap = b.GridCell;
         (a.GridCell, b.GridCell) = (b.GridCell, a.GridCell);
-        return true;
+        currData.WasSwapped = true;
     }
 
-    public void Delete(MatchX match)
+    private static void Delete()
     {
-        for (int i = 0; i <  match.Count; i++)
+        var match = GameState.CurrData!.Matches;
+        
+        for (int i = 0; i <  match!.Count; i++)
         {
             var gridCell1 = match[i].GridCell; //works good!
-            this[gridCell1]?.Disable(true);
+            GetTile(gridCell1)?.Disable(true);
         }
         match.Clear();
     }
