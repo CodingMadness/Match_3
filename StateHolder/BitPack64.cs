@@ -19,7 +19,7 @@ public struct BitPack64
     private byte _idxAdd, _idxGet, _shiftCount;
     private Buffer _countOfBits;
 
-    public int Count => _idxAdd; 
+    public readonly int Count => _idxAdd; 
         
     public BitPack64(){ }
     
@@ -31,6 +31,9 @@ public struct BitPack64
     
     public void Pack(uint value)
     {
+        if (_packedSlot == value)
+            return;
+        
         // Calculate the shift amount based on the value, but if its the very first Add()
         byte bitWidth = GetBitWidth(value);
         BigInteger mask = (1UL << bitWidth) - 1UL;
@@ -38,8 +41,11 @@ public struct BitPack64
         _shiftCount += bitWidth;
     }
     
-    public uint Unpack()
+    public uint? Unpack()
     {
+        if (_idxGet >= _idxAdd)
+            return null;
+        
         //bitWidth=get the amount of shifts needed to store the value in the lower bits area
         Span<byte> bitCount = _countOfBits;
         byte bitWidth = bitCount[_idxGet];
