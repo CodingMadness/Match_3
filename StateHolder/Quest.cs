@@ -10,6 +10,8 @@ public readonly record struct Quest(
     SubQuest? Replacement,
     SubQuest? MissMatch)
 {
+    public static readonly Quest Empty = default;
+    
     public const string MatchCountName = nameof(Quest.Match) + "." + nameof(Quest.Match.Value.Count);
     public const string MatchIntervalName = nameof(Quest.Match) + "." + nameof(Quest.Match.Value.Interval);
     public const string SwapCountName = nameof(Quest.Swap) + "." + nameof(Quest.Swap.Value.Count);
