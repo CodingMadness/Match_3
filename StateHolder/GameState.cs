@@ -1,4 +1,4 @@
-﻿namespace Match_3.Datatypes;
+﻿namespace Match_3.StateHolder;
 
 public static class GameState
 {
@@ -6,5 +6,5 @@ public static class GameState
 
     public static Quest[]? Quests;
     public static EventState? CurrentData;
-    public static GameStateMessagePool? Logger; //whatever the logger logged, take that to render!
+    public static SpanQueue<char>? Logger; //whatever the logger logged, take that to render!
 }
