@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Match_3.Service;
 
 namespace Match_3.StateHolder;
@@ -27,12 +28,7 @@ public struct GameTime
             ElapsedSeconds -= (GetFrameTime() * 1.15f).Trunc(1);
         }
         // subtract this frame from the globalTimer if it's not already expired
-        if (ElapsedSeconds > 0.000f)
-        {
-            ElapsedSeconds-= MathF.Round(GetFrameTime(), 1);
-        }
-
-        //Console.WriteLine((int)ElapsedSeconds + "  time gone");
+        ElapsedSeconds -= (1.15f * MathF.Round(GetFrameTime(), 2));
     }
 
     public readonly bool Done()
