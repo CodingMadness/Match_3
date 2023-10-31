@@ -124,13 +124,13 @@ public class ClickHandler : QuestHandler
 {
     public static readonly ClickHandler Instance = GetInstance<ClickHandler>();
     
-    public event Action? OnSwapTile;
+    public event Action? OnSwapTile, OnAfterTilesWereSwapped;
     
     private ClickHandler( ) : base(typeof(ClickHandler))     //--> NOTIFIER!
     {
         //Event-System rule of thumb:
         // ----> The "Notifier" has to declare the event-type!  AND has to invoke() it in his own code-base somewhere!
-        // ----> The "receiver" has to register the event AND handle with appropriate code logic the specific event-case!
+        // ----> The "receiver" has to subscribe the event AND handle with appropriate code logic the specific event-case!
         
         Game.OnTileClicked += CompareQuest2State;  //--> registration!
     }
@@ -187,11 +187,13 @@ public class ClickHandler : QuestHandler
                 
                 if (currData.WasSwapped)
                 {
-                    Debug.WriteLine("SWAPPED 2 tiles!!!!!!!!!!!!!!!!!");
+                    Debug.WriteLine("SWAPPED 2 TILES!");
                     //the moment we have the 1. swap, we notify the SwapHandler for this
                     //and he begins to keep track of (HOW LONG did the swap took) and
                     //(HOW MANY MISS-SWAPS HAPPENED!)
                     firstClicked.TileState &= ~TileState.Selected;
+                    currData.Count++;
+                    OnAfterTilesWereSwapped?.Invoke();
                     secondClicked = null;  //he is the first now
                 }
                 else
@@ -216,8 +218,9 @@ public class ClickHandler : QuestHandler
 
 public class SwapHandler : QuestHandler
 {
-    private SwapHandler( ) : base(typeof(SwapHandler))
+    private SwapHandler() : base(typeof(SwapHandler))
     {
+        ClickHandler.Instance.OnAfterTilesWereSwapped += CompareQuest2State;
     }
 
     public static readonly SwapHandler Instance = GetInstance<SwapHandler>();
@@ -226,11 +229,27 @@ public class SwapHandler : QuestHandler
     
     protected override void CompareQuest2State()
     {
-        bool someSwapChecking = true;
+        //Check GameState with Quest and see if he has to be punished!
+        var state = GameState.CurrData!;
         
-        if (someSwapChecking)
+        var colorX = state.TileX!.Body.TileColor;
+        ref readonly var questForX = ref GameState.GetQuestBy(colorX);
+        
+        var colorY = state.TileY!.Body.TileColor;
+        ref readonly var questForY = ref GameState.GetQuestBy(colorY);
+        
+        Debug.WriteLine($"Quest for: {questForX.TileColor} and {questForY.TileColor}");
+        
+        //1. check if the tiles which were swapped are even needed for the Quest!
+        //define some condition by which we can assert that all possible combinations are being gathered!
+        if ((colorX != questForX.TileColor && colorX != questForY.TileColor) &&
+            (colorY != questForX.TileColor && colorY != questForY.TileColor))
         {
-            OnCheckForMatch?.Invoke();
+            Debug.WriteLine($"Neither {nameof(colorX)} nor {nameof(colorY)} have to do anything with the Quest!?");
+        }
+        else
+        {
+            Debug.WriteLine("YES this is okay!");
         }
     }
 }
@@ -246,7 +265,7 @@ public class MatchHandler : QuestHandler
 
     protected override void CompareQuest2State()
     {
-        var questRunner = QuestBuilder.GetQuests();
+        var questRunner = GameState.GetQuests();
 
         foreach (var quest in questRunner)
         {
