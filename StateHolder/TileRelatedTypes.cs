@@ -84,10 +84,6 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
 public class Tile(TileShape body) : IEquatable<Tile>
 {
     private TileState _current;
-    private Quest _quest;
-    public EventState EventData = new();
-    
-    public ref readonly Quest Quest => ref _quest;
     public virtual Options Options { get; set; }
     public TileState TileState
     {
@@ -153,18 +149,6 @@ public class Tile(TileShape body) : IEquatable<Tile>
     public bool IsDeleted => TileState.HasFlag(TileState.Deleted);
     private RectangleF GridBox => new(GridCell.X, GridCell.Y, 1f, 1f);
     public RectangleF MapBox => GridBox.RelativeToMap();
-
-    public void UpdateGoal(EventType eventType, in Quest aQuest)
-    {
-        _quest = eventType switch
-        {
-            EventType.Swapped => _quest with { Swap = aQuest.Swap },
-            EventType.Matched => _quest with { Match = aQuest.Match },
-            //EventType.RePainted => _goal with { RePaint = aGoal.RePaint },
-            //EventType.Destroyed => _goal with { Destroyed = aGoal.Destroyed },
-            _ => throw new ArgumentOutOfRangeException(nameof(eventType), eventType, null)
-        };
-    }
     
     public override string ToString() => $"Cell: {GridCell}; ---- {Body}";
     
