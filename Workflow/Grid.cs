@@ -1,9 +1,9 @@
 ﻿//using DotNext;
 
 using System.Numerics;
-using System.Runtime.InteropServices;
-using CommunityToolkit.HighPerformance;
+using DotNext.Collections.Generic;
 using DotNext.Runtime;
+
 using Match_3.Service;
 using Match_3.Setup;
 using Match_3.StateHolder;
@@ -29,32 +29,8 @@ public static class Grid
     public delegate void GridAction(Span<byte> countPerType);
 
     public static event GridAction? NotifyOnGridCreationDone;
+    
     public static event Action? OnMatchFound;
-
-    private static void CheckForMatch()
-    {
-        if (!GameState.CurrData!.WasSwapped)
-            return;
-
-        var currData = GameState.CurrData;
-        ref var _secondClicked = ref currData.TileY;
-        var _matchesOf3 = currData.Matches;
-        
-        if (WasAMatchInAnyDirection(_secondClicked!, _matchesOf3!))
-        {
-            var eventData = GameState.CurrData;
-            eventData.WasSwapped = true;
-            eventData.Count++;
-            eventData.TileX = _secondClicked!;
-            eventData.Matches = _matchesOf3;
-            OnMatchFound?.Invoke();
-        }
-        else return;
-
-        //reset data old state, in order to allow the entire process to cycle again!
-        GameState.CurrData.WasSwapped = false;
-        _secondClicked = null;
-    }
     
     private static void CreateMap()
     {
@@ -86,16 +62,21 @@ public static class Grid
         // ----> The "NOTIFIER" has to DECLARE the event-type!  AND has to invoke() it in his own code-base somewhere!
         // ----> The "RECEIVER" has to REGISTER the event AND handle with appropriate code logic the specific event-case!
          
-        ClickHandler.Instance.OnSwapTile += Swap;                           //--> registration!
-        SwapHandler.Instance.OnCheckForMatch += CheckForMatch;   //--> registration!
-        // EnemyTile.OnStoreTileInGameState += StoreTileInGameState;
-        // Bakery.OnStoreTileInGameState += StoreTileInGameState;
-        // Game.OnTileClicked += StoreTileInGameState;
+        //--> registrations/subscriptions to events!
+        ClickHandler.Instance.OnSwapTiles += Swap;                          
+        SwapHandler.Instance.OnCheckForMatch += CheckForMatch;             
+        SwapHandler.Instance.OnDeleteMatch += Delete;
         var current = GameState.CurrentLvl!;
         TileWidth = current.GridWidth;
         TileHeight = current.GridHeight;
         _bitmap = new Tile[TileWidth, TileHeight];
         CreateMap();
+    }
+
+    private static void CheckForMatch()
+    {
+        var state = GameState.CurrData!;
+        state.WasMatch = WasAMatchInAnyDirection(state.TileX, state.Matches!);
     }
 
     public static Tile? GetTile(Vector2 coord)
@@ -133,7 +114,7 @@ public static class Grid
     
     private static bool WasAMatchInAnyDirection(Tile? match3Trigger, MatchX matches)
     {
-        bool AddWhenEqual(Tile? first, Tile? next)
+        bool Add2MatchesWhenEqual(Tile? first, Tile? next)
         {
             if (Comparer.StateAndBodyComparer.Singleton.Equals(first, next))
             {
@@ -151,7 +132,7 @@ public static class Grid
             return false;
         }
 
-        static Vector2 Next(Vector2 input, Direction direction)
+        static Vector2 GetNextCell(Vector2 input, Direction direction)
         {
             var tmp = direction switch
             {
@@ -171,15 +152,15 @@ public static class Grid
 
         for (Direction i = 0; i < lastDir; i++)
         {
-            Vector2 nextCoords = Next(_lastMatchTrigger.GridCell, i);
+            Vector2 nextCoords = GetNextCell(_lastMatchTrigger.GridCell, i);
             var next = GetTile(nextCoords); //when a new tile is give back, the state == 0??
 
-            while (AddWhenEqual(_lastMatchTrigger, next))
+            while (Add2MatchesWhenEqual(_lastMatchTrigger, next))
             {
                 //compute the proper (x,y) for next round, because
                 //we found a match between a -> b, now we check
                 //a -> c and so on
-                nextCoords = Next(nextCoords, i);
+                nextCoords = GetNextCell(nextCoords, i);
                 next = GetTile(nextCoords);
             }
         }
@@ -228,7 +209,7 @@ public static class Grid
         (a.GridCell, b.GridCell) = (b.GridCell, a.GridCell);
         currData.WasSwapped = true;
     }
-
+    
     private static void Delete()
     {
         var match = GameState.CurrData!.Matches;
