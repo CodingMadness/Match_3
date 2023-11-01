@@ -1,11 +1,11 @@
-﻿using System.Diagnostics;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Text;
 using ImGuiNET;
 using Match_3.Service;
 using Match_3.StateHolder;
 using Match_3.Workflow;
 using Raylib_cs;
+
 using static Match_3.Setup.AssetManager;
 using static Match_3.Service.Utils;
 
@@ -57,7 +57,6 @@ internal static class Game
         QuestBuilder.Init();
         Grid.Init();
         GameState.CurrData = new();
-        // GameState.Quests = QuestBuilder.GetQuests();
     }
 
     private static void NotifyClickHandler()
@@ -137,7 +136,7 @@ internal static class Game
             if (GameState.IsGameOver)
             {
                 // OnGameOver();
-                _gameOverTimer.Run();
+                _gameOverTimer.CountDown();
                 TimeBuilder.Append($"{_gameOverTimer.ElapsedSeconds}");
 
                 UiRenderer.DrawText(TimeBuilder.AsSpan());
@@ -180,7 +179,7 @@ internal static class Game
                 break;
             case true:
             {
-                _gameTimer.Run();
+                _gameTimer.CountDown();
 
                 UpdateShader(ShaderData.gridSizeLoc, GetScreenCoord());
                 UpdateShader(ShaderData.secondsLoc, currTime);

@@ -149,12 +149,10 @@ public static class Bakery
         {
             //var gridCell = match.Move(i) ?? throw new ArgumentOutOfRangeException("bla bla");
             var gridCell = match[i].GridCell;
-            currData.Coords = gridCell;
             var tile = Grid.GetTile(gridCell)!;
             var enemyTile = AsEnemy(tile);
             Grid.SetTile(enemyTile);
-            // currData.TileY = enemyTile;
-            // OnSetTileInGrid?.Invoke();
+            currData.Matches = Enemies;
             //OnEnemyTileCreated(Span<byte>.Empty);
             //e.BlockSurroundingTiles(map, true);
             Enemies.Add(enemyTile);
