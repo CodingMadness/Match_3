@@ -148,12 +148,11 @@ public static class UiRenderer
     {
         ImGui.SetWindowFontScale(1.5f);
 
-        scoped var questIterator = QuestBuilder.GetQuests();
-        //we begin at index = 1 cause at index = 0 we have Empty, so we skip that one
+        scoped var questRunner = GameState.GetQuests();
 
         if (!QuestBuilder.ShallRecycle)
         {
-            foreach (ref readonly Quest quest in questIterator)
+            foreach (ref readonly Quest quest in questRunner)
             {
                 var logger = QuestBuilder.BuildQuestMessageFrom(quest);
                 DrawText(logger);
@@ -237,7 +236,7 @@ public static class UiRenderer
 
 public static class GameObjectRenderer
 {
-    private static void DrawTile(ref Texture2D atlas, Tile tile, float elapsedTime)
+    private static void DrawTile(Texture2D atlas, Tile tile, float elapsedTime)
     {
         static void DrawCoordOnTop(Tile tile)
         {
@@ -288,7 +287,7 @@ public static class GameObjectRenderer
                     
                     if (basicTile is not null && !basicTile.IsDeleted && basicTile is not EnemyTile)
                     {
-                        DrawTile(ref DefaultTileAtlas, basicTile, elapsedTime);
+                        DrawTile(DefaultTileAtlas, basicTile, elapsedTime);
                     }
                 }
             }
@@ -308,15 +307,7 @@ public static class GameObjectRenderer
 
         for (int i = 0; i < match?.Count; i++)
         {
-            GameState.CurrData!.Coords = match[i].GridCell;
-            //change this to: "OnGetTile?.Invoke();"  
-
-            Tile? tile = GameState.CurrData.TileX;
-
-            if (tile is null)
-                continue;
-
-            DrawTile(ref matchTexture, tile, elapsedTime);
+            DrawTile(matchTexture, match[i], elapsedTime);
         }
     }
 
