@@ -1,8 +1,10 @@
 using System.Diagnostics;
+using DotNext.Collections.Generic;
 using DotNext.Runtime;
 using Match_3.Service;
 using Match_3.Setup;
 using Match_3.StateHolder;
+using Match_3.Variables.Extensions;
 
 namespace Match_3.Workflow;
 
@@ -77,7 +79,7 @@ public abstract class QuestHandler
     {
         _self = null!;
     }
-   
+
     // protected static bool IsSubQuestReached(EventType eventType, in Quest quest,
     //     in Stats stats,
     //     out int direction)
@@ -123,23 +125,23 @@ public abstract class QuestHandler
 public class ClickHandler : QuestHandler
 {
     public static readonly ClickHandler Instance = GetInstance<ClickHandler>();
-    
-    public event Action? OnSwapTile, OnAfterTilesWereSwapped;
-    
-    private ClickHandler( ) : base(typeof(ClickHandler))     //--> NOTIFIER!
+
+    public event Action OnSwapTiles, OnTilesAlreadySwapped;
+
+    private ClickHandler() : base(typeof(ClickHandler)) //--> NOTIFIER!
     {
         //Event-System rule of thumb:
         // ----> The "Notifier" has to declare the event-type!  AND has to invoke() it in his own code-base somewhere!
         // ----> The "receiver" has to subscribe the event AND handle with appropriate code logic the specific event-case!
-        
-        Game.OnTileClicked += CompareQuest2State;  //--> registration!
+
+        Game.OnTileClicked += CompareQuest2State; //--> registration!
     }
 
-    private void ProcessSelectedTiles()
+    protected override void CompareQuest2State()
     {
         // _whenTileClicked = TimeOnly.FromDateTime(DateTime.UtcNow);
-        var currData = GameState.CurrData;
-        var firstClicked = currData!.TileX;
+        var currData = GameState.CurrData!;
+        var firstClicked = currData.TileX;
         ref var secondClicked = ref currData.TileY;
         // var enemyMatches = currentData.Matches;
 
@@ -180,11 +182,10 @@ public class ClickHandler : QuestHandler
             else
             {
                 firstClicked.TileState &= ~TileState.Selected;
-                
                 currData.TileY = secondClicked;
                 currData.TileX = firstClicked;
-                OnSwapTile?.Invoke();
-                
+                OnSwapTiles();
+
                 if (currData.WasSwapped)
                 {
                     Debug.WriteLine("SWAPPED 2 TILES!");
@@ -192,9 +193,16 @@ public class ClickHandler : QuestHandler
                     //and he begins to keep track of (HOW LONG did the swap took) and
                     //(HOW MANY MISS-SWAPS HAPPENED!)
                     firstClicked.TileState &= ~TileState.Selected;
-                    currData.Count++;
-                    OnAfterTilesWereSwapped?.Invoke();
-                    secondClicked = null;  //he is the first now
+                    
+                    //find all states whose "TileColor" were part of the swap!
+                    //it can be ONLY 1 OR 2 but NEVER 0!
+                    var second = secondClicked;
+                    GameState.InGameUsedTileTypes = GameState.StatePerQuest!
+                                                    .Where(x => x.TileColor == firstClicked.Body.TileColor ||
+                                                           x.TileColor == second.Body.TileColor);
+                    
+                    OnTilesAlreadySwapped();
+                    secondClicked = null; //he is the first now
                 }
                 else
                 {
@@ -208,48 +216,93 @@ public class ClickHandler : QuestHandler
 
     public static bool IsEnemyTileClickedOn => GameState.CurrData?.Matches?.IsMatchActive == true
                                                && Intrinsics.IsExactTypeOf<EnemyTile>
-                                                   (GameState.CurrData.TileX);
-    
-    protected override void CompareQuest2State()
-    {
-        ProcessSelectedTiles();
-    }
+                                                   (GameState.CurrData.TileX); 
 }
 
 public class SwapHandler : QuestHandler
 {
     private SwapHandler() : base(typeof(SwapHandler))
     {
-        ClickHandler.Instance.OnAfterTilesWereSwapped += CompareQuest2State;
+        ClickHandler.Instance.OnTilesAlreadySwapped += CompareQuest2State;
     }
 
     public static readonly SwapHandler Instance = GetInstance<SwapHandler>();
 
-    public event Action? OnCheckForMatch;
+    public event Action OnCheckForMatch, OnDeleteMatch;
+
+    private static (TileColor x, TileColor y) GetTileColorAndQuestData(out Quest? eventDataOfX, out Quest? eventDataOfY)
+    {
+        var state = GameState.CurrData!;
+        var colorX = state.TileX!.Body.TileColor;
+        var colorY = state.TileY!.Body.TileColor;
+        eventDataOfX = GameState.GetQuestBy(colorX);
+        eventDataOfY = GameState.GetQuestBy(colorY);
+        return (colorX, colorY);
+    }
+
     
     protected override void CompareQuest2State()
     {
         //Check GameState with Quest and see if he has to be punished!
-        var state = GameState.CurrData!;
-        
-        var colorX = state.TileX!.Body.TileColor;
-        ref readonly var questForX = ref GameState.GetQuestBy(colorX);
-        
-        var colorY = state.TileY!.Body.TileColor;
-        ref readonly var questForY = ref GameState.GetQuestBy(colorY);
-        
-        Debug.WriteLine($"Quest for: {questForX.TileColor} and {questForY.TileColor}");
+        var swapState = GameState.CurrData!;
+
+        var (x, y) = GetTileColorAndQuestData(out var quest0, out var quest1);
         
         //1. check if the tiles which were swapped are even needed for the Quest!
         //define some condition by which we can assert that all possible combinations are being gathered!
-        if ((colorX != questForX.TileColor && colorX != questForY.TileColor) &&
-            (colorY != questForX.TileColor && colorY != questForY.TileColor))
+        if ((x != quest0?.TileColor && x != quest0?.TileColor) &&
+            (y != quest1?.TileColor && y != quest1?.TileColor))
         {
-            Debug.WriteLine($"Neither {nameof(colorX)} nor {nameof(colorY)} have to do anything with the Quest!?");
+            Debug.WriteLine($"Neither {nameof(x)} nor {nameof(y)} have to do anything with the Quest!?" +
+                            $"so you have to be (in some way or another) to be punished!");
+            
+            // PunishPlayer();
         }
         else
         {
-            Debug.WriteLine("YES this is okay!");
+            if (GameState.InGameUsedTileTypes!.Any(z => (z.TileColor == x || z.TileColor == y) && z.IsQuestLost))
+            {
+                Debug.WriteLine("You lost this Quest already, now feel the punishment and continue with the other Quests, your time is running short!");
+                return;
+            }
+                    
+            //2. Check if we didnt exceed the allowed Swap-Count for all the different quests
+            OnCheckForMatch();
+
+            if (!swapState.WasMatch)
+            {
+                //Now we increase the swapCount for the participating-TileColor's only if there was not a match
+                //because then we need to +1 up and see if the player reached the limits
+                GameState.InGameUsedTileTypes!.ForEach(z =>
+                {
+                    int swapCount_State = ++z.Swap.Count;
+                    int swapCount_Quest = (int)(z.TileColor == quest0?.TileColor ? quest0?.Swap.Count : quest1?.Swap.Count)!;
+                    z.IsQuestLost = swapCount_State == swapCount_Quest;
+                    
+                    if (z.IsQuestLost)
+                    {
+                        int currQuestCount = GameState.QuestCount--;
+                        int countFromWhenIsLose = (1 * GameState.QuestCount / 3);
+                        
+                        GameState.IsGameOver = currQuestCount == countFromWhenIsLose;
+                        
+                        if (GameState.IsGameOver)
+                            return /*Call GameOver callback*/;
+                        
+                        Debug.WriteLine($"You lost this Quest for tiletype: {z.TileColor.ToStringFast().ToUpper()} " +
+                                               $"and you have only {countFromWhenIsLose} entire Quest left to win!");
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"You have still: {swapCount_Quest - swapCount_State} swaps left of tiletype:" +
+                                               $"  {z.TileColor.ToStringFast().ToUpper()} ! use them wisely!");
+                    }
+                });
+            }
+            else
+            {
+                OnDeleteMatch();
+            }
         }
     }
 }
@@ -257,7 +310,7 @@ public class SwapHandler : QuestHandler
 public class MatchHandler : QuestHandler
 {
     public static readonly MatchHandler Instance = GetInstance<MatchHandler>();
-   
+
     private MatchHandler() : base(typeof(MatchHandler))
     {
         Grid.OnMatchFound += CompareQuest2State;
@@ -269,43 +322,16 @@ public class MatchHandler : QuestHandler
 
         foreach (var quest in questRunner)
         {
-            int swaps2Do = quest.Swap!.Value.Count;
+            int swaps2Do = quest.Swap.Count;
             EventState? currData = GameState.CurrData;
-            float swapTimeAllowed = quest.Swap!.Value.Interval;
-            int matchQuest = quest.Match!.Value.Count;
+            float swapTimeAllowed = quest.Swap.Elapsed;
+            int matchCount = quest.Match.Count;
 
             TileColor
                 x = currData!.TileX!.Body.TileColor,
                 y = currData.TileY!.Body.TileColor;
 
             bool sameTileColor = (x == quest.TileColor || y == quest.TileColor);
-            //the more this if- is executed the worse, because it says that we dont get matches for each swap we do!
-            if (!currData.WasMatch || x != quest.TileColor || y != quest.TileColor)
-            {
-                Debug.WriteLine(
-                    $"A swap between <{currData.TileX!.Body.TileColor}> " +
-                    $"AND <{currData.TileY!.Body.TileColor}> was made " +
-                    $"and it did not lead to a match..");
-            }
-            else
-                switch (currData.WasMatch)
-                {
-                    //we have a match and also its the same color BUT we needed to long for the next swap
-                    //and hence failed... 
-                    case true when sameTileColor
-                                   && swapTimeAllowed >= currData.Interval:
-                        Debug.WriteLine("Upsi, you needed to long amigo");
-                        break;
-                    case true when sameTileColor &&
-                                   currData.Count == matchQuest:
-                        Debug.WriteLine("ADD BONUS POINTS TO SCORE!");
-                        break;
-                }
-
-            if (currData.Count == swaps2Do && !currData.WasMatch)
-            {
-                Debug.WriteLine("Now you gotta be punished, NOT 1 MATCH!! WTF");
-            }
 
             break;
         }
