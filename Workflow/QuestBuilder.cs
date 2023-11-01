@@ -3,8 +3,6 @@ using DotNext;
 using Match_3.Service;
 using Match_3.StateHolder;
 using Match_3.Variables.Extensions;
-using NoAlloq;
-using TextInfo = Match_3.Service.TextInfo;
 
 namespace Match_3.Workflow;
 
@@ -18,10 +16,6 @@ public static class QuestBuilder
      *   - When we have successfully created "QuestCount" Questlogs we will
      *   - Just return from now on the respective string from the pool
      */
-    public static void Init() =>  Grid.NotifyOnGridCreationDone += DefineQuest;
-
-    private static readonly Quest Empty = default;
-
     private static readonly string QuestLog = $"(Black) You have to collect an amount of" +
                                               $" ({TileColor.Transparent.ToStringFast()}) {Quest.MatchCountName} {TileColor.Transparent.ToStringFast()} Matches" +
                                               $" (Black) and u have in between those only" +
@@ -34,13 +28,13 @@ public static class QuestBuilder
                                               $" (Black) for your own help as well as there is the tolerance for" +
                                               $" ({TileColor.Transparent.ToStringFast()}) {Quest.MissMatchName} miss matches";
         
-    private static SpanQueue<char> _logPool;
-    private static readonly Quest[] QuestForAllColors = new Quest[Utils.TileColorLen];
-    private static int _questCounter;
+    private static int _questRunner;
    
     public static int QuestCount { get; private set; }
     
-    public static bool ShallRecycle => _questCounter == QuestCount;
+    public static bool ShallRecycle => _questRunner == QuestCount;
+    
+    public static void Init() =>  Grid.NotifyOnGridCreationDone += DefineQuest;
     
     private static void DefineQuest(Span<byte> maxCountPerType)
     {
@@ -71,51 +65,53 @@ public static class QuestBuilder
         scoped FastSpanEnumerator<TileColor> subsetEnumerator = new(subset);
         QuestCount = subset.Length;
         int trueIdx = 0;
-
-        foreach (var type in subsetEnumerator)
+        GameState.Quests = new Quest[QuestCount];
+        GameState.StatePerQuest = new State[QuestCount];
+        
+        foreach (var color in subsetEnumerator)
         {
             int toEven = GetRandomInterval();
-            SubQuest match = new(maxCountPerType[trueIdx] / Level.MaxTilesPerMatch, toEven);
+            SubEventData match = new(maxCountPerType[trueIdx] / Level.MaxTilesPerMatch, toEven);
             //these subQuests below are just placeholders until this class is done then I change them to
             //smth meaningful
-            SubQuest swap = new(4, -1f);
-            SubQuest replacement = new(5, -1f);
-            SubQuest tolerance = new(6, -1f);
-            QuestForAllColors[trueIdx] = new Quest(type, GameTime.GetTimer(toEven), match, swap, replacement, tolerance);
+            SubEventData swap = new(4, -1f);
+            SubEventData replacement = new(5, -1f);
+            SubEventData tolerance = new(6, -1f);
+            GameState.Quests[trueIdx] = new Quest(color, GameTime.GetTimer(toEven) ,match, swap, replacement, tolerance);
+            GameState.StatePerQuest[trueIdx] = new(color,false, default, new(0, 0f), new(0, 0f), new(0, 0f), new(0, 0f));
             trueIdx++;
         }
-
         GameState.QuestCount = QuestCount;
-        GameState.Quests = QuestForAllColors;
-        GameState.Logger = _logPool = new(QuestCount * (QuestLog.Length + 1)); 
+        
+        GameState.Logger = new(QuestCount * (QuestLog.Length + 1)); 
     }
     
-    public static ReadOnlySpan<char> BuildQuestMessageFrom(Quest quest)
+    public static ReadOnlySpan<char> BuildQuestMessageFrom(Quest Quest)
     {
         Debug.WriteLine($"There are:  {QuestCount} Quests to solve");
         
         //there is a defect in here....!
-        var currLog = _logPool.Enqueue(QuestLog);  
+        var currLog = GameState.Logger!.Enqueue(QuestLog);  
         using scoped var questIterator = new QuestLineEnumerator(currLog, true);
         
         foreach (TextInfo questPiece in questIterator)
         {
             //swap (Transparent) with (<WhatEverColoIUse>)
             var placeHolderColor = questPiece.ColorAsText.AsWriteable();
-            var newColor = quest.TileColor.ToStringFast().AsSpan().AsWriteable();
+            var newColor = Quest.TileColor.ToStringFast().AsSpan().AsWriteable();
             newColor.CopyTo(placeHolderColor);
             placeHolderColor[newColor.Length..].Clear();
             
             //e.g: Swap Quest.Member=Match.Count with <anyNumber>
             var memberName = questPiece.Variable2Replace.AsWriteable();
-            var value = quest.GetValueByMemberName(memberName).ToString();
+            var value = Quest.GetValueByMemberName(memberName).ToString();
             value.CopyTo(memberName);
             memberName[value.Length..].Clear();
         }
  
-        _questCounter++;
+        _questRunner++;
         return currLog;
     }
     
-    public static ReadOnlySpan<char> GetPooledQuestLog() => _logPool.Dequeue(true);
+    public static ReadOnlySpan<char> GetPooledQuestLog() => GameState.Logger!.Dequeue(true);
 }
