@@ -11,17 +11,17 @@ public struct GameTime
 
     private int MaxTimerValue { get; init; }
 
-    public static GameTime GetTimer(int seconds)
+    public static GameTime GetTimer(int countDownInSec)
     {
         return new GameTime
         {
-            MaxTimerValue = seconds,
-            ElapsedSeconds = seconds,
+            MaxTimerValue = countDownInSec,
+            ElapsedSeconds = countDownInSec,
             IsReset = false
         };
     }
 
-    public void Run()
+    public void CountDown()
     {
         if (ElapsedSeconds <= MaxTimerValue / 2f)
         {
