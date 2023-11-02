@@ -1,7 +1,6 @@
-using System.Diagnostics;
 using Match_3.Service;
 
-namespace Match_3.StateHolder;
+namespace Match_3.DataObjects;
 
 public struct GameTime
 {
@@ -46,4 +45,6 @@ public struct GameTime
         ElapsedSeconds = newStart ?? MaxTimerValue;
         IsReset = true;
     }
+
+    public override string ToString() => $"(Time Left: {ElapsedSeconds} seconds)";
 }
