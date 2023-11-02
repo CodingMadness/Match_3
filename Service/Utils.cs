@@ -9,8 +9,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using DotNext;
+using Match_3.DataObjects;
 using Match_3.Setup;
-using Match_3.StateHolder;
 using Match_3.Workflow;
 using Raylib_cs;
 using Color = System.Drawing.Color;
@@ -549,11 +549,17 @@ public static class Utils
 
     public static Span<T> TakeRndItemsAtRndPos<T>(this Span<T> items) where T : unmanaged
     {
-        int offset = Randomizer.Next(0, items.Length - 1);
+        bool isTrue = CoinFlip();
         int len = items.Length;
+        int m = len / 2;
+        int fromBegin = (isTrue ? 0 : ^(m-1)).GetOffset(len);
+        int fromEnd = (isTrue ? ^(m+1) : 0).GetOffset(len);
+        
+        int offset = Randomizer.Next(fromBegin, fromEnd);
+        
         int amount2Take = Game.Level.Id switch
         {
-            0 => Randomizer.Next(2, 4),
+            0 => Randomizer.Next(3, 5),
             1 => Randomizer.Next(5, 7),
             2 => Randomizer.Next(7, 10),
             _ => throw new ArgumentOutOfRangeException(nameof(Game.Level.Id))
