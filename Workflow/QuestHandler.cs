@@ -1,9 +1,10 @@
 using System.Diagnostics;
 using DotNext.Collections.Generic;
 using DotNext.Runtime;
+
+using Match_3.DataObjects;
 using Match_3.Service;
 using Match_3.Setup;
-using Match_3.StateHolder;
 using Match_3.Variables.Extensions;
 
 namespace Match_3.Workflow;
@@ -48,12 +49,6 @@ public abstract class QuestHandler
 {
     private readonly Type _self;
 
-    protected int QuestCounter { get; set; }
-
-    protected int QuestsLeft => QuestBuilder.QuestCount - QuestCounter;
-
-    protected bool IsMainGoalReached => QuestsLeft == 0;
-
     private bool IsActive { get; set; }
 
     protected static THandler GetInstance<[DAM(DAMTypes.NonPublicConstructors)] THandler>()
@@ -75,25 +70,6 @@ public abstract class QuestHandler
         _self = self;
     }
 
-    protected QuestHandler()
-    {
-        _self = null!;
-    }
-
-    // protected static bool IsSubQuestReached(EventType eventType, in Quest quest,
-    //     in Stats stats,
-    //     out int direction)
-    // {
-    //     direction = default;
-    //
-    //     return eventType switch
-    //     {
-    //         EventType.Swapped => (direction = quest.CompareSwaps(stats)) == 0,
-    //         EventType.Matched => (direction = quest.CompareMatches(stats)) == 0,
-    //         _ => false
-    //     };
-    // }
-
     protected abstract void CompareQuest2State();
 
     public static void ActivateHandlers()
@@ -105,7 +81,7 @@ public abstract class QuestHandler
 
     //its private for now until I will need my other Handlers for Clicks and Destruction events, which has to be 
     //subbed and un-subbed at certain times..
-    private void Subscribe()
+    public void Subscribe()
     {
         if (IsActive) return;
 
@@ -151,7 +127,7 @@ public class ClickHandler : QuestHandler
         //was Enemy tile clicked on, ofc after a matchX happened?
         if (IsEnemyTileClickedOn)
         {
-            // Do this when the I need to handle enemy tiles!.....
+            // OnEnemyTileClicked();
         }
         else
         {
@@ -197,9 +173,9 @@ public class ClickHandler : QuestHandler
                     //find all states whose "TileColor" were part of the swap!
                     //it can be ONLY 1 OR 2 but NEVER 0!
                     var second = secondClicked;
-                    GameState.InGameUsedTileTypes = GameState.StatePerQuest!
-                                                    .Where(x => x.TileColor == firstClicked.Body.TileColor ||
-                                                           x.TileColor == second.Body.TileColor);
+                    GameState.StatesFromQuestRelatedTiles = GameState.StatePerQuest!
+                                                    .Where(x => x.TileKind == firstClicked.Body.TileKind ||
+                                                           x.TileKind == second.Body.TileKind);
                     
                     OnTilesAlreadySwapped();
                     secondClicked = null; //he is the first now
@@ -228,18 +204,17 @@ public class SwapHandler : QuestHandler
 
     public static readonly SwapHandler Instance = GetInstance<SwapHandler>();
 
-    public event Action OnCheckForMatch, OnDeleteMatch;
+    public event Action OnCheckForMatch, OnMatchFound;
 
     private static (TileColor x, TileColor y) GetTileColorAndQuestData(out Quest? eventDataOfX, out Quest? eventDataOfY)
     {
         var state = GameState.CurrData!;
-        var colorX = state.TileX!.Body.TileColor;
-        var colorY = state.TileY!.Body.TileColor;
+        var colorX = state.TileX!.Body.TileKind;
+        var colorY = state.TileY!.Body.TileKind;
         eventDataOfX = GameState.GetQuestBy(colorX);
         eventDataOfY = GameState.GetQuestBy(colorY);
         return (colorX, colorY);
     }
-
     
     protected override void CompareQuest2State()
     {
@@ -250,8 +225,8 @@ public class SwapHandler : QuestHandler
         
         //1. check if the tiles which were swapped are even needed for the Quest!
         //define some condition by which we can assert that all possible combinations are being gathered!
-        if ((x != quest0?.TileColor && x != quest0?.TileColor) &&
-            (y != quest1?.TileColor && y != quest1?.TileColor))
+        if ((x != quest0?.TileKind && x != quest0?.TileKind) &&
+            (y != quest1?.TileKind && y != quest1?.TileKind))
         {
             Debug.WriteLine($"Neither {nameof(x)} nor {nameof(y)} have to do anything with the Quest!?" +
                             $"so you have to be (in some way or another) to be punished!");
@@ -260,7 +235,7 @@ public class SwapHandler : QuestHandler
         }
         else
         {
-            if (GameState.InGameUsedTileTypes!.Any(z => (z.TileColor == x || z.TileColor == y) && z.IsQuestLost))
+            if (GameState.StatesFromQuestRelatedTiles!.Any(z => (z.TileKind == x || z.TileKind == y) && z.IsQuestLost))
             {
                 Debug.WriteLine("You lost this Quest already, now feel the punishment and continue with the other Quests, your time is running short!");
                 return;
@@ -269,14 +244,20 @@ public class SwapHandler : QuestHandler
             //2. Check if we didnt exceed the allowed Swap-Count for all the different quests
             OnCheckForMatch();
 
-            if (!swapState.WasMatch)
+            if (swapState.WasMatch)
+            {
+                swapState.IgnoredByMatch = x == swapState.Matches!.Body!.TileKind ? y : x;
+                
+                OnMatchFound();
+            }
+            else
             {
                 //Now we increase the swapCount for the participating-TileColor's only if there was not a match
                 //because then we need to +1 up and see if the player reached the limits
-                GameState.InGameUsedTileTypes!.ForEach(z =>
+                GameState.StatesFromQuestRelatedTiles!.ForEach(z =>
                 {
                     int swapCount_State = ++z.Swap.Count;
-                    int swapCount_Quest = (int)(z.TileColor == quest0?.TileColor ? quest0?.Swap.Count : quest1?.Swap.Count)!;
+                    int swapCount_Quest = (int)(z.TileKind == quest0?.TileKind ? quest0?.SwapsAllowed.Count : quest1?.SwapsAllowed.Count)!;
                     z.IsQuestLost = swapCount_State == swapCount_Quest;
                     
                     if (z.IsQuestLost)
@@ -287,53 +268,82 @@ public class SwapHandler : QuestHandler
                         GameState.IsGameOver = currQuestCount == countFromWhenIsLose;
                         
                         if (GameState.IsGameOver)
-                            return /*Call GameOver callback*/;
+                            return /*Call "GameOver-callback"*/;
                         
-                        Debug.WriteLine($"You lost this Quest for tiletype: {z.TileColor.ToStringFast().ToUpper()} " +
-                                               $"and you have only {countFromWhenIsLose} entire Quest left to win!");
+                        Debug.WriteLine($"You lost this Quest for tiletype: {z.TileKind.ToStringFast().ToUpper()} " +
+                                        $"and you have only {countFromWhenIsLose} entire Quest left to win!");
                     }
                     else
                     {
                         Debug.WriteLine($"You have still: {swapCount_Quest - swapCount_State} swaps left of tiletype:" +
-                                               $"  {z.TileColor.ToStringFast().ToUpper()} ! use them wisely!");
+                                        $"  {z.TileKind.ToStringFast().ToUpper()} ! use them wisely!");
                     }
                 });
-            }
-            else
-            {
-                OnDeleteMatch();
             }
         }
     }
 }
 
+//RECEIVER 
 public class MatchHandler : QuestHandler
 {
     public static readonly MatchHandler Instance = GetInstance<MatchHandler>();
 
+    public event Action OnDeleteMatch;
+    
     private MatchHandler() : base(typeof(MatchHandler))
     {
-        Grid.OnMatchFound += CompareQuest2State;
+        SwapHandler.Instance.OnMatchFound += CompareQuest2State;
     }
 
     protected override void CompareQuest2State()
     {
-        var questRunner = GameState.GetQuests();
-
-        foreach (var quest in questRunner)
+        //IF the incoming match was a "Miss-match (a match not allowed to do because its not in the Quest written!)", then
+        //we do +1 the "State.MissMatch.Count", ELSE we do +1 the "State.Match.Count"
+        var allStates = GameState.StatePerQuest!;
+        var StatesFromQuestRelatedTiles = GameState.StatesFromQuestRelatedTiles!;
+        var matchData = GameState.CurrData!;
+        var currMatch = matchData.Matches;
+        var kindWhoTriggeredMatch = currMatch!.Body!.TileKind;
+        var kindWhichWasIgnoredByMatch = matchData.IgnoredByMatch;
+        var stateOfMatch = StatesFromQuestRelatedTiles.FirstOrNone(x => x.TileKind == kindWhoTriggeredMatch);
+        var questOfMatch = GameState.Quests!;
+        
+        //example: RED swapsWith BLUE; RED is in Quest, Blue not;
+        //BLUE got a Match, RED not;
+        if (stateOfMatch.IsUndefined)
         {
-            int swaps2Do = quest.Swap.Count;
-            EventState? currData = GameState.CurrData;
-            float swapTimeAllowed = quest.Swap.Elapsed;
-            int matchCount = quest.Match.Count;
+            //a match with the requested "TileKind" was not found, a "wrong-match", so it was a "miss-match"!
+            var stateOfMatchIgnoredKind = allStates.First(x => x.TileKind == kindWhichWasIgnoredByMatch);
+            var properQuest = questOfMatch.First(x => x.TileKind == kindWhichWasIgnoredByMatch);
+            int missMatchCount = stateOfMatchIgnoredKind.MissMatch.Count++;
+            int diffCount = properQuest.SuccessfulMatches.Count- missMatchCount;
+            currMatch.Clear();
+            stateOfMatchIgnoredKind.IsQuestLost = diffCount > 0;
 
-            TileColor
-                x = currData!.TileX!.Body.TileColor,
-                y = currData.TileY!.Body.TileColor;
-
-            bool sameTileColor = (x == quest.TileColor || y == quest.TileColor);
-
-            break;
+            if (stateOfMatchIgnoredKind.IsQuestLost)
+                Debug.WriteLine($"<This is a WRONG match and you gotta be careful bro because" +
+                                $" you only have {diffCount} chances left or else this Quest is lost!");
+            else
+                Debug.WriteLine($"YOU LOST THIS QUEST OF TYPE: {stateOfMatchIgnoredKind.IsQuestLost}");
+        }
+        else
+        {
+            //a match with the requested "TileKind" was found and hence it was a successful Quest-Bound match!
+            int successCount = ++stateOfMatch.Value.SuccessfulMatch.Count;
+            var properQuest = questOfMatch.First(x => x.TileKind == kindWhoTriggeredMatch);
+            int diffCount = properQuest.SuccessfulMatches.Count- successCount;
+            
+            if (diffCount > 0)
+            {
+                Debug.WriteLine($"Okay, good catch, you got that match, you have only to do now {diffCount} more of kind: {kindWhoTriggeredMatch}");
+            }
+            else
+            {
+                Debug.WriteLine("YUHU, you got the Quest without falling into traps!"); ;
+            }
+            
+            OnDeleteMatch();
         }
     }
 }
