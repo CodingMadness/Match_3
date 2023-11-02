@@ -100,7 +100,7 @@ public static class QuestBuilder
         DebugQuestLog();
     }
     
-    public static ReadOnlySpan<char> BuildQuestMessageFrom(Quest Quest)
+    public static ReadOnlySpan<char> BuildQuestMessageFrom(in Quest quest)
     {
         //there is a defect in here....!
         var currLog = GameState.Logger!.Enqueue(QuestLog);  
@@ -110,17 +110,18 @@ public static class QuestBuilder
         {
             //swap (Transparent) with (<WhatEverColoIUse>)
             var placeHolderColor = questPiece.ColorAsText.AsWriteable();
-            var newColor = Quest.TileKind.ToStringFast().AsSpan().AsWriteable();
+            var newColor = quest.TileKind.ToStringFast().AsSpan().AsWriteable();
             newColor.CopyTo(placeHolderColor);
             placeHolderColor[newColor.Length..].Clear();
             
             //e.g: Swap Quest.Member=Match.Count with <anyNumber>
             var memberName = questPiece.Variable2Replace.AsWriteable();
-            var value = Quest.GetValueByMemberName(memberName).ToString();
+            var value = quest.GetValueByMemberName(memberName).ToString();
             value.CopyTo(memberName);
             memberName[value.Length..].Clear();
         }
- 
+        currLog.Replace(TileColor.Transparent.ToStringFast(), quest.TileKind.ToStringFast());
+        
         _questRunner++;
         return currLog;
     }
