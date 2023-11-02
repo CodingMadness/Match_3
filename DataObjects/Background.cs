@@ -8,7 +8,7 @@ public class Background(Texture2D bgTexture)
     {
         AtlasLocation = new(0f, 0f),
         Size = new(bgTexture.width, bgTexture.height),
-        ScaleableFloat = 1f
+        ScaleableSize = 1f
     };
 
     //public Rectangle ScreenRect = new(0f, 0f, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());

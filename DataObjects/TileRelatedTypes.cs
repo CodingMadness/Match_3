@@ -33,7 +33,7 @@ public class Shape
     public Size Size { get; init; }
     public RectangleF TextureRect => new(AtlasLocation.X, AtlasLocation.Y, Size.Width, Size.Height);
     
-    public ScaleableFloat ScaleableFloat;
+    public ScaleableFloat ScaleableSize;
 
     private FadeableColor _color; 
     public ref readonly  FadeableColor Color => ref _color;
@@ -182,12 +182,12 @@ public class EnemyTile(TileShape body) : Tile(body)
         if (elapsedTime <= 0f)
             return Body.TextureRect;
 
-        if (Body.ScaleableFloat.Speed == 0f)
-            Body.ScaleableFloat.Speed = 20.25f;
+        if (Body.ScaleableSize.Speed == 0f)
+            Body.ScaleableSize.Speed = 20.25f;
         
-        var rect = Body.TextureRect.DoScale(Body.ScaleableFloat.GetFactor());
+        var rect = Body.TextureRect.DoScale(Body.ScaleableSize.GetFactor());
                 
-        Body.ScaleableFloat.ElapsedTime = elapsedTime;
+        Body.ScaleableSize.ElapsedTime = elapsedTime;
         return rect with { X = WorldCell.X, Y = (int)WorldCell.Y };
     }
     

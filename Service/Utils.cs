@@ -22,7 +22,8 @@ namespace Match_3.Service;
 public static class Utils
 {
     public static readonly Random Randomizer = new(DateTime.UtcNow.Ticks.GetHashCode());
-    public static readonly FastNoiseLite NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
+    public static readonly DotnetNoise.FastNoise NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
+
 
     private const byte Min = (int)KnownColor.AliceBlue;
     private const byte Max = (int)KnownColor.YellowGreen;
@@ -499,7 +500,7 @@ public static class Utils
     }
 
     public static void Swap(this scoped ReadOnlySpan<char> input, Range x, Range y) => input.Swap(x, y, ' ');
-    
+
     public static Rectangle AsIntRayRect(this RectangleF floatBox) =>
         new(floatBox.X, floatBox.Y, floatBox.Width, floatBox.Height);
 
@@ -526,10 +527,10 @@ public static class Utils
     static Utils()
     {
         All.AsSpan().Shuffle(Randomizer);
-
-        NoiseMaker.SetFrequency(25f);
-        NoiseMaker.SetFractalType(FastNoiseLite.FractalType.Ridged);
-        NoiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
+        //
+        // NoiseMaker.SetFrequency(25f);
+        // NoiseMaker.SetFractalType(FastNoiseLite.FractalType.Ridged);
+        // NoiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
     }
 
     public static float Trunc(this float value, int digits)
@@ -552,11 +553,10 @@ public static class Utils
         bool isTrue = CoinFlip();
         int len = items.Length;
         int m = len / 2;
-        int beginOrMid = (isTrue ? 0 : ^(m-1)).GetOffset(len);
-        int midOrEnd = (isTrue ? m : (len-m));
-        
-        int offset = Randomizer.Next(beginOrMid, midOrEnd);
-        
+        int beginOrMid = (isTrue ? 0 : ^(m - 1)).GetOffset(len);
+
+        int offset = Randomizer.Next(beginOrMid, len);
+
         int amount2Take = Game.Level.Id switch
         {
             0 => Randomizer.Next(3, 5),

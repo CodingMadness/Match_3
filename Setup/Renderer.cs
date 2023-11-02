@@ -229,7 +229,7 @@ public static class UiRenderer
         RectangleF screen = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
 
         DrawTexturePro(bg.Texture, bg.Body.TextureRect.AsIntRayRect(),
-            screen.DoScale(bg.Body.ScaleableFloat).AsIntRayRect(),
+            screen.DoScale(bg.Body.ScaleableSize).AsIntRayRect(),
             Vector2.Zero, 0f, bg.Body.FixedWhite);
     }
 }
@@ -258,7 +258,7 @@ public static class GameObjectRenderer
 
         if (tile is EnemyTile enemy)
         {
-            enemy.Body.ScaleableFloat = 1f;
+            enemy.Body.ScaleableSize = 1f;
             DrawTexturePro(atlas, enemy.Body.TextureRect.AsIntRayRect(), 
                         enemy.Pulsate(elapsedTime).AsIntRayRect(),
                            Vector2.Zero, 0f, enemy.Body.Color);
