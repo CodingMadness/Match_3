@@ -259,7 +259,7 @@ public class SwapHandler : QuestHandler
             {
                 //performance tips: make "in State z" possible instead of just "State z" due to State being a large struct it will be copied 
                 // to often
-                void HandleSwaps(State z)
+                void HandleSwaps(in State z)
                 {
                     int missSwap_State = ++z.MissSwaps.Count;
                     int maxAllowedSwaps_Quest = (int)(z.TileKind == quest0?.TileKind ? quest0?.SwapsAllowed.Count : quest1?.SwapsAllowed.Count)!;
@@ -290,12 +290,15 @@ public class SwapHandler : QuestHandler
                 }
                 //Now we increase the swapCount for the participating-TileColor's only if there was not a match
                 //because then we need to +1 up and see if the player reached the limits
-                GameState.StatesFromQuestRelatedTiles!.ForEach(HandleSwaps);
+                var states = GameState.StatesFromQuestRelatedTiles!;
+                
+                foreach (var state in states)
+                {
+                    HandleSwaps(state);
+                }
             }
         }
     }
-
-     
 }
 
 //RECEIVER 
