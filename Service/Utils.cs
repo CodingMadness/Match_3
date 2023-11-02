@@ -552,10 +552,10 @@ public static class Utils
         bool isTrue = CoinFlip();
         int len = items.Length;
         int m = len / 2;
-        int fromBegin = (isTrue ? 0 : ^(m-1)).GetOffset(len);
-        int fromEnd = (isTrue ? ^(m+1) : 0).GetOffset(len);
+        int beginOrMid = (isTrue ? 0 : ^(m-1)).GetOffset(len);
+        int midOrEnd = (isTrue ? m : (len-m));
         
-        int offset = Randomizer.Next(fromBegin, fromEnd);
+        int offset = Randomizer.Next(beginOrMid, midOrEnd);
         
         int amount2Take = Game.Level.Id switch
         {

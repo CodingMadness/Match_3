@@ -19,7 +19,7 @@ public readonly record struct Quest(
     public static readonly Quest Empty       = default!;
     public const string MatchCountName       = nameof(State.SuccessfulMatch) + "." + nameof(State.SuccessfulMatch.Count);
     public const string MatchIntervalName    = nameof(State.SuccessfulMatch) + "." + nameof(State.SuccessfulMatch.Elapsed);
-    public const string SwapCountName        = nameof(State.Swap) + "." + nameof(State.Swap.Count);
+    public const string SwapCountName        = nameof(State.MissSwaps) + "." + nameof(State.MissSwaps.Count);
     public const string ReplacementCountName = nameof(State.Replacement) + "." + nameof(State.Replacement.Count);
     public const string MissMatchName        = nameof(State.MissMatch) + "." + nameof(State.MissMatch.Count);
     
@@ -47,7 +47,7 @@ public record State(
     bool IsQuestLost,
     TimeOnly Now,
     SubEventData SuccessfulMatch,
-    SubEventData Swap,
+    SubEventData MissSwaps,
     SubEventData Replacement,
     SubEventData MissMatch)
 {

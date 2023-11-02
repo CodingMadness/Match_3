@@ -27,7 +27,7 @@ internal static class Game
  
     private static GameTime _gameOverTimer;
     
-    public static event Action? OnTileClicked;
+    public static event Action OnTileClicked;
 
     private static void Main()
     {
@@ -38,7 +38,7 @@ internal static class Game
     
     private static void InitGame()
     {
-        Level = new(0, 300, 6, 12, 12);
+        Level = new(0, 700, 6, 12, 12);
         GameState.CurrentLvl = Level;
         _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
         _gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown + 10);
@@ -65,7 +65,7 @@ internal static class Game
         {
             var currState = GameState.CurrData!;
             currState.TileX = firstClickedTile;
-            OnTileClicked?.Invoke();
+            OnTileClicked();
         }
     }
     
