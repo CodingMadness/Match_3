@@ -32,28 +32,36 @@ public static class Grid
     private static void CreateMap()
     {
         Span<byte> counts = stackalloc byte[Utils.TileColorLen];
+
+        static void Distribute(Span<Vector2> cells)
+        {
+            
+        }
         
         for (int x = 0; x < TileWidth; x++)
         {
             for (int y = 0; y < TileHeight; y++)
             {
                 Vector2 current = new(x, y);
-                var img = GenImagePerlinNoise(TileWidth, TileHeight, x, y, 0.89f);
-                var f = LoadTextureFromImage(img);
-                //Utils.NoiseMaker.GetNoise(x * -0.5f, y * -0.5f);
-                Intrinsics.Bitcast(f, out float noise);
-                var tile = _bitmap![x, y] = Bakery.CreateTile(current, noise);
-                //EventStats.TileX = tile;
-                //we yet dont care for side quests and hence we dont need to keep track of ALL tiles, only match-based information
-                /*OnTileCreated(Span<byte>.Empty);*/
-                int index = tile.Body.TileKind.ToIndex();
+                float noise = GetWeightedNoise(current);
+                var tmpTile = _bitmap![x, y] = Bakery.CreateTile(current, noise);
+                int index = tmpTile.Body.TileKind.ToIndex();
                 counts[index]++;
             }
         }
         
         NotifyOnGridCreationDone?.Invoke(counts[1..]);
     }
-        
+
+    private static float GetWeightedNoise(Vector2 coord, float scale=4f)
+    {
+        // double perlinValue = fn.Perlin(x / scale, y / scale);
+        float perlinValue = Utils.NoiseMaker.GetWhiteNoise(coord.X / scale, coord.Y / scale);
+        // Convert Perlin value from [-1, 1] to [0, 1]
+        float normalizedValue = (perlinValue + 1f) / 2.0f;
+        return normalizedValue;
+    }
+
     public static void Init()//--> RECEIVER!
     {
         // ----> The "NOTIFIER" has to DECLARE the event-type!  AND has to invoke() it in his own code-base somewhere!
