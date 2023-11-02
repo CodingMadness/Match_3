@@ -9,29 +9,20 @@ public static class Bakery
 {
     private static readonly EnemyMatches Enemies = new();
     
-    private static TileColor GetTileTypeTypeByNoise(float noise)
+    private static TileColor GetTileKindByNoise(float noise)
     {
-        noise = noise.Trunc(2);
-
-        if (noise is <= 0f or >= 1.0f)
+        var normalizedNoise = noise.Trunc(2);
+        
+        var result = normalizedNoise switch
         {
-            noise = Utils.Randomizer.NextSingle();
-            return GetTileTypeTypeByNoise(noise);
-        }
-
-        if (noise <= 0.1)
-            noise *= 10;
-
-        var result = noise switch
-        {
-            > 0.0f and <= 0.15f => (TileColor.Brown, noise),
-            > 0.15f and <= 0.25f => (TileColor.Red, noise),
-            > 0.25f and <= 0.35f => (TileColor.Orange, noise),
-            > 0.35f and <= 0.45f => (TileColor.Blue, noise),
-            > 0.45f and <= 0.55f => (TileColor.Green, noise),
-            > 0.55f and <= 0.65f => (TileColor.Purple, noise),
-            > 0.65f and <= 0.75f => (TileColor.Violet, noise),
-            > 0.75f and <= 1f => (TileColor.Yellow, noise),
+            >= 0.00f and < 0.125f => (TileColor.Brown, noise),
+            >= 0.125f and < 0.250f => (TileColor.Red, noise),
+            >= 0.250f and < 0.375f => (TileColor.Orange, noise),
+            >= 0.375f and < 0.500f => (TileColor.Blue, noise),
+            >= 0.500f and < 0.625f => (TileColor.Green, noise),
+            >= 0.625f and < 0.750f => (TileColor.Purple, noise),
+            >= 0.750f and < 0.875f => (TileColor.Violet, noise),
+            >= 0.875f and <= 1.00f => (TileColor.Yellow, noise),
         };
         return result.Item1;
     }
@@ -40,7 +31,7 @@ public static class Bakery
     {
         TileShape tmp = new()
         {
-            TileKind = GetTileTypeTypeByNoise(noise)
+            TileKind = GetTileKindByNoise(noise)
         };
 
         return tmp.TileKind switch
@@ -50,56 +41,56 @@ public static class Bakery
                 TileKind = TileColor.Green,
                 AtlasLocation = new Vector2(0f, 0f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
-                ScaleableFloat = 1f,
+                ScaleableSize = 1f,
             },
             TileColor.Purple => new()
             {
                 TileKind = TileColor.Purple,
                 AtlasLocation = new Vector2(1f, 0f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
-                ScaleableFloat = 1f,
+                ScaleableSize = 1f,
             },
             TileColor.Orange => new()
             {
                 TileKind = TileColor.Orange,
                 AtlasLocation = new Vector2(2f, 0f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
-                ScaleableFloat = 1f,
+                ScaleableSize = 1f,
             },
             TileColor.Yellow => new()
             {
                 TileKind = TileColor.Yellow,
                 AtlasLocation = new Vector2(3f, 0f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
-                ScaleableFloat = 1f,
+                ScaleableSize = 1f,
             },
             TileColor.Red => new()
             {
                 TileKind = TileColor.Red,
                 AtlasLocation = new Vector2(0f, 1f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
-                ScaleableFloat = 1f,
+                ScaleableSize = 1f,
             },
             TileColor.Blue => new()
             {
                 TileKind = TileColor.Blue,
                 AtlasLocation = new Vector2(1f, 1f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
-                ScaleableFloat = 1f,
+                ScaleableSize = 1f,
             },
             TileColor.Brown => new()
             {
                 TileKind = TileColor.Brown,
                 AtlasLocation = new Vector2(2f, 1f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
-                ScaleableFloat = 1f,
+                ScaleableSize = 1f,
             },
             TileColor.Violet => new()
             {
                 TileKind = TileColor.Violet,
                 AtlasLocation = new Vector2(3f, 1f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
-                ScaleableFloat = 1f,
+                ScaleableSize = 1f,
             },
 
             _ => throw new ArgumentOutOfRangeException()
@@ -122,7 +113,7 @@ public static class Bakery
     {
         var body = new TileShape
         {
-            ScaleableFloat = new(0.7f, 1.15f)
+            ScaleableSize = new(0.7f, 1.15f)
             {
                 ElapsedTime = 0f, Speed = 0.2f
             },
