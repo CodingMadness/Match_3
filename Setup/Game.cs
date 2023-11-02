@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
 using System.Text;
 using ImGuiNET;
+using Match_3.DataObjects;
 using Match_3.Service;
-using Match_3.StateHolder;
 using Match_3.Workflow;
 using Raylib_cs;
 
@@ -147,7 +147,7 @@ internal static class Game
                 return 
                     !UiRenderer.DrawGameOverScreen(_gameOverTimer.Done(),
                                                   GameState.WasGameWonB4Timeout,
-                                                 GameState.Logger!.Dequeue());
+                                                 GameState.Logger!.Dequeue(true));
             }
             else if (GameState.WasGameWonB4Timeout)
             {

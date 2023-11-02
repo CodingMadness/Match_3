@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
+using Match_3.DataObjects;
 using Match_3.Service;
-using Match_3.StateHolder;
 using Match_3.Workflow;
 
 namespace Match_3.Setup;
@@ -40,63 +40,63 @@ public static class Bakery
     {
         TileShape tmp = new()
         {
-            TileColor = GetTileTypeTypeByNoise(noise)
+            TileKind = GetTileTypeTypeByNoise(noise)
         };
 
-        return tmp.TileColor switch
+        return tmp.TileKind switch
         {
             TileColor.Green => new()
             {
-                TileColor = TileColor.Green,
+                TileKind = TileColor.Green,
                 AtlasLocation = new Vector2(0f, 0f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
             TileColor.Purple => new()
             {
-                TileColor = TileColor.Purple,
+                TileKind = TileColor.Purple,
                 AtlasLocation = new Vector2(1f, 0f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
             TileColor.Orange => new()
             {
-                TileColor = TileColor.Orange,
+                TileKind = TileColor.Orange,
                 AtlasLocation = new Vector2(2f, 0f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
             TileColor.Yellow => new()
             {
-                TileColor = TileColor.Yellow,
+                TileKind = TileColor.Yellow,
                 AtlasLocation = new Vector2(3f, 0f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
             TileColor.Red => new()
             {
-                TileColor = TileColor.Red,
+                TileKind = TileColor.Red,
                 AtlasLocation = new Vector2(0f, 1f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
             TileColor.Blue => new()
             {
-                TileColor = TileColor.Blue,
+                TileKind = TileColor.Blue,
                 AtlasLocation = new Vector2(1f, 1f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
             TileColor.Brown => new()
             {
-                TileColor = TileColor.Brown,
+                TileKind = TileColor.Brown,
                 AtlasLocation = new Vector2(2f, 1f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
             },
             TileColor.Violet => new()
             {
-                TileColor = TileColor.Violet,
+                TileKind = TileColor.Violet,
                 AtlasLocation = new Vector2(3f, 1f) * Utils.Size,
                 Size = new(Utils.Size, Utils.Size),
                 ScaleableFloat = 1f,
@@ -128,7 +128,7 @@ public static class Bakery
             },
             AtlasLocation = matchTile.Body.AtlasLocation,
             Size = new(Utils.Size, Utils.Size),
-            TileColor = matchTile.Body is { } c0 ? c0.TileColor : TileColor.Transparent,
+            TileKind = matchTile.Body is { } c0 ? c0.TileKind : TileColor.Transparent,
         };
             
         EnemyTile blockTile = new(body)

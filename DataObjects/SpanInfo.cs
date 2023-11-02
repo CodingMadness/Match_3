@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace Match_3.StateHolder;
+namespace Match_3.DataObjects;
 
 [StructLayout(LayoutKind.Auto)]
 public readonly ref struct SpanInfo<T>

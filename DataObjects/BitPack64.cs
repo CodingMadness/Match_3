@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using NoAlloq;
 
-namespace Match_3.StateHolder;
+namespace Match_3.DataObjects;
 
 /// <summary>
 /// The goal of this struct is to store multiple smaller int-values into a single int!

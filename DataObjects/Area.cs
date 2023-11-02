@@ -1,4 +1,4 @@
-﻿namespace Match_3.StateHolder;
+﻿namespace Match_3.DataObjects;
 
 public readonly struct Area<T> : IEquatable<Area<T>>, IComparable<Area<T>>
     where T : unmanaged, IEquatable<T>

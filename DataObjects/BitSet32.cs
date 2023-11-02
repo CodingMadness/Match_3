@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Match_3.StateHolder;
+namespace Match_3.DataObjects;
 
 public struct BitSet32 : IEquatable<BitSet32>
 {

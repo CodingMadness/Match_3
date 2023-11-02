@@ -1,7 +1,7 @@
 ﻿using System.Buffers;
 using DotNext;
 using DotNext.Buffers;
-using Match_3.StateHolder;
+using Match_3.DataObjects;
 
 namespace Match_3.Service;
 
@@ -24,7 +24,7 @@ public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, 
        >0  = the exact value he wants for the resize 
      */
     private MemoryOwner<T> _content = new(ArrayPool<T>.Shared, length + 1);
-    private BitPack64 _lengthPack = new();
+    private BitPack64 _lengthPack;
  
     private uint
         _enQCount, 

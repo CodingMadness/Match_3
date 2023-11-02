@@ -1,4 +1,4 @@
-﻿namespace Match_3.StateHolder;
+﻿namespace Match_3.DataObjects;
 
 public enum EventType : byte
 {

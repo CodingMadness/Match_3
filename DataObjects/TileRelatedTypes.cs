@@ -7,7 +7,7 @@ using Match_3.Workflow;
 
 
 [assembly: FastEnumToString(typeof(TileColor), IsPublic = true, ExtensionMethodNamespace = "Match_3.Variables.Extensions")]
-namespace Match_3.StateHolder;
+namespace Match_3.DataObjects;
 
 [Flags]
 public enum Options
@@ -54,21 +54,21 @@ public class Shape
 
 public class TileShape : Shape, IEquatable<TileShape>, ICloneable
 {
-    public TileColor TileColor { get; init; }
+    public TileColor TileKind { get; init; }
     public override Vector2 AtlasLocation { get; init; }
    
     public bool Equals(TileShape? other) =>
-        other is not null && TileColor == other.TileColor;
+        other is not null && TileKind == other.TileKind;
     
-    public override int GetHashCode() => HashCode.Combine(FixedWhite, TileColor);
+    public override int GetHashCode() => HashCode.Combine(FixedWhite, TileKind);
 
-    public override string ToString() => $"Tile type: <{TileColor}> with Tint: <{FixedWhite}>";  
+    public override string ToString() => $"Tile type: <{TileKind}> with Tint: <{FixedWhite}>";  
 
     public object Clone()
     {
         TileShape clone = new()
         {
-            TileColor = TileColor,
+            TileKind = TileKind,
             AtlasLocation = AtlasLocation,
         };
         return clone;
@@ -269,7 +269,7 @@ public class MatchX
     public TimeOnly CreatedAt { get; private set; }
     protected bool IsRowBased { get; private set; }
     public int Count => Matches.Count;
-    public bool IsMatchActive => Count == Level.MaxTilesPerMatch;
+    public bool IsMatchActive => Count >= Level.MaxTilesPerMatch;
     public TileShape? Body { get; private set; }
     public RectangleF WorldBox => _worldRect;
     public Vector2 WorldPos { get; private set; }

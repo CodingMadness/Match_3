@@ -1,6 +1,6 @@
 using Raylib_cs;
 
-namespace Match_3.StateHolder;
+namespace Match_3.DataObjects;
 
 public class Background(Texture2D bgTexture)
 {

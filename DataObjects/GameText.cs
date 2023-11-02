@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Raylib_cs;
 
-namespace Match_3.StateHolder;
+namespace Match_3.DataObjects;
 
 public class GameText(Font src, string text, float initSize) 
 {
