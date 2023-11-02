@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics;
 using DotNext.Collections.Generic;
 using DotNext.Runtime;
@@ -32,7 +33,7 @@ file static class SingletonManager
             return (T)toReturn;
         }
     }
-}
+} 
 
 /// <summary>
 ///The Game notifies the QuestHandler, when a matchX happened or a tile was swapped
@@ -235,9 +236,13 @@ public class SwapHandler : QuestHandler
         }
         else
         {
+            var debugLog = QuestBuilder.GetPooledQuestLog();
+            
             if (GameState.StatesFromQuestRelatedTiles!.Any(z => (z.TileKind == x || z.TileKind == y) && z.IsQuestLost))
             {
-                Debug.WriteLine("You lost this Quest already, now feel the punishment and continue with the other Quests, your time is running short!");
+                var debugValue = GameState.StatesFromQuestRelatedTiles!.First(z => (z.TileKind == x || z.TileKind == y) && z.IsQuestLost);
+
+                Debug.WriteLine($"You lost Quest of type: {debugValue.TileKind}");// already, now feel the punishment and continue with the other Quests, your time is running short!");
                 return;
             }
                     
@@ -252,36 +257,45 @@ public class SwapHandler : QuestHandler
             }
             else
             {
-                //Now we increase the swapCount for the participating-TileColor's only if there was not a match
-                //because then we need to +1 up and see if the player reached the limits
-                GameState.StatesFromQuestRelatedTiles!.ForEach(z =>
+                //performance tips: make "in State z" possible instead of just "State z" due to State being a large struct it will be copied 
+                // to often
+                void HandleSwaps(State z)
                 {
-                    int swapCount_State = ++z.Swap.Count;
-                    int swapCount_Quest = (int)(z.TileKind == quest0?.TileKind ? quest0?.SwapsAllowed.Count : quest1?.SwapsAllowed.Count)!;
-                    z.IsQuestLost = swapCount_State == swapCount_Quest;
+                    int missSwap_State = ++z.MissSwaps.Count;
+                    int maxAllowedSwaps_Quest = (int)(z.TileKind == quest0?.TileKind ? quest0?.SwapsAllowed.Count : quest1?.SwapsAllowed.Count)!;
                     
+                    z.IsQuestLost = missSwap_State == maxAllowedSwaps_Quest;
+
                     if (z.IsQuestLost)
                     {
                         int currQuestCount = GameState.QuestCount--;
                         int countFromWhenIsLose = (1 * GameState.QuestCount / 3);
-                        
+
                         GameState.IsGameOver = currQuestCount == countFromWhenIsLose;
-                        
+
                         if (GameState.IsGameOver)
-                            return /*Call "GameOver-callback"*/;
-                        
+                        {
+                            Debug.WriteLine("GAME IS OVER NOW BECAUSE WE LOST ATLEAST 2/3 OF QUESTS! HOW BAD ARE WE ?!");
+                            return;
+                        }
+
                         Debug.WriteLine($"You lost this Quest for tiletype: {z.TileKind.ToStringFast().ToUpper()} " +
-                                        $"and you have only {countFromWhenIsLose} entire Quest left to win!");
+                                        $"and you are only {countFromWhenIsLose} entire Quest away to lose!");
                     }
                     else
                     {
-                        Debug.WriteLine($"You have still: {swapCount_Quest - swapCount_State} swaps left of tiletype:" +
+                        Debug.WriteLine($"You have still: {maxAllowedSwaps_Quest - missSwap_State} swaps left of tiletype:" +
                                         $"  {z.TileKind.ToStringFast().ToUpper()} ! use them wisely!");
                     }
-                });
+                }
+                //Now we increase the swapCount for the participating-TileColor's only if there was not a match
+                //because then we need to +1 up and see if the player reached the limits
+                GameState.StatesFromQuestRelatedTiles!.ForEach(HandleSwaps);
             }
         }
     }
+
+     
 }
 
 //RECEIVER 
@@ -323,7 +337,7 @@ public class MatchHandler : QuestHandler
 
             if (stateOfMatchIgnoredKind.IsQuestLost)
                 Debug.WriteLine($"<This is a WRONG match and you gotta be careful bro because" +
-                                $" you only have {diffCount} chances left or else this Quest is lost!");
+                                $" you only have {diffCount} chances left or else this Quest, ({kindWhichWasIgnoredByMatch}) is lost!");
             else
                 Debug.WriteLine($"YOU LOST THIS QUEST OF TYPE: {stateOfMatchIgnoredKind.IsQuestLost}");
         }
@@ -340,9 +354,10 @@ public class MatchHandler : QuestHandler
             }
             else
             {
-                Debug.WriteLine("YUHU, you got the Quest without falling into traps!"); ;
+                Debug.WriteLine("YUHU, you got the Quest without falling into traps!"); 
             }
-            
+            //Reset the missSwaps back to 0 because we won that particular quest
+            stateOfMatch.Value.MissSwaps.Count = 0; 
             OnDeleteMatch();
         }
     }
