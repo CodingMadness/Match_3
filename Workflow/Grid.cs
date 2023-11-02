@@ -1,12 +1,11 @@
 ﻿//using DotNext;
 
+using System.Diagnostics;
 using System.Numerics;
-using DotNext.Collections.Generic;
 using DotNext.Runtime;
-
+using Match_3.DataObjects;
 using Match_3.Service;
 using Match_3.Setup;
-using Match_3.StateHolder;
 
 namespace Match_3.Workflow;
 
@@ -29,9 +28,7 @@ public static class Grid
     public delegate void GridAction(Span<byte> countPerType);
 
     public static event GridAction? NotifyOnGridCreationDone;
-    
-    public static event Action? OnMatchFound;
-    
+
     private static void CreateMap()
     {
         Span<byte> counts = stackalloc byte[Utils.TileColorLen];
@@ -49,7 +46,7 @@ public static class Grid
                 //EventStats.TileX = tile;
                 //we yet dont care for side quests and hence we dont need to keep track of ALL tiles, only match-based information
                 /*OnTileCreated(Span<byte>.Empty);*/
-                int index = tile.Body.TileColor.ToIndex();
+                int index = tile.Body.TileKind.ToIndex();
                 counts[index]++;
             }
         }
@@ -65,7 +62,7 @@ public static class Grid
         //--> registrations/subscriptions to events!
         ClickHandler.Instance.OnSwapTiles += Swap;                          
         SwapHandler.Instance.OnCheckForMatch += CheckForMatch;             
-        SwapHandler.Instance.OnDeleteMatch += Delete;
+        MatchHandler.Instance.OnDeleteMatch += Delete;
         var current = GameState.CurrentLvl!;
         TileWidth = current.GridWidth;
         TileHeight = current.GridHeight;
@@ -76,7 +73,8 @@ public static class Grid
     private static void CheckForMatch()
     {
         var state = GameState.CurrData!;
-        state.WasMatch = WasAMatchInAnyDirection(state.TileX, state.Matches!);
+        state.WasMatch = WasAMatchInAnyDirection();
+        Debug.WriteLine($"CheckForMatch() => returns: {state.WasMatch}");
     }
 
     public static Tile? GetTile(Vector2 coord)
@@ -112,18 +110,17 @@ public static class Grid
         };
     }
     
-    private static bool WasAMatchInAnyDirection(Tile? match3Trigger, MatchX matches)
+    private static bool WasAMatchInAnyDirection()
     {
+        var dataForMatchLogic = GameState.CurrData!;
+        var matches = dataForMatchLogic.Matches!;
+        const Direction lastDir = (Direction)4;
+        _lastMatchTrigger = dataForMatchLogic.TileX!;
+        
         bool Add2MatchesWhenEqual(Tile? first, Tile? next)
         {
             if (Comparer.StateAndBodyComparer.Singleton.Equals(first, next))
             {
-                switch (matches.Count)
-                {
-                    case Level.MaxTilesPerMatch:
-                        return false;
-                }
-
                 matches.Add(first!);
                 matches.Add(next!);
                 return true;
@@ -145,15 +142,14 @@ public static class Grid
 
             return tmp;
         }
-
-        const Direction lastDir = (Direction)4;
-
-        _lastMatchTrigger = match3Trigger;
-
+       
+        if (matches.Count == Level.MaxTilesPerMatch) 
+            return false;
+        
         for (Direction i = 0; i < lastDir; i++)
         {
             Vector2 nextCoords = GetNextCell(_lastMatchTrigger.GridCell, i);
-            var next = GetTile(nextCoords); //when a new tile is give back, the state == 0??
+            var next = GetTile(nextCoords);  
 
             while (Add2MatchesWhenEqual(_lastMatchTrigger, next))
             {
@@ -166,11 +162,12 @@ public static class Grid
         }
 
         if (!matches.IsMatchActive &&
-            //if he could not get a match by the 2.tile which was clicked, try the 1.clicked tile!
+            //if he could not get a match by the 2.tile which was clicked on, try the 1.clicked tile!
             ++_match3FuncCounter <= 1)
         {
             matches.Clear();
-            return WasAMatchInAnyDirection(GetTile(_lastMatchTrigger!.CoordsB4Swap), matches);
+            dataForMatchLogic.TileX = GetTile(_lastMatchTrigger.CoordsB4Swap);
+            return WasAMatchInAnyDirection();
         }
 
         _match3FuncCounter = _match3FuncCounter switch
