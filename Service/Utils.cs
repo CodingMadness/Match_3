@@ -24,7 +24,6 @@ public static class Utils
     public static readonly Random Randomizer = new(DateTime.UtcNow.Ticks.GetHashCode());
     public static readonly DotnetNoise.FastNoise NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
 
-
     private const byte Min = (int)KnownColor.AliceBlue;
     private const byte Max = (int)KnownColor.YellowGreen;
     private const int TrueColorCount = Max - Min;
@@ -541,35 +540,33 @@ public static class Utils
     }
 
     public static Vector2 GetScreenCoord() => new(GetScreenWidth(), GetScreenHeight());
-
-    public static bool CoinFlip()
-    {
-        var val = Randomizer.NextSingle();
-        return val.GreaterOrEqual(0.50f, 0.001f);
-    }
-
+    
     public static Span<T> TakeRndItemsAtRndPos<T>(this Span<T> items) where T : unmanaged
     {
-        bool isTrue = CoinFlip();
         int len = items.Length;
         int m = len / 2;
-        int beginOrMid = (isTrue ? 0 : ^(m - 1)).GetOffset(len);
-
-        int offset = Randomizer.Next(beginOrMid, len);
-
+        float distribution = Randomizer.NextSingle();
+        
         int amount2Take = Game.Level.Id switch
         {
-            0 => Randomizer.Next(3, 5),
-            1 => Randomizer.Next(5, 7),
-            2 => Randomizer.Next(7, 10),
+            0 => Randomizer.Next(3, 4),
+            1 => Randomizer.Next(5, 6),
+            2 => Randomizer.Next(7, 7),
             _ => throw new ArgumentOutOfRangeException(nameof(Game.Level.Id))
         };
+        
+        Range r = distribution switch
+        {
+            >= 0.0f and < 0.33f => ..amount2Take,
+            >= 0.33f and < 0.66f => m..,
+            >= 0.66f and < 1.00f => ^amount2Take..
+        };
 
-        return offset + amount2Take < len
-            ? items.Slice(offset, amount2Take)
-            : items[offset..^1];
+        return items[r];
     }
 
+    public static void Shuffle<T>(this Span<T> span) => span.Shuffle(Randomizer);
+    
     private static bool IsEmpty(this RectangleF rayRect) =>
         /* rayRect.x == 0 && rayRect.y == 0 &&*/ rayRect is { Width: 0, Height: 0 };
 
