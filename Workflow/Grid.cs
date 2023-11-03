@@ -2,6 +2,7 @@
 
 using System.Diagnostics;
 using System.Numerics;
+using DotNext;
 using DotNext.Runtime;
 using Match_3.DataObjects;
 using Match_3.Service;
@@ -24,36 +25,66 @@ public static class Grid
     private static byte _match3FuncCounter;
     private static int TileWidth;
     private static int TileHeight;
-
+    
     public delegate void GridAction(Span<byte> countPerType);
 
     public static event GridAction? NotifyOnGridCreationDone;
 
     private static void CreateMap()
     {
-        Span<byte> counts = stackalloc byte[Utils.TileColorLen];
-
-        static void Distribute(Span<Vector2> cells)
+        void Fill(Span<TileColor> toFill)
         {
-            
+            for (int i = 0; i < Utils.TileColorLen; i++)
+                toFill[i] = i.ToColor();
         }
-        
-        for (int x = 0; x < TileWidth; x++)
+
+        const byte ySize = 4, xSize = 2;
+        Span<byte> counts = stackalloc byte[Utils.TileColorLen];
+        Span<TileColor> allKinds = stackalloc TileColor[Utils.TileColorLen];
+        Vector2 twoBy4Block = new(xSize, ySize);
+        Vector2 begin = new(0, 0);
+        Fill(allKinds);
+        int j = 0;
+
+        Next8Block:
+        for (int x = (int)begin.X; x < twoBy4Block.X; x++)
         {
-            for (int y = 0; y < TileHeight; y++)
+            for (int y = (int)begin.Y; y < twoBy4Block.Y; y++)
             {
                 Vector2 current = new(x, y);
-                float noise = GetWeightedNoise(current);
-                var tmpTile = _bitmap![x, y] = Bakery.CreateTile(current, noise);
+                Tile tmpTile = _bitmap![x, y] = Bakery.CreateTile(current, allKinds[j++]);
                 int index = tmpTile.Body.TileKind.ToIndex();
                 counts[index]++;
             }
         }
-        
+        //6rows => 6x2 = 12 tiles in X, but since we are beginning from 0,
+        //we have to -2 like with array index
+        if (begin.X < TileWidth - xSize)  
+        {
+            begin.X = twoBy4Block.X;
+            twoBy4Block.X += xSize;
+            allKinds.Shuffle();
+            j = 0;
+            goto Next8Block;  
+        }
+        //3columns => 3x4 = 12 tiles in Y, but since we are beginning from 0,
+        //we have to -4 like with array index
+        else if (begin.Y < TileHeight - ySize)
+        {
+            //set begin to point to (x=0, y=4)
+            begin.X = 0;
+            begin.Y = twoBy4Block.Y;
+            twoBy4Block.X = xSize;
+            twoBy4Block.Y += ySize;
+            allKinds.Shuffle();
+            j = 0;
+            goto Next8Block;  
+        }
+        bool s = true;
         NotifyOnGridCreationDone?.Invoke(counts[1..]);
     }
 
-    private static float GetWeightedNoise(Vector2 coord, float scale=4f)
+    private static float GetWeightedNoise(Vector2 coord, float scale = 4f)
     {
         // double perlinValue = fn.Perlin(x / scale, y / scale);
         float perlinValue = Utils.NoiseMaker.GetWhiteNoise(coord.X / scale, coord.Y / scale);
@@ -62,14 +93,14 @@ public static class Grid
         return normalizedValue;
     }
 
-    public static void Init()//--> RECEIVER!
+    public static void Init() //--> RECEIVER!
     {
         // ----> The "NOTIFIER" has to DECLARE the event-type!  AND has to invoke() it in his own code-base somewhere!
         // ----> The "RECEIVER" has to REGISTER the event AND handle with appropriate code logic the specific event-case!
-         
+
         //--> registrations/subscriptions to events!
-        ClickHandler.Instance.OnSwapTiles += Swap;                          
-        SwapHandler.Instance.OnCheckForMatch += CheckForMatch;             
+        ClickHandler.Instance.OnSwapTiles += Swap;
+        SwapHandler.Instance.OnCheckForMatch += CheckForMatch;
         MatchHandler.Instance.OnDeleteMatch += Delete;
         var current = GameState.CurrentLvl!;
         TileWidth = current.GridWidth;
@@ -88,7 +119,7 @@ public static class Grid
     public static Tile? GetTile(Vector2 coord)
     {
         Tile? tmp = null;
-        
+
         switch (coord.X)
         {
             case >= 0 when coord.X < TileWidth && coord.Y >= 0 && coord.Y < TileHeight:
@@ -102,29 +133,30 @@ public static class Grid
 
         return tmp;
     }
-    
-    public static void SetTile(Tile? value, Vector2? newCoord=null)
+
+    public static void SetTile(Tile? value, Vector2? newCoord = null)
     {
         if (value is null)
             throw new ArgumentException("you cannot Add a NULL tile! check your tile-creation logic!");
-        
+
         Vector2 coord = newCoord ?? value.GridCell;
-        
+
         _bitmap![(int)coord.X, (int)coord.Y] = coord.X switch
         {
-            >= 0 when coord.Y >= 0 && coord.X < TileWidth && coord.Y < TileHeight 
-                => value ?? throw new NullReferenceException("You cannot store NULL inside the Grid anymore, use Grid.Delete(vector2) instead"),
-            _   => _bitmap[(int)coord.X, (int)coord.Y]
+            >= 0 when coord.Y >= 0 && coord.X < TileWidth && coord.Y < TileHeight
+                => value ?? throw new NullReferenceException(
+                    "You cannot store NULL inside the Grid anymore, use Grid.Delete(vector2) instead"),
+            _ => _bitmap[(int)coord.X, (int)coord.Y]
         };
     }
-    
+
     private static bool WasAMatchInAnyDirection()
     {
         var dataForMatchLogic = GameState.CurrData!;
         var matches = dataForMatchLogic.Matches!;
         const Direction lastDir = (Direction)4;
         _lastMatchTrigger = dataForMatchLogic.TileX!;
-        
+
         bool Add2MatchesWhenEqual(Tile? first, Tile? next)
         {
             if (Comparer.StateAndBodyComparer.Singleton.Equals(first, next))
@@ -150,14 +182,14 @@ public static class Grid
 
             return tmp;
         }
-       
-        if (matches.Count == Level.MaxTilesPerMatch) 
+
+        if (matches.Count == Level.MaxTilesPerMatch)
             return false;
-        
+
         for (Direction i = 0; i < lastDir; i++)
         {
             Vector2 nextCoords = GetNextCell(_lastMatchTrigger.GridCell, i);
-            var next = GetTile(nextCoords);  
+            var next = GetTile(nextCoords);
 
             while (Add2MatchesWhenEqual(_lastMatchTrigger, next))
             {
@@ -185,15 +217,15 @@ public static class Grid
         };
         return matches.IsMatchActive;
     }
-        
+
     private static void Swap()
     {
         var currData = GameState.CurrData!;
-        
-        Tile? a= currData.TileX,
-              b= currData.TileY;
-        
-        if (a is null || b is null || 
+
+        Tile? a = currData.TileX,
+            b = currData.TileY;
+
+        if (a is null || b is null ||
             a.IsDeleted || b.IsDeleted)
         {
             currData.WasSwapped = false;
@@ -206,7 +238,7 @@ public static class Grid
             currData.WasSwapped = false;
             return;
         }
-        
+
         SetTile(b, a.GridCell);
         SetTile(a, b.GridCell);
         a.CoordsB4Swap = a.GridCell;
@@ -214,16 +246,17 @@ public static class Grid
         (a.GridCell, b.GridCell) = (b.GridCell, a.GridCell);
         currData.WasSwapped = true;
     }
-    
+
     private static void Delete()
     {
         var match = GameState.CurrData!.Matches;
-        
-        for (int i = 0; i <  match!.Count; i++)
+
+        for (int i = 0; i < match!.Count; i++)
         {
             var gridCell1 = match[i].GridCell; //works good!
             GetTile(gridCell1)?.Disable(true);
         }
+
         match.Clear();
     }
 }
