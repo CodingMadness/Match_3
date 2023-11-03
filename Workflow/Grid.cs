@@ -2,8 +2,6 @@
 
 using System.Diagnostics;
 using System.Numerics;
-using DotNext;
-using DotNext.Runtime;
 using Match_3.DataObjects;
 using Match_3.Service;
 using Match_3.Setup;
@@ -19,16 +17,11 @@ public static class Grid
         PositiveY = 2,
         NegativeY = 3,
     }
-
+    
     private static Tile[,]? _bitmap;
     private static Tile? _lastMatchTrigger;
     private static byte _match3FuncCounter;
-    private static int TileWidth;
-    private static int TileHeight;
-    
-    public delegate void GridAction(Span<byte> countPerType);
-
-    public static event GridAction? NotifyOnGridCreationDone;
+    private static int _tileWidth, _tileHeight;
 
     private static void CreateMap()
     {
@@ -59,7 +52,7 @@ public static class Grid
         }
         //6rows => 6x2 = 12 tiles in X, but since we are beginning from 0,
         //we have to -2 like with array index
-        if (begin.X < TileWidth - xSize)  
+        if (begin.X < _tileWidth - xSize)  
         {
             begin.X = twoBy4Block.X;
             twoBy4Block.X += xSize;
@@ -69,7 +62,7 @@ public static class Grid
         }
         //3columns => 3x4 = 12 tiles in Y, but since we are beginning from 0,
         //we have to -4 like with array index
-        else if (begin.Y < TileHeight - ySize)
+        else if (begin.Y < _tileHeight - ySize)
         {
             //set begin to point to (x=0, y=4)
             begin.X = 0;
@@ -80,17 +73,8 @@ public static class Grid
             j = 0;
             goto Next8Block;  
         }
-        bool s = true;
-        NotifyOnGridCreationDone?.Invoke(counts[1..]);
-    }
-
-    private static float GetWeightedNoise(Vector2 coord, float scale = 4f)
-    {
-        // double perlinValue = fn.Perlin(x / scale, y / scale);
-        float perlinValue = Utils.NoiseMaker.GetWhiteNoise(coord.X / scale, coord.Y / scale);
-        // Convert Perlin value from [-1, 1] to [0, 1]
-        float normalizedValue = (perlinValue + 1f) / 2.0f;
-        return normalizedValue;
+        
+        GameState.Lvl!.PackedCounts.Pack(counts);
     }
 
     public static void Init() //--> RECEIVER!
@@ -102,10 +86,10 @@ public static class Grid
         ClickHandler.Instance.OnSwapTiles += Swap;
         SwapHandler.Instance.OnCheckForMatch += CheckForMatch;
         MatchHandler.Instance.OnDeleteMatch += Delete;
-        var current = GameState.CurrentLvl!;
-        TileWidth = current.GridWidth;
-        TileHeight = current.GridHeight;
-        _bitmap = new Tile[TileWidth, TileHeight];
+        var current = GameState.Lvl!;
+        _tileWidth = current.GridWidth;
+        _tileHeight = current.GridHeight;
+        _bitmap = new Tile[_tileWidth, _tileHeight];
         CreateMap();
     }
 
@@ -122,7 +106,7 @@ public static class Grid
 
         switch (coord.X)
         {
-            case >= 0 when coord.X < TileWidth && coord.Y >= 0 && coord.Y < TileHeight:
+            case >= 0 when coord.X < _tileWidth && coord.Y >= 0 && coord.Y < _tileHeight:
             {
                 //its within bounds!
                 tmp = _bitmap![(int)coord.X, (int)coord.Y];
@@ -143,7 +127,7 @@ public static class Grid
 
         _bitmap![(int)coord.X, (int)coord.Y] = coord.X switch
         {
-            >= 0 when coord.Y >= 0 && coord.X < TileWidth && coord.Y < TileHeight
+            >= 0 when coord.Y >= 0 && coord.X < _tileWidth && coord.Y < _tileHeight
                 => value ?? throw new NullReferenceException(
                     "You cannot store NULL inside the Grid anymore, use Grid.Delete(vector2) instead"),
             _ => _bitmap[(int)coord.X, (int)coord.Y]
@@ -183,7 +167,7 @@ public static class Grid
             return tmp;
         }
 
-        if (matches.Count == Level.MaxTilesPerMatch)
+        if (matches.Count == DataOnLoad.MaxTilesPerMatch)
             return false;
 
         for (Direction i = 0; i < lastDir; i++)
