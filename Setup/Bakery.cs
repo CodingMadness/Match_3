@@ -97,9 +97,91 @@ public static class Bakery
         };
     }
 
+    private static TileShape DefineFrame(TileColor kind)
+    {
+        TileShape tmp = new()
+        {
+            TileKind = kind
+        };
+
+        return tmp.TileKind switch
+        {
+            TileColor.Green => new()
+            {
+                TileKind = TileColor.Green,
+                AtlasLocation = new Vector2(0f, 0f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
+                ScaleableSize = 1f,
+            },
+            TileColor.Purple => new()
+            {
+                TileKind = TileColor.Purple,
+                AtlasLocation = new Vector2(1f, 0f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
+                ScaleableSize = 1f,
+            },
+            TileColor.Orange => new()
+            {
+                TileKind = TileColor.Orange,
+                AtlasLocation = new Vector2(2f, 0f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
+                ScaleableSize = 1f,
+            },
+            TileColor.Yellow => new()
+            {
+                TileKind = TileColor.Yellow,
+                AtlasLocation = new Vector2(3f, 0f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
+                ScaleableSize = 1f,
+            },
+            TileColor.Red => new()
+            {
+                TileKind = TileColor.Red,
+                AtlasLocation = new Vector2(0f, 1f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
+                ScaleableSize = 1f,
+            },
+            TileColor.Blue => new()
+            {
+                TileKind = TileColor.Blue,
+                AtlasLocation = new Vector2(1f, 1f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
+                ScaleableSize = 1f,
+            },
+            TileColor.Brown => new()
+            {
+                TileKind = TileColor.Brown,
+                AtlasLocation = new Vector2(2f, 1f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
+                ScaleableSize = 1f,
+            },
+            TileColor.Violet => new()
+            {
+                TileKind = TileColor.Violet,
+                AtlasLocation = new Vector2(3f, 1f) * Utils.Size,
+                Size = new(Utils.Size, Utils.Size),
+                ScaleableSize = 1f,
+            },
+
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+    
     public static Tile CreateTile(Vector2 gridPos, float noise)
     {
         var tile = new Tile(DefineFrame(noise))
+        {
+            GridCell = gridPos,
+            CoordsB4Swap = -Vector2.One,
+            TileState = TileState.Clean,
+            Options = Options.Movable | Options.Shapeable | Options.Destroyable
+        };
+        return tile;
+    }
+    
+    public static Tile CreateTile(Vector2 gridPos, TileColor kind)
+    {
+        var tile = new Tile(DefineFrame(kind))
         {
             GridCell = gridPos,
             CoordsB4Swap = -Vector2.One,
