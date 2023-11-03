@@ -269,7 +269,7 @@ public class MatchX
     public TimeOnly CreatedAt { get; private set; }
     protected bool IsRowBased { get; private set; }
     public int Count => Matches.Count;
-    public bool IsMatchActive => Count >= Level.MaxTilesPerMatch;
+    public bool IsMatchActive => Count >= DataOnLoad.MaxTilesPerMatch;
     public TileShape? Body { get; private set; }
     public RectangleF WorldBox => _worldRect;
     public Vector2 WorldPos { get; private set; }

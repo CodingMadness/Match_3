@@ -234,7 +234,7 @@ public static class UiRenderer
     }
 }
 
-public static class GameObjectRenderer
+public static class TileRenderer
 {
     private static void DrawTile(Texture2D atlas, Tile tile, float elapsedTime)
     {
@@ -277,7 +277,7 @@ public static class GameObjectRenderer
         BeginShaderMode(WobbleEffect);
         {
             (int tileWidth, int tileHeight) = 
-                (GameState.CurrentLvl!.GridWidth, GameState.CurrentLvl.GridHeight);
+                (GameState.Lvl!.GridWidth, GameState.Lvl.GridHeight);
             
             for (int x = 0; x < tileWidth; x++)
             {

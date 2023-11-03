@@ -526,10 +526,6 @@ public static class Utils
     static Utils()
     {
         All.AsSpan().Shuffle(Randomizer);
-        //
-        // NoiseMaker.SetFrequency(25f);
-        // NoiseMaker.SetFractalType(FastNoiseLite.FractalType.Ridged);
-        // NoiseMaker.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
     }
 
     public static float Trunc(this float value, int digits)
@@ -546,13 +542,14 @@ public static class Utils
         int len = items.Length;
         int m = len / 2;
         float distribution = Randomizer.NextSingle();
+        int levelId = GameState.Lvl!.Id;
         
-        int amount2Take = Game.Level.Id switch
+        int amount2Take = levelId switch
         {
             0 => Randomizer.Next(3, 4),
             1 => Randomizer.Next(5, 6),
             2 => Randomizer.Next(7, 7),
-            _ => throw new ArgumentOutOfRangeException(nameof(Game.Level.Id))
+            _ => throw new ArgumentOutOfRangeException(nameof(levelId))
         };
         
         Range r = distribution switch
@@ -746,6 +743,6 @@ public static class Utils
     }
 
     public const int TileColorLen = 8;
-    public const int Size = Level.TileSize;
+    public const int Size = DataOnLoad.TileSize;
     public static readonly Vector2 InvalidCell = -Vector2.One; //this will be computed only once!
 }
