@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using DotNext;
 using Match_3.DataObjects;
 using Match_3.Service;
@@ -33,7 +34,7 @@ public static class QuestBuilder
     private static void DebugQuestLog()
     {
         Debug.WriteLine("");
-        Debug.WriteLine($"There are: {GameState.QuestCount} Quests to solve, namely: \n");
+        Debug.WriteLine($"There are: {GameState.Lvl.QuestCount} Quests to solve, namely: \n");
 
         scoped var quests = GameState.GetQuests();
         
@@ -45,11 +46,9 @@ public static class QuestBuilder
         Debug.WriteLine("");
     }
     
-    public static bool ShallRecycle => _questRunner == GameState.QuestCount;
+    public static bool ShallRecycle => _questRunner == GameState.Lvl.QuestCount;
     
-    public static void Init() =>  Grid.NotifyOnGridCreationDone += DefineQuest;
-    
-    private static void DefineQuest(Span<byte> maxCountPerType)
+    public static void DefineQuests()
     {
         void Fill(Span<TileColor> toFill)
         {
@@ -78,23 +77,26 @@ public static class QuestBuilder
         scoped FastSpanEnumerator<TileColor> subsetEnumerator = new(subset);
         int questCount = subset.Length;
         int trueIdx = 0;
-        GameState.Quests = new Quest[questCount];
-        GameState.StatePerQuest = new State[questCount];
+        GameState.Lvl.Quests = new Quest[questCount];
+        GameState.CurrData!.StatePerQuest = new State[questCount];
+        scoped Span<uint> maxCountPerType = stackalloc uint[tileCount];
+        GameState.Lvl.PackedCounts.UnpackAll2(maxCountPerType);
         
         foreach (var color in subsetEnumerator)
         {
             int toEven = GetRandomInterval();
-            SubEventData match = new(maxCountPerType[trueIdx] / Level.MaxTilesPerMatch, toEven);
+            SubEventData match = new((int)(maxCountPerType[trueIdx] / DataOnLoad.MaxTilesPerMatch), toEven);
             //these subQuests below are just placeholders until this class is done then I change them to
             //smth meaningful
             SubEventData swap = new(4, -1f);
             SubEventData replacement = new(5, -1f);
             SubEventData tolerance = new(6, -1f);
-            GameState.Quests[trueIdx] = new Quest(color, GameTime.GetTimer(toEven) ,match, swap, replacement, tolerance);
-            GameState.StatePerQuest[trueIdx] = new(color,false, default, new(0, 0f), new(0, 0f), new(0, 0f), new(0, 0f));
+            GameState.Lvl.Quests[trueIdx] = new Quest(color, GameTime.GetTimer(toEven) ,match, swap, replacement, tolerance);
+            GameState.CurrData.StatePerQuest[trueIdx] = new(color,false, default, new(0, 0f), new(0, 0f), new(0, 0f), new(0, 0f));
             trueIdx++;
         }
-        GameState.QuestCount = questCount;
+        
+        GameState.Lvl.QuestCount = questCount;
         GameState.Logger = new(questCount * (QuestLog.Length + 1));
 
         DebugQuestLog();
