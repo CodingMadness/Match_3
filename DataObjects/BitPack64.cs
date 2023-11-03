@@ -40,6 +40,14 @@ public struct BitPack64
         _packedSlot |=  (value & mask) << _shiftCount;
         _shiftCount += bitWidth;
     }
+
+    public void Pack(Span<byte> values)
+    {
+        for (byte i = 0; i < values.Length; i++)
+        {
+            Pack(values[i]);
+        }
+    }
     
     public uint? Unpack()
     {
@@ -57,5 +65,13 @@ public struct BitPack64
         uint mask = (1u << bitWidth) - 1; 
         uint shiftedValue = (uint)((_packedSlot >> shiftCount) & mask);
         return shiftedValue;
+    }
+
+    public void UnpackAll2(Span<uint> holder)
+    {
+        for (byte i = 0; i < holder.Length; i++)
+        {
+            holder[i] = (uint)Unpack()!;
+        }
     }
 }
