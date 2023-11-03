@@ -13,50 +13,38 @@ namespace Match_3.Setup;
 
 internal static class Game
 {
-    public static Level Level;
-    private static MatchX? _matchesOf3;
-    private static EnemyMatches? _enemyMatches;
-    private static Tile? _secondClicked;
-    private static Background? _bgGameOver;
-    private static Background _bgWelcome = null!;
-    private static Background? _bgInGame1 = null!;
     private static GameTime _gameTimer;
     private static readonly StringBuilder TimeBuilder = new(3);
-
     private static bool _inGame;
- 
     private static GameTime _gameOverTimer;
     
     public static event Action OnTileClicked;
 
     private static void Main()
     {
-        InitGame();
+        Initialize();
         MainGameLoop();
         CleanUp();
     }
     
-    private static void InitGame()
+    private static void Initialize()
     {
-        Level = new(0, 700, 6, 12, 12);
-        GameState.CurrentLvl = Level;
-        _gameTimer = GameTime.GetTimer(Level.GameBeginAt);
-        _gameOverTimer = GameTime.GetTimer(Level.GameOverScreenCountdown + 10);
-        _matchesOf3 = new();
+        GameState.Lvl = new(0, 700, 6, 12, 12);
+        var level = GameState.Lvl;
+        level.QuestCount = 1;
+        _gameTimer = GameTime.GetTimer(level.GameBeginAt);
+        _gameOverTimer = GameTime.GetTimer(level.GameOverScreenCountdown + 10);
         SetTargetFPS(60);
         SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
-        InitWindow(Level.WindowWidth, Level.WindowHeight, "Match3 By Shpendicus");
+        InitWindow(level.WindowWidth, level.WindowHeight, "Match3 By Shpendicus");
         SetTextureFilter(BgIngameTexture, TextureFilter.TEXTURE_FILTER_BILINEAR);
-        LoadAssets(new(Level.GridWidth, Level.GridHeight));
+        LoadAssets(new(level.GridWidth, level.GridHeight));
         ShaderData = InitWobble2(GetScreenCoord());
-        _bgWelcome = new(WelcomeTexture);
-        _bgGameOver = new(GameOverTexture);
-
+        
         //this has to be initialized RIGHT HERE in order to work!
         QuestHandler.ActivateHandlers();
-        QuestBuilder.Init();
         Grid.Init();
-        GameState.CurrData = new();
+        QuestBuilder.DefineQuests();
     }
 
     private static void NotifyClickHandler()
@@ -66,31 +54,6 @@ internal static class Game
             var currState = GameState.CurrData!;
             currState.TileX = firstClickedTile;
             OnTileClicked();
-        }
-    }
-    
-    private static void DragMouseToEnemies()
-    {
-        //we only fix the mouse point,
-        //WHEN the cursor exceeds at a certain bounding box
-        if (_enemyMatches is not null && _enemyMatches.WorldPos != InvalidCell)
-        {
-            bool outsideRect = !CheckCollisionPointRec(GetMousePosition(), _enemyMatches.Border.AsIntRayRect());
-
-            if (outsideRect && GameState.EnemiesStillPresent)
-            {
-                /*the player has to get these enemies out of the way b4 he can pass!*/
-                SetMouseToWorldPos(_enemyMatches.WorldPos, 1);
-            }
-            else if (!GameState.EnemiesStillPresent && _enemyMatches.IsMatchActive)
-            {
-                //we set this to null, because we cant make any swaps after this, cause 
-                //_secondClicked has a value! so we then can repeat the entire cycle!
-                _secondClicked = null;
-                //enemies were created from the matchesOf3, so we have to
-                //delete all of them, because else we will reference always the base-matches internally which is bad!
-                _enemyMatches.Clear();
-            }
         }
     }
 
@@ -104,7 +67,6 @@ internal static class Game
         var mouseVec2 = GetMousePosition();
         Vector2 gridPos = new Vector2((int)mouseVec2.X, (int)mouseVec2.Y);
         gridPos /= Size;
-        //TODO: change this (maybe?) to EventDriven code! via "OnGetTile?.Invoke();"
         tile = Grid.GetTile(gridPos);
         return tile is not null;
     }
@@ -113,12 +75,8 @@ internal static class Game
     {
         if (IsKeyDown(KeyboardKey.KEY_A))
         {
-            //Grid.Instance = new Grid(Level);
-            _matchesOf3?.Clear();
-            _enemyMatches?.Clear();
-            GameState.EnemiesStillPresent = false;
-            _secondClicked = null;
-            GameState.CurrData!.WasSwapped = false;
+            GameState.CurrData!.EnemiesStillPresent = false;
+            GameState.CurrData.WasSwapped = false;
             Console.Clear();
         }
     }
@@ -133,33 +91,34 @@ internal static class Game
     {
         static bool IsGameStillRunning()
         {
-            if (GameState.IsGameOver)
+            var eventData = GameState.CurrData!;
+            
+            if (eventData.IsGameOver)
             {
                 // OnGameOver();
                 _gameOverTimer.CountDown();
                 TimeBuilder.Append($"{_gameOverTimer.ElapsedSeconds}");
 
                 UiRenderer.DrawText(TimeBuilder.AsSpan());
-                UiRenderer.DrawBackground(_bgGameOver);
                 UiRenderer.DrawTimer(_gameOverTimer.ElapsedSeconds);
                 ImGui.SetWindowFontScale(2f);
                 
                 return 
                     !UiRenderer.DrawGameOverScreen(_gameOverTimer.Done(),
-                                                  GameState.WasGameWonB4Timeout,
+                        eventData.WasGameWonB4Timeout,
                                                  GameState.Logger!.Dequeue(true));
             }
-            else if (GameState.WasGameWonB4Timeout)
+            else if (eventData.WasGameWonB4Timeout)
             {
                 if (UiRenderer.DrawGameOverScreen(_gameTimer.Done(), true, GameState.Logger!.Dequeue()))
                 {
                     //Begin new Level and reset values!
-                    InitGame();
+                    Initialize();
                     GameState.Logger.Clear();
-                    GameState.WasGameWonB4Timeout = false;
-                    GameState.IsGameOver = false;
-                    GameState.EnemiesStillPresent = false;
-                    GameState.CurrData = null;
+                    eventData.WasGameWonB4Timeout = false;
+                    eventData.IsGameOver = false;
+                    eventData.EnemiesStillPresent = false;
+                    eventData = null;
                 }
                 return false;
             }
@@ -184,15 +143,13 @@ internal static class Game
                 UpdateShader(ShaderData.gridSizeLoc, GetScreenCoord());
                 UpdateShader(ShaderData.secondsLoc, currTime);
                 UpdateShader(ShaderData.shouldWobbleLoc, true);
-                GameState.IsGameOver = _gameTimer.Done();
+                GameState.CurrData!.IsGameOver = _gameTimer.Done();
 
                 if (IsGameStillRunning())
                 {
-                    UiRenderer.DrawBackground(_bgInGame1);
                     UiRenderer.DrawTimer(currTime);
-                    DragMouseToEnemies();
                     NotifyClickHandler();
-                    GameObjectRenderer.DrawGrid(currTime);
+                    TileRenderer.DrawGrid(currTime);
                     HardReset();
                 }
                 break;
