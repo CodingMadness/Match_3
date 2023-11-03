@@ -4,21 +4,16 @@ namespace Match_3.DataObjects;
 
 public static class GameState
 {
-    public static bool EnemiesStillPresent, WasGameWonB4Timeout, IsGameOver;
-    public static int QuestCount;
-    public static Quest[]? Quests;
-    public static State[]? StatePerQuest;
-    public static IEnumerable<State>? StatesFromQuestRelatedTiles;
-    public static Level? CurrentLvl;
-    public static EventState? CurrData;
+    public static DataOnLoad? Lvl;
+    public static EventState? CurrData { get; } = new();
     public static SpanQueue<char>? Logger; //whatever the logger logged, take that to render!
-    
+
     public static FastSpanEnumerator<Quest> GetQuests()
-        => new(Quests.AsSpan(0, QuestCount));
+        => new(Lvl!.Quests.AsSpan(0, Lvl.QuestCount));
 
     public static ref readonly Quest GetQuestBy(TileColor tileColor)
     {
-        var iterator = new FastSpanEnumerator<Quest>(Quests.AsSpan(0, QuestCount));
+        var iterator = new FastSpanEnumerator<Quest>(Lvl.Quests.AsSpan(0, Lvl.QuestCount));
 
         foreach (ref readonly Quest quest in iterator)
         {
@@ -31,7 +26,7 @@ public static class GameState
     
     public static State GetStateBy(TileColor tileColor)
     {
-        var iterator = new FastSpanEnumerator<State>(StatePerQuest.AsSpan(0, QuestCount));
+        var iterator = new FastSpanEnumerator<State>(CurrData!.StatePerQuest.AsSpan(0, Lvl!.QuestCount));
 
         foreach (State state in iterator)
         {
