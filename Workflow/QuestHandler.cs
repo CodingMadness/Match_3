@@ -174,7 +174,7 @@ public class ClickHandler : QuestHandler
                     //find all states whose "TileColor" were part of the swap!
                     //it can be ONLY 1 OR 2 but NEVER 0!
                     var second = secondClicked;
-                    GameState.StatesFromQuestRelatedTiles = GameState.StatePerQuest!
+                    currData.StatesFromQuestRelatedTiles = currData.StatePerQuest!
                                                     .Where(x => x.TileKind == firstClicked.Body.TileKind ||
                                                            x.TileKind == second.Body.TileKind);
                     
@@ -238,9 +238,9 @@ public class SwapHandler : QuestHandler
         {
             var debugLog = QuestBuilder.GetPooledQuestLog();
             
-            if (GameState.StatesFromQuestRelatedTiles!.Any(z => (z.TileKind == x || z.TileKind == y) && z.IsQuestLost))
+            if (swapState.StatesFromQuestRelatedTiles!.Any(z => (z.TileKind == x || z.TileKind == y) && z.IsQuestLost))
             {
-                var debugValue = GameState.StatesFromQuestRelatedTiles!.First(z => (z.TileKind == x || z.TileKind == y) && z.IsQuestLost);
+                var debugValue = swapState.StatesFromQuestRelatedTiles!.First(z => (z.TileKind == x || z.TileKind == y) && z.IsQuestLost);
 
                 Debug.WriteLine($"You lost Quest of type: {debugValue.TileKind}");// already, now feel the punishment and continue with the other Quests, your time is running short!");
                 return;
@@ -268,12 +268,12 @@ public class SwapHandler : QuestHandler
 
                     if (z.IsQuestLost)
                     {
-                        int currQuestCount = GameState.QuestCount--;
-                        int countFromWhenIsLose = (1 * GameState.QuestCount / 3);
+                        int currQuestCount = GameState.Lvl!.QuestCount--;
+                        int countFromWhenIsLose = (1 * GameState.Lvl.QuestCount / 3);
 
-                        GameState.IsGameOver = currQuestCount == countFromWhenIsLose;
+                        swapState.IsGameOver = currQuestCount == countFromWhenIsLose;
 
-                        if (GameState.IsGameOver)
+                        if (swapState.IsGameOver)
                         {
                             Debug.WriteLine("GAME IS OVER NOW BECAUSE WE LOST ATLEAST 2/3 OF QUESTS! HOW BAD ARE WE ?!");
                             return;
@@ -290,7 +290,7 @@ public class SwapHandler : QuestHandler
                 }
                 //Now we increase the swapCount for the participating-TileColor's only if there was not a match
                 //because then we need to +1 up and see if the player reached the limits
-                var states = GameState.StatesFromQuestRelatedTiles!;
+                var states = swapState.StatesFromQuestRelatedTiles!;
                 
                 foreach (var state in states)
                 {
@@ -317,14 +317,14 @@ public class MatchHandler : QuestHandler
     {
         //IF the incoming match was a "Miss-match (a match not allowed to do because its not in the Quest written!)", then
         //we do +1 the "State.MissMatch.Count", ELSE we do +1 the "State.Match.Count"
-        var allStates = GameState.StatePerQuest!;
-        var StatesFromQuestRelatedTiles = GameState.StatesFromQuestRelatedTiles!;
         var matchData = GameState.CurrData!;
+        var allStates = matchData.StatePerQuest!;
+        var StatesFromQuestRelatedTiles = matchData.StatesFromQuestRelatedTiles!;
         var currMatch = matchData.Matches;
         var kindWhoTriggeredMatch = currMatch!.Body!.TileKind;
         var kindWhichWasIgnoredByMatch = matchData.IgnoredByMatch;
         var stateOfMatch = StatesFromQuestRelatedTiles.FirstOrNone(x => x.TileKind == kindWhoTriggeredMatch);
-        var questOfMatch = GameState.Quests!;
+        var questOfMatch = GameState.Lvl.Quests!;
         
         //example: RED swapsWith BLUE; RED is in Quest, Blue not;
         //BLUE got a Match, RED not;
