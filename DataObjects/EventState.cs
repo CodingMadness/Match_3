@@ -5,8 +5,7 @@ public class EventState
     public State[]? StatePerQuest;
     public IEnumerable<State>? StatesFromQuestRelatedTiles;
     public TileColor IgnoredByMatch;
-    public Tile? TileX;
-    public Tile? TileY;
+    public Tile? TileX, TileY;
     public MatchX? Matches = new();
     public bool WasMatch, 
                 WasSwapped,

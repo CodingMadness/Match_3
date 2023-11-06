@@ -139,7 +139,7 @@ public static class AssetManager
         FeatureBtn = LoadGuiTexture("Button.btn1.png");
         BgIngameTexture = LoadGuiTexture("Background.bgIngame1.png");
         GameOverTexture = LoadGuiTexture("Background.bgGameOver.png");
-        DefaultTileAtlas = LoadInGameTexture("set1.png");
+        DefaultTileAtlas = LoadInGameTexture("set3_1.png");
         EnemySprite = LoadInGameTexture("set2.png");
         WobbleEffect = LoadShader("wobble2.frag");
         ShaderData = InitWobble2(gridSize);

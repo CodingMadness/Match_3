@@ -4,8 +4,8 @@ namespace Match_3.DataObjects;
 
 public static class GameState
 {
-    public static DataOnLoad? Lvl;
     public static EventState? CurrData { get; } = new();
+    public static DataOnLoad? Lvl;
     public static SpanQueue<char>? Logger; //whatever the logger logged, take that to render!
 
     public static FastSpanEnumerator<Quest> GetQuests()

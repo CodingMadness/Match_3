@@ -115,6 +115,10 @@
     <EmbeddedResource Include="Assets\fonts\font5.otf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Remove="Assets\Sprites\Tiles\set3_1.png" />
+    <EmbeddedResource Include="Assets\Sprites\Tiles\set3_1.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\Fonts\font1.otf">

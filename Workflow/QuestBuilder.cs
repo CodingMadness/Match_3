@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
 using DotNext;
 using Match_3.DataObjects;
 using Match_3.Service;
@@ -18,16 +17,16 @@ public static class QuestBuilder
      *   - Just return from now on the respective string from the pool
      */
     private static readonly string QuestLog = $"(Black) You have to collect an amount of" +
-                                              $" ({TileColor.Transparent.ToStringFast()}) {Quest.MatchCountName} {TileColor.Transparent.ToStringFast()} Matches" +
+                                              $" (                     ) {Quest.MatchCountName}                     Matches" +
                                               $" (Black) and u have in between those only" +
-                                              $" ({TileColor.Transparent.ToStringFast()}) {Quest.MatchIntervalName} seconds left" +
+                                              $" (                     ) {Quest.MatchIntervalName} seconds left" +
                                               $" (Black) and also just" +
-                                              $" ({TileColor.Transparent.ToStringFast()}) {Quest.SwapCountName} swaps available" +
+                                              $" (                     ) {Quest.SwapCountName} swaps available" +
                                               $" (Black) for each new match" +
                                               $" (Black) and furthermore, you only are allowed to replace any given tile" +
-                                              $" ({TileColor.Transparent.ToStringFast()}) {Quest.ReplacementCountName} times at max" +
+                                              $" (                     ) {Quest.ReplacementCountName} times at max" +
                                               $" (Black) for your own help as well as there is the tolerance for" +
-                                              $" ({TileColor.Transparent.ToStringFast()}) {Quest.MissMatchName} miss matches";
+                                              $" (                     ) {Quest.MissMatchName} miss matches";
         
     private static int _questRunner;
 
@@ -50,12 +49,6 @@ public static class QuestBuilder
     
     public static void DefineQuests()
     {
-        void Fill(Span<TileColor> toFill)
-        {
-            for (int i = 0; i < Utils.TileColorLen; i++)
-                toFill[i] = i.ToColor();
-        }
-
         int GetRandomInterval()
         {
             //we do netSingle() * 10f to have a real representative value for interval, like:
@@ -68,10 +61,10 @@ public static class QuestBuilder
             return toEven;
         }
 
-        const int tileCount = Utils.TileColorLen;
+        const int tileCount = Utils.TileColorCount;
         // const int questLogParts = 4;
         scoped Span<TileColor> subset = stackalloc TileColor[tileCount];
-        Fill(subset);
+        Utils.Fill(subset);
         subset.Shuffle(Utils.Randomizer);
         subset = subset.TakeRndItemsAtRndPos();
         scoped FastSpanEnumerator<TileColor> subsetEnumerator = new(subset);
@@ -80,7 +73,7 @@ public static class QuestBuilder
         GameState.Lvl.Quests = new Quest[questCount];
         GameState.CurrData!.StatePerQuest = new State[questCount];
         scoped Span<uint> maxCountPerType = stackalloc uint[tileCount];
-        GameState.Lvl.PackedCounts.UnpackAll2(maxCountPerType);
+        maxCountPerType.Fill(GameState.Lvl.CountForAllColors);
         
         foreach (var color in subsetEnumerator)
         {

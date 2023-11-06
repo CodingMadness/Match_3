@@ -229,7 +229,7 @@ public static class UiRenderer
         RectangleF screen = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
 
         DrawTexturePro(bg.Texture, bg.Body.TextureRect.AsIntRayRect(),
-            screen.DoScale(bg.Body.ScaleableSize).AsIntRayRect(),
+            screen.DoScale(bg.Body.ScaleFactor).AsIntRayRect(),
             Vector2.Zero, 0f, bg.Body.FixedWhite);
     }
 }
@@ -248,7 +248,7 @@ public static class TileRenderer
             GameText coordText = new(copy, (tile.GridCell).ToString(), 10.5f)
             {
                 Begin = begin,
-                Color = (tile.TileState & TileState.Selected) == TileState.Selected ? RED : BLACK,
+                Color = (tile.State & TileState.Selected) == TileState.Selected ? RED : BLACK,
             };
 
             coordText.Color.AlphaSpeed = 0f;
@@ -258,7 +258,7 @@ public static class TileRenderer
 
         if (tile is EnemyTile enemy)
         {
-            enemy.Body.ScaleableSize = 1f;
+            enemy.Body.ScaleFactor = 1f;
             DrawTexturePro(atlas, enemy.Body.TextureRect.AsIntRayRect(), 
                         enemy.Pulsate(elapsedTime).AsIntRayRect(),
                            Vector2.Zero, 0f, enemy.Body.Color);
@@ -269,7 +269,7 @@ public static class TileRenderer
         DrawTexturePro(atlas, body.TextureRect.AsIntRayRect(), 
                    tile.MapBox.AsIntRayRect(), 
                        Vector2.Zero, 0f, body.Color);
-        DrawCoordOnTop(tile);
+        //DrawCoordOnTop(tile);
     }
 
     public static void DrawGrid(float elapsedTime)

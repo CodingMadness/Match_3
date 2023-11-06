@@ -122,7 +122,7 @@ public class ClickHandler : QuestHandler
         ref var secondClicked = ref currData.TileY;
         // var enemyMatches = currentData.Matches;
 
-        if (firstClicked!.IsDeleted)
+        if (firstClicked.IsDeleted)
             return;
 
         //was Enemy tile clicked on, ofc after a matchX happened?
@@ -137,7 +137,7 @@ public class ClickHandler : QuestHandler
                 // Do this when the I need to handle extra stuff for normal tiles!.....
             }
 
-            firstClicked.TileState |= TileState.Selected;
+            firstClicked.State |= TileState.Selected;
 
             /*No tile selected yet*/
             if (secondClicked is null)
@@ -148,17 +148,16 @@ public class ClickHandler : QuestHandler
             }
 
             /*Same tile selected => deselect*/
-            if (Comparer.StateAndBodyComparer.Singleton.Equals(firstClicked, secondClicked))
+            if (Comparer.BodyComparer.Singleton.Equals(firstClicked, secondClicked))
             {
                 Console.Clear();
-                //Console.WriteLine($"{tmpFirst.GridCell} was clicked AGAIN!");
-                secondClicked.TileState &= ~TileState.Selected;
+                secondClicked.State &= ~TileState.Selected;
                 secondClicked = null;
             }
             /*Different tile selected ==> swap*/
             else
             {
-                firstClicked.TileState &= ~TileState.Selected;
+                firstClicked.State &= ~TileState.Selected;
                 currData.TileY = secondClicked;
                 currData.TileX = firstClicked;
                 OnSwapTiles();
@@ -169,7 +168,7 @@ public class ClickHandler : QuestHandler
                     //the moment we have the 1. swap, we notify the SwapHandler for this
                     //and he begins to keep track of (HOW LONG did the swap took) and
                     //(HOW MANY MISS-SWAPS HAPPENED!)
-                    firstClicked.TileState &= ~TileState.Selected;
+                    firstClicked.State &= ~TileState.Selected;
                     
                     //find all states whose "TileColor" were part of the swap!
                     //it can be ONLY 1 OR 2 but NEVER 0!
@@ -183,7 +182,7 @@ public class ClickHandler : QuestHandler
                 }
                 else
                 {
-                    firstClicked.TileState &= ~TileState.Selected;
+                    firstClicked.State &= ~TileState.Selected;
                 }
             }
         }
@@ -210,7 +209,7 @@ public class SwapHandler : QuestHandler
     private static (TileColor x, TileColor y) GetTileColorAndQuestData(out Quest? eventDataOfX, out Quest? eventDataOfY)
     {
         var state = GameState.CurrData!;
-        var colorX = state.TileX!.Body.TileKind;
+        var colorX = state.TileX.Body.TileKind;
         var colorY = state.TileY!.Body.TileKind;
         eventDataOfX = GameState.GetQuestBy(colorX);
         eventDataOfY = GameState.GetQuestBy(colorY);
@@ -324,7 +323,7 @@ public class MatchHandler : QuestHandler
         var kindWhoTriggeredMatch = currMatch!.Body!.TileKind;
         var kindWhichWasIgnoredByMatch = matchData.IgnoredByMatch;
         var stateOfMatch = StatesFromQuestRelatedTiles.FirstOrNone(x => x.TileKind == kindWhoTriggeredMatch);
-        var questOfMatch = GameState.Lvl.Quests!;
+        var questOfMatch = GameState.Lvl.Quests;
         
         //example: RED swapsWith BLUE; RED is in Quest, Blue not;
         //BLUE got a Match, RED not;
