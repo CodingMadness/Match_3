@@ -14,11 +14,12 @@ public record DataOnLoad(int Id,
 {
     public const int MaxTilesPerMatch = 3;
     public const int TileSize = 64 / 1;
+    public const int TileColorCount = 12;
     public int WindowHeight => GridHeight * TileSize;
     public int WindowWidth => GridWidth * TileSize;
 
     public Quest[] Quests;
 
     public int QuestCount;
-    public BitPack64 PackedCounts;
+    public byte CountForAllColors;
 }
