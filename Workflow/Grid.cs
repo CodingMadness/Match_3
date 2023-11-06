@@ -1,7 +1,8 @@
-﻿//using DotNext;
-
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance;
+using DotNext;
 using Match_3.DataObjects;
 using Match_3.Service;
 using Match_3.Setup;
@@ -18,34 +19,29 @@ public static class Grid
         NegativeY = 3,
     }
     
-    private static Tile[,]? _bitmap;
+    private static Tile[,] _bitmap = null!;
     private static Tile? _lastMatchTrigger;
     private static byte _match3FuncCounter;
     private static int _tileWidth, _tileHeight;
-
+    private static readonly Comparer.DistanceComparer _distanceComparer = new();
+    
     private static void CreateMap()
     {
-        void Fill(Span<TileColor> toFill)
-        {
-            for (int i = 0; i < Utils.TileColorLen; i++)
-                toFill[i] = i.ToColor();
-        }
-
-        const byte ySize = 4, xSize = 2;
-        Span<byte> counts = stackalloc byte[Utils.TileColorLen];
-        Span<TileColor> allKinds = stackalloc TileColor[Utils.TileColorLen];
+        const byte ySize = 4, xSize = 3;
+        scoped Span<byte> counts = stackalloc byte[Utils.TileColorCount];
+        scoped Span<TileColor> allKinds = stackalloc TileColor[Utils.TileColorCount];
         Vector2 twoBy4Block = new(xSize, ySize);
         Vector2 begin = new(0, 0);
-        Fill(allKinds);
         int j = 0;
-
+        Utils.Fill(allKinds);
+        
         Next8Block:
         for (int x = (int)begin.X; x < twoBy4Block.X; x++)
         {
             for (int y = (int)begin.Y; y < twoBy4Block.Y; y++)
             {
                 Vector2 current = new(x, y);
-                Tile tmpTile = _bitmap![x, y] = Bakery.CreateTile(current, allKinds[j++]);
+                Tile tmpTile = _bitmap[x, y] = Bakery.CreateTile(current, allKinds[j++]);
                 int index = tmpTile.Body.TileKind.ToIndex();
                 counts[index]++;
             }
@@ -74,14 +70,41 @@ public static class Grid
             goto Next8Block;  
         }
         
-        GameState.Lvl!.PackedCounts.Pack(counts);
+        //since we know that in this method so far at least,
+        //the "counts" consists always of the same byte value, we can pack only the 0th element
+        //and fill the result span with that value then we have the Span<byte> back
+        GameState.Lvl!.CountForAllColors = counts[0];
     }
 
+    private static Vector2 Map1DIndexAsCell(int index)
+    {
+        //index=17
+        //            = 17    / 12 = 1
+        int row_index = index / _tileWidth; // columns
+        int col_index = index % _tileHeight;
+        return new(col_index, row_index);
+    }
+    
+    private static void Test()
+    {
+        scoped Span<TileColor> allKinds = stackalloc TileColor[Utils.TileColorCount];
+        Utils.Fill(allKinds);
+        
+        foreach (var color in allKinds)
+        {
+            //just give me back the tiles who "Are2Close(x,y)" is true
+            var list = _bitmap
+                                        .OfType<Tile>()
+                                        .Where(x => x.Body.TileKind == color)
+                                        .TakeClusteredItems(_distanceComparer);
+            break;
+        }
+    }
+    
     public static void Init() //--> RECEIVER!
     {
         // ----> The "NOTIFIER" has to DECLARE the event-type!  AND has to invoke() it in his own code-base somewhere!
         // ----> The "RECEIVER" has to REGISTER the event AND handle with appropriate code logic the specific event-case!
-
         //--> registrations/subscriptions to events!
         ClickHandler.Instance.OnSwapTiles += Swap;
         SwapHandler.Instance.OnCheckForMatch += CheckForMatch;
@@ -90,7 +113,10 @@ public static class Grid
         _tileWidth = current.GridWidth;
         _tileHeight = current.GridHeight;
         _bitmap = new Tile[_tileWidth, _tileHeight];
+        _items2Replace = new(Utils.TileColorCount * (Utils.TileColorCount / 2));
         CreateMap();
+        Console.Clear();
+        Test();
     }
 
     private static void CheckForMatch()
@@ -100,6 +126,12 @@ public static class Grid
         Debug.WriteLine($"CheckForMatch() => returns: {state.WasMatch}");
     }
 
+    /// <summary>
+    /// Gets you a tile based on the cell-coordinates,
+    /// if it is marked as 'deleted' or 'disabled', then you get back null!
+    /// </summary>
+    /// <param name="coord">the cell to pass, from (0,0) -> (_tileWidth-1, _tileHeight-1)</param>
+    /// <returns></returns>
     public static Tile? GetTile(Vector2 coord)
     {
         Tile? tmp = null;
@@ -109,8 +141,8 @@ public static class Grid
             case >= 0 when coord.X < _tileWidth && coord.Y >= 0 && coord.Y < _tileHeight:
             {
                 //its within bounds!
-                tmp = _bitmap![(int)coord.X, (int)coord.Y];
-                tmp = tmp is { IsDeleted: true } ? null : tmp;
+                tmp = _bitmap[(int)coord.X, (int)coord.Y];
+                tmp = tmp is { IsDeleted: true, State: TileState.Disabled  } ? null : tmp;
                 break;
             }
         }
@@ -118,14 +150,14 @@ public static class Grid
         return tmp;
     }
 
-    public static void SetTile(Tile? value, Vector2? newCoord = null)
+    public static void SetTile(Tile value, Vector2? newCoord = null)
     {
         if (value is null)
             throw new ArgumentException("you cannot Add a NULL tile! check your tile-creation logic!");
 
         Vector2 coord = newCoord ?? value.GridCell;
 
-        _bitmap![(int)coord.X, (int)coord.Y] = coord.X switch
+        _bitmap[(int)coord.X, (int)coord.Y] = coord.X switch
         {
             >= 0 when coord.Y >= 0 && coord.X < _tileWidth && coord.Y < _tileHeight
                 => value ?? throw new NullReferenceException(
@@ -139,14 +171,15 @@ public static class Grid
         var dataForMatchLogic = GameState.CurrData!;
         var matches = dataForMatchLogic.Matches!;
         const Direction lastDir = (Direction)4;
-        _lastMatchTrigger = dataForMatchLogic.TileX!;
-
-        bool Add2MatchesWhenEqual(Tile? first, Tile? next)
+        _lastMatchTrigger = dataForMatchLogic.TileX;
+        
+        bool Add2TilesWhenEqual(Tile? first, Tile? next)
         {
-            if (Comparer.StateAndBodyComparer.Singleton.Equals(first, next))
+            if (first is not null && next is not null &&
+                Comparer.BodyComparer.Singleton.Equals(first, next))
             {
-                matches.Add(first!);
-                matches.Add(next!);
+                matches.Add(first);
+                matches.Add(next);
                 return true;
             }
 
@@ -175,7 +208,7 @@ public static class Grid
             Vector2 nextCoords = GetNextCell(_lastMatchTrigger.GridCell, i);
             var next = GetTile(nextCoords);
 
-            while (Add2MatchesWhenEqual(_lastMatchTrigger, next))
+            while (Add2TilesWhenEqual(_lastMatchTrigger, next))
             {
                 //compute the proper (x,y) for next round, because
                 //we found a match between a -> b, now we check
@@ -206,23 +239,15 @@ public static class Grid
     {
         var currData = GameState.CurrData!;
 
-        Tile? a = currData.TileX,
-            b = currData.TileY;
+        Tile? a = currData.TileX!,
+              b = currData.TileY!;
 
-        if (a is null || b is null ||
-            a.IsDeleted || b.IsDeleted)
+        if (a.IsDeleted || b.IsDeleted)
         {
             currData.WasSwapped = false;
             return;
         }
-
-        if (a.Options.HasFlag(Options.UnMovable) ||
-            (b.Options & Options.UnMovable) == Options.UnMovable)
-        {
-            currData.WasSwapped = false;
-            return;
-        }
-
+        
         SetTile(b, a.GridCell);
         SetTile(a, b.GridCell);
         a.CoordsB4Swap = a.GridCell;
