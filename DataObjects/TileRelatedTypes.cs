@@ -5,26 +5,13 @@ using DotNext.Runtime;
 using Match_3.Service;
 using Match_3.Workflow;
 
-
 [assembly: FastEnumToString(typeof(TileColor), IsPublic = true, ExtensionMethodNamespace = "Match_3.Variables.Extensions")]
 namespace Match_3.DataObjects;
 
 [Flags]
-public enum Options
-{
-    UnDestroyable = 0,
-    UnMovable = 1,
-    UnShapeable = 2,
-    
-    Destroyable = 4,
-    Movable = 8,
-    Shapeable = 16
-}
-
-[Flags]
 public enum TileState
 {
-    Disabled=1, Deleted=2, Hidden=4, Selected=8, Clean=16, Pulsate=32
+    Disabled=1, NotRendered=4, Selected=8, UnChanged=16, Pulsate=32
 }
 
 public class Shape
@@ -33,7 +20,7 @@ public class Shape
     public Size Size { get; init; }
     public RectangleF TextureRect => new(AtlasLocation.X, AtlasLocation.Y, Size.Width, Size.Height);
     
-    public ScaleableFloat ScaleableSize;
+    public ScaleableFloat ScaleFactor;
 
     private FadeableColor _color; 
     public ref readonly  FadeableColor Color => ref _color;
@@ -62,7 +49,7 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
     
     public override int GetHashCode() => HashCode.Combine(FixedWhite, TileKind);
 
-    public override string ToString() => $"Tile type: <{TileKind}> with Tint: <{FixedWhite}>";  
+    public override string ToString() => $"Tile type: <{TileKind}>";  
 
     public object Clone()
     {
@@ -81,113 +68,70 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
     public static bool operator !=(TileShape left, TileShape right) => !(left == right);
 }
 
-public class Tile(TileShape body) : IEquatable<Tile>
+public class Tile(TileShape body)
 {
     private TileState _current;
-    public virtual Options Options { get; set; }
-    public TileState TileState
+   
+    public TileState State
     {
         get => _current;
 
         set
         {
-            if ((value & TileState.Clean) == TileState.Clean)
+            if ((value & TileState.UnChanged) == TileState.UnChanged)
             {
-                _current &= TileState.Selected;
-                _current &= TileState.Disabled;
-                _current &= TileState.Deleted;
-                _current &= TileState.Hidden;
+                _current = TileState.UnChanged;
                 Body.ToConstColor(WHITE.AsSysColor());
             }
-
-            if ((value & TileState.Pulsate) == TileState.Pulsate)
-            {
-                _current &= TileState.Selected;
-                _current &= TileState.Disabled;
-                _current &= TileState.Deleted;
-                _current &= TileState.Hidden;
-            }
-
-            if ((value & TileState.Selected) == TileState.Selected)
-            {
-                //if a tile is selected it must also be clean/alive
-                _current |= TileState.Clean;
-            }
-            else if ((value & TileState.Hidden) == TileState.Hidden)
-            {
-                _current &= TileState.Clean; //remove clean flag from set
-                //_current |= TileState.Selected; //remove clean flag from set
-                //add disabled flag to set cause when smth is deleted it must be automatically disabled 
-                _current &= TileState.Disabled; //operations on that tile with this flag are still possible!
-                _current &= TileState.Deleted;
-            }
-            else if ((value & TileState.Deleted) == TileState.Deleted)
-            {
-                //remove all flags
-                _current &= TileState.Clean;
-                _current &= TileState.Selected; //remove clean flag from set
-                _current &= TileState.Disabled;
-                Body.ToConstColor(WHITE.AsSysColor());
-            }
-            else if ((value & TileState.Disabled) == TileState.Disabled)
-            {
-                _current &= TileState.Clean; //remove clean flag from set
-                _current &= TileState.Selected; //remove clean flag from set
-                _current &= TileState
-                    .Deleted; //deleted is reserved as Disabled AND Hidden, so u cannot be both at same time
-                Body.ToConstColor(BLACK.AsSysColor());
-            }
-
+            
             _current = value;
         }
     }
+    
     public Vector2 GridCell { get; set; }
+  
     public Vector2 CoordsB4Swap { get; set; }
+   
     public TileShape Body { get; } = body;
+    
     public Vector2 WorldCell => GridCell * Utils.Size;
+    
     public Vector2 End => WorldCell + Vector2.One * Utils.Size;
-    public bool IsDeleted => TileState.HasFlag(TileState.Deleted);
+    
+    public bool IsDeleted => State.HasFlag(TileState.Disabled) && 
+                             State.HasFlag(TileState.NotRendered);
     private RectangleF GridBox => new(GridCell.X, GridCell.Y, 1f, 1f);
+   
     public RectangleF MapBox => GridBox.RelativeToMap();
     
     public override string ToString() => $"Cell: {GridCell}; ---- {Body}";
     
-    public void Disable(bool shallDelete)
+    public void Disable(bool shallDelete=false)
     {
         Body.Fade(BLACK.AsSysColor(), 0f, 1f);
-        Options = Options.UnMovable | Options.UnShapeable;
-        TileState = !shallDelete ? TileState.Disabled : TileState.Deleted;
+        State = !shallDelete ? TileState.Disabled : (TileState.Disabled | TileState.NotRendered);
     }
    
     public void Enable()
     {
         Body.Fade(WHITE.AsSysColor(), 0f, 1f);
-        Options = Options.Movable | Options.Shapeable;
-        TileState = TileState.Clean;
+        State = TileState.UnChanged;
     }
-
-    public bool Equals(Tile? other) => Comparer.StateAndBodyComparer.Singleton.Equals(other, this);
-
-    public override bool Equals(object? obj) => Equals(obj as Tile);
-
-    public override int GetHashCode() => Body.GetHashCode();
 }
 
 public class EnemyTile(TileShape body) : Tile(body)
 {
-    public override Options Options => Options.UnMovable;
-
     public RectangleF Pulsate(float elapsedTime)
     {
         if (elapsedTime <= 0f)
             return Body.TextureRect;
 
-        if (Body.ScaleableSize.Speed == 0f)
-            Body.ScaleableSize.Speed = 20.25f;
+        if (Body.ScaleFactor.Speed == 0f)
+            Body.ScaleFactor.Speed = 20.25f;
         
-        var rect = Body.TextureRect.DoScale(Body.ScaleableSize.GetFactor());
+        var rect = Body.TextureRect.DoScale(Body.ScaleFactor.GetFactor());
                 
-        Body.ScaleableSize.ElapsedTime = elapsedTime;
+        Body.ScaleFactor.ElapsedTime = elapsedTime;
         return rect with { X = WorldCell.X, Y = (int)WorldCell.Y };
     }
     
