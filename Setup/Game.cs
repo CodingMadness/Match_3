@@ -13,12 +13,10 @@ namespace Match_3.Setup;
 
 internal static class Game
 {
-    private static GameTime _gameTimer;
-    private static readonly StringBuilder TimeBuilder = new(3);
+    private static GameTime _gameTimer, _gameOverTimer;
+    private static StringBuilder _timeBuilder = null!;
     private static bool _inGame;
-    private static GameTime _gameOverTimer;
-    
-    public static event Action OnTileClicked;
+    public static event Action OnTileClicked = null!;
 
     private static void Main()
     {
@@ -30,6 +28,7 @@ internal static class Game
     private static void Initialize()
     {
         GameState.Lvl = new(0, 700, 6, 12, 12);
+        _timeBuilder = new(3);
         var level = GameState.Lvl;
         level.QuestCount = 1;
         _gameTimer = GameTime.GetTimer(level.GameBeginAt);
@@ -70,16 +69,6 @@ internal static class Game
         tile = Grid.GetTile(gridPos);
         return tile is not null;
     }
-
-    private static void HardReset()
-    {
-        if (IsKeyDown(KeyboardKey.KEY_A))
-        {
-            GameState.CurrData!.EnemiesStillPresent = false;
-            GameState.CurrData.WasSwapped = false;
-            Console.Clear();
-        }
-    }
     
     /// <summary>
     /// this checks for a lot of scenarios in which the game could end, either by failure OR
@@ -97,9 +86,9 @@ internal static class Game
             {
                 // OnGameOver();
                 _gameOverTimer.CountDown();
-                TimeBuilder.Append($"{_gameOverTimer.ElapsedSeconds}");
+                _timeBuilder.Append($"{_gameOverTimer.ElapsedSeconds}");
 
-                UiRenderer.DrawText(TimeBuilder.AsSpan());
+                UiRenderer.DrawText(_timeBuilder.AsSpan());
                 UiRenderer.DrawTimer(_gameOverTimer.ElapsedSeconds);
                 ImGui.SetWindowFontScale(2f);
                 
@@ -130,29 +119,21 @@ internal static class Game
         
         float currTime = _gameTimer.ElapsedSeconds;
         _inGame |= IsKeyDown(KeyboardKey.KEY_ENTER);
-        
-        switch (_inGame)
+
+        if (!_inGame)
         {
-            case false:
-                UiRenderer.DrawQuestLog(); 
-                break;
-            case true:
+            //UiRenderer.DrawQuestLog();
+        }
+        else if (_inGame)
+        {
+            _gameTimer.CountDown();
+            GameState.CurrData!.IsGameOver = _gameTimer.Done();
+
+            if (IsGameStillRunning())
             {
-                _gameTimer.CountDown();
-
-                UpdateShader(ShaderData.gridSizeLoc, GetScreenCoord());
-                UpdateShader(ShaderData.secondsLoc, currTime);
-                UpdateShader(ShaderData.shouldWobbleLoc, true);
-                GameState.CurrData!.IsGameOver = _gameTimer.Done();
-
-                if (IsGameStillRunning())
-                {
-                    UiRenderer.DrawTimer(currTime);
-                    NotifyClickHandler();
-                    TileRenderer.DrawGrid(currTime);
-                    HardReset();
-                }
-                break;
+                UiRenderer.DrawTimer(currTime);
+                NotifyClickHandler();
+                TileRenderer.DrawGrid(currTime);
             }
         }
     }
