@@ -1,9 +1,7 @@
-﻿using System.Data;
-using System.Diagnostics;
-using System.Diagnostics.Contracts;
+﻿using System.Diagnostics.Contracts;
 using System.Numerics;
-using System.Runtime.Intrinsics;
 using DotNext.Runtime;
+
 using Match_3.DataObjects;
 
 namespace Match_3.Service;
@@ -38,7 +36,7 @@ public static class Comparer
     {
         public static readonly CellComparer Singleton = new();
 
-        protected internal CellComparer()
+        protected CellComparer()
         {}
 
         [Pure]
@@ -55,10 +53,19 @@ public static class Comparer
             if (Equals(x, y))
                 return 0;
             
-            Intrinsics.Bitcast(x!.GridCell, out (float, float) tuple);
-            Intrinsics.Bitcast(y!.GridCell, out (float, float) tuple2);
-            
-            return tuple.CompareTo(tuple2);
+            Intrinsics.Bitcast(x!.GridCell, out (float x, float y) tuple);
+            Intrinsics.Bitcast(y!.GridCell, out (float x, float y) tuple2);
+
+            //based on Grid logic, there are only integer cells, but since using 
+            //Numerics.Vector2, I have to cast them from float to int,
+            //because they are by default floats
+            //So, when x is either < or > other x
+            //then we only do care for those x values because it
+            //doesnt matter if y is different, x is sufficient then
+            //but IF x1==x2 THEN we care for y and we check for that, 
+            return (int)tuple.x != (int)tuple2.x
+                ? tuple.x.CompareTo(tuple2.x) 
+                : tuple.y.CompareTo(tuple2.y);
         }
     }
 
@@ -66,7 +73,7 @@ public static class Comparer
     {
         private readonly float _toleratedDistance;
         
-        public DistanceComparer(float toleratedDistance = 3.5f)
+        public DistanceComparer(float toleratedDistance = 3.5f) 
         {
             _toleratedDistance = toleratedDistance;
         }
