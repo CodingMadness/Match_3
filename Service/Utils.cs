@@ -8,10 +8,14 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using CommunityToolkit.HighPerformance;
 using DotNext;
+using DotNext.Collections.Generic;
 using Match_3.DataObjects;
 using Match_3.Setup;
 using Match_3.Workflow;
+using NoAlloq;
+using NoAlloq.Producers;
 using Raylib_cs;
 using Color = System.Drawing.Color;
 using Rectangle = Raylib_cs.Rectangle;
@@ -30,18 +34,21 @@ public static class Utils
 
     private static readonly TileColor[] AllTileColors =
     {
-        TileColor.Blue,
-        TileColor.Brown,
-        TileColor.Green,
-        TileColor.Orange,
-        TileColor.Purple,
-        TileColor.Red,
-        TileColor.Violet,
-        TileColor.Yellow,
+        TileColor.SkyBlue,       //--> Hellblau
+        TileColor.Turquoise,        //--> Türkis
+        TileColor.Blue,             //--> Blau
+        TileColor.SpringGreen,      //--> Hellgrün
+        TileColor.Green,            //--> Grün
+        TileColor.Brown,            //--> Braun
+        TileColor.Orange,           //--> Orange
+        TileColor.Yellow,           //--> Gelb
+        TileColor.MediumVioletRed,  //--> RotPink
+        TileColor.BlueViolet,       //--> Rosa
+        TileColor.Magenta,          //--> Pink
+        TileColor.Red,              //--> Rot
+      
     };
-
-    private static readonly RayColor[] All = new RayColor[TrueColorCount];
-
+    
     public static Vector4 ToVec4(this Color color)
     {
         return new(
@@ -67,27 +74,28 @@ public static class Utils
 
     public static Color AsSysColor(this RayColor color) => Color.FromArgb(color.a, color.r, color.g, color.b);
 
-    public static RayColor GetRndColor() => All[Randomizer.Next(0, TrueColorCount)];
-
     public static int ToIndex(this TileColor color)
     {
         return color switch
         {
-            KnownColor.Blue => 0,
-            KnownColor.Brown => 1,
-            KnownColor.Green => 2,
-            KnownColor.Orange => 3,
-            KnownColor.Purple => 4,
-            KnownColor.Red => 5,
-            KnownColor.Violet => 6,
-            KnownColor.Yellow => 7,
-            _ => -1
+            TileColor.SkyBlue => 0,       //--> Hellblau
+            TileColor.Turquoise => 1,       //--> Dunkelblau
+            TileColor.Blue => 2,             //--> Blau
+            TileColor.SpringGreen =>3,      //--> Hellgrün
+            TileColor.Green => 4,            //--> Grün
+            TileColor.Brown => 5,            //--> Braun
+            TileColor.Orange => 6,           //--> Orange
+            TileColor.Yellow => 7,           //--> Gelb
+            TileColor.MediumVioletRed => 8,  //--> RotPink
+            TileColor.BlueViolet => 9,       //--> Rosa
+            TileColor.Magenta => 10,          //--> Pink
+            TileColor.Red => 11,         
         };
     }
 
     public static ref readonly TileColor ToColor(this int color)
     {
-        if (color < TileColorLen)
+        if (color < TileColorCount)
         {
             return ref AllTileColors[color];
         }
@@ -523,11 +531,6 @@ public static class Utils
         }
     }
 
-    static Utils()
-    {
-        All.AsSpan().Shuffle(Randomizer);
-    }
-
     public static float Trunc(this float value, int digits)
     {
         float mult = MathF.Pow(10.0f, digits);
@@ -651,12 +654,6 @@ public static class Utils
                diff > MathF.Max(MathF.Abs(x), MathF.Abs(y)) * tolerance;
     }
 
-    public static int CompareTo(this Vector2 a, Vector2 b)
-    {
-        var pair = a.GetDirectionTo(b);
-        return pair.isRow ? a.X.CompareTo(b.X) : a.Y.CompareTo(b.Y);
-    }
-
     public static (Vector2 Direction, bool isRow) GetDirectionTo(this Vector2 first, Vector2 next)
     {
         bool sameRow = (int)first.Y == (int)next.Y;
@@ -729,6 +726,68 @@ public static class Utils
 
     public static Vector2 GetCellPos(this RectangleF a) => GetWorldPos(a) / Size;
 
+     public static IEnumerable<Tile> TakeClusteredItems(this IEnumerable<Tile> bitmap, 
+                                                             Comparer.DistanceComparer distanceComparer)
+     {
+
+         //get this value dynamically at runtime so its always the right amount for efficiency
+         const int pseudoCount = 12;
+         Dictionary<Tile, Tile> clusteredTiles = new(pseudoCount, distanceComparer);
+         
+         var result = bitmap.ToArray();
+         
+         foreach (var first in result)
+         {
+             //toReplace.AddAll();
+             var distant =
+                 result.Where(x => distanceComparer.Are2Close(first, x) == true);
+
+             foreach (var xTile in distant)
+             {
+                 //with this we deny the occurence of this: (key, value) <-> (value, key) which is the same
+                 //and hence has not to be stored
+                 if (clusteredTiles.ContainsKey(xTile) || clusteredTiles.ContainsValue(xTile))
+                     continue;
+                 
+                 clusteredTiles.TryAdd(first, xTile);
+             }
+         }
+         
+         // Get counts of all keys and all values
+         var keys = clusteredTiles.Keys.GroupBy(x => x).Select(x => x.Key);
+         var values = clusteredTiles.Values.GroupBy(x => x).Select(x => x.Key);
+         var difference = keys.Concat(values)
+                                             .DistinctBy(x => x, Comparer.CellComparer.Singleton)
+                                             .OrderBy(x => x, Comparer.CellComparer.Singleton)
+                                             .ToArray();
+         
+         int index;
+         
+         Optional<Tile> last;
+         
+         for (index = 0; index < difference.Length; index=Array.IndexOf(difference,last.Value)+1)
+         {
+             var first = difference[index];
+             
+             last = difference
+                 .Skip(index)
+                 .FirstOrNone(x => distanceComparer.Are2Close(first, x) == true);
+       
+             if (last.IsUndefined)
+                 break;
+             
+             last.Value.Disable(true);
+         }
+
+         return difference;
+     }
+    
+    public static void Fill(Span<TileColor> toFill)
+    {
+        for (int i = 0; i < TileColorCount; i++)
+            toFill[i] = i.ToColor();
+    }
+    
     public static void SetMouseToWorldPos(Vector2 position, int scale = Size)
     {
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);
@@ -742,7 +801,7 @@ public static class Utils
             height * Size);
     }
 
-    public const int TileColorLen = 8;
+    public const int TileColorCount = DataOnLoad.TileColorCount;
     public const int Size = DataOnLoad.TileSize;
     public static readonly Vector2 InvalidCell = -Vector2.One; //this will be computed only once!
 }
