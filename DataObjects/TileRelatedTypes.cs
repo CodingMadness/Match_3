@@ -87,6 +87,11 @@ public class Tile(TileShape body)
             _current = value;
         }
     }
+
+    /// <summary>
+    /// Describes the amount of how many connections to close neighbors it got
+    /// </summary>
+    public int NodeCount;
     
     public Vector2 GridCell { get; set; }
   
