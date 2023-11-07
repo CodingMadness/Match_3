@@ -80,9 +80,10 @@ public static class Grid
     {
         //index=17
         //            = 17    / 12 = 1
-        int row_index = index / _tileWidth; // columns
-        int col_index = index % _tileHeight;
-        return new(col_index, row_index);
+        int row_index = index / _tileWidth;     // columns
+        //            = 17    % 12 = 5
+        int col_index = index % _tileHeight;    // rows
+        return new(col_index, row_index); //new(5, 1)
     }
     
     private static void Test()
@@ -92,11 +93,7 @@ public static class Grid
         
         foreach (var color in allKinds)
         {
-            //just give me back the tiles who "Are2Close(x,y)" is true
-            var list = _bitmap
-                                        .OfType<Tile>()
-                                        .Where(x => x.Body.TileKind == color)
-                                        .TakeClusteredItems(_distanceComparer);
+            TileNodes clusteredNodes = new(_bitmap, color);
             break;
         }
     }
@@ -113,7 +110,6 @@ public static class Grid
         _tileWidth = current.GridWidth;
         _tileHeight = current.GridHeight;
         _bitmap = new Tile[_tileWidth, _tileHeight];
-        _items2Replace = new(Utils.TileColorCount * (Utils.TileColorCount / 2));
         CreateMap();
         Console.Clear();
         Test();

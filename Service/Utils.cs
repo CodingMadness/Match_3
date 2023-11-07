@@ -760,7 +760,6 @@ public static class Utils
                                              .DistinctBy(x => x, Comparer.CellComparer.Singleton)
                                              .OrderBy(x => x, Comparer.CellComparer.Singleton)
                                              .ToArray();
-         
          int index;
          
          Optional<Tile> last;

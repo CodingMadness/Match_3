@@ -24,7 +24,7 @@ public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, 
        >0  = the exact value he wants for the resize 
      */
     private MemoryOwner<T> _content = new(ArrayPool<T>.Shared, length + 1);
-    private BitPack64 _lengthPack;
+    private BitPack _lengthPack;
  
     private uint
         _enQCount, 

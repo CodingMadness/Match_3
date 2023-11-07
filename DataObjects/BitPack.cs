@@ -9,9 +9,9 @@ namespace Match_3.DataObjects;
 /// The goal of this struct is to store multiple smaller int-values into a single int!
 /// </summary>
 [StructLayout(LayoutKind.Auto)]
-public struct BitPack64
+public struct BitPack
 {
-    [InlineArray(16)]
+    [InlineArray(2*sizeof(long))]
     private struct Buffer
     {
         public byte bits;
@@ -23,7 +23,7 @@ public struct BitPack64
 
     public readonly int Count => _idxAdd; 
         
-    public BitPack64(){ }
+    public BitPack(){ }
     
     public byte GetBitWidth(uint value)
     {
