@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
@@ -23,8 +24,7 @@ public static class Grid
     private static Tile? _lastMatchTrigger;
     private static byte _match3FuncCounter;
     private static int _tileWidth, _tileHeight;
-    private static readonly Comparer.DistanceComparer _distanceComparer = new();
-    
+
     private static void CreateMap()
     {
         const byte ySize = 4, xSize = 3;
@@ -93,7 +93,15 @@ public static class Grid
         
         foreach (var color in allKinds)
         {
-            TileNodes clusteredNodes = new(_bitmap, color);
+            TileGraph clusteredGraph = new(_bitmap, color);
+            
+            foreach (Tile? current in clusteredGraph)
+            {
+                if (current is null)
+                    continue;
+                
+                current.Body.ChangeColor(Color.Red);
+            }
             break;
         }
     }
@@ -151,7 +159,7 @@ public static class Grid
         if (value is null)
             throw new ArgumentException("you cannot Add a NULL tile! check your tile-creation logic!");
 
-        Vector2 coord = newCoord ?? value.GridCell;
+        Vector2 coord = newCoord ?? value.Cell;
 
         _bitmap[(int)coord.X, (int)coord.Y] = coord.X switch
         {
@@ -201,7 +209,7 @@ public static class Grid
 
         for (Direction i = 0; i < lastDir; i++)
         {
-            Vector2 nextCoords = GetNextCell(_lastMatchTrigger.GridCell, i);
+            Vector2 nextCoords = GetNextCell(_lastMatchTrigger.Cell, i);
             var next = GetTile(nextCoords);
 
             while (Add2TilesWhenEqual(_lastMatchTrigger, next))
@@ -244,11 +252,11 @@ public static class Grid
             return;
         }
         
-        SetTile(b, a.GridCell);
-        SetTile(a, b.GridCell);
-        a.CoordsB4Swap = a.GridCell;
-        b.CoordsB4Swap = b.GridCell;
-        (a.GridCell, b.GridCell) = (b.GridCell, a.GridCell);
+        SetTile(b, a.Cell);
+        SetTile(a, b.Cell);
+        a.CoordsB4Swap = a.Cell;
+        b.CoordsB4Swap = b.Cell;
+        (a.Cell, b.Cell) = (b.Cell, a.Cell);
         currData.WasSwapped = true;
     }
 
@@ -258,7 +266,7 @@ public static class Grid
 
         for (int i = 0; i < match!.Count; i++)
         {
-            var gridCell1 = match[i].GridCell; //works good!
+            var gridCell1 = match[i].Cell; //works good!
             GetTile(gridCell1)?.Disable(true);
         }
 
