@@ -7,7 +7,7 @@ namespace Match_3.Service;
 
 public static class Comparer
 {
-    public sealed class BodyComparer : EqualityComparer<Tile>
+    public sealed class BodyComparer : EqualityComparer<IGameTile>
     {
         /// <summary>
         /// Since I derive this class from "EqualityComparer", I HAVE TO take Tile? params
@@ -18,12 +18,12 @@ public static class Comparer
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <returns></returns>
-        public override bool Equals(Tile? x, Tile? y)
+        public override bool Equals(IGameTile? x, IGameTile? y)
         {
             return ReferenceEquals(x, y) || x!.Body.Equals(y!.Body);
         }
 
-        public override int GetHashCode(Tile obj)
+        public override int GetHashCode(IGameTile obj)
         {
             return HashCode.Combine(obj.Body);
         }
@@ -31,7 +31,7 @@ public static class Comparer
         public static readonly BodyComparer Singleton = new();
     }
 
-    public class CellComparer : EqualityComparer<Tile>, IComparer<Tile>
+    public class CellComparer : EqualityComparer<IGameTile>, IComparer<IGameTile>
     {
         private readonly bool _orderByColumns;
         public static readonly CellComparer Singleton = new();
@@ -42,15 +42,15 @@ public static class Comparer
         }
 
         [Pure]
-        public override bool Equals(Tile? x, Tile? y)
-            => ReferenceEquals(x, y) || x!.GridCell == y!.GridCell;
+        public override bool Equals(IGameTile? x, IGameTile? y)
+            => ReferenceEquals(x, y) || x!.Cell == y!.Cell;
 
         [Pure]
-        public override int GetHashCode(Tile obj)
-            => obj.GridCell.GetHashCode();
+        public override int GetHashCode(IGameTile obj)
+            => obj.Cell.GetHashCode();
 
         [Pure]
-        public virtual int Compare(Tile? x, Tile? y)
+        public virtual int Compare(IGameTile? x, IGameTile? y)
         {
             if (Equals(x, y))
                 return 0;
@@ -58,8 +58,8 @@ public static class Comparer
             //based on Grid logic, there are only integer cells, but since using 
             //Numerics.Vector2, I have to cast them from float to int,
             //because they are by default floats
-            Intrinsics.Bitcast(x!.GridCell, out (int x0, int y0) tuple0);
-            Intrinsics.Bitcast(y!.GridCell, out (int x1, int y1) tuple1);
+            Intrinsics.Bitcast(x!.Cell, out (int x0, int y0) tuple0);
+            Intrinsics.Bitcast(y!.Cell, out (int x1, int y1) tuple1);
 
             //So, when "_orderByColumns" is true, we first consider "x" only if x1==x2 then 
             //then we only do care for those x values because it
@@ -97,12 +97,12 @@ public static class Comparer
             _toleratedDistance = toleratedDistance;
         }
 
-        public override int Compare(Tile? x, Tile? y)
+        public override int Compare(IGameTile? x, IGameTile? y)
         {
-            if (base.Equals(x, y))
+            if (Equals(x, y))
                 return 0;
             
-            float distance = Vector2.Distance(x!.GridCell, y!.GridCell);
+            float distance = Vector2.Distance(x!.Cell, y!.Cell);
             int result;
 
             //to close! they cluster...
@@ -120,7 +120,7 @@ public static class Comparer
             return result;
         }
 
-        public bool? Are2Close(Tile? x, Tile? y)
+        public bool? Are2Close(IGameTile? x, IGameTile? y)
         {
             //-1 => TOP/LEFT;
             // 1 => BOT/RIGHT
@@ -134,6 +134,32 @@ public static class Comparer
                 0 => null,
             };
             return res;
+        }
+    }
+
+    public sealed class EdgeComparer : EqualityComparer<TileGraph.Node>, IComparer<TileGraph.Node>
+    {
+        private EdgeComparer() { }
+        
+        public static readonly EdgeComparer Singleton = new();
+        
+        public override bool Equals(TileGraph.Node? x, TileGraph.Node? y)
+        {
+            return ReferenceEquals(x, y) ||
+                   ReferenceEquals(x!.Root, y!.Root) || 
+                   x.Edges == y.Edges;
+        }
+
+        public override int GetHashCode(TileGraph.Node obj)
+        {
+            return obj.Edges;
+        }
+
+        public int Compare(TileGraph.Node? x, TileGraph.Node? y)
+        {
+            return Equals(x, y) 
+                ? 0 
+                : x!.Edges.CompareTo(y!.Edges);
         }
     }
 }
