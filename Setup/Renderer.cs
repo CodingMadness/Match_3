@@ -229,7 +229,7 @@ public static class UiRenderer
         RectangleF screen = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
 
         DrawTexturePro(bg.Texture, bg.Body.TextureRect.AsIntRayRect(),
-            screen.DoScale(bg.Body.ScaleFactor).AsIntRayRect(),
+            screen.DoScale(bg.Body.ResizeFactor).AsIntRayRect(),
             Vector2.Zero, 0f, bg.Body.FixedWhite);
     }
 }
@@ -245,7 +245,7 @@ public static class TileRenderer
             float halfSize = Utils.Size * 0.5f;
             begin = begin with { X = begin.X - halfSize + halfSize / 1.5f, Y = begin.Y - halfSize - halfSize / 3 };
 
-            GameText coordText = new(copy, (tile.GridCell).ToString(), 10.5f)
+            GameText coordText = new(copy, (tile.Cell).ToString(), 10.5f)
             {
                 Begin = begin,
                 Color = (tile.State & TileState.Selected) == TileState.Selected ? RED : BLACK,
@@ -258,7 +258,7 @@ public static class TileRenderer
 
         if (tile is EnemyTile enemy)
         {
-            enemy.Body.ScaleFactor = 1f;
+            enemy.Body.ResizeFactor = 1f;
             DrawTexturePro(atlas, enemy.Body.TextureRect.AsIntRayRect(), 
                         enemy.Pulsate(elapsedTime).AsIntRayRect(),
                            Vector2.Zero, 0f, enemy.Body.Color);
@@ -315,7 +315,7 @@ public static class TileRenderer
     {
         if (matches?.IsMatchActive == true)
         {
-            DrawRectangleRec(matches.WorldBox.AsIntRayRect(), matches.Body!.ToConstColor(RED.AsSysColor()));
+            DrawRectangleRec(matches.WorldBox.AsIntRayRect(), matches.Body!.ChangeColor(RED.AsSysColor()));
         }
     }
 
@@ -327,7 +327,7 @@ public static class TileRenderer
             matches.Body!.Color.AlphaSpeed = 0.2f;
             matches.Body!.Color.ElapsedTime = elapsedTime;
             */
-            DrawRectangleRec(matches.Border.AsIntRayRect(), matches.Body!.ToConstColor(RED.AsSysColor()));
+            DrawRectangleRec(matches.Border.AsIntRayRect(), matches.Body!.ChangeColor(RED.AsSysColor()));
         }
     }
 }

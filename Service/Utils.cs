@@ -624,7 +624,7 @@ public static class Utils
             worldRect.Height / Size);
     }
 
-    public static RectangleF DoScale(this RectangleF rayRect, ScaleableFloat factor)
+    public static RectangleF DoScale(this RectangleF rayRect, Scale factor)
     {
         return rayRect with
         {
@@ -725,61 +725,6 @@ public static class Utils
     private static Vector2 GetWorldPos(this RectangleF a) => new(a.X, a.Y);
 
     public static Vector2 GetCellPos(this RectangleF a) => GetWorldPos(a) / Size;
-
-     public static IEnumerable<Tile> TakeClusteredItems(this IEnumerable<Tile> bitmap, 
-                                                             Comparer.DistanceComparer distanceComparer)
-     {
-
-         //get this value dynamically at runtime so its always the right amount for efficiency
-         const int pseudoCount = 12;
-         Dictionary<Tile, Tile> clusteredTiles = new(pseudoCount, distanceComparer);
-         
-         var result = bitmap.ToArray();
-         
-         foreach (var first in result)
-         {
-             //toReplace.AddAll();
-             var distant =
-                 result.Where(x => distanceComparer.Are2Close(first, x) == true);
-
-             foreach (var xTile in distant)
-             {
-                 //with this we deny the occurence of this: (key, value) <-> (value, key) which is the same
-                 //and hence has not to be stored
-                 if (clusteredTiles.ContainsKey(xTile) || clusteredTiles.ContainsValue(xTile))
-                     continue;
-                 
-                 clusteredTiles.TryAdd(first, xTile);
-             }
-         }
-         
-         // Get counts of all keys and all values
-         var keys = clusteredTiles.Keys.GroupBy(x => x).Select(x => x.Key);
-         var values = clusteredTiles.Values.GroupBy(x => x).Select(x => x.Key);
-         var difference = keys.Concat(values)
-                                             .DistinctBy(x => x, Comparer.CellComparer.Singleton)
-                                             .OrderBy(x => x, Comparer.CellComparer.Singleton)
-                                             .ToArray();
-         int index;
-         
-         Optional<Tile> last;
-         
-         for (index = 0; index < difference.Length; index=Array.IndexOf(difference,last.Value)+1)
-         {
-             var first = difference[index];
-             
-             last = difference
-                 .Skip(index)
-                 .FirstOrNone(x => distanceComparer.Are2Close(first, x) == true);
-       
-             if (last.IsUndefined)
-                 break;
-             
-             last.Value.Disable(true);
-         }
-
-         return difference;
-     }
     
     public static void Fill(Span<TileColor> toFill)
     {

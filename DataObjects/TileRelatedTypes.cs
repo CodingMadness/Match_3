@@ -20,7 +20,7 @@ public class Shape
     public Size Size { get; init; }
     public RectangleF TextureRect => new(AtlasLocation.X, AtlasLocation.Y, Size.Width, Size.Height);
     
-    public ScaleableFloat ScaleFactor;
+    public Scale ResizeFactor;
 
     private FadeableColor _color; 
     public ref readonly  FadeableColor Color => ref _color;
@@ -35,8 +35,8 @@ public class Shape
         return ref _color;
     }
     public ref readonly FadeableColor Fade(Color c, float elapsedTime) => ref Fade(c, 0f, elapsedTime);
-    public ref readonly FadeableColor ToConstColor(Color c) => ref Fade(c, 1f, 1f);
-    public ref readonly FadeableColor FixedWhite => ref ToConstColor(WHITE.AsSysColor());
+    public ref readonly FadeableColor ChangeColor(Color c) => ref Fade(c, 1f, 1f);
+    public ref readonly FadeableColor FixedWhite => ref ChangeColor(WHITE.AsSysColor());
 }
 
 public class TileShape : Shape, IEquatable<TileShape>, ICloneable
@@ -68,7 +68,7 @@ public class TileShape : Shape, IEquatable<TileShape>, ICloneable
     public static bool operator !=(TileShape left, TileShape right) => !(left == right);
 }
 
-public class Tile(TileShape body)
+public class Tile(TileShape body) : IGameTile
 {
     private TileState _current;
    
@@ -81,35 +81,32 @@ public class Tile(TileShape body)
             if ((value & TileState.UnChanged) == TileState.UnChanged)
             {
                 _current = TileState.UnChanged;
-                Body.ToConstColor(WHITE.AsSysColor());
+                Body.ChangeColor(WHITE.AsSysColor());
             }
             
             _current = value;
         }
     }
-
-    /// <summary>
-    /// Describes the amount of how many connections to close neighbors it got
-    /// </summary>
-    public int NodeCount;
     
-    public Vector2 GridCell { get; set; }
+    public Vector2 Cell { get; set; }
   
     public Vector2 CoordsB4Swap { get; set; }
-   
+    
+    Shape IGameTile.Body => body;
+
     public TileShape Body { get; } = body;
     
-    public Vector2 WorldCell => GridCell * Utils.Size;
+    public Vector2 WorldCell => Cell * Utils.Size;
     
     public Vector2 End => WorldCell + Vector2.One * Utils.Size;
     
     public bool IsDeleted => State.HasFlag(TileState.Disabled) && 
                              State.HasFlag(TileState.NotRendered);
-    private RectangleF GridBox => new(GridCell.X, GridCell.Y, 1f, 1f);
+    private RectangleF GridBox => new(Cell.X, Cell.Y, 1f, 1f);
    
     public RectangleF MapBox => GridBox.RelativeToMap();
     
-    public override string ToString() => $"Cell: {GridCell}; ---- {Body}";
+    public override string ToString() => $"Cell: {Cell}; ---- {Body}";
     
     public void Disable(bool shallDelete=false)
     {
@@ -131,12 +128,12 @@ public class EnemyTile(TileShape body) : Tile(body)
         if (elapsedTime <= 0f)
             return Body.TextureRect;
 
-        if (Body.ScaleFactor.Speed == 0f)
-            Body.ScaleFactor.Speed = 20.25f;
+        if (Body.ResizeFactor.Speed == 0f)
+            Body.ResizeFactor.Speed = 20.25f;
         
-        var rect = Body.TextureRect.DoScale(Body.ScaleFactor.GetFactor());
+        var rect = Body.TextureRect.DoScale(Body.ResizeFactor.GetFactor());
                 
-        Body.ScaleFactor.ElapsedTime = elapsedTime;
+        Body.ResizeFactor.ElapsedTime = elapsedTime;
         return rect with { X = WorldCell.X, Y = (int)WorldCell.Y };
     }
     
@@ -159,20 +156,20 @@ public class EnemyTile(TileShape body) : Tile(body)
                      *    +Y => DOWN
                      * 
                      */
-                    Grid.Direction.NegativeX => GridCell with { X = GridCell.X - 1 },
-                    Grid.Direction.PositiveX => GridCell with { X = GridCell.X + 1 },
-                    Grid.Direction.NegativeY => GridCell with { Y = GridCell.Y - 1 },
-                    Grid.Direction.PositiveY => GridCell with { Y = GridCell.Y + 1 },
+                    Grid.Direction.NegativeX => Cell with { X = Cell.X - 1 },
+                    Grid.Direction.PositiveX => Cell with { X = Cell.X + 1 },
+                    Grid.Direction.NegativeY => Cell with { Y = Cell.Y - 1 },
+                    Grid.Direction.PositiveY => Cell with { Y = Cell.Y + 1 },
                     _ => Vector2.Zero
                 };
             }
 
             return direction switch
             {
-                Grid.Direction.NegativeX => GridCell - Vector2.One,
-                Grid.Direction.PositiveX => GridCell + Vector2.One,
-                Grid.Direction.NegativeY => GridCell with { X = GridCell.X + 1, Y = GridCell.Y - 1},
-                Grid.Direction.PositiveY => GridCell with { X = GridCell.X - 1, Y = GridCell.Y + 1},
+                Grid.Direction.NegativeX => Cell - Vector2.One,
+                Grid.Direction.PositiveX => Cell + Vector2.One,
+                Grid.Direction.NegativeY => Cell with { X = Cell.X + 1, Y = Cell.Y - 1},
+                Grid.Direction.PositiveY => Cell with { X = Cell.X - 1, Y = Cell.Y + 1},
                 _ => Vector2.Zero
             };
         }
@@ -251,8 +248,8 @@ public class MatchX
             if (Count is > 1 and < 3)
             {
                 //INSPECT THIS, so that I can use Move(x) instead of ElementAt(0)
-                var cell0 = Matches.ElementAt(0).GridCell;
-                var cell1 = Matches.ElementAt(1).GridCell;
+                var cell0 = Matches.ElementAt(0).Cell;
+                var cell1 = Matches.ElementAt(1).Cell;
                 var dir = cell0.GetDirectionTo(cell1);
                 _direction = dir.Direction;
                 IsRowBased = dir.isRow;
@@ -268,9 +265,9 @@ public class MatchX
             var cellLast = Matches.ElementAt(^1);
             
             if (IsRowBased)
-                if (cell0.GridCell != cellLast.GridCell)
+                if (cell0.Cell != cellLast.Cell)
                 {
-                    var cellRight = cell0.GridCell - Vector2.UnitX;
+                    var cellRight = cell0.Cell - Vector2.UnitX;
                 }
             
             WorldPos = cell0.WorldCell;

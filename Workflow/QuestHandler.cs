@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Diagnostics;
 using DotNext.Collections.Generic;
 using DotNext.Runtime;
@@ -174,8 +173,8 @@ public class ClickHandler : QuestHandler
                     //it can be ONLY 1 OR 2 but NEVER 0!
                     var second = secondClicked;
                     currData.StatesFromQuestRelatedTiles = currData.StatePerQuest!
-                                                    .Where(x => x.TileKind == firstClicked.Body.TileKind ||
-                                                           x.TileKind == second.Body.TileKind);
+                        .Where(x => x.TileKind == firstClicked.Body.TileKind ||
+                                    x.TileKind == second.Body.TileKind) as DataObjects.IEnumerableLite<State>;
                     
                     OnTilesAlreadySwapped();
                     secondClicked = null; //he is the first now

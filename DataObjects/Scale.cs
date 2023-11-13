@@ -2,7 +2,7 @@
 
 namespace Match_3.DataObjects;
 
-public struct ScaleableFloat(float minScale, float maxScale)
+public struct Scale(float minScale, float maxScale)
 {
     private float _direction = -1f;
     private float _finalScaleFactor = minScale.Equals(maxScale, 0.1f) ? minScale : 1f;
@@ -27,7 +27,7 @@ public struct ScaleableFloat(float minScale, float maxScale)
         return _finalScaleFactor += _direction * x;
     }
     
-    public static implicit operator ScaleableFloat(float size) => new(size, size)
+    public static implicit operator Scale(float size) => new(size, size)
     {
         ElapsedTime = 0f,
         //_direction = 0,
