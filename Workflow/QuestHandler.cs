@@ -1,10 +1,6 @@
 using System.Diagnostics;
 using DotNext.Collections.Generic;
-using DotNext.Runtime;
-
 using Match_3.DataObjects;
-using Match_3.Service;
-using Match_3.Setup;
 using Match_3.Variables.Extensions;
 
 namespace Match_3.Workflow;
@@ -116,26 +112,12 @@ public class ClickHandler : QuestHandler
     protected override void CompareQuest2State()
     {
         // _whenTileClicked = TimeOnly.FromDateTime(DateTime.UtcNow);
-        var currData = GameState.CurrData!;
+        var currData = GameState.CurrData;
         var firstClicked = currData.TileX;
         ref var secondClicked = ref currData.TileY;
-        // var enemyMatches = currentData.Matches;
 
-        if (firstClicked.IsDeleted)
-            return;
-
-        //was Enemy tile clicked on, ofc after a matchX happened?
-        if (IsEnemyTileClickedOn)
+        if (!firstClicked.IsDeleted)
         {
-            // OnEnemyTileClicked();
-        }
-        else
-        {
-            if (IsUsualTileClickedOn)
-            {
-                // Do this when the I need to handle extra stuff for normal tiles!.....
-            }
-
             firstClicked.State |= TileState.Selected;
 
             /*No tile selected yet*/
@@ -168,14 +150,14 @@ public class ClickHandler : QuestHandler
                     //and he begins to keep track of (HOW LONG did the swap took) and
                     //(HOW MANY MISS-SWAPS HAPPENED!)
                     firstClicked.State &= ~TileState.Selected;
-                    
+
                     //find all states whose "TileColor" were part of the swap!
                     //it can be ONLY 1 OR 2 but NEVER 0!
                     var second = secondClicked;
                     currData.StatesFromQuestRelatedTiles = currData.StatePerQuest!
                         .Where(x => x.TileKind == firstClicked.Body.TileKind ||
-                                    x.TileKind == second.Body.TileKind) as DataObjects.IEnumerableLite<State>;
-                    
+                                    x.TileKind == second.Body.TileKind);
+
                     OnTilesAlreadySwapped();
                     secondClicked = null; //he is the first now
                 }
@@ -186,12 +168,6 @@ public class ClickHandler : QuestHandler
             }
         }
     }
-
-    public static bool IsUsualTileClickedOn => Intrinsics.IsExactTypeOf<Tile>(GameState.CurrData!.TileX);
-
-    public static bool IsEnemyTileClickedOn => GameState.CurrData?.Matches?.IsMatchActive == true
-                                               && Intrinsics.IsExactTypeOf<EnemyTile>
-                                                   (GameState.CurrData.TileX); 
 }
 
 public class SwapHandler : QuestHandler
@@ -205,10 +181,9 @@ public class SwapHandler : QuestHandler
 
     public event Action OnCheckForMatch, OnMatchFound;
 
-    private static (TileColor x, TileColor y) GetTileColorAndQuestData(out Quest? eventDataOfX, out Quest? eventDataOfY)
+    private static (TileColor x, TileColor y) GetTileColorAndQuestData(in EventState state, out Quest? eventDataOfX, out Quest? eventDataOfY)
     {
-        var state = GameState.CurrData!;
-        var colorX = state.TileX.Body.TileKind;
+        var colorX = state.TileX!.Body.TileKind;
         var colorY = state.TileY!.Body.TileKind;
         eventDataOfX = GameState.GetQuestBy(colorX);
         eventDataOfY = GameState.GetQuestBy(colorY);
@@ -218,16 +193,16 @@ public class SwapHandler : QuestHandler
     protected override void CompareQuest2State()
     {
         //Check GameState with Quest and see if he has to be punished!
-        var swapState = GameState.CurrData!;
+        var swapState = GameState.CurrData;
 
-        var (x, y) = GetTileColorAndQuestData(out var quest0, out var quest1);
+        var (x, y) = GetTileColorAndQuestData(swapState,out var quest0, out var quest1);
         
         //1. check if the tiles which were swapped are even needed for the Quest!
         //define some condition by which we can assert that all possible combinations are being gathered!
         if ((x != quest0?.TileKind && x != quest0?.TileKind) &&
             (y != quest1?.TileKind && y != quest1?.TileKind))
         {
-            Debug.WriteLine($"Neither {nameof(x)} nor {nameof(y)} have to do anything with the Quest!?" +
+            Debug.WriteLine($"Neither { nameof(x) } nor { nameof(y) } have to do anything with the Quest!?" +
                             $"so you have to be (in some way or another) to be punished!");
             
             // PunishPlayer();
@@ -247,16 +222,13 @@ public class SwapHandler : QuestHandler
             //2. Check if we didnt exceed the allowed Swap-Count for all the different quests
             OnCheckForMatch();
 
-            if (swapState.WasMatch)
+            if (swapState.HaveAMatch)
             {
                 swapState.IgnoredByMatch = x == swapState.Matches!.Body!.TileKind ? y : x;
-                
                 OnMatchFound();
             }
             else
             {
-                //performance tips: make "in State z" possible instead of just "State z" due to State being a large struct it will be copied 
-                // to often
                 void HandleSwaps(in State z)
                 {
                     int missSwap_State = ++z.MissSwaps.Count;
@@ -266,7 +238,7 @@ public class SwapHandler : QuestHandler
 
                     if (z.IsQuestLost)
                     {
-                        int currQuestCount = GameState.Lvl!.QuestCount--;
+                        int currQuestCount = GameState.Lvl.QuestCount--;
                         int countFromWhenIsLose = (1 * GameState.Lvl.QuestCount / 3);
 
                         swapState.IsGameOver = currQuestCount == countFromWhenIsLose;
@@ -315,7 +287,7 @@ public class MatchHandler : QuestHandler
     {
         //IF the incoming match was a "Miss-match (a match not allowed to do because its not in the Quest written!)", then
         //we do +1 the "State.MissMatch.Count", ELSE we do +1 the "State.Match.Count"
-        var matchData = GameState.CurrData!;
+        var matchData = GameState.CurrData;
         var allStates = matchData.StatePerQuest!;
         var StatesFromQuestRelatedTiles = matchData.StatesFromQuestRelatedTiles!;
         var currMatch = matchData.Matches;
@@ -333,8 +305,8 @@ public class MatchHandler : QuestHandler
             var properQuest = questOfMatch.First(x => x.TileKind == kindWhichWasIgnoredByMatch);
             int missMatchCount = stateOfMatchIgnoredKind.MissMatch.Count++;
             int diffCount = properQuest.SuccessfulMatches.Count- missMatchCount;
-            currMatch.Clear();
             stateOfMatchIgnoredKind.IsQuestLost = diffCount > 0;
+            currMatch.Clear();
 
             if (stateOfMatchIgnoredKind.IsQuestLost)
                 Debug.WriteLine($"<This is a WRONG match and you gotta be careful bro because" +
@@ -344,6 +316,7 @@ public class MatchHandler : QuestHandler
         }
         else
         {
+            matchData.Matches!.BuildMatchBox(matchData.MatchFindingLookUp);
             //a match with the requested "TileKind" was found and hence it was a successful Quest-Bound match!
             int successCount = ++stateOfMatch.Value.SuccessfulMatch.Count;
             var properQuest = questOfMatch.First(x => x.TileKind == kindWhoTriggeredMatch);
@@ -359,7 +332,7 @@ public class MatchHandler : QuestHandler
             }
             //Reset the missSwaps back to 0 because we won that particular quest
             stateOfMatch.Value.MissSwaps.Count = 0; 
-            OnDeleteMatch();
+            //OnDeleteMatch();
         }
     }
 }
