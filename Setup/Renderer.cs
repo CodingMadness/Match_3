@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Numerics;
 using ImGuiNET;
 using Match_3.DataObjects;
@@ -23,7 +22,7 @@ public static class UiRenderer
         BeginDrawing();
         {
             ClearBackground(WHITE);
-            //ImGui Context Begin
+            //ImGui Context Start
             const ImGuiWindowFlags flags = ImGuiWindowFlags.NoDecoration |
                                            ImGuiWindowFlags.NoScrollbar |
                                            ImGuiWindowFlags.NoBackground |
@@ -36,7 +35,7 @@ public static class UiRenderer
                     // ImGui.ShowDemoWindow();
 
                     ImGui.SetWindowPos(default);
-                    ImGui.SetWindowSize(Utils.GetScreenCoord());
+                    ImGui.SetWindowSize(CellBlock.Screen.End.Start);
 
                     mainGameLoop();
                 }
@@ -52,7 +51,7 @@ public static class UiRenderer
     {
         static Vector2 NewPos(Vector2 btnSize)
         {
-            var screenCoord = Utils.GetScreenCoord();
+            var screenCoord = CellBlock.GetScreen();
             float halfWidth = screenCoord.X * 0.5f;
             float indentPos = halfWidth - (btnSize.X * 0.5f);
             Vector2 newPos = new(indentPos, screenCoord.Y - btnSize.Y);
@@ -172,7 +171,7 @@ public static class UiRenderer
         TimerText.Src.baseSize = 512 * 16;
         FadeableColor color = elapsedSeconds > 0f ? BLUE : WHITE;
         TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
-        TimerText.Begin = (Utils.GetScreenCoord() * 0.5f) with { Y = 0f };
+        TimerText.Begin = (CellBlock.GetScreen() * 0.5f) with { Y = 0f };
         TimerText.ScaleText(GetScreenWidth());
         TimerText.Draw(1f);
     }
@@ -220,18 +219,6 @@ public static class UiRenderer
         DrawText(input);
         return isDone;
     }
-
-    public static void DrawBackground(Background? bg)
-    {
-        if (bg is null)
-            return;
-
-        RectangleF screen = new(0f, 0f, GetScreenWidth(), GetScreenHeight());
-
-        DrawTexturePro(bg.Texture, bg.Body.TextureRect.AsIntRayRect(),
-            screen.DoScale(bg.Body.ResizeFactor).AsIntRayRect(),
-            Vector2.Zero, 0f, bg.Body.FixedWhite);
-    }
 }
 
 public static class TileRenderer
@@ -240,36 +227,16 @@ public static class TileRenderer
     {
         static void DrawCoordOnTop(Tile tile)
         {
-            Font copy = GetFontDefault() with { baseSize = 800 };
-            var begin = tile.End;
-            float halfSize = Utils.Size * 0.5f;
-            begin = begin with { X = begin.X - halfSize + halfSize / 1.5f, Y = begin.Y - halfSize - halfSize / 3 };
-
-            GameText coordText = new(copy, (tile.Cell).ToString(), 10.5f)
-            {
-                Begin = begin,
-                Color = (tile.State & TileState.Selected) == TileState.Selected ? RED : BLACK,
-            };
-
-            coordText.Color.AlphaSpeed = 0f;
-            coordText.ScaleText(GetScreenWidth());
-            coordText.Draw(1f);
-        }
-
-        if (tile is EnemyTile enemy)
-        {
-            enemy.Body.ResizeFactor = 1f;
-            DrawTexturePro(atlas, enemy.Body.TextureRect.AsIntRayRect(), 
-                        enemy.Pulsate(elapsedTime).AsIntRayRect(),
-                           Vector2.Zero, 0f, enemy.Body.Color);
-            return;
+            //...
         }
 
         var body = tile.Body;
-        DrawTexturePro(atlas, body.TextureRect.AsIntRayRect(), 
-                   tile.MapBox.AsIntRayRect(), 
+          
+        DrawTexturePro(atlas, body.RayTextureRect, 
+                 ((IRectCell)tile.Cell).RaylibWorldBox, 
                        Vector2.Zero, 0f, body.Color);
-        //DrawCoordOnTop(tile);
+        
+        DrawCoordOnTop(tile);
     }
 
     public static void DrawGrid(float elapsedTime)
@@ -277,7 +244,7 @@ public static class TileRenderer
         BeginShaderMode(WobbleEffect);
         {
             (int tileWidth, int tileHeight) = 
-                (GameState.Lvl!.GridWidth, GameState.Lvl.GridHeight);
+                (GameState.Lvl.GridWidth, GameState.Lvl.GridHeight);
             
             for (int x = 0; x < tileWidth; x++)
             {
@@ -285,7 +252,7 @@ public static class TileRenderer
                 {
                     Tile? basicTile = Grid.GetTile(new(x, y));
                     
-                    if (basicTile is not null && !basicTile.IsDeleted && basicTile is not EnemyTile)
+                    if (basicTile is not null && !basicTile.IsDeleted)
                     {
                         DrawTile(DefaultTileAtlas, basicTile, elapsedTime);
                     }
@@ -303,31 +270,11 @@ public static class TileRenderer
         if (match is null)
             return;
 
-        Texture2D matchTexture = match is not null and not EnemyMatches ? ref DefaultTileAtlas : ref EnemySprite;
+        Texture2D matchTexture = DefaultTileAtlas;
 
-        for (int i = 0; i < match?.Count; i++)
+        foreach (var tile in match)
         {
-            DrawTile(matchTexture, match[i], elapsedTime);
-        }
-    }
-
-    public static void DrawInnerBox(MatchX? matches, float elapsedTime)
-    {
-        if (matches?.IsMatchActive == true)
-        {
-            DrawRectangleRec(matches.WorldBox.AsIntRayRect(), matches.Body!.ChangeColor(RED.AsSysColor()));
-        }
-    }
-
-    public static void DrawOuterBox(EnemyMatches? matches, float elapsedTime)
-    {
-        if (matches?.IsMatchActive == true)
-        {
-            /*
-            matches.Body!.Color.AlphaSpeed = 0.2f;
-            matches.Body!.Color.ElapsedTime = elapsedTime;
-            */
-            DrawRectangleRec(matches.Border.AsIntRayRect(), matches.Body!.ChangeColor(RED.AsSysColor()));
+            DrawTile(matchTexture, tile, elapsedTime);
         }
     }
 }
