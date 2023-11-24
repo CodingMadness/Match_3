@@ -4,12 +4,12 @@ namespace Match_3.DataObjects;
 
 public static class GameState
 {
-    public static EventState? CurrData { get; } = new();
-    public static DataOnLoad? Lvl;
-    public static SpanQueue<char>? Logger; //whatever the logger logged, take that to render!
+    public static readonly EventState CurrData = new();
+    public static DataOnLoad Lvl = null!;
+    public static SpanQueue<char> Logger = null!; //whatever the logger logged, take that to render!
 
     public static FastSpanEnumerator<Quest> GetQuests()
-        => new(Lvl!.Quests.AsSpan(0, Lvl.QuestCount));
+        => new(Lvl.Quests.AsSpan(0, Lvl.QuestCount));
 
     public static ref readonly Quest GetQuestBy(TileColor tileColor)
     {
@@ -26,7 +26,7 @@ public static class GameState
     
     public static State GetStateBy(TileColor tileColor)
     {
-        var iterator = new FastSpanEnumerator<State>(CurrData!.StatePerQuest.AsSpan(0, Lvl!.QuestCount));
+        var iterator = new FastSpanEnumerator<State>(CurrData.StatePerQuest.AsSpan(0, Lvl.QuestCount));
 
         foreach (State state in iterator)
         {

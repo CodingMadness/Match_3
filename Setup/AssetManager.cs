@@ -152,15 +152,15 @@ public static class AssetManager
     public static void InitGameOverTxt()
     {
         GameOverText.InitSize *= 1f;
-        GameOverText.ScaleText(Utils.GetScreenCoord().X);
+        GameOverText.ScaleText(CellBlock.GetScreen().X);
         GameOverText.Color = RED;
-        GameOverText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
+        GameOverText.Begin = (CellBlock.GetScreen() * 0.5f) with { X = 0f };
     }
 
     public static void InitWelcomeTxt()
     {
         WelcomeText.Color = RED;
-        WelcomeText.ScaleText(Utils.GetScreenCoord().X);
-        WelcomeText.Begin = (Utils.GetScreenCoord() * 0.5f) with { X = 0f };
+        WelcomeText.ScaleText(CellBlock.GetScreen().X);
+        WelcomeText.Begin = (CellBlock.GetScreen() * 0.5f) with { X = 0f };
     }
 }

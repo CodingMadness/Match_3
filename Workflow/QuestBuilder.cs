@@ -61,7 +61,7 @@ public static class QuestBuilder
             return toEven;
         }
 
-        const int tileCount = Utils.TileColorCount;
+        const int tileCount = DataOnLoad.TileColorCount;
         // const int questLogParts = 4;
         scoped Span<TileColor> subset = stackalloc TileColor[tileCount];
         Utils.Fill(subset);
@@ -71,7 +71,7 @@ public static class QuestBuilder
         int questCount = subset.Length;
         int trueIdx = 0;
         GameState.Lvl.Quests = new Quest[questCount];
-        GameState.CurrData!.StatePerQuest = new State[questCount];
+        GameState.CurrData.StatePerQuest = new State[questCount];
         scoped Span<uint> maxCountPerType = stackalloc uint[tileCount];
         maxCountPerType.Fill(GameState.Lvl.CountForAllColors);
         
@@ -98,7 +98,7 @@ public static class QuestBuilder
     public static ReadOnlySpan<char> BuildQuestMessageFrom(in Quest quest)
     {
         //there is a defect in here....!
-        var currLog = GameState.Logger!.Enqueue(QuestLog);  
+        var currLog = GameState.Logger.Enqueue(QuestLog);  
         using scoped var questIterator = new QuestLineEnumerator(currLog, true);
         
         foreach (TextInfo questPiece in questIterator)
@@ -121,5 +121,5 @@ public static class QuestBuilder
         return currLog;
     }
     
-    public static ReadOnlySpan<char> GetPooledQuestLog() => GameState.Logger!.Dequeue(true);
+    public static ReadOnlySpan<char> GetPooledQuestLog() => GameState.Logger.Dequeue(true);
 }

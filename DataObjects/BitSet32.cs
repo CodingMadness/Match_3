@@ -23,7 +23,7 @@ public struct BitSet32 : IEquatable<BitSet32>
         private int _index;
  
         /// <summary>
-        /// Create the enumerator with index at -1
+        /// GetProperMultiCell the enumerator with index at -1
         /// </summary>
         /// 
         /// <param name="bits">
@@ -77,7 +77,7 @@ public struct BitSet32 : IEquatable<BitSet32>
     /// </summary>
     private uint _bits;
     /// <summary>
-    /// Create the array with the given bits
+    /// GetProperMultiCell the array with the given bits
     /// </summary>
     /// 
     /// <param name="bits">

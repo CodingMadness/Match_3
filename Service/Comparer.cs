@@ -10,7 +10,7 @@ public static class Comparer
     public sealed class BodyComparer : EqualityComparer<IGameTile>
     {
         /// <summary>
-        /// Since I derive this class from "EqualityComparer", I HAVE TO take Tile? params
+        /// Since I derive this class from "EqualityComparer", I HAVE TO take IGameTile? params
         /// but I make sure that they NEVER can be null, it is illogical for that to ever happen
         /// and I make sure that I check that in the specific sections of code where needed but not here
         /// since it is not needed for every Equals() call and would waste senselessly performance
@@ -20,12 +20,12 @@ public static class Comparer
         /// <returns></returns>
         public override bool Equals(IGameTile? x, IGameTile? y)
         {
-            return ReferenceEquals(x, y) || x!.Body.Equals(y!.Body);
+            return ReferenceEquals(x, y) || x!.Body.TileKind == y!.Body.TileKind;
         }
 
         public override int GetHashCode(IGameTile obj)
         {
-            return HashCode.Combine(obj.Body);
+            return obj.GetHashCode();
         }
 
         public static readonly BodyComparer Singleton = new();
@@ -42,12 +42,10 @@ public static class Comparer
         }
 
         [Pure]
-        public override bool Equals(IGameTile? x, IGameTile? y)
-            => ReferenceEquals(x, y) || x!.Cell == y!.Cell;
+        public override bool Equals(IGameTile? x, IGameTile? y) => ReferenceEquals(x, y) || x!.Position == y!.Position;
 
         [Pure]
-        public override int GetHashCode(IGameTile obj)
-            => obj.Cell.GetHashCode();
+        public override int GetHashCode(IGameTile obj) => obj.Position.GetHashCode();
 
         [Pure]
         public virtual int Compare(IGameTile? x, IGameTile? y)
@@ -58,8 +56,8 @@ public static class Comparer
             //based on Grid logic, there are only integer cells, but since using 
             //Numerics.Vector2, I have to cast them from float to int,
             //because they are by default floats
-            Intrinsics.Bitcast(x!.Cell, out (int x0, int y0) tuple0);
-            Intrinsics.Bitcast(y!.Cell, out (int x1, int y1) tuple1);
+            Intrinsics.Bitcast(x!.Position, out (int x0, int y0) tuple0);
+            Intrinsics.Bitcast(y!.Position, out (int x1, int y1) tuple1);
 
             //So, when "_orderByColumns" is true, we first consider "x" only if x1==x2 then 
             //then we only do care for those x values because it
@@ -101,8 +99,8 @@ public static class Comparer
         {
             if (Equals(x, y))
                 return 0;
-            
-            float distance = Vector2.Distance(x!.Cell, y!.Cell);
+
+            float distance = Vector2.Distance(x!.Position, y!.Position);
             int result;
 
             //to close! they cluster...
@@ -126,10 +124,10 @@ public static class Comparer
             // 1 => BOT/RIGHT
             bool? res = Compare(x, y) switch
             {
-                -1 => true, /*-1 means that the distance between x and y is < 3f (_tolerance) and hence to close!
+                < 0 => true, /*-1 means that the distance between x and y is < 3f (_tolerance) and hence to close!
                                  so they will be sorted to the top of the collection!*/
 
-                1 => false, /* 1 means its > 3f, so its enough space, so they will be sorted to the bottom of the collection!*/
+                > 0 => false, /* 1 means its > 3f, so its enough space, so they will be sorted to the bottom of the collection!*/
 
                 0 => null,
             };

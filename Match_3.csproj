@@ -39,13 +39,13 @@
   
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.13.9" />
-    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.1" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.10" />
+    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.2" />
     <PackageReference Include="DotnetNoise" Version="1.0.0" />
-    <PackageReference Include="DotNext" Version="4.15.0" />
-    <PackageReference Include="ImGui.NET" Version="1.89.9.2" />
-    <PackageReference Include="JetBrains.Annotations" Version="2023.2.0-eap2" />
-    <PackageReference Include="Meziantou.Framework.FastEnumToStringGenerator" Version="1.0.7">
+    <PackageReference Include="DotNext" Version="4.15.2" />
+    <PackageReference Include="ImGui.NET" Version="1.89.9.3" />
+    <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
+    <PackageReference Include="Meziantou.Framework.FastEnumToStringGenerator" Version="1.0.8">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
