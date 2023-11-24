@@ -3,22 +3,15 @@ global using RayColor = Raylib_cs.Color;
 global using static Raylib_cs.Raylib;
 global using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
 global using DAMTypes = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
-using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using CommunityToolkit.HighPerformance;
 using DotNext;
-using DotNext.Collections.Generic;
 using Match_3.DataObjects;
 using Match_3.Setup;
-using Match_3.Workflow;
-using NoAlloq;
-using NoAlloq.Producers;
 using Raylib_cs;
 using Color = System.Drawing.Color;
-using Rectangle = Raylib_cs.Rectangle;
 
 
 namespace Match_3.Service;
@@ -27,11 +20,6 @@ public static class Utils
 {
     public static readonly Random Randomizer = new(DateTime.UtcNow.Ticks.GetHashCode());
     public static readonly DotnetNoise.FastNoise NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
-
-    private const byte Min = (int)KnownColor.AliceBlue;
-    private const byte Max = (int)KnownColor.YellowGreen;
-    private const int TrueColorCount = Max - Min;
-
     private static readonly TileColor[] AllTileColors =
     {
         TileColor.SkyBlue,       //--> Hellblau
@@ -93,11 +81,11 @@ public static class Utils
         };
     }
 
-    public static ref readonly TileColor ToColor(this int color)
+    public static TileColor ToColor(this int color)
     {
-        if (color < TileColorCount)
+        if (color < DataOnLoad.TileColorCount)
         {
-            return ref AllTileColors[color];
+            return AllTileColors[color];
         }
 
         throw new IndexOutOfRangeException(nameof(color));
@@ -431,7 +419,7 @@ public static class Utils
         }
         else
         {
-            //is First > Last, in terms of Length!
+            //is FirstInOrder > Last, in terms of Length!
             if (info.IsFirstLargerThanLast)
             {
                 //first > last ===> first=largeOne; last=smallOne
@@ -446,7 +434,7 @@ public static class Utils
                 var smallOneCopy = copyBuffer.CoreEnqueue(last);
                 var largeOneCopy = copyBuffer.CoreEnqueue(first);
 
-                //First we copy what we have from "SmallOne" 
+                //FirstInOrder we copy what we have from "SmallOne" 
                 smallOneCopy.CopyTo(source.Slice(startOfLargeOne, smallOneLen));
                 //Then we delete only what was left from "LargeOne", this is more performant than to 1. delete ALL
                 //of "LargeOne" and just THEN copy, this way we only have to delete a decent portion, not everything..
@@ -507,45 +495,13 @@ public static class Utils
     }
 
     public static void Swap(this scoped ReadOnlySpan<char> input, Range x, Range y) => input.Swap(x, y, ' ');
-
-    public static Rectangle AsIntRayRect(this RectangleF floatBox) =>
-        new(floatBox.X, floatBox.Y, floatBox.Width, floatBox.Height);
-
-    public static void UpdateShader<T>(int locInShader, T value) where T : unmanaged
-    {
-        switch (value)
-        {
-            case int or bool or long:
-                SetShaderValue(AssetManager.WobbleEffect, locInShader, value, ShaderUniformDataType.SHADER_UNIFORM_INT);
-                break;
-
-            case float or double or Half:
-                SetShaderValue(AssetManager.WobbleEffect, locInShader, value,
-                    ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-                break;
-
-            case Vector2:
-                SetShaderValue(AssetManager.WobbleEffect, locInShader, value,
-                    ShaderUniformDataType.SHADER_UNIFORM_VEC2);
-                break;
-        }
-    }
-
-    public static float Trunc(this float value, int digits)
-    {
-        float mult = MathF.Pow(10.0f, digits);
-        float result = MathF.Truncate(mult * value) / mult;
-        return result < 0 ? -result : result;
-    }
-
-    public static Vector2 GetScreenCoord() => new(GetScreenWidth(), GetScreenHeight());
     
     public static Span<T> TakeRndItemsAtRndPos<T>(this Span<T> items) where T : unmanaged
     {
         int len = items.Length;
         int m = len / 2;
         float distribution = Randomizer.NextSingle();
-        int levelId = GameState.Lvl!.Id;
+        int levelId = GameState.Lvl.Id;
         
         int amount2Take = levelId switch
         {
@@ -567,185 +523,55 @@ public static class Utils
 
     public static void Shuffle<T>(this Span<T> span) => span.Shuffle(Randomizer);
     
-    private static bool IsEmpty(this RectangleF rayRect) =>
-        /* rayRect.x == 0 && rayRect.y == 0 &&*/ rayRect is { Width: 0, Height: 0 };
-
-    public static readonly RectangleF InvalidRect = new(-1, -1, 0, 0);
-
-    public static void Add(ref this RectangleF a, RectangleF b)
-    {
-        if (a.IsEmpty())
-        {
-            a = b;
-            return;
-        }
-
-        if (b.IsEmpty())
-        {
-            return;
-        }
-
-        Vector2 first = a.GetWorldPos();
-        Vector2 other = b.GetWorldPos();
-        (Vector2 Direction, bool isRow) pair = first.GetDirectionTo(other);
-        float width = a.Width;
-        float height = a.Height;
-
-        //we know that: a) the direction and b)
-        if (pair.isRow)
-        {
-            //a=10, b=10, result= a + b * 1
-            width = a.Width + b.Width;
-        }
-        else
-        {
-            height = a.Height + b.Height;
-        }
-
-        a = new(first.X, first.Y, width, height);
-    }
-
-    public static string ToStr(this RectangleF rayRect)
-        => $"x:{rayRect.X} y:{rayRect.Y}  width:{rayRect.Width}  height:{rayRect.Height}";
-
-    public static RectangleF RelativeToMap(this RectangleF cellRect)
-    {
-        return new(cellRect.X * Size,
-            cellRect.Y * Size,
-            cellRect.Width * Size,
-            cellRect.Height * Size);
-    }
-
-    public static RectangleF RelativeToGrid(this RectangleF worldRect)
-    {
-        return new(worldRect.X / Size,
-            worldRect.Y / Size,
-            worldRect.Width / Size,
-            worldRect.Height / Size);
-    }
-
-    public static RectangleF DoScale(this RectangleF rayRect, Scale factor)
-    {
-        return rayRect with
-        {
-            Width = (rayRect.Width * factor.GetFactor()),
-            Height = (rayRect.Height * factor.GetFactor())
-        };
-    }
-
     public static bool Equals(this float x, float y, float tolerance)
     {
         var diff = MathF.Abs(x - y);
         return diff <= tolerance ||
                diff <= MathF.Max(MathF.Abs(x), MathF.Abs(y)) * tolerance;
     }
-
-    public static bool Equals(this int x, int y, int tolerance)
+    
+    public static float Trunc(this float value, int digits)
     {
-        var diff = MathF.Abs(x - y);
-        return diff <= tolerance ||
-               diff >= Math.Max(Math.Abs(x), Math.Abs(y));
+        float mult = MathF.Pow(10.0f, digits);
+        float result = MathF.Truncate(mult * value) / mult;
+        return result < 0 ? -result : result;
     }
-
+    
     private static bool GreaterOrEqual(this float x, float y, float tolerance)
     {
         var diff = MathF.Abs(x - y);
         return diff > tolerance ||
                diff > MathF.Max(MathF.Abs(x), MathF.Abs(y)) * tolerance;
     }
-
-    public static (Vector2 Direction, bool isRow) GetDirectionTo(this Vector2 first, Vector2 next)
-    {
-        bool sameRow = (int)first.Y == (int)next.Y;
-
-        //switch on direction
-        if (sameRow)
-        {
-            //the difference is positive
-            if (first.X < next.X)
-                return (Vector2.UnitX, sameRow);
-
-            if (first.X > next.X)
-                return (-Vector2.UnitX, sameRow);
-        }
-        //switch on direction
-        else
-        {
-            //the difference is positive
-            if (first.Y < next.Y)
-                return (Vector2.UnitY, sameRow);
-
-            if (first.Y > next.Y)
-                return (-Vector2.UnitY, sameRow);
-        }
-
-        return (-Vector2.One, false);
-    }
-
-    public static Vector2 GetOpposite(this Vector2 a, Vector2 b)
-    {
-        var pair = a.GetDirectionTo(b);
-
-        if (pair.isRow)
-        {
-            if (pair.Direction == -Vector2.UnitX)
-            {
-                //store the "PlaceHere" vector2 to set
-                //the 3.tile to that position to be X-aligned
-                return a + Vector2.UnitX;
-            }
-
-            if (pair.Direction == Vector2.UnitX)
-            {
-                //store the "PlaceHere" vector2 to set
-                //the 3.tile to that position to be X-aligned
-                return a - Vector2.UnitX;
-            }
-        }
-        else
-        {
-            if (pair.Direction == -Vector2.UnitY)
-            {
-                //store the "PlaceHere" vector2 to set
-                //the 3.tile to that position to be X-aligned
-                return a + Vector2.UnitY;
-            }
-
-            if (pair.Direction == Vector2.UnitY)
-            {
-                //store the "PlaceHere" vector2 to set
-                //the 3.tile to that position to be X-aligned
-                return a - Vector2.UnitY;
-            }
-        }
-
-        throw new ArgumentException("this line should never be reached!");
-    }
-
-    private static Vector2 GetWorldPos(this RectangleF a) => new(a.X, a.Y);
-
-    public static Vector2 GetCellPos(this RectangleF a) => GetWorldPos(a) / Size;
     
     public static void Fill(Span<TileColor> toFill)
     {
-        for (int i = 0; i < TileColorCount; i++)
+        for (int i = 0; i < DataOnLoad.TileColorCount; i++)
             toFill[i] = i.ToColor();
     }
-    
-    public static void SetMouseToWorldPos(Vector2 position, int scale = Size)
+
+    public static void SetMouseToWorldPos(Vector2 position, int scale = DataOnLoad.TileSize)
     {
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);
     }
 
-    public static RectangleF NewWorldRect(Vector2 begin, int width, int height)
+    public static void UpdateShader<T>(int locInShader, T value) where T : unmanaged
     {
-        return new(begin.X * Size,
-            begin.Y * Size,
-            width * Size,
-            height * Size);
-    }
+        switch (value)
+        {
+            case int or bool or long:
+                SetShaderValue(AssetManager.WobbleEffect, locInShader, value, ShaderUniformDataType.SHADER_UNIFORM_INT);
+                break;
 
-    public const int TileColorCount = DataOnLoad.TileColorCount;
-    public const int Size = DataOnLoad.TileSize;
-    public static readonly Vector2 InvalidCell = -Vector2.One; //this will be computed only once!
+            case float or double or Half:
+                SetShaderValue(AssetManager.WobbleEffect, locInShader, value,
+                    ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+                break;
+
+            case Vector2:
+                SetShaderValue(AssetManager.WobbleEffect, locInShader, value,
+                    ShaderUniformDataType.SHADER_UNIFORM_VEC2);
+                break;
+        }
+    }
 }
