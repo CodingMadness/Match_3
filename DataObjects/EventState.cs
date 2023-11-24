@@ -1,13 +1,17 @@
-﻿namespace Match_3.DataObjects;
+﻿using Match_3.Workflow;
+
+namespace Match_3.DataObjects;
 
 public class EventState
 {
     public State[]? StatePerQuest;
-    public IEnumerableLite<State>? StatesFromQuestRelatedTiles;
+    public IEnumerable<State>? StatesFromQuestRelatedTiles;
     public TileColor IgnoredByMatch;
+    public Direction MatchFindingLookUp;
     public Tile? TileX, TileY;
-    public MatchX? Matches = new();
-    public bool WasMatch, 
+ 
+    public readonly MatchX? Matches = new();
+    public bool HaveAMatch, 
                 WasSwapped,
                 EnemiesStillPresent,
                 WasGameWonB4Timeout,
