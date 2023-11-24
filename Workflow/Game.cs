@@ -1,16 +1,17 @@
-﻿using System.Numerics;
-using System.Text;
+﻿using System.Text;
 using ImGuiNET;
 using Match_3.DataObjects;
 using Match_3.Service;
-using Match_3.Workflow;
+using Match_3.Setup;
 using Raylib_cs;
 
 using static Match_3.Setup.AssetManager;
-using static Match_3.Service.Utils;
 
-namespace Match_3.Setup;
+namespace Match_3.Workflow;
 
+//TODO: 1. Make all the "TileRelatedTypes" structs because they represent nothing but value holder with minimal state change
+//TODO: 2. Fix the entire "QuestHandler" related Event logic, like what shall happen when certain tiles or matches are done, etc...
+//TODO: 3. Write the algorithm for "TileGraph" which shall exchange 1 Graph with another so that there are not any distant tiles anymore
 internal static class Game
 {
     private static GameTime _gameTimer, _gameOverTimer;
@@ -38,7 +39,7 @@ internal static class Game
         InitWindow(level.WindowWidth, level.WindowHeight, "Match3 By Shpendicus");
         SetTextureFilter(BgIngameTexture, TextureFilter.TEXTURE_FILTER_BILINEAR);
         LoadAssets(new(level.GridWidth, level.GridHeight));
-        ShaderData = InitWobble2(GetScreenCoord());
+        ShaderData = InitWobble2(CellBlock.GetScreen());
         
         //this has to be initialized RIGHT HERE in order to work!
         QuestHandler.ActivateHandlers();
@@ -50,7 +51,7 @@ internal static class Game
     {
         if (TileClicked(out var firstClickedTile))
         {
-            var currState = GameState.CurrData!;
+            var currState = GameState.CurrData;
             currState.TileX = firstClickedTile;
             OnTileClicked();
         }
@@ -63,10 +64,9 @@ internal static class Game
         if (!IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
             return false;
 
-        var mouseVec2 = GetMousePosition();
-        Vector2 gridPos = new Vector2((int)mouseVec2.X, (int)mouseVec2.Y);
-        gridPos /= Size;
-        tile = Grid.GetTile(gridPos);
+        SingleCell tileCell = GetMousePosition();
+        tile = Grid.GetTile(tileCell.Start);
+        // Console.WriteLine(tile);
         return tile is not null;
     }
     
@@ -80,7 +80,7 @@ internal static class Game
     {
         static bool IsGameStillRunning()
         {
-            var eventData = GameState.CurrData!;
+            var eventData = GameState.CurrData;
             
             if (eventData.IsGameOver)
             {
@@ -95,13 +95,13 @@ internal static class Game
                 return 
                     !UiRenderer.DrawGameOverScreen(_gameOverTimer.Done(),
                         eventData.WasGameWonB4Timeout,
-                                                 GameState.Logger!.Dequeue(true));
+                                                 GameState.Logger.Dequeue(true));
             }
             else if (eventData.WasGameWonB4Timeout)
             {
-                if (UiRenderer.DrawGameOverScreen(_gameTimer.Done(), true, GameState.Logger!.Dequeue()))
+                if (UiRenderer.DrawGameOverScreen(_gameTimer.Done(), true, GameState.Logger.Dequeue()))
                 {
-                    //Begin new Level and reset values!
+                    //Start new Level and reset values!
                     Initialize();
                     GameState.Logger.Clear();
                     eventData.WasGameWonB4Timeout = false;
@@ -127,7 +127,7 @@ internal static class Game
         else if (_inGame)
         {
             _gameTimer.CountDown();
-            GameState.CurrData!.IsGameOver = _gameTimer.Done();
+            GameState.CurrData.IsGameOver = _gameTimer.Done();
 
             if (IsGameStillRunning())
             {
