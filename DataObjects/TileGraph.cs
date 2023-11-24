@@ -3,7 +3,6 @@ using System.Numerics;
 using CommunityToolkit.HighPerformance;
 using DotNext.Collections.Generic;
 
-using Comparer = Match_3.Service.Comparer;
  
 namespace Match_3.DataObjects;
 
@@ -40,19 +39,16 @@ public class TileGraph : IEnumerable<Tile>
             }
             Edges = 0;
         }
-        
-        public Vector2 Cell
-        {
-            get => Root.Cell;
-            set => Root.Cell = value;
-        }
 
-        public Shape Body => Root.Body;
+        public SingleCell Cell => Root.Cell;
+        
+        Vector2 IGameTile.Position => Root.Cell.Start;
+        
+        Shape IGameTile.Body => Root.Body;
     }
 
     private readonly Node[] _sameColored;
     private readonly Comparer.DistanceComparer _distanceComparer;
-    private readonly HashSet<IEnumerable<Node>> _adjacencyGraph;
 
     public TileGraph(Tile[,] bitmap, TileColor color)
     {
@@ -64,64 +60,9 @@ public class TileGraph : IEnumerable<Tile>
             .ToArray();
 
         _distanceComparer = new();
-        _adjacencyGraph = new(_sameColored.Length / 2);
-        AddEdges();
     }
 
-    // private IEnumerable<Tile> TakeClusteredItems()
-    // {
-    //     //get this value dynamically at runtime so its always the right amount for efficiency
-    //     const int pseudoCount = 12;
-    //     Dictionary<Tile, Tile> clusteredTiles = new(pseudoCount, distanceComparer);
-    //
-    //     var result = bitmap.ToArray();
-    //
-    //     foreach (var first in result)
-    //     {
-    //         //toReplace.AddAll();
-    //         var distant =
-    //             result.Where(x => distanceComparer.Are2Close(first, x) == true);
-    //
-    //         foreach (var xTile in distant)
-    //         {
-    //             //with this we deny the occurence of this: (key, value) <-> (value, key) which is the same
-    //             //and hence has not to be stored
-    //             if (clusteredTiles.ContainsKey(xTile) || clusteredTiles.ContainsValue(xTile))
-    //                 continue;
-    //
-    //             clusteredTiles.TryAdd(first, xTile);
-    //         }
-    //     }
-    //
-    //     // Get counts of all keys and all values
-    //     var keys = clusteredTiles.Keys.GroupBy(x => x).Select(x => x.Key);
-    //     var values = clusteredTiles.Values.GroupBy(x => x).Select(x => x.Key);
-    //     var difference = keys.Concat(values)
-    //         .DistinctBy(x => x, Comparer.CellComparer.Singleton)
-    //         .OrderBy(x => x, Comparer.CellComparer.Singleton)
-    //         .ToArray();
-    //     int index;
-    //
-    //     Optional<Tile> last;
-    //
-    //     for (index = 0; index < difference.Length; index = Array.IndexOf(difference, last.Value) + 1)
-    //     {
-    //         var first = difference[index];
-    //
-    //         last = difference
-    //             .Skip(index)
-    //             .FirstOrNone(x => distanceComparer.Are2Close(first, x) == true);
-    //
-    //         if (last.IsUndefined)
-    //             break;
-    //
-    //         last.Value.Disable(true);
-    //     }
-    //
-    //     return difference;
-    // }
-
-    private void AddEdges()
+    private IEnumerable<IEnumerable<Node>> AddEdges()
     {
         static void UpdateNode(Node first, Node second)
         {
@@ -152,15 +93,15 @@ public class TileGraph : IEnumerable<Tile>
             if (!list.Any())
                 continue;
 
-            _adjacencyGraph.Add(list.Prepend(current));
+            yield return list.Prepend(current);
         }
     }
 
     private IOrderedEnumerable<Node>? SortByEdge()
     {
         var allAdjacentTiles = new HashSet<Node>(_sameColored.Length, Comparer.CellComparer.Singleton);
-
-        foreach (var adjacent in _adjacencyGraph)
+        
+        foreach (var adjacent in AddEdges())
         {
             allAdjacentTiles.AddAll(adjacent.Where(x => x.Edges > 0));
         }
@@ -183,7 +124,6 @@ public class TileGraph : IEnumerable<Tile>
             if (current.Edges == 0)
                 continue;
             
-            // current.Root.Body.ChangeColor(Color.Red);
             current.CutLink();
             
             yield return current.Root;
