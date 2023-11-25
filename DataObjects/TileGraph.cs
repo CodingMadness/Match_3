@@ -26,7 +26,7 @@ public class TileGraph : IEnumerable<Tile>
             Root = root;
         }
 
-        public override string ToString() => $"Node of:  [-{Root}-]";
+        public override string ToString() => ((IGameTile)this).ToString();
         
         public void CutLink()
         {
