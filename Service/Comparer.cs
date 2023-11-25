@@ -53,7 +53,7 @@ public static class Comparer
             if (Equals(x, y))
                 return 0;
 
-            //based on Grid logic, there are only integer cells, but since using 
+            //based on EntireGrid logic, there are only integer cells, but since using 
             //Numerics.Vector2, I have to cast them from float to int,
             //because they are by default floats
             Intrinsics.Bitcast(x!.Position, out (int x0, int y0) tuple0);

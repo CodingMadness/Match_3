@@ -16,18 +16,13 @@ public static class QuestBuilder
      *   - When we have successfully created "QuestCount" Quest Log'S we will
      *   - Just return from now on the respective string from the pool
      */
-    private static readonly string QuestLog = $"(Black) You have to collect an amount of" +
-                                              $" (                     ) {Quest.MatchCountName}                     Matches" +
-                                              $" (Black) and u have in between those only" +
-                                              $" (                     ) {Quest.MatchIntervalName} seconds left" +
-                                              $" (Black) and also just" +
-                                              $" (                     ) {Quest.SwapCountName} swaps available" +
-                                              $" (Black) for each new match" +
-                                              $" (Black) and furthermore, you only are allowed to replace any given tile" +
-                                              $" (                     ) {Quest.ReplacementCountName} times at max" +
-                                              $" (Black) for your own help as well as there is the tolerance for" +
-                                              $" (                     ) {Quest.MissMatchName} miss matches";
-        
+    private const string QuestLog = $"(Black) You have to collect an amount of" + $" (                     )" +
+                                    $" {Quest.MatchCountName}                     " +
+                                    $"Matches" + $" (Black) and u have in between those only" + $" (                     ) " +
+                                    $"{Quest.MatchIntervalName} seconds left" + $" (Black) and also just" + $" (                     ) " +
+                                    $"{Quest.SwapCountName} swaps available" + $" (Black) for each new match" + $" (Black) and furthermore, you only are allowed to replace any given tile" + $" (                     ) " +
+                                    $"{Quest.ReplacementCountName} times at max" + $" (Black) for your own help as well as there is the tolerance for" + $" (                     ) {Quest.MissMatchName} miss matches";
+
     private static int _questRunner;
 
     private static void DebugQuestLog()
@@ -61,12 +56,12 @@ public static class QuestBuilder
             return toEven;
         }
 
-        const int tileCount = DataOnLoad.TileColorCount;
+        const int tileCount = Config.TileColorCount;
         // const int questLogParts = 4;
         scoped Span<TileColor> subset = stackalloc TileColor[tileCount];
         Utils.Fill(subset);
         subset.Shuffle(Utils.Randomizer);
-        subset = subset.TakeRndItemsAtRndPos();
+        subset = subset.TakeRndItemsAtRndPos(GameState.Lvl.Id);
         scoped FastSpanEnumerator<TileColor> subsetEnumerator = new(subset);
         int questCount = subset.Length;
         int trueIdx = 0;
@@ -78,7 +73,7 @@ public static class QuestBuilder
         foreach (var color in subsetEnumerator)
         {
             int toEven = GetRandomInterval();
-            SubEventData match = new((int)(maxCountPerType[trueIdx] / DataOnLoad.MaxTilesPerMatch), toEven);
+            SubEventData match = new((int)(maxCountPerType[trueIdx] / Config.MaxTilesPerMatch), toEven);
             //these subQuests below are just placeholders until this class is done then I change them to
             //smth meaningful
             SubEventData swap = new(4, -1f);
@@ -90,7 +85,7 @@ public static class QuestBuilder
         }
         
         GameState.Lvl.QuestCount = questCount;
-        GameState.Logger = new(questCount * (QuestLog.Length + 1));
+        //GameState.Logger = new(questCount * (QuestLog.Length + 1));
 
         DebugQuestLog();
     }

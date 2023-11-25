@@ -18,11 +18,6 @@ namespace Match_3.Service;
 ///  it will allocate: (approxCount * length) * sizeof(T) elements</param>
 public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquatable<T>
 {
-    /*
-       <0 = ~5, self estimated, means he is unsure of how many resizes there could occur!
-        0  = NO resizes at all!
-       >0  = the exact value he wants for the resize 
-     */
     private MemoryOwner<T> _content = new(ArrayPool<T>.Shared, length + 1);
     private BitPack _lengthPack;
  

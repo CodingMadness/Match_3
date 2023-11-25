@@ -4,9 +4,9 @@ namespace Match_3.DataObjects;
 
 public static class GameState
 {
+    public static readonly Config Lvl = new(0, 700, 6, 12, 12);
+    public static readonly SpanQueue<char> Logger = new(256);
     public static readonly EventState CurrData = new();
-    public static DataOnLoad Lvl = null!;
-    public static SpanQueue<char> Logger = null!; //whatever the logger logged, take that to render!
 
     public static FastSpanEnumerator<Quest> GetQuests()
         => new(Lvl.Quests.AsSpan(0, Lvl.QuestCount));

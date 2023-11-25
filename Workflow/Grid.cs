@@ -17,8 +17,8 @@ public static class Grid
     private static void CreateMap()
     {
         const byte ySize = 4, xSize = 3;
-        scoped Span<byte> counts = stackalloc byte[DataOnLoad.TileColorCount];
-        scoped Span<TileColor> allKinds = stackalloc TileColor[DataOnLoad.TileColorCount];
+        scoped Span<byte> counts = stackalloc byte[Config.TileColorCount];
+        scoped Span<TileColor> allKinds = stackalloc TileColor[Config.TileColorCount];
         Vector2 twoBy4Block = new(xSize, ySize);
         Vector2 begin = new(0, 0);
         int j = 0;
@@ -67,7 +67,7 @@ public static class Grid
     
     private static void Test()
     {
-        scoped Span<TileColor> allKinds = stackalloc TileColor[DataOnLoad.TileColorCount];
+        scoped Span<TileColor> allKinds = stackalloc TileColor[Config.TileColorCount];
         Utils.Fill(allKinds);
         
         foreach (var color in allKinds)
@@ -145,13 +145,10 @@ public static class Grid
         {
             >= 0 when coord.Y >= 0 && coord.X < _tileWidth && coord.Y < _tileHeight
                 => value ?? throw new NullReferenceException(
-                    "You cannot store NULL inside the Grid anymore, use Grid.Delete(vector2) instead"),
+                    "You cannot store NULL inside the EntireGrid anymore, use EntireGrid.Delete(vector2) instead"),
             _ => _bitmap[(int)coord.X, (int)coord.Y]
         };
     }
-
-    public static void Test_DisableTile(SingleCell cell) 
-        => GetTile(cell.Start)!.Body.ChangeColor2(Color.Yellow);
 
     private static bool WasAMatchInAnyDirection()
     {
@@ -224,7 +221,7 @@ public static class Grid
             return tmp;
         }
 
-        if (matches.Count == DataOnLoad.MaxTilesPerMatch)
+        if (matches.Count == Config.MaxTilesPerMatch)
             return false;
         
         for (Direction i = Direction.Right; i < last; i++)
@@ -298,6 +295,6 @@ public static class Grid
 
     private static void Disable(Tile tile)
     {
-        throw new NotImplementedException("Here we have to do some logic which deals with disabling the tile in the Grid!");
+        throw new NotImplementedException("Here we have to do some logic which deals with disabling the tile in the EntireGrid!");
     }
 }

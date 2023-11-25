@@ -27,11 +27,11 @@ public abstract class Resource
 
     public required Vector2 AtlasLocation
     {
-        init => _atlasLoc = value * DataOnLoad.TileSize;
+        init => _atlasLoc = value * Config.TileSize;
         get => _atlasLoc;
     }
 
-    public static readonly Size Size = new(DataOnLoad.TileSize, DataOnLoad.TileSize);
+    public static readonly Size Size = new(Config.TileSize, Config.TileSize);
 
     public RectangleF TextureRect => new(AtlasLocation.X, AtlasLocation.Y, Size.Width, Size.Height);
 
@@ -66,6 +66,14 @@ public class Shape : Resource
     public required TileColor TileKind { get; init; }
 }
 
+/// <summary>
+/// Notes for Tile:
+///   * mutable
+///   * simple (no big modeling/ complex class hierarchy)
+///   * light-weight, does have more value properties/fields than anything else
+///   * has to be stored inside a 2D array where access and GC does matter
+/// </summary>
+/// <param name="body"></param>
 public class Tile(Shape body) : IGameTile
 {
     public TileState State { get; set; }
@@ -74,10 +82,18 @@ public class Tile(Shape body) : IGameTile
   
     public SingleCell Cell { get; set; }
 
-    public Shape Body { get; } = body;
+    /// <summary>
+    /// Body consists of :
+    ///   * Color
+    ///   * TileKind
+    ///   * 
+    /// </summary>
+    public Shape Body = body;
 
     Vector2 IGameTile.Position => Cell.Start;
     
+    Shape IGameTile.Body { get; } = body;
+
     public bool IsDeleted => State.HasFlag(TileState.Disabled) &&
                              State.HasFlag(TileState.NotRendered);
 
@@ -91,7 +107,7 @@ public class MatchX : IGameTile, IEnumerable<Tile>
     {
         public TCell Cell;
 
-        // Implement IMultiCell interface methods by delegating to StructData
+        // Implement IMultiCell interface methods by delegating to 'Cell'
         public Vector2 Start => Cell.Start;
 
         public int Count => Cell.Count;
@@ -104,10 +120,13 @@ public class MatchX : IGameTile, IEnumerable<Tile>
         
         public Layout Layout => Cell.Layout;
 
+        public override string ToString() => ((IMultiCell)Cell).ToString();
+        
         public static MultiCell<TCell> FromIMultiCell(TCell self) => new() { Cell = self };
     }
+    
     protected readonly SortedSet<Tile> Matches = new(Comparer.CellComparer.Singleton);
-    protected static readonly Dictionary<Layout, IMultiCell> CachedCellTypes = new(3)
+    protected static readonly Dictionary<Layout, IMultiCell> CachedCellTemplates = new(3)
     {
         {
             Layout.Block,
@@ -122,8 +141,8 @@ public class MatchX : IGameTile, IEnumerable<Tile>
             Layout.Linear,
             MultiCell<LinearCellLine>.FromIMultiCell(new LinearCellLine
             {
-                Begin = default,
                 Count = 0,
+                Begin = default,
                 Route = Direction.None
             })
         },
@@ -131,8 +150,8 @@ public class MatchX : IGameTile, IEnumerable<Tile>
             Layout.Diagonal, 
             MultiCell<DiagonalCellLine>.FromIMultiCell(new DiagonalCellLine
             {
-                Begin = default,
                 Count = 0,
+                Begin = default,
                 Route = Direction.None,
             })
         }
@@ -140,7 +159,7 @@ public class MatchX : IGameTile, IEnumerable<Tile>
 
     public int Count => Matches.Count;
 
-    public bool IsMatchFilled => Count == DataOnLoad.MaxTilesPerMatch;
+    public bool IsMatchFilled => Count == Config.MaxTilesPerMatch;
 
     public IMultiCell Place { get; private set; } = null!;
     
@@ -166,7 +185,7 @@ public class MatchX : IGameTile, IEnumerable<Tile>
         //we use pre-cached cell types to avoid runtime-boxing,
         //by instantiating them at startup and using a class as a wrapper for the actual
         //structs which implement IMultiCell, so then we have allocation free interfaces.
-        var matchBox = CachedCellTypes[IMultiCell.GetLayoutFrom(direction)];
+        var matchBox = CachedCellTemplates[IMultiCell.GetLayoutFrom(direction)];
 
         switch (matchBox)
         {
@@ -214,4 +233,6 @@ public class MatchX : IGameTile, IEnumerable<Tile>
     {
         return GetEnumerator();
     }
+
+    public new string ToString() => $"A match{Count} of type: {Body.TileKind} starting at position: {Place}";
 }

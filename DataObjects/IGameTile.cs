@@ -8,5 +8,5 @@ public interface IGameTile
     
     public Shape Body { get; }
     
-    public string? ToString() => $"Tile at: {Position}; ---- with type: {Body}";
+    public string ToString() => $"Tile at: {Position}; ---- with type: {Body.TileKind}";
 }
