@@ -1,6 +1,4 @@
-﻿using Match_3.Workflow;
-
-namespace Match_3.DataObjects;
+﻿namespace Match_3.DataObjects;
 
 public class EventState
 {
@@ -13,7 +11,6 @@ public class EventState
     public readonly MatchX? Matches = new();
     public bool HaveAMatch, 
                 WasSwapped,
-                EnemiesStillPresent,
                 WasGameWonB4Timeout,
                 IsGameOver;
 }
