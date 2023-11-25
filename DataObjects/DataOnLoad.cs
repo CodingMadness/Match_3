@@ -8,7 +8,7 @@
 /// <param name="GameOverScreenCountdown">The countdown which runs to 0, and so long you see a "GameOverScreen"</param>
 /// <param name="GridWidth">an integer number defining the count of tiles PER WIDTH</param>
 /// <param name="GridHeight">an integer number defining the count of tiles PER HEIGHT</param>
-public record DataOnLoad(int Id, 
+public record Config(int Id, 
     int GameBeginAt, int GameOverScreenCountdown,
     int GridWidth, int GridHeight)
 {
