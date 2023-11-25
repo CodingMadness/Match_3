@@ -28,7 +28,7 @@ internal static class Game
     
     private static void Initialize()
     {
-        GameState.Lvl = new(0, 700, 6, 12, 12);
+        // GameState.Lvl = new(0, 700, 6, 12, 12);
         _timeBuilder = new(3);
         var level = GameState.Lvl;
         level.QuestCount = 1;
@@ -39,7 +39,7 @@ internal static class Game
         InitWindow(level.WindowWidth, level.WindowHeight, "Match3 By Shpendicus");
         SetTextureFilter(BgIngameTexture, TextureFilter.TEXTURE_FILTER_BILINEAR);
         LoadAssets(new(level.GridWidth, level.GridHeight));
-        ShaderData = InitWobble2(CellBlock.GetScreen());
+        ShaderData = InitWobble2(Utils.GetScreen());
         
         //this has to be initialized RIGHT HERE in order to work!
         QuestHandler.ActivateHandlers();
@@ -106,7 +106,6 @@ internal static class Game
                     GameState.Logger.Clear();
                     eventData.WasGameWonB4Timeout = false;
                     eventData.IsGameOver = false;
-                    eventData.EnemiesStillPresent = false;
                     eventData = null;
                 }
                 return false;
@@ -122,7 +121,7 @@ internal static class Game
 
         if (!_inGame)
         {
-            //UiRenderer.DrawQuestLog();
+            UiRenderer.DrawQuestLog(GameState.GetQuests());
         }
         else if (_inGame)
         {
@@ -133,7 +132,7 @@ internal static class Game
             {
                 UiRenderer.DrawTimer(currTime);
                 NotifyClickHandler();
-                TileRenderer.DrawGrid(currTime);
+                TileRenderer.DrawGrid(currTime, GameState.Lvl.GridWidth, GameState.Lvl.GridHeight);
             }
         }
     }
