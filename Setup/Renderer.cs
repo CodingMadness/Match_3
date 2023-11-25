@@ -30,12 +30,12 @@ public static class UiRenderer
 
             RlImGui.Begin();
             {
-                if (ImGui.Begin("Screen Overlay", flags))
+                if (ImGui.Begin("EntireGrid Overlay", flags))
                 {
                     // ImGui.ShowDemoWindow();
 
                     ImGui.SetWindowPos(default);
-                    ImGui.SetWindowSize(CellBlock.Screen.End.Start);
+                    ImGui.SetWindowSize(Utils.GetScreen());
 
                     mainGameLoop();
                 }
@@ -51,7 +51,7 @@ public static class UiRenderer
     {
         static Vector2 NewPos(Vector2 btnSize)
         {
-            var screenCoord = CellBlock.GetScreen();
+            var screenCoord = Utils.GetScreen();
             float halfWidth = screenCoord.X * 0.5f;
             float indentPos = halfWidth - (btnSize.X * 0.5f);
             Vector2 newPos = new(indentPos, screenCoord.Y - btnSize.Y);
@@ -143,11 +143,11 @@ public static class UiRenderer
         }
     }
     
-    public static void DrawQuestLog()
+    public static void DrawQuestLog(FastSpanEnumerator<Quest> quests)
     {
         ImGui.SetWindowFontScale(1.5f);
 
-        scoped var questRunner = GameState.GetQuests();
+          var questRunner = quests;
 
         if (!QuestBuilder.ShallRecycle)
         {
@@ -171,7 +171,7 @@ public static class UiRenderer
         TimerText.Src.baseSize = 512 * 16;
         FadeableColor color = elapsedSeconds > 0f ? BLUE : WHITE;
         TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
-        TimerText.Begin = (CellBlock.GetScreen() * 0.5f) with { Y = 0f };
+        TimerText.Begin = (Utils.GetScreen() * 0.5f) with { Y = 0f };
         TimerText.ScaleText(GetScreenWidth());
         TimerText.Draw(1f);
     }
@@ -239,16 +239,13 @@ public static class TileRenderer
         DrawCoordOnTop(tile);
     }
 
-    public static void DrawGrid(float elapsedTime)
+    public static void DrawGrid(float elapsedTime, int gridWidth, int gridHeight)
     {
         BeginShaderMode(WobbleEffect);
         {
-            (int tileWidth, int tileHeight) = 
-                (GameState.Lvl.GridWidth, GameState.Lvl.GridHeight);
-            
-            for (int x = 0; x < tileWidth; x++)
+            for (int x = 0; x < gridWidth; x++)
             {
-                for (int y = 0; y < tileHeight; y++)
+                for (int y = 0; y < gridHeight; y++)
                 {
                     Tile? basicTile = Grid.GetTile(new(x, y));
                     
