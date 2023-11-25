@@ -38,7 +38,7 @@ public interface ICell
 
     public bool IsEmpty => Count is 0;
 
-    public Vector2 WorldPos => Start * DataOnLoad.TileSize;
+    public Vector2 WorldPos => Start * Config.TileSize;
 
     public void DoScale(Scale factor)
     {
@@ -125,7 +125,7 @@ public interface ICell
         throw new ArgumentException("line should never be reached!");
     }
 
-    public string ToString() => $"SingleCell: {Start}";
+    public string ToString() => $"Starts at: {Start}";
 }
 
 public interface IMultiCell : ICell
@@ -147,11 +147,15 @@ public interface IMultiCell : ICell
 
             Direction.RectBotLeft or Direction.RectBotRight
                 or Direction.RectTopLeft or Direction.RectTopRight
-                or Direction.EntireMap => Layout.Block
+                or Direction.EntireMap => Layout.Block,
+            
+            Direction.None or _ => throw new ArgumentOutOfRangeException(nameof(route), route, null)
         };
     }
     
     public Layout Layout => GetLayoutFrom(Route);
+    
+    public new string ToString() => $"Starts at: {Begin.Start} and ends at: {End.Start}";
 }
 
 public interface IRectCell : ICell
@@ -162,10 +166,10 @@ public interface IRectCell : ICell
     
     private RectangleF ToWorld()
     {
-        return new(GridBox.X * DataOnLoad.TileSize,
-            GridBox.Y * DataOnLoad.TileSize,
-            GridBox.Width * DataOnLoad.TileSize,
-            GridBox.Height * DataOnLoad.TileSize);
+        return new(GridBox.X * Config.TileSize,
+            GridBox.Y * Config.TileSize,
+            GridBox.Width * Config.TileSize,
+            GridBox.Height * Config.TileSize);
     }
 
     public RectangleF GridBox => new(Start.X, Start.Y, UnitSize.Width, UnitSize.Width);
@@ -192,7 +196,7 @@ public readonly struct SingleCell : IRectCell
         }
         else
         {
-            return gridPos / DataOnLoad.TileSize;
+            return gridPos / Config.TileSize;
         }
     }
 
@@ -201,6 +205,8 @@ public readonly struct SingleCell : IRectCell
     public int Count => 1; //1x1, cause UnitSize=1x1
 
     public Size UnitSize => new(1, 1);
+    
+    public override string ToString() => ((ICell)this).ToString();
 }
 
 [StructLayout(LayoutKind.Auto)]
@@ -261,6 +267,7 @@ public readonly struct CellBlock : IRectCell, IMultiCell
 
         public void Reset()
         {
+            _currCount = 0;
             _current = _caller.Begin;
             _nextLine = 0;
         }
@@ -276,7 +283,6 @@ public readonly struct CellBlock : IRectCell, IMultiCell
     public required Direction Route { get; init; }
     public required SingleCell Begin { get; init; }
 
-    public static Vector2 GetScreen() => Screen.End;
     
     public SingleCell End
     {
@@ -299,20 +305,6 @@ public readonly struct CellBlock : IRectCell, IMultiCell
 
     public Size UnitSize { get; init; }
 
-    public static CellBlock Screen
-    {
-        get
-        {
-            var block = new CellBlock
-            {
-                Begin = new Vector2(0, 0),
-                UnitSize = new(GameState.Lvl.GridWidth, GameState.Lvl.GridHeight),
-                Route = Direction.RectBotRight
-            };
-            return block;
-        }
-    }
-
     public CellEnumerator GetEnumerator()
     {
         return new CellEnumerator(this);
@@ -321,6 +313,8 @@ public readonly struct CellBlock : IRectCell, IMultiCell
     Vector2 ICell.Start => Begin.Start;
 
     int ICell.Count => ((IRectCell)this).Count;
+
+    public override string ToString() => ((IMultiCell)this).ToString();
 }
 
 [StructLayout(LayoutKind.Auto)]
@@ -364,6 +358,8 @@ public readonly struct LinearCellLine : IRectCell, IMultiCell
     {
         throw new NotImplementedException();
     }
+    
+    public override string ToString() => ((IMultiCell)this).ToString();
 }
 
 [StructLayout(LayoutKind.Auto)]
@@ -375,17 +371,25 @@ public readonly struct DiagonalCellLine : IMultiCell
     
     Vector2 ICell.Start => Begin.Start;
 
-    public SingleCell End => Route switch
+    public SingleCell End
     {
-        Direction.DiagonalBotLeft => Begin.Start + (new Vector2(-1f, 1f) * Count),
-        Direction.DiagonalBotRight => Begin.Start + (Vector2.One * Count),
-        Direction.DiagonalTopLeft => Begin.Start - (Vector2.One * Count),
-        Direction.DiagonalTopRight => Begin.Start + (new Vector2(1f, -1f) * Count),
-        _ => new Vector2(-1, -1)
-    };
+        get
+        {
+            return Route switch
+            {
+                Direction.DiagonalBotLeft => Begin.Start + (new Vector2(-1f, 1f) * Count),
+                Direction.DiagonalBotRight => Begin.Start + (Vector2.One * Count),
+                Direction.DiagonalTopLeft => Begin.Start - (Vector2.One * Count),
+                Direction.DiagonalTopRight => Begin.Start + (new Vector2(1f, -1f) * Count),
+                _ => new Vector2(-1, -1)
+            };
+        }
+    }
 
     public IEnumerator<ICell> GetEnumerator()
     {
         throw new NotImplementedException();
     }
+    
+    public override string ToString() => ((IMultiCell)this).ToString();
 }
