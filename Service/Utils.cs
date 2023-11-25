@@ -36,6 +36,20 @@ public static class Utils
         TileColor.Red,              //--> Rot
       
     };
+    private static CellBlock EntireGrid
+    {
+        get
+        {
+            var block = new CellBlock
+            {
+                Begin = new Vector2(0, 0),
+                UnitSize = new(GameState.Lvl.GridWidth, GameState.Lvl.GridHeight),
+                Route = Direction.RectBotRight
+            };
+            return block;
+        }
+    }
+    public static Vector2 GetScreen() =>  EntireGrid.End;
     
     public static Vector4 ToVec4(this Color color)
     {
@@ -77,13 +91,14 @@ public static class Utils
             TileColor.MediumVioletRed => 8,  //--> RotPink
             TileColor.BlueViolet => 9,       //--> Rosa
             TileColor.Magenta => 10,          //--> Pink
-            TileColor.Red => 11,         
+            TileColor.Red => 11,
+            _ => throw new ArgumentOutOfRangeException(nameof(color), color, "No other color is senseful since we do not need other or more colors!")
         };
     }
 
     public static TileColor ToColor(this int color)
     {
-        if (color < DataOnLoad.TileColorCount)
+        if (color < Config.TileColorCount)
         {
             return AllTileColors[color];
         }
@@ -496,12 +511,12 @@ public static class Utils
 
     public static void Swap(this scoped ReadOnlySpan<char> input, Range x, Range y) => input.Swap(x, y, ' ');
     
-    public static Span<T> TakeRndItemsAtRndPos<T>(this Span<T> items) where T : unmanaged
+    public static Span<T> TakeRndItemsAtRndPos<T>(this Span<T> items, int levelID) where T : unmanaged
     {
         int len = items.Length;
         int m = len / 2;
         float distribution = Randomizer.NextSingle();
-        int levelId = GameState.Lvl.Id;
+        int levelId = levelID;
         
         int amount2Take = levelId switch
         {
@@ -546,11 +561,11 @@ public static class Utils
     
     public static void Fill(Span<TileColor> toFill)
     {
-        for (int i = 0; i < DataOnLoad.TileColorCount; i++)
+        for (int i = 0; i < Config.TileColorCount; i++)
             toFill[i] = i.ToColor();
     }
 
-    public static void SetMouseToWorldPos(Vector2 position, int scale = DataOnLoad.TileSize)
+    public static void SetMouseToWorldPos(Vector2 position, int scale = Config.TileSize)
     {
         SetMousePosition((int)position.X * scale, (int)position.Y * scale);
     }
