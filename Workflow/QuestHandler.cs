@@ -306,7 +306,7 @@ public class MatchHandler : QuestHandler
             int missMatchCount = stateOfMatchIgnoredKind.MissMatch.Count++;
             int diffCount = properQuest.SuccessfulMatches.Count- missMatchCount;
             stateOfMatchIgnoredKind.IsQuestLost = diffCount > 0;
-            currMatch.Clear();
+            currMatch.Clear(matchData.LookUpUsedInMatchFinder);
 
             if (stateOfMatchIgnoredKind.IsQuestLost)
                 Debug.WriteLine($"<This is a WRONG match and you gotta be careful bro because" +
@@ -316,7 +316,9 @@ public class MatchHandler : QuestHandler
         }
         else
         {
-            matchData.Matches!.BuildMatchBox(matchData.MatchFindingLookUp);
+            matchData.Matches.BuildMatchBox(matchData.LookUpUsedInMatchFinder);
+            var d = currMatch.ToString();
+            
             //a match with the requested "TileKind" was found and hence it was a successful Quest-Bound match!
             int successCount = ++stateOfMatch.Value.SuccessfulMatch.Count;
             var properQuest = questOfMatch.First(x => x.TileKind == kindWhoTriggeredMatch);

@@ -172,51 +172,18 @@ public static class Grid
 
         static Vector2 GetNextCell(Vector2 input, Direction direction)
         {
-            Vector2 tmp;
-            // layout = Layout.Linear;
-            
-            if (direction == Direction.Left)
+            Vector2 tmp = direction switch
             {
-                tmp = input with { X = input.X - 1 };
-                // layout = Layout.Linear;
-            }
-            else if (direction == Direction.Right)
-            {
-                tmp = input with { X = input.X + 1 };
-                // layout = Layout.Linear;
-            }
-            else if (direction == Direction.Bot)
-            {
-                tmp = input with { Y = input.Y - 1 };
-                // layout = Layout.Linear;
-            }
-            else if (direction == Direction.Top)
-            {
-                tmp = input with { Y = input.Y + 1 };
-                // layout = Layout.Linear;
-            }
-            else if (direction == Direction.DiagonalTopLeft)
-            {
-                tmp = input with { X = input.X - 1, Y = input.Y - 1 };
-                // layout = Layout.Diagonal;
-            }
-            else if (direction == Direction.DiagonalTopRight)
-            {
-                tmp = input with { X = input.X + 1, Y = input.Y - 1 };
-                // layout = Layout.Diagonal;
-            }
-            else if (direction == Direction.DiagonalBotLeft)
-            {
-                tmp = input with { X = input.X - 1, Y = input.Y + 1 };
-                // layout = Layout.Diagonal;
-            }
-            else if (direction == Direction.DiagonalBotRight)
-            {
-                tmp = input with { X = input.X + 1, Y = input.Y + 1 };
-                // layout = Layout.Diagonal;
-            }
-            else
-                tmp = Vector2.Zero;
+                Direction.Left => input with { X = input.X - 1 },
+                Direction.Right => input with { X = input.X + 1 },
+                Direction.Bot => input with { Y = input.Y - 1 },
+                Direction.Top => input with { Y = input.Y + 1 },
+                Direction.DiagonalTopLeft => input with { X = input.X - 1, Y = input.Y - 1 },
+                Direction.DiagonalTopRight => input with { X = input.X + 1, Y = input.Y - 1 },
+                Direction.DiagonalBotLeft => input with { X = input.X - 1, Y = input.Y + 1 },
+                Direction.DiagonalBotRight => input with { X = input.X + 1, Y = input.Y + 1 },
+                _ => Vector2.Zero
+            };
 
             return tmp;
         }
@@ -231,7 +198,7 @@ public static class Grid
 
             while (Add(_lastMatchTrigger, next))
             {
-                matchData.MatchFindingLookUp = i;
+                matchData.LookUpUsedInMatchFinder = i;
                 //compute the proper (x,y) for next round, because
                 //we found a match between a -> b, now we check
                 //a -> c and so on
@@ -243,8 +210,8 @@ public static class Grid
         //if he could not get a match by the 2.tile which was clicked on, try the 1.clicked tile!
         if (!matches.IsMatchFilled && ++_match3FuncCounter <= 1)
         {
-            matches.Clear();
-            matchData.TileX = GetTile(_lastMatchTrigger.CellB4Swap.Start);
+            matches.Clear(matchData.LookUpUsedInMatchFinder);
+            matchData.TileX = GetTile(_lastMatchTrigger!.CellB4Swap.Start);
             matches.FirstInOrder = matchData.TileX!;
             return WasAMatchInAnyDirection();
         }
@@ -283,14 +250,15 @@ public static class Grid
 
     private static void Delete()
     {
-        var match = GameState.CurrData.Matches!;
-
+        var matchData = GameState.CurrData;
+        var match = matchData.Matches;
+        
         foreach (var tile in match)
         {
             Disable(tile);
         }
 
-        match.Clear();
+        match.Clear(matchData.LookUpUsedInMatchFinder);
     }
 
     private static void Disable(Tile tile)

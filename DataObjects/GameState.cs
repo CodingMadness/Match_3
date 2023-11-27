@@ -4,8 +4,8 @@ namespace Match_3.DataObjects;
 
 public static class GameState
 {
-    public static readonly Config Lvl = new(0, 700, 6, 12, 12);
-    public static readonly SpanQueue<char> Logger = new(256);
+    public static readonly Config Lvl = new(0, 60, 6, 12, 12);
+    public static readonly SpanQueue<char> Logger = new(1024);
     public static readonly EventState CurrData = new();
 
     public static FastSpanEnumerator<Quest> GetQuests()

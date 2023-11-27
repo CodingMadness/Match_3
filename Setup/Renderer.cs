@@ -4,7 +4,6 @@ using Match_3.DataObjects;
 using Match_3.Service;
 using Match_3.Workflow;
 using Raylib_cs;
-
 using Vector2 = System.Numerics.Vector2;
 using static Match_3.Setup.AssetManager;
 
@@ -130,7 +129,7 @@ public static class UiRenderer
             }
 
             // Draw words as long as they fit in the WINDOW_WIDTH
-            
+
             foreach (var word in phrase)
             {
                 ImGui.SetCursorPos(tmp);
@@ -142,12 +141,12 @@ public static class UiRenderer
             }
         }
     }
-    
+
     public static void DrawQuestLog(FastSpanEnumerator<Quest> quests)
     {
         ImGui.SetWindowFontScale(1.5f);
 
-          var questRunner = quests;
+        var questRunner = quests;
 
         if (!QuestBuilder.ShallRecycle)
         {
@@ -163,7 +162,7 @@ public static class UiRenderer
             DrawText(QuestBuilder.GetPooledQuestLog());
         }
     }
-    
+
     public static void DrawTimer(float elapsedSeconds)
     {
         //horrible performance: use a stringBuilder to reuse values!
@@ -231,11 +230,10 @@ public static class TileRenderer
         }
 
         var body = tile.Body;
-          
-        DrawTexturePro(atlas, body.RayTextureRect, 
-                 ((IRectCell)tile.Cell).RaylibWorldBox, 
-                       Vector2.Zero, 0f, body.Color);
-        
+
+        Scale scale = new(elapsedTime: elapsedTime, start: 0f);
+        RayRect scaledRect = ((IProjectable)tile.Body).ScaleRayBox(scale);
+        DrawTexturePro(atlas, body.RayTextureRect, scaledRect, Vector2.Zero, 0f, body.Color);
         DrawCoordOnTop(tile);
     }
 
@@ -248,7 +246,7 @@ public static class TileRenderer
                 for (int y = 0; y < gridHeight; y++)
                 {
                     Tile? basicTile = Grid.GetTile(new(x, y));
-                    
+
                     if (basicTile is not null && !basicTile.IsDeleted)
                     {
                         DrawTile(DefaultTileAtlas, basicTile, elapsedTime);

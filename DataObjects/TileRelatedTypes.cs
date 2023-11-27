@@ -50,16 +50,15 @@ public interface IProjectable
     public RayRect AsRayWorldBox => new(WorldBox.X, WorldBox.Y, WorldBox.Width, WorldBox.Height);
     public (CSharpRect newBox, Scale next) ScaleSysBox(Scale scale) => scale * WorldBox;
 
-    public RayRect ScaleRayBox(ref Scale scale)
+    public RayRect ScaleRayBox(Scale scale)
     {
         // Console.WriteLine(scale);
         var scaledBox = scale * AsRayWorldBox;
-        scale = scaledBox.next;
-        return scaledBox.newBox;
+        return scaledBox;
     }
 }
 
-public class Shape() : RenderInfo, IProjectable
+public class Shape : RenderInfo, IProjectable
 {
     private readonly Scale _resizeFactor = new();
     
