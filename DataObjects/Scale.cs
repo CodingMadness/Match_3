@@ -1,8 +1,5 @@
 ﻿using System.Drawing;
-using System.Runtime.CompilerServices;
 using Match_3.Service;
-using Raylib_cs;
-using Rectangle = System.Drawing.Rectangle;
 
 namespace Match_3.DataObjects;
 
@@ -12,7 +9,7 @@ namespace Match_3.DataObjects;
 ///  * max
 ///  * speed
 ///  * ElapsedTime=1f
-public readonly struct Scale(float start, float speed=10f, float min=-1f, float max=1f, float elapsedTime=1f)
+public readonly struct Scale(float start=0f, float speed=10f, float min=-1f, float max=1f, float elapsedTime=1f)
 {
     private readonly float Result = start;
     
@@ -44,28 +41,28 @@ public readonly struct Scale(float start, float speed=10f, float min=-1f, float 
         Scale up = new(start: 0f, elapsedTime: seconds);
     }
     
-    public static (CSharpRect newBox, Scale next) operator *(Scale scale, RectangleF cSharpRect)
+    public static CSharpRect operator *(Scale scale, CSharpRect cSharpRect)
     {
         (CSharpRect newBox, Scale next) = (default, scale.GetFactor());
         newBox.Width = cSharpRect.Width * next.Result;
         newBox.Height = cSharpRect.Height * next.Result;
-        return (newBox, next);
+        return (newBox);
     }
 
-    public static (RayRect newBox, Scale next) operator *(Scale scale, RayRect rayRect)
+    public static RayRect operator *(Scale scale, RayRect rayRect)
     {
         (RayRect newBox, Scale next) = (default, scale.GetFactor());
         newBox.width = rayRect.width * next.Result;
         newBox.height = rayRect.height * next.Result;
-        return (newBox, next);
+        return (newBox);
     }
 
-    public static (CSharpRect newBox, Scale next) operator *(Scale scale, SizeF size)
+    public static CSharpRect operator *(Scale scale, SizeF size)
     {
         (CSharpRect newBox, var next) = (default, scale.GetFactor());
         newBox.Width = size.Width * next.Result;
         newBox.Height = size.Height * next.Result;
-        return (newBox, next);
+        return (newBox);
     }
 
     public override string ToString() => $"scaling by: <{Result}>";
