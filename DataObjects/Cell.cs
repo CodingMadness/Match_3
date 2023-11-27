@@ -1,15 +1,17 @@
-﻿using System.Drawing;
+﻿global using RayRect = Raylib_cs.Rectangle;
+global using CSharpRect = System.Drawing.RectangleF;
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-using Rectangle = Raylib_cs.Rectangle;
+
 
 namespace Match_3.DataObjects;
 
 public enum Direction : byte
 {
-    None=0,
+    None = 0,
     Right,
     Left,
     Top,
@@ -27,7 +29,9 @@ public enum Direction : byte
 
 public enum Layout : byte
 {
-    Diagonal, Block, Linear
+    Diagonal,
+    Block,
+    Linear
 }
 
 public interface ICell
@@ -39,15 +43,6 @@ public interface ICell
     public bool IsEmpty => Count is 0;
 
     public Vector2 WorldPos => Start * Config.TileSize;
-
-    public void DoScale(Scale factor)
-    {
-        // return rayRect with
-        // {
-        //     Width = (rayRect.Width * factor.GetFactor()),
-        //     Height = (rayRect.Height * factor.GetFactor())
-        // };
-    }
 
     public float Distance(Vector2 other) => Vector2.Distance(Start, other);
 
@@ -148,39 +143,26 @@ public interface IMultiCell : ICell
             Direction.RectBotLeft or Direction.RectBotRight
                 or Direction.RectTopLeft or Direction.RectTopRight
                 or Direction.EntireMap => Layout.Block,
-            
+
             Direction.None or _ => throw new ArgumentOutOfRangeException(nameof(route), route, null)
         };
     }
-    
+
     public Layout Layout => GetLayoutFrom(Route);
-    
+
     public new string ToString() => $"Starts at: {Begin.Start} and ends at: {End.Start}";
 }
 
-public interface IRectCell : ICell
+public interface IGridCell : ICell
 {
     public Size UnitSize { get; }
-    
     public new int Count => UnitSize.Width * UnitSize.Height;
-    
-    private RectangleF ToWorld()
-    {
-        return new(GridBox.X * Config.TileSize,
-            GridBox.Y * Config.TileSize,
-            GridBox.Width * Config.TileSize,
-            GridBox.Height * Config.TileSize);
-    }
-
-    public RectangleF GridBox => new(Start.X, Start.Y, UnitSize.Width, UnitSize.Width);
-    public RectangleF WorldBox => ToWorld();
-    public Rectangle RaylibWorldBox => new(WorldBox.X, WorldBox.Y, WorldBox.Width, WorldBox.Height);
+    public CSharpRect GridBox => new(Start.X, Start.Y, UnitSize.Width, UnitSize.Width);
     public int Area => UnitSize.Width * UnitSize.Height;
 }
 
-
 [StructLayout(LayoutKind.Auto)]
-public readonly struct SingleCell : IRectCell
+public readonly struct SingleCell : IGridCell
 {
     public static implicit operator SingleCell(Vector2 position)
     {
@@ -205,12 +187,11 @@ public readonly struct SingleCell : IRectCell
     public int Count => 1; //1x1, cause UnitSize=1x1
 
     public Size UnitSize => new(1, 1);
-    
-    public override string ToString() => ((ICell)this).ToString();
+    // public new string ToString() => ((ICell)this).ToString();
 }
 
 [StructLayout(LayoutKind.Auto)]
-public readonly struct CellBlock : IRectCell, IMultiCell
+public readonly struct CellBlock : IGridCell, IMultiCell
 {
     public ref struct CellEnumerator
     {
@@ -283,7 +264,6 @@ public readonly struct CellBlock : IRectCell, IMultiCell
     public required Direction Route { get; init; }
     public required SingleCell Begin { get; init; }
 
-    
     public SingleCell End
     {
         get
@@ -309,16 +289,16 @@ public readonly struct CellBlock : IRectCell, IMultiCell
     {
         return new CellEnumerator(this);
     }
-    
+
     Vector2 ICell.Start => Begin.Start;
 
-    int ICell.Count => ((IRectCell)this).Count;
+    int ICell.Count => ((IGridCell)this).Count;
 
-    public override string ToString() => ((IMultiCell)this).ToString();
+    public new string ToString() => ((IMultiCell)this).ToString();
 }
 
 [StructLayout(LayoutKind.Auto)]
-public readonly struct LinearCellLine : IRectCell, IMultiCell
+public readonly struct LinearCellLine : IGridCell, IMultiCell
 {
     Vector2 ICell.Start => Begin.Start;
 
@@ -358,8 +338,8 @@ public readonly struct LinearCellLine : IRectCell, IMultiCell
     {
         throw new NotImplementedException();
     }
-    
-    public override string ToString() => ((IMultiCell)this).ToString();
+
+    public new string ToString() => ((IMultiCell)this).ToString();
 }
 
 [StructLayout(LayoutKind.Auto)]
@@ -368,7 +348,7 @@ public readonly struct DiagonalCellLine : IMultiCell
     public required SingleCell Begin { get; init; }
     public required int Count { get; init; }
     public required Direction Route { get; init; }
-    
+
     Vector2 ICell.Start => Begin.Start;
 
     public SingleCell End
@@ -390,6 +370,28 @@ public readonly struct DiagonalCellLine : IMultiCell
     {
         throw new NotImplementedException();
     }
-    
+
     public override string ToString() => ((IMultiCell)this).ToString();
+}
+
+public class MultiCell<TCell> : IMultiCell where TCell: struct, IMultiCell 
+{
+    public TCell Cell;
+
+    // Implement IMultiCell interface methods by delegating to 'Cell'
+    public Vector2 Start => Cell.Start;
+
+    public int Count => Cell.Count;
+
+    public SingleCell Begin => Cell.Begin;
+
+    public SingleCell End => Cell.End;
+
+    public Direction Route => Cell.Route;
+        
+    public Layout Layout => Cell.Layout;
+
+    public override string ToString() => ((IMultiCell)Cell).ToString();
+        
+    public static MultiCell<TCell> FromIMultiCell(TCell self) => new() { Cell = self };
 }
