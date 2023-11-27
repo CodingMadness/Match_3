@@ -86,10 +86,10 @@ internal static class Game
             {
                 // OnGameOver();
                 _gameOverTimer.CountDown();
-                _timeBuilder.Append($"{_gameOverTimer.ElapsedSeconds}");
+                _timeBuilder.Append($"{_gameOverTimer.CurrentSeconds}");
 
                 UiRenderer.DrawText(_timeBuilder.AsSpan());
-                UiRenderer.DrawTimer(_gameOverTimer.ElapsedSeconds);
+                UiRenderer.DrawTimer(_gameOverTimer.CurrentSeconds);
                 ImGui.SetWindowFontScale(2f);
                 
                 return 
@@ -116,17 +116,18 @@ internal static class Game
             }
         }
         
-        float currTime = _gameTimer.ElapsedSeconds;
+        float currTime = _gameTimer.CurrentSeconds;
         _inGame |= IsKeyDown(KeyboardKey.KEY_ENTER);
-
+        // Console.WriteLine(currTime);
+        
         if (!_inGame)
         {
-            UiRenderer.DrawQuestLog(GameState.GetQuests());
+            // UiRenderer.DrawQuestLog(GameState.GetQuests());
         }
         else if (_inGame)
         {
             _gameTimer.CountDown();
-            GameState.CurrData.IsGameOver = _gameTimer.Done();
+             GameState.CurrData.IsGameOver = _gameTimer.Done();
 
             if (IsGameStillRunning())
             {
