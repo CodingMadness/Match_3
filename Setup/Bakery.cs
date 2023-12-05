@@ -5,81 +5,38 @@ namespace Match_3.Setup;
 
 public static class Bakery
 {
-    private static Shape DefineBody(TileColor kind)
+    private static RectShape DefineBody(TileColor kind, IGridRect gridBox)
     {
-        return kind switch
+        return new RectShape(gridBox)
         {
-            TileColor.SkyBlue => new()
+            TextureLocation = kind switch
             {
-                TileKind = TileColor.SkyBlue,
-                TextureLocation = new Vector2(1f, 3f),
+                TileColor.LightBlue => new(1f, 3f),
+                TileColor.Turquoise => new Vector2(2f, 1f),
+                TileColor.Blue =>new Vector2(3f, 2f),
+                TileColor.LightGreen => new Vector2(0f, 3f),
+                TileColor.Green =>  new Vector2(3f, 1f),
+                TileColor.Brown => new Vector2(0f, 2f),
+                TileColor.Orange =>new Vector2(1f, 2f),
+                TileColor.Yellow => new Vector2(1f, 1f),
+                TileColor.MediumVioletRed =>  new Vector2(1f, 0f),
+                TileColor.Purple => new Vector2(3f, 0f),
+                TileColor.Magenta =>  new Vector2(3f, 3f),
+                TileColor.Red => new Vector2(2f, 0f),
+                _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "undefined color was passed!")
             },
-            TileColor.Turquoise => new()
-            {
-                TileKind = TileColor.Turquoise,
-                TextureLocation = new Vector2(2f, 1f),
-            },
-            TileColor.Blue => new()
-            {
-                TileKind = TileColor.Blue,
-                TextureLocation = new Vector2(3f, 2f),
-            },
-            TileColor.SpringGreen => new()
-            {
-                TileKind = TileColor.SpringGreen,
-                TextureLocation = new Vector2(0f, 3f),
-            },
-            TileColor.Green => new()
-            {
-                TileKind = TileColor.Green,
-                TextureLocation = new Vector2(3f, 1f),
-            },
-            TileColor.Brown => new()
-            {
-                TileKind = TileColor.Brown,
-                TextureLocation = new Vector2(0f, 2f),
-            },
-            TileColor.Orange => new()
-            {
-                TileKind = TileColor.Orange,
-                TextureLocation = new Vector2(1f, 2f),
-            },
-            TileColor.Yellow => new()
-            {
-                TileKind = TileColor.Yellow,
-                TextureLocation = new Vector2(1f, 1f),
-            },
-            TileColor.MediumVioletRed => new()
-            {
-                TileKind = TileColor.MediumVioletRed,
-                TextureLocation = new Vector2(1f, 0f),
-            },
-            TileColor.BlueViolet => new()
-            {
-                TileKind = TileColor.BlueViolet,
-                TextureLocation = new Vector2(3f, 0f),
-            },
-            TileColor.Magenta => new()
-            {
-                TileKind = TileColor.Magenta,
-                TextureLocation = new Vector2(3f, 3f),
-            },
-            TileColor.Red => new()
-            {
-                TileKind = TileColor.Red,
-                TextureLocation = new Vector2(2f, 0f),
-            },
-            _ => throw new ArgumentOutOfRangeException()
+            TileKind = kind,
         };
     }
 
-    public static Tile CreateTile(Vector2 gridPos, TileColor kind)
+    public static Tile CreateTile(CSharpRect gridBox, TileColor kind)
     {
-        var tile = new Tile(DefineBody(kind))
+        var tile = new Tile
         {
-            Cell = gridPos,
+            Cell = gridBox.Location.ToVector2(),
             CellB4Swap = -Vector2.One,
             State = TileState.UnChanged,
+            Body = DefineBody(kind, (SingleCell)gridBox.Location.ToVector2()) 
         };
         return tile;
     }
