@@ -1,5 +1,4 @@
 ﻿using System.Drawing;
-using Match_3.Service;
 
 namespace Match_3.DataObjects;
 
@@ -9,61 +8,59 @@ namespace Match_3.DataObjects;
 ///  * max
 ///  * speed
 ///  * ElapsedTime=1f
-public readonly struct Scale(float start=0f, float speed=10f, float min=-1f, float max=1f, float elapsedTime=1f)
+/// the greater the time value is, the smaller the final-scale
+public readonly struct Scale(float speed=1f, float min=1f,float max=2f, float currTime=1f)
 {
-    private readonly float Result = start;
+    private static float Factor = 1f;
+    private static bool ShallDownScale;
     
-    public Scale GetFactor()
+    private void Change()
     {
-        float sizeDirection = 1f;
-        float factor = start;
+        if (currTime <= 0f)
+            return;
 
-        if (elapsedTime <= 0f)
-            return this;
-        
-        //this means we reached the respective end (either in - or + area) 
-        if (factor.Equals(min, 0.1f) || factor.Equals(max, 0.1f))
+        float x = speed * (1f / currTime);
+
+        //we reached the "max", now we scale down to "min" 
+        if (ShallDownScale)
         {
-            //so we start at scale1: then it scaled slowly down to "_minScale" and then from there
-            //we change the multiplier to now ADD the x to the scale, so we scale back UP
-            //this created this scaling flow
-            sizeDirection *= -1;  
+            Factor -= x;
+            ShallDownScale = Factor >= min;
         }
-        
-        float x = speed * (1f / elapsedTime);
-        factor += (sizeDirection * x);
-
-        return new(elapsedTime: elapsedTime, start: factor);
-    }
-
-    void Test(float seconds)
-    {
-        Scale up = new(start: 0f, elapsedTime: seconds);
+        //we begin with "min", now we scale up to "max"
+        else  
+        {
+            ShallDownScale = Factor >= max;
+            Factor += x;
+        }
     }
     
     public static CSharpRect operator *(Scale scale, CSharpRect cSharpRect)
     {
-        (CSharpRect newBox, Scale next) = (default, scale.GetFactor());
-        newBox.Width = cSharpRect.Width * next.Result;
-        newBox.Height = cSharpRect.Height * next.Result;
+        scale.Change();
+        (CSharpRect newBox, var factor) = (default, Factor + 1f);
+        newBox.Width = cSharpRect.Width * factor;
+        newBox.Height = cSharpRect.Height * factor;
         return (newBox);
     }
 
     public static RayRect operator *(Scale scale, RayRect rayRect)
     {
-        (RayRect newBox, Scale next) = (default, scale.GetFactor());
-        newBox.width = rayRect.width * next.Result;
-        newBox.height = rayRect.height * next.Result;
+        scale.Change();
+        (RayRect newBox, var factor) = (default, Factor + 1f);
+        newBox.width = rayRect.width * factor;
+        newBox.height = rayRect.height * factor;
         return (newBox);
     }
 
     public static CSharpRect operator *(Scale scale, SizeF size)
     {
-        (CSharpRect newBox, var next) = (default, scale.GetFactor());
-        newBox.Width = size.Width * next.Result;
-        newBox.Height = size.Height * next.Result;
+        scale.Change();
+        (CSharpRect newBox, var factor) = (default, Factor + 1f);
+        newBox.Width = size.Width * factor;
+        newBox.Height = size.Height * factor;
         return (newBox);
     }
 
-    public override string ToString() => $"scaling by: <{Result}>";
+    public override string ToString() => $"scaling by: <{Factor}>";
 }
