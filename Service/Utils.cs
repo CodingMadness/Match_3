@@ -22,20 +22,21 @@ public static class Utils
     public static readonly DotnetNoise.FastNoise NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
     private static readonly TileColor[] AllTileColors =
     {
-        TileColor.SkyBlue,       //--> Hellblau
+        TileColor.LightBlue,          //--> Hellblau
         TileColor.Turquoise,        //--> Türkis
         TileColor.Blue,             //--> Blau
-        TileColor.SpringGreen,      //--> Hellgrün
+        TileColor.LightGreen,      //--> Hellgrün
         TileColor.Green,            //--> Grün
         TileColor.Brown,            //--> Braun
         TileColor.Orange,           //--> Orange
         TileColor.Yellow,           //--> Gelb
         TileColor.MediumVioletRed,  //--> RotPink
-        TileColor.BlueViolet,       //--> Rosa
+        TileColor.Purple,       //--> Rosa
         TileColor.Magenta,          //--> Pink
         TileColor.Red,              //--> Rot
       
     };
+    
     private static CellBlock EntireGrid
     {
         get
@@ -49,6 +50,7 @@ public static class Utils
             return block;
         }
     }
+    
     public static Vector2 GetScreen() =>  EntireGrid.End;
     
     public static Vector4 ToVec4(this Color color)
@@ -80,31 +82,23 @@ public static class Utils
     {
         return color switch
         {
-            TileColor.SkyBlue => 0,       //--> Hellblau
-            TileColor.Turquoise => 1,       //--> Dunkelblau
-            TileColor.Blue => 2,             //--> Blau
-            TileColor.SpringGreen =>3,      //--> Hellgrün
-            TileColor.Green => 4,            //--> Grün
-            TileColor.Brown => 5,            //--> Braun
-            TileColor.Orange => 6,           //--> Orange
-            TileColor.Yellow => 7,           //--> Gelb
-            TileColor.MediumVioletRed => 8,  //--> RotPink
-            TileColor.BlueViolet => 9,       //--> Rosa
-            TileColor.Magenta => 10,          //--> Pink
+            TileColor.LightBlue => 0,           //--> Hellblau
+            TileColor.Turquoise => 1,           //--> Dunkelblau
+            TileColor.Blue => 2,                //--> Blau
+            TileColor.LightGreen =>3,           //--> Hellgrün
+            TileColor.Green => 4,               //--> Grün
+            TileColor.Brown => 5,               //--> Braun
+            TileColor.Orange => 6,              //--> Orange
+            TileColor.Yellow => 7,              //--> Gelb
+            TileColor.MediumVioletRed => 8,     //--> RotPink
+            TileColor.Purple => 9,              //--> Rosa
+            TileColor.Magenta => 10,            //--> Pink
             TileColor.Red => 11,
             _ => throw new ArgumentOutOfRangeException(nameof(color), color, "No other color is senseful since we do not need other or more colors!")
         };
     }
 
-    public static TileColor ToColor(this int color)
-    {
-        if (color < Config.TileColorCount)
-        {
-            return AllTileColors[color];
-        }
-
-        throw new IndexOutOfRangeException(nameof(color));
-    }
+    public static TileColor ToColor(this int color) => AllTileColors[color];
 
     //nested helper functions!
     public static Span<char> AsSpan(this StringBuilder self)
