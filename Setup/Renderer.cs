@@ -222,28 +222,20 @@ public static class UiRenderer
 
 public static class TileRenderer
 {
-    private static void DrawTile(Texture2D atlas, Tile tile, float elapsedTime)
+    private static void DrawTile(Texture2D atlas, Tile tile, float currTime)
     {
-        static void DrawCoordOnTop(Tile tile)
-        {
-            //...
-        }
-
-        var body = tile.Body;
-
-        Scale scale = new(elapsedTime: elapsedTime, start: 0f);
-        RayRect scaledRect = ((IProjectable)tile.Body).ScaleRayBox(scale);
-        DrawTexturePro(atlas, body.RayTextureRect, scaledRect, Vector2.Zero, 0f, body.Color);
-        DrawCoordOnTop(tile);
+        var body = tile.Body; 
+        body.ScaleBox(currTime);
+        DrawTexturePro(atlas, body.AssetRect, body.WorldRect, Vector2.Zero, 0f, body.Color);
     }
 
     public static void DrawGrid(float elapsedTime, int gridWidth, int gridHeight)
     {
         BeginShaderMode(WobbleEffect);
         {
-            for (int x = 0; x < gridWidth; x++)
+            for (int x = 0; x < 1; x++)
             {
-                for (int y = 0; y < gridHeight; y++)
+                for (int y = 0; y < 1; y++)
                 {
                     Tile? basicTile = Grid.GetTile(new(x, y));
 
@@ -257,19 +249,15 @@ public static class TileRenderer
         EndShaderMode();
     }
 
-    public static void DrawMatches(MatchX? match, float elapsedTime, bool shallCreateEnemies)
+    public static void DrawMatches(MatchX match, float currTime, bool shallCreateEnemies)
     {
-        if (!shallCreateEnemies)
+        if (match.Count is 0)
             return;
-
-        if (match is null)
-            return;
-
-        Texture2D matchTexture = DefaultTileAtlas;
-
+        
         foreach (var tile in match)
         {
-            DrawTile(matchTexture, tile, elapsedTime);
+            tile.Body.ScaleBox(currTime);
+            DrawTile(DefaultTileAtlas, tile, currTime);
         }
     }
 }
