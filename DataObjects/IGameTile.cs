@@ -2,7 +2,7 @@
 
 namespace Match_3.DataObjects;
 
-public interface IGameTile
+public interface IGameObject
 {
     public Vector2 Position { get; }
     
