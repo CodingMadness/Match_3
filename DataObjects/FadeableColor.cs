@@ -8,16 +8,16 @@ public struct FadeableColor : IEquatable<FadeableColor>
 {
     private Color _toWrap;
     public float CurrentAlpha, TargetAlpha;
-    private float _elapsedTime;
+    private float _currSeconds;
    
     /// <summary>
     /// The greater this Value, the faster it fades!
     /// </summary>
     public float AlphaSpeed;
 
-    public void AddTime(float elapsedTime)
+    public void AddTime(float currSeconds)
     {
-        _elapsedTime = !elapsedTime.Equals(0f, 0.001f) ? elapsedTime : 1f;
+        _currSeconds = !currSeconds.Equals(0f, 0.001f) ? currSeconds : 1f;
     }
     
     private FadeableColor(Color color)
@@ -26,10 +26,10 @@ public struct FadeableColor : IEquatable<FadeableColor>
         AlphaSpeed = 0.5f; 
         CurrentAlpha = 1.0f;
         TargetAlpha = 0.0f;
-        _elapsedTime = 1f;
+        _currSeconds = 1f;
     }
     
-    private static readonly Dictionary<RayColor, string> Strings = new()
+    private static readonly Dictionary<RayColor, string> ColorsAsText = new()
     {
         {BLACK, "Black"},
         {BLUE, "Blue"},
@@ -55,14 +55,14 @@ public struct FadeableColor : IEquatable<FadeableColor>
     private string ToReadableString()
     {
         RayColor compare = _toWrap.AsRayColor();
-        return Strings.TryGetValue(compare, out var value) ? value : _toWrap.ToString();
+        return ColorsAsText.TryGetValue(compare, out var value) ? value : _toWrap.ToString();
     }
 
     private void _Lerp()
     {
         //if u wanna maybe stop fading at 0.5f so we explicitly check if currAlpha > Target-Alpha
         if (CurrentAlpha > TargetAlpha)  
-            CurrentAlpha -= AlphaSpeed * (1f / _elapsedTime);
+            CurrentAlpha -= AlphaSpeed * (1f / _currSeconds);
     }
     
     public FadeableColor Apply()
