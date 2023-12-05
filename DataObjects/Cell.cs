@@ -53,71 +53,18 @@ public interface ICell
         return (int)distanceX == (int)distanceY;
     }
 
-    public (Vector2 Direction, bool isRow) GetDirectionTo(Vector2 next)
+    public Vector2 GetDirectionTo(Vector2 next)
     {
-        bool sameRow = (int)Start.Y == (int)next.Y;
-
-        //switch on direction
-        if (sameRow)
-        {
-            //the difference is positive
-            if (Start.X < next.X)
-                return (Vector2.UnitX, sameRow);
-
-            if (Start.X > next.X)
-                return (-Vector2.UnitX, sameRow);
-        }
-        //switch on direction
-        else
-        {
-            //the difference is positive
-            if (Start.Y < next.Y)
-                return (Vector2.UnitY, sameRow);
-
-            if (Start.Y > next.Y)
-                return (-Vector2.UnitY, sameRow);
-        }
-
-        return (-Vector2.One, false);
+        Vector2 direction = Vector2.Normalize(Start - next);
+        float distance = Vector2.Distance(Start, next);
+        Vector2 newVector = Start + direction * distance;
+        return newVector;
     }
 
     public Vector2 GetDiametricalCell(Vector2 begin)
     {
-        var pair = GetDirectionTo(begin);
-
-        if (pair.isRow)
-        {
-            if (pair.Direction == -Vector2.UnitX)
-            {
-                //store the "PlaceHere" vector2 to set
-                //the 3.tile to that position to be X-aligned
-                return Start + Vector2.UnitX;
-            }
-            else if (pair.Direction == Vector2.UnitX)
-            {
-                //store the "PlaceHere" vector2 to set
-                //the 3.tile to that position to be X-aligned
-                return Start - Vector2.UnitX;
-            }
-        }
-        else
-        {
-            if (pair.Direction == -Vector2.UnitY)
-            {
-                //store the "PlaceHere" vector2 to set
-                //the 3.tile to that position to be X-aligned
-                return Start + Vector2.UnitY;
-            }
-
-            if (pair.Direction == Vector2.UnitY)
-            {
-                //store the "PlaceHere" vector2 to set
-                //the 3.tile to that position to be X-aligned
-                return Start - Vector2.UnitY;
-            }
-        }
-
-        throw new ArgumentException("line should never be reached!");
+        var direction = GetDirectionTo(begin);
+        return Vector2.Negate(direction);
     }
 
     public string ToString() => $"Starts at: {Start}";
@@ -153,7 +100,7 @@ public interface IMultiCell : ICell
     public new string ToString() => $"Starts at: {Begin.Start} and ends at: {End.Start}";
 }
 
-public interface IGridCell : ICell
+public interface IGridRect : ICell
 {
     public Size UnitSize { get; }
     public new int Count => UnitSize.Width * UnitSize.Height;
@@ -162,7 +109,7 @@ public interface IGridCell : ICell
 }
 
 [StructLayout(LayoutKind.Auto)]
-public readonly struct SingleCell : IGridCell
+public readonly struct SingleCell : IGridRect
 {
     public static implicit operator SingleCell(Vector2 position)
     {
@@ -191,7 +138,7 @@ public readonly struct SingleCell : IGridCell
 }
 
 [StructLayout(LayoutKind.Auto)]
-public readonly struct CellBlock : IGridCell, IMultiCell
+public readonly struct CellBlock : IGridRect, IMultiCell
 {
     public ref struct CellEnumerator
     {
@@ -277,7 +224,7 @@ public readonly struct CellBlock : IGridCell, IMultiCell
                 Direction.RectBotRight => start with { X = start.X + step.X, Y = start.Y + step.Y },
                 Direction.RectTopLeft => start with { X = start.X - step.X, Y = start.Y - step.Y },
                 Direction.RectTopRight => start with { X = start.X + step.X, Y = start.Y - step.Y },
-                _ => throw new ArgumentException("Only a direction of kind 'Rect' in its name can be validated" +
+                _ => throw new ArgumentException("Only a direction of kind 'Cell' in its name can be validated" +
                                                  "all other directional values are invalid for this type!")
             };
         }
@@ -292,13 +239,13 @@ public readonly struct CellBlock : IGridCell, IMultiCell
 
     Vector2 ICell.Start => Begin.Start;
 
-    int ICell.Count => ((IGridCell)this).Count;
+    int ICell.Count => ((IGridRect)this).Count;
 
     public new string ToString() => ((IMultiCell)this).ToString();
 }
 
 [StructLayout(LayoutKind.Auto)]
-public readonly struct LinearCellLine : IGridCell, IMultiCell
+public readonly struct LinearCellLine : IGridRect, IMultiCell
 {
     Vector2 ICell.Start => Begin.Start;
 
