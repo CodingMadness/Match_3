@@ -111,60 +111,59 @@ public class ClickHandler : QuestHandler
 
     protected override void CompareQuest2State()
     {
-        // _whenTileClicked = TimeOnly.FromDateTime(DateTime.UtcNow);
         var currData = GameState.CurrData;
         var firstClicked = currData.TileX;
         ref var secondClicked = ref currData.TileY;
 
-        if (!firstClicked.IsDeleted)
+        if (firstClicked!.IsDeleted) 
+            return;
+        
+        firstClicked.State |= TileState.Selected;
+
+        /*No tile selected yet*/
+        if (secondClicked is null)
         {
-            firstClicked.State |= TileState.Selected;
+            //prepare for next round, so we store first in second!
+            secondClicked = firstClicked;
+            return;
+        }
 
-            /*No tile selected yet*/
-            if (secondClicked is null)
-            {
-                //prepare for next round, so we store first in second!
-                secondClicked = firstClicked;
-                return;
-            }
+        /*Same tile selected => deselect*/
+        if (Comparer.BodyComparer.Singleton.Equals(firstClicked, secondClicked))
+        {
+            Console.Clear();
+            secondClicked.State &= ~TileState.Selected;
+            secondClicked = null;
+        }
+        /*Different tile selected ==> swap*/
+        else
+        {
+            firstClicked.State &= ~TileState.Selected;
+            currData.TileY = secondClicked;
+            currData.TileX = firstClicked;
+            OnSwapTiles();
 
-            /*Same tile selected => deselect*/
-            if (Comparer.BodyComparer.Singleton.Equals(firstClicked, secondClicked))
+            if (currData.WasSwapped)
             {
-                Console.Clear();
-                secondClicked.State &= ~TileState.Selected;
-                secondClicked = null;
+                Console.WriteLine("SWAPPED 2 TILES!");
+                //the moment we have the 1. swap, we notify the SwapHandler for this
+                //and he begins to keep track of (HOW LONG did the swap took) and
+                //(HOW MANY MISS-SWAPS HAPPENED!)
+                firstClicked.State &= ~TileState.Selected;
+
+                //find all states whose "TileColor" were part of the swap!
+                //it can be ONLY 1 OR 2 but NEVER 0!
+                var second = secondClicked;
+                currData.StatesFromQuestRelatedTiles = currData.StatePerQuest!
+                    .Where(x => x.TileKind == firstClicked.Body.TileKind ||
+                                x.TileKind == second.Body.TileKind);
+
+                OnTilesAlreadySwapped();
+                secondClicked = null; //he is the first now
             }
-            /*Different tile selected ==> swap*/
             else
             {
                 firstClicked.State &= ~TileState.Selected;
-                currData.TileY = secondClicked;
-                currData.TileX = firstClicked;
-                OnSwapTiles();
-
-                if (currData.WasSwapped)
-                {
-                    Debug.WriteLine("SWAPPED 2 TILES!");
-                    //the moment we have the 1. swap, we notify the SwapHandler for this
-                    //and he begins to keep track of (HOW LONG did the swap took) and
-                    //(HOW MANY MISS-SWAPS HAPPENED!)
-                    firstClicked.State &= ~TileState.Selected;
-
-                    //find all states whose "TileColor" were part of the swap!
-                    //it can be ONLY 1 OR 2 but NEVER 0!
-                    var second = secondClicked;
-                    currData.StatesFromQuestRelatedTiles = currData.StatePerQuest!
-                        .Where(x => x.TileKind == firstClicked.Body.TileKind ||
-                                    x.TileKind == second.Body.TileKind);
-
-                    OnTilesAlreadySwapped();
-                    secondClicked = null; //he is the first now
-                }
-                else
-                {
-                    firstClicked.State &= ~TileState.Selected;
-                }
             }
         }
     }

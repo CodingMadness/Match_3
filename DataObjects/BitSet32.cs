@@ -219,7 +219,7 @@ public struct BitSet32 : IEquatable<BitSet32>
     /// </summary>
     /// 
     /// <param name="obj">
-    /// Object to check. May be null.
+    /// Tile to check. May be null.
     /// </param>
     /// 
     /// <returns>

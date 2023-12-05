@@ -30,7 +30,8 @@ public static class Grid
             for (int y = (int)begin.Y; y < twoBy4Block.Y; y++)
             {
                 Vector2 current = new(x, y);
-                Tile tmpTile = _bitmap[x, y] = Bakery.CreateTile(current, allKinds[j++]);
+                CSharpRect gridBox = new(current.X, current.Y, 1f, 1f);
+                Tile tmpTile = _bitmap[x, y] = Bakery.CreateTile(gridBox, allKinds[j++]);
                 int index = tmpTile.Body.TileKind.ToIndex();
                 counts[index]++;
             }
@@ -79,7 +80,8 @@ public static class Grid
                 if (current is null)
                     continue;
                 
-                current.Body.ChangeColor2(Color.Red);
+                current.Body.Color = RED;
+                //current.Body.ChangeColor2(Color.Red);
                 Debug.WriteLine(current.Cell);
             }
             break;
@@ -111,21 +113,21 @@ public static class Grid
     }
 
     /// <summary>
-    /// Gets you a tile based on the cell-coordinates,
+    /// Gets you a @tile based on the cell-coordinates,
     /// if it is marked as 'deleted' or 'disabled', then you get back null!
     /// </summary>
-    /// <param name="coord">the cell to pass, from (0,0) -> (_tileWidth-1, _tileHeight-1)</param>
+    /// <param name="cellPos">the cell to pass, from (0,0) -> (_tileWidth-1, _tileHeight-1)</param>
     /// <returns></returns>
-    public static Tile? GetTile(Vector2 coord)
+    public static Tile? GetTile(Vector2 cellPos)
     {
         Tile? tmp = null;
 
-        switch (coord.X)
+        switch (cellPos.X)
         {
-            case >= 0 when coord.X < _tileWidth && coord.Y >= 0 && coord.Y < _tileHeight:
+            case >= 0 when cellPos.X < _tileWidth && cellPos.Y >= 0 && cellPos.Y < _tileHeight:
             {
                 //its within bounds!
-                tmp = _bitmap[(int)coord.X, (int)coord.Y];
+                tmp = _bitmap[(int)cellPos.X, (int)cellPos.Y];
                 tmp = tmp is { IsDeleted: true, State: TileState.Disabled  } ? null : tmp;
                 break;
             }
@@ -137,7 +139,7 @@ public static class Grid
     public static void SetTile(Tile value, Vector2? newCoord = null)
     {
         if (value is null)
-            throw new ArgumentException("you cannot Add a NULL tile! check your tile-creation logic!");
+            throw new ArgumentException("you cannot Add a NULL @tile! check your @tile-creation logic!");
 
         Vector2 coord = newCoord ?? value.Cell.Start;
 
@@ -207,7 +209,7 @@ public static class Grid
             }
         }
 
-        //if he could not get a match by the 2.tile which was clicked on, try the 1.clicked tile!
+        //if he could not get a match by the 2.@tile which was clicked on, try the 1.clicked @tile!
         if (!matches.IsMatchFilled && ++_match3FuncCounter <= 1)
         {
             matches.Clear(matchData.LookUpUsedInMatchFinder);
@@ -263,6 +265,6 @@ public static class Grid
 
     private static void Disable(Tile tile)
     {
-        throw new NotImplementedException("Here we have to do some logic which deals with disabling the tile in the EntireGrid!");
+        throw new NotImplementedException("Here we have to do some logic which deals with disabling the @tile in the EntireGrid!");
     }
 }

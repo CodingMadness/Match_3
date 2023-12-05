@@ -11,7 +11,7 @@ namespace Match_3.DataObjects;
 /// </summary>
 public class TileGraph : IEnumerable<Tile>
 {
-    public class Node : IGameTile
+    public class Node : IGameObject
     {
         private const int MaxEdges = 4;
         public readonly Tile Root;
@@ -26,7 +26,7 @@ public class TileGraph : IEnumerable<Tile>
             Root = root;
         }
 
-        public override string ToString() => ((IGameTile)this).ToString();
+        public override string ToString() => ((IGameObject)this).ToString();
         
         public void CutLink()
         {
@@ -42,9 +42,9 @@ public class TileGraph : IEnumerable<Tile>
 
         public SingleCell Cell => Root.Cell;
         
-        Vector2 IGameTile.Position => Root.Cell.Start;
+        Vector2 IGameObject.Position => Root.Cell.Start;
         
-        Shape IGameTile.Body => Root.Body;
+        Shape IGameObject.Body => Root.Body;
     }
 
     private readonly Node[] _sameColored;

@@ -54,6 +54,7 @@ internal static class Game
             var currState = GameState.CurrData;
             currState.TileX = firstClickedTile;
             OnTileClicked();
+            Console.WriteLine(firstClickedTile);
         }
     }
 
