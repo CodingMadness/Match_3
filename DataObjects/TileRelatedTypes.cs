@@ -1,12 +1,14 @@
 ﻿global using TileColor = System.Drawing.KnownColor;
 global using Comparer = Match_3.Service.Comparer;
-
 using System.Collections;
 using System.Drawing;
 using System.Numerics;
 using Match_3.Service;
+using Raylib_cs;
+using Color = System.Drawing.Color;
 
-[assembly: FastEnumToString(typeof(TileColor), IsPublic = true, ExtensionMethodNamespace = "Match_3.Variables.Extensions")]
+[assembly:
+    FastEnumToString(typeof(TileColor), IsPublic = true, ExtensionMethodNamespace = "Match_3.Variables.Extensions")]
 
 namespace Match_3.DataObjects;
 
@@ -20,7 +22,7 @@ public enum TileState : byte
     Pulsate = 32
 }
 
-public abstract class RenderInfo
+public abstract class Texture
 {
     private readonly Vector2 mTextureLoc;
 
@@ -34,53 +36,34 @@ public abstract class RenderInfo
 
     public CSharpRect CSTextureRect => new(TextureLocation.X, TextureLocation.Y, TextureSize.Width, TextureSize.Height);
 
-    public RayRect RayTextureRect => new(CSTextureRect.X, CSTextureRect.Y, CSTextureRect.Width, CSTextureRect.Height);
+    public RayRect AssetRect => new(CSTextureRect.X, CSTextureRect.Y, CSTextureRect.Width, CSTextureRect.Height);
 }
 
-public interface IProjectable
+public class Shape : Texture
 {
-    public CSharpRect ToWorld(IGridCell cell)
-    {
-        return new(cell.WorldPos.X * Config.TileSize,
-            cell.WorldPos.Y * Config.TileSize,
-            cell.UnitSize.Width * Config.TileSize,
-            cell.UnitSize.Height * Config.TileSize);
-    }
- 
-    public RayRect AsRayWorldBox => new(WorldBox.X, WorldBox.Y, WorldBox.Width, WorldBox.Height);
-    public (CSharpRect newBox, Scale next) ScaleSysBox(Scale scale) => scale * WorldBox;
-
-    public RayRect ScaleRayBox(Scale scale)
-    {
-        // Console.WriteLine(scale);
-        var scaledBox = scale * AsRayWorldBox;
-        return scaledBox;
-    }
-}
-
-public class Shape : RenderInfo, IProjectable
-{
-    private readonly Scale _resizeFactor = new();
-    
-    public Scale GetScaling(float seconds) => _resizeFactor.GetFactor();
-
-    private FadeableColor _color = WHITE;
-    public ref readonly FadeableColor Color => ref _color;
-    public ref readonly FadeableColor Fade(Color c, float targetAlpha, float elapsedTime)
-    {
-        _color = c;
-        _color.CurrentAlpha = 1f;
-        _color.AlphaSpeed = 0.5f;
-        _color.TargetAlpha = targetAlpha;
-        _color.AddTime(elapsedTime);
-        _color = _color.Apply();
-        return ref _color;
-    }
-    public ref readonly FadeableColor Fade(Color c, float elapsedTime) => ref Fade(c, 0f, elapsedTime);
-    public ref readonly FadeableColor ChangeColor2(Color c) => ref Fade(c, 1f, 1f);
-    protected ref readonly FadeableColor FixedWhite => ref ChangeColor2(WHITE.AsSysColor());
+    public FadeableColor Color = WHITE;
     public override string ToString() => $"Tile type: <{TileKind}>";
     public required TileColor TileKind { get; init; }
+}
+
+public class RectShape(IGridRect cellRect) : Shape
+{
+    private Scale ResizeFactor;
+    private CSharpRect _scaledRect = cellRect.GridBox;
+    
+    public CSharpRect AsWorld => new(
+        _scaledRect.X * Config.TileSize,
+        _scaledRect.Y * Config.TileSize,
+        _scaledRect.Width * Config.TileSize,
+        _scaledRect.Height * Config.TileSize);
+
+    public RayRect WorldRect => new(AsWorld.X, AsWorld.Y, AsWorld.Width, AsWorld.Height);
+
+    public void ScaleBox(float currTime)
+    {
+        ResizeFactor = new(currTime: currTime);
+        _scaledRect = ResizeFactor * cellRect.GridBox;
+    }
 }
 
 /// <summary>
@@ -90,32 +73,33 @@ public class Shape : RenderInfo, IProjectable
 ///   * light-weight, does have more value properties/fields than anything else
 ///   * has to be stored inside a 2D array where access and GC does matter
 /// </summary>
-/// <param name="body"></param>
-public class Tile(Shape body) : IGameTile
+public class Tile : IGameObject
 {
     public TileState State { get; set; }
 
     public SingleCell CellB4Swap { get; set; }
 
-    public SingleCell Cell { get; set; }
+    public required SingleCell Cell { get; set; }
+    
+    public bool IsDeleted => State.HasFlag(TileState.Disabled) &&
+                             State.HasFlag(TileState.NotRendered);
 
+    public required RectShape Body { get; init; }
+    
     /// <summary>
     /// Body consists of :
     ///   * Color
     ///   * TileKind
     ///   * Rectangle
     /// </summary>
-    public Shape Body { get; } = body;
+    Shape IGameObject.Body => Body;
 
-    Vector2 IGameTile.Position => Cell.Start;
-
-    public bool IsDeleted => State.HasFlag(TileState.Disabled) &&
-                             State.HasFlag(TileState.NotRendered);
-
+    Vector2 IGameObject.Position => Cell.Start;
+    
     public override string ToString() => $"SingleCell: {Cell.Start}; ---- {Body}";
 }
 
-public class MatchX : IGameTile, IEnumerable<Tile>
+public class MatchX : IGameObject, IEnumerable<Tile>
 {
     private Vector2 _position;
 
@@ -154,6 +138,8 @@ public class MatchX : IGameTile, IEnumerable<Tile>
 
     private static void ClearMatchBox(Direction lookUpUsedInMatchFinder)
     {
+        if (lookUpUsedInMatchFinder is Direction.None)
+            return;
         var matchBox = CachedCellTemplates[IMultiCell.GetLayoutFrom(lookUpUsedInMatchFinder)];
 
         switch (matchBox)
@@ -181,9 +167,10 @@ public class MatchX : IGameTile, IEnumerable<Tile>
 
     public Shape? Body { get; private set; }
 
-    Vector2 IGameTile.Position => _position;
-    Shape IGameTile.Body => Body;
+    Vector2 IGameObject.Position => _position;
     
+    Shape IGameObject.Body => Body;
+
     public void Add(Tile matchTile)
     {
         Matches.Add(matchTile);
