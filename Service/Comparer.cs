@@ -7,10 +7,10 @@ namespace Match_3.Service;
 
 public static class Comparer
 {
-    public sealed class BodyComparer : EqualityComparer<IGameTile>
+    public sealed class BodyComparer : EqualityComparer<IGameObject>
     {
         /// <summary>
-        /// Since I derive this class from "EqualityComparer", I HAVE TO take IGameTile? params
+        /// Since I derive this class from "EqualityComparer", I HAVE TO take IGameObject? params
         /// but I make sure that they NEVER can be null, it is illogical for that to ever happen
         /// and I make sure that I check that in the specific sections of code where needed but not here
         /// since it is not needed for every Equals() call and would waste senselessly performance
@@ -18,12 +18,12 @@ public static class Comparer
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <returns></returns>
-        public override bool Equals(IGameTile? x, IGameTile? y)
+        public override bool Equals(IGameObject? x, IGameObject? y)
         {
             return ReferenceEquals(x, y) || x!.Body.TileKind == y!.Body.TileKind;
         }
 
-        public override int GetHashCode(IGameTile obj)
+        public override int GetHashCode(IGameObject obj)
         {
             return obj.GetHashCode();
         }
@@ -31,7 +31,7 @@ public static class Comparer
         public static readonly BodyComparer Singleton = new();
     }
 
-    public class CellComparer : EqualityComparer<IGameTile>, IComparer<IGameTile>
+    public class CellComparer : EqualityComparer<IGameObject>, IComparer<IGameObject>
     {
         private readonly bool _orderByColumns;
         public static readonly CellComparer Singleton = new();
@@ -42,13 +42,13 @@ public static class Comparer
         }
 
         [Pure]
-        public override bool Equals(IGameTile? x, IGameTile? y) => ReferenceEquals(x, y) || x!.Position == y!.Position;
+        public override bool Equals(IGameObject? x, IGameObject? y) => ReferenceEquals(x, y) || x!.Position == y!.Position;
 
         [Pure]
-        public override int GetHashCode(IGameTile obj) => obj.Position.GetHashCode();
+        public override int GetHashCode(IGameObject obj) => obj.Position.GetHashCode();
 
         [Pure]
-        public virtual int Compare(IGameTile? x, IGameTile? y)
+        public virtual int Compare(IGameObject? x, IGameObject? y)
         {
             if (Equals(x, y))
                 return 0;
@@ -95,7 +95,7 @@ public static class Comparer
             _toleratedDistance = toleratedDistance;
         }
 
-        public override int Compare(IGameTile? x, IGameTile? y)
+        public override int Compare(IGameObject? x, IGameObject? y)
         {
             if (Equals(x, y))
                 return 0;
@@ -118,7 +118,7 @@ public static class Comparer
             return result;
         }
 
-        public bool? Are2Close(IGameTile? x, IGameTile? y)
+        public bool? Are2Close(IGameObject? x, IGameObject? y)
         {
             //-1 => TOP/LEFT;
             // 1 => BOT/RIGHT
