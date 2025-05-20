@@ -2,7 +2,6 @@
 using DotNext;
 using Match_3.DataObjects;
 using Match_3.Service;
-using Match_3.Variables.Extensions;
 
 namespace Match_3.Workflow;
 
@@ -60,7 +59,7 @@ public static class QuestBuilder
         // const int questLogParts = 4;
         scoped Span<TileColor> subset = stackalloc TileColor[tileCount];
         Utils.Fill(subset);
-        subset.Shuffle(Utils.Randomizer);
+        subset.Shuffle();
         subset = subset.TakeRndItemsAtRndPos(GameState.Lvl.Id);
         scoped FastSpanEnumerator<TileColor> subsetEnumerator = new(subset);
         int questCount = subset.Length;
@@ -94,13 +93,13 @@ public static class QuestBuilder
     {
         //there is a defect in here....!
         var currLog = GameState.Logger.Enqueue(QuestLog);  
-        using scoped var questIterator = new QuestLineEnumerator(currLog, true);
+        using scoped var questIterator = new FormatTextEnumerator(currLog, true);
         
         foreach (TextInfo questPiece in questIterator)
         {
             //swap (Transparent) with (<WhatEverColoIUse>)
             var placeHolderColor = questPiece.ColorAsText.AsWriteable();
-            var newColor = quest.TileKind.ToStringFast().AsSpan().AsWriteable();
+            var newColor = quest.TileKind.ToString().AsSpan().AsWriteable();
             newColor.CopyTo(placeHolderColor);
             placeHolderColor[newColor.Length..].Clear();
             
@@ -110,7 +109,7 @@ public static class QuestBuilder
             value.CopyTo(memberName);
             memberName[value.Length..].Clear();
         }
-        currLog.Replace(TileColor.Transparent.ToStringFast(), quest.TileKind.ToStringFast());
+        currLog.Replace(TileColor.Transparent.ToString(), quest.TileKind.ToString());
         
         _questRunner++;
         return currLog;

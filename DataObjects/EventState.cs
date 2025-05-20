@@ -11,6 +11,6 @@ public class EventState
     public readonly MatchX Matches = new();
     public bool HaveAMatch, 
                 WasSwapped,
-                WasGameWonB4Timeout,
-                IsGameOver;
+                WasGameWon,
+                WasGameLost;
 }

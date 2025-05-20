@@ -59,7 +59,7 @@ public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, 
         var entireSpan=_content.Span;
 
         if (entireSpan.Length == _enQCharIdx)
-            return ReadOnlySpan<T>.Empty;
+            return [];
 
         //check if the current "items" is only a slice of what is already in the pool
         //OR if the current pool is only a slice of "items"
@@ -93,7 +93,7 @@ public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, 
     public ReadOnlySpan<T> Dequeue(bool shallRecycle=false)
     {
         if (_enQCount == 0)
-            return ReadOnlySpan<T>.Empty;
+            return [];
 
         var span = _content.Span;
         //we have to avoid somehow, that once the "nextLen" is obtained we need to check 

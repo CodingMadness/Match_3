@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 
 using DotNext.Buffers;
 using ImGuiNET;
-using Match_3.Variables.Extensions;
 
 namespace Match_3.Service;
 
@@ -167,7 +166,7 @@ public ref struct WordEnumerator
             //the 2. purpose is to determine, when the above if condition is false, that there is really
             //only 1 word left and we have to treat this separately...
             word = _remainder;
-            _remainder = ReadOnlySpan<char>.Empty;
+            _remainder = [];
         }
         else
         {
@@ -175,7 +174,7 @@ public ref struct WordEnumerator
             _remainder = _remainder[(word.Length + 1)..];
         }
 
-        _tmp = new(word, _original.TileColor.ToStringFast(), ReadOnlySpan<char>.Empty);
+        _tmp = new(word, _original.TileColor.ToString(), []);
 
         return word.Length > 0;
     }
@@ -187,19 +186,19 @@ public ref struct WordEnumerator
     }
 }
 
-public ref partial struct QuestLineEnumerator
+public ref partial struct FormatTextEnumerator
 {
     private readonly bool _skipBlackColor;
     private readonly Span<(int idx, int len)> _colorPositions;
     private readonly ReadOnlySpan<char> _text;
     private TextInfo _current;
-    private MemoryRental<(int idx, int len)> _matchPool;
+    private SpanOwner<(int idx, int len)> _matchPool;
     private int _position;
 
-    public QuestLineEnumerator(ReadOnlySpan<char> text, bool skipBlackColor=false)
+    public FormatTextEnumerator(ReadOnlySpan<char> text, bool skipBlackColor=false)
     {
         //dont know a value yet for this but we use 15 for now
-        _matchPool = new(5, false);
+        _matchPool = new(15, false);
         
         _position = 0;
         _text = text;
@@ -242,7 +241,7 @@ public ref partial struct QuestLineEnumerator
         bool isAMemberName = slice2Colorize.Contains('.'); //like: Match.Count and so on...
         var variable2Replace = isAMemberName                  
                                                   ? slice2Colorize[..slice2Colorize.IndexOf(' ')] 
-                                                  : ReadOnlySpan<char>.Empty;
+                                                  : [];
         
         _current = new(slice2Colorize, color2Use, variable2Replace);
         _position++;
@@ -264,7 +263,7 @@ public ref partial struct QuestLineEnumerator
             ? _text[beginOfBlack..].IndexOf('(') + beginOfBlack
             : _text.Length;
         
-        _current = new(_text[okayBegin..relativeEnd], color2Use, ReadOnlySpan<char>.Empty);
+        _current = new(_text[okayBegin..relativeEnd], color2Use, []);
         
         _position++;
         
@@ -279,7 +278,7 @@ public ref partial struct QuestLineEnumerator
     }
     
     [UnscopedRef]
-    public ref readonly QuestLineEnumerator GetEnumerator()
+    public ref readonly FormatTextEnumerator GetEnumerator()
     {
         return ref this;
     }

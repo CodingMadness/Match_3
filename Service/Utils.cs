@@ -19,9 +19,9 @@ namespace Match_3.Service;
 public static class Utils
 {
     public static readonly Random Randomizer = new(DateTime.UtcNow.Ticks.GetHashCode());
-    public static readonly DotnetNoise.FastNoise NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
+    //public static readonly DotnetNoise.FastNoise NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
     private static readonly TileColor[] AllTileColors =
-    {
+    [
         TileColor.LightBlue,          //--> Hellblau
         TileColor.Turquoise,        //--> Türkis
         TileColor.Blue,             //--> Blau
@@ -35,7 +35,7 @@ public static class Utils
         TileColor.Magenta,          //--> Pink
         TileColor.Red,              //--> Rot
       
-    };
+    ];
     
     private static CellBlock EntireGrid
     {
@@ -68,15 +68,15 @@ public static class Utils
     public static Vector4 ToVec4(this RayColor color)
     {
         return new(
-            color.r / 255.0f,
-            color.g / 255.0f,
-            color.b / 255.0f,
-            color.a / 255.0f);
+            color.R / 255.0f,
+            color.G / 255.0f,
+            color.B / 255.0f,
+            color.A / 255.0f);
     }
 
     public static RayColor AsRayColor(this Color color) => new(color.R, color.G, color.B, color.A);
 
-    public static Color AsSysColor(this RayColor color) => Color.FromArgb(color.a, color.r, color.g, color.b);
+    public static Color AsSysColor(this RayColor color) => Color.FromArgb(color.A, color.R, color.G, color.B);
 
     public static int ToIndex(this TileColor color)
     {
@@ -108,7 +108,7 @@ public static class Utils
             return chunk.Span.AsWriteable();
         }
 
-        return Span<char>.Empty;
+        return [];
     }
 
     public static StringBuilder Replace(this StringBuilder input,
@@ -124,7 +124,7 @@ public static class Utils
         int resultLength = input.Length;
         int searchIndex = 0;
 
-        while ((matchIndex = span.Slice(searchIndex).IndexOf(oldValue)) != -1)
+        while ((matchIndex = span[searchIndex..].IndexOf(oldValue)) != -1)
         {
             searchIndex += matchIndex;
 
@@ -172,7 +172,7 @@ public static class Utils
         {
             int matchIndex;
 
-            while ((matchIndex = span.Slice(searchIndex).IndexOf(oldValue)) != -1)
+            while ((matchIndex = span[searchIndex..].IndexOf(oldValue)) != -1)
             {
                 searchIndex += matchIndex;
                 var tmpOld = span.Slice(searchIndex, old.Length);
@@ -185,7 +185,7 @@ public static class Utils
     }
 
     public static Span<T> AsWriteable<T>(this scoped ReadOnlySpan<T> readOnlySpan) =>
-        MemoryMarshal.CreateSpan(ref Unsafe.AsRef(readOnlySpan[0]), readOnlySpan.Length);
+        MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in readOnlySpan[0]), readOnlySpan.Length);
 
     public static void WriteBin(int v)
     {
@@ -288,9 +288,9 @@ public static class Utils
         where T : struct, IEquatable<T>
     {
         var source = input.AsWriteable();
-        var r = area2Move.GetOffsetAndLength(source.Length);
-        int newOffset = r.Offset + moveBy;
-        Range areaToCopyInto = newOffset..(r.Length + newOffset);
+        var (Offset, Length) = area2Move.GetOffsetAndLength(source.Length);
+        int newOffset = Offset + moveBy;
+        Range areaToCopyInto = newOffset..(Length + newOffset);
         source[area2Move].CopyTo(source[areaToCopyInto]);
 
         int endOfArea2Move;
@@ -298,21 +298,21 @@ public static class Utils
 
         if (moveBy < 0)
         {
-            endOfArea2Move = r.Offset + r.Length;
+            endOfArea2Move = Offset + Length;
             //go "moveBy" back
             begin2Clear = endOfArea2Move + moveBy;
         }
         else
         {
             //go "moveBy" forward
-            begin2Clear = r.Offset;
+            begin2Clear = Offset;
             endOfArea2Move = begin2Clear + moveBy;
         }
 
         Range area2Clear = begin2Clear..endOfArea2Move;
         source[area2Clear].Fill(fillEmpties);
 
-        return newOffset + r.Length;
+        return newOffset + Length;
     }
 
     /// <summary>
@@ -524,13 +524,14 @@ public static class Utils
         {
             >= 0.0f and < 0.33f => ..amount2Take,
             >= 0.33f and < 0.66f => m..,
-            >= 0.66f and < 1.00f => ^amount2Take..
+            >= 0.66f and < 1.00f => ^amount2Take..,
+            _ => throw new NotImplementedException()
         };
 
         return items[r];
     }
 
-    public static void Shuffle<T>(this Span<T> span) => span.Shuffle(Randomizer);
+    public static void Shuffle<T>(this Span<T> span) => throw new NotImplementedException("I need to yet code the shuffle logic....");
     
     public static bool Equals(this float x, float y, float tolerance)
     {
@@ -569,17 +570,17 @@ public static class Utils
         switch (value)
         {
             case int or bool or long:
-                SetShaderValue(AssetManager.WobbleEffect, locInShader, value, ShaderUniformDataType.SHADER_UNIFORM_INT);
+                SetShaderValue(AssetManager.WobbleEffect, locInShader, value, ShaderUniformDataType.Int);
                 break;
 
             case float or double or Half:
                 SetShaderValue(AssetManager.WobbleEffect, locInShader, value,
-                    ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
+                    ShaderUniformDataType.Float);
                 break;
 
             case Vector2:
                 SetShaderValue(AssetManager.WobbleEffect, locInShader, value,
-                    ShaderUniformDataType.SHADER_UNIFORM_VEC2);
+                    ShaderUniformDataType.Vec2);
                 break;
         }
     }

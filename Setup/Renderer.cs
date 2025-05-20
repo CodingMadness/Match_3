@@ -6,6 +6,7 @@ using Match_3.Workflow;
 using Raylib_cs;
 using Vector2 = System.Numerics.Vector2;
 using static Match_3.Setup.AssetManager;
+using rlImGui_cs;
 
 namespace Match_3.Setup;
 
@@ -13,26 +14,25 @@ public static class UiRenderer
 {
     static UiRenderer()
     {
-        RlImGui.Setup(false);
+        rlImGui.Setup(false);
     }
 
     public static void BeginRendering(Action mainGameLoop)
     {
         BeginDrawing();
         {
-            ClearBackground(WHITE);
+            ClearBackground(White);
             //ImGui Context Start
             const ImGuiWindowFlags flags = ImGuiWindowFlags.NoDecoration |
                                            ImGuiWindowFlags.NoScrollbar |
                                            ImGuiWindowFlags.NoBackground |
-                                           ImGuiWindowFlags.NoMove;
+                                           ImGuiWindowFlags.NoMove |
+                                           ImGuiWindowFlags.NoResize;
 
-            RlImGui.Begin();
+            rlImGui.Begin();
             {
-                if (ImGui.Begin("EntireGrid Overlay", flags))
-                {
-                    // ImGui.ShowDemoWindow();
-
+                if (ImGui.Begin("EntireGrid Overlay", ImGuiWindowFlags.NoResize))
+                {                   
                     ImGui.SetWindowPos(default);
                     ImGui.SetWindowSize(Utils.GetScreen());
 
@@ -41,7 +41,7 @@ public static class UiRenderer
 
                 ImGui.End();
             }
-            RlImGui.End();
+            rlImGui.End();
         }
         EndDrawing();
     }
@@ -63,7 +63,7 @@ public static class UiRenderer
             ImGuiWindowFlags.NoDecoration;
         bool open = true;
 
-        var btnSize = new Vector2(FeatureBtn.width, FeatureBtn.height) * 0.67f;
+        var btnSize = new Vector2(FeatureBtn.Width, FeatureBtn.Height) * 0.67f;
         var newPos = NewPos(btnSize);
         bool? result = null;
         btnId = "FeatureBtn";
@@ -85,7 +85,7 @@ public static class UiRenderer
             //Center(buttonID);
             ImGui.SetCursorPos(Vector2.One * 3);
 
-            if (ImGui.ImageButton(btnId, (nint)FeatureBtn.id, btnSize))
+            if (ImGui.ImageButton(btnId, (nint)FeatureBtn.Id, btnSize))
             {
                 result = true;
             }
@@ -99,47 +99,9 @@ public static class UiRenderer
         return result;
     }
 
-    public static void DrawText(ReadOnlySpan<char> text)
+    public static void DrawText(ReadOnlySpan<char> formatString)
     {
-        // calculate the indentation that centers the text on one line, relative
-        // to window left, regardless of the `ImGuiStyleVar_WindowPadding` value
-        float winWidth = ImGui.GetWindowWidth();
-        Vector2 currentPos = new(25f, ImGui.GetCursorPos().Y + ImGui.GetContentRegionAvail().Y * 0.5f);
-        using scoped var iterator = new QuestLineEnumerator(text);
-        float totalSize = 0;
-        Vector2 tmp = currentPos;
-        float wrapPosX = winWidth - 20f;
-
-        void NewLine(Vector2 phraseSize)
-        {
-            tmp.X = currentPos.X; //reset to the X position from the beginning
-            tmp.Y += phraseSize.Y * 1.15f;
-            totalSize = phraseSize.X;
-        }
-
-        ImGui.SetCursorPos(currentPos);
-
-        foreach (var phrase in iterator)
-        {
-            totalSize += phrase.TextSize.X;
-
-            if (totalSize > wrapPosX)
-            {
-                NewLine(phrase.TextSize);
-            }
-
-            // Draw words as long as they fit in the WINDOW_WIDTH
-
-            foreach (var word in phrase)
-            {
-                ImGui.SetCursorPos(tmp);
-                ImGui.PushTextWrapPos(wrapPosX);
-                var onlyValue = word.Slice2Colorize.TrimEnd('\0');
-                ImGui.TextColored(word.ColorV4ToApply, onlyValue);
-                ImGui.PopTextWrapPos();
-                tmp.X += word.TextSize.X + 3.5f;
-            }
-        }
+        //....       
     }
 
     public static void DrawQuestLog(FastSpanEnumerator<Quest> quests)
@@ -165,14 +127,7 @@ public static class UiRenderer
 
     public static void DrawTimer(float elapsedSeconds)
     {
-        //horrible performance: use a stringBuilder to reuse values!
-        TimerText.Text = ((int)elapsedSeconds).ToString();
-        TimerText.Src.baseSize = 512 * 16;
-        FadeableColor color = elapsedSeconds > 0f ? BLUE : WHITE;
-        TimerText.Color = color with { CurrentAlpha = 1f, TargetAlpha = 1f };
-        TimerText.Begin = (Utils.GetScreen() * 0.5f) with { Y = 0f };
-        TimerText.ScaleText(GetScreenWidth());
-        TimerText.Draw(1f);
+        
     }
 
     /// <summary>
@@ -198,7 +153,7 @@ public static class UiRenderer
             );
 
             // Draw the character at the calculated position
-            DrawTextEx(GetFontDefault(), text[i].ToString(), position, 11f, 0f, BLACK);
+            DrawTextEx(GetFontDefault(), text[i].ToString(), position, 11f, 0f, Black);
         }
     }
 

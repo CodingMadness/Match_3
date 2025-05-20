@@ -20,7 +20,7 @@ public static class AssetManager
     private static Font GameFont;
     public static GameText WelcomeText = new(GameFont, "Welcome young man!!", 7f);
     public static GameText GameOverText = new(GameFont, "", 7f);
-    public static GameText TimerText = new(GameFont with { baseSize = 512 * 2 }, "", 11f);
+    //public static GameText TimerText = new(GameFont with { baseSize = 512 * 2 }, "", 11f);
     public static GameText QuestLogText = new(GameFont, "", 20f);
 
     /// <summary>
@@ -82,9 +82,9 @@ public static class AssetManager
 
         const float time = 0f;
         const bool shouldWobble = false;
-        SetShaderValue(WobbleEffect, timeLoc, time, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, gridSizeLoc, gridSize, ShaderUniformDataType.SHADER_UNIFORM_VEC2);
-        SetShaderValue(WobbleEffect, shouldWobbleLoc, shouldWobble, ShaderUniformDataType.SHADER_UNIFORM_INT);
+        SetShaderValue(WobbleEffect, timeLoc, time, ShaderUniformDataType.Float);
+        SetShaderValue(WobbleEffect, gridSizeLoc, gridSize, ShaderUniformDataType.Vec2);
+        SetShaderValue(WobbleEffect, shouldWobbleLoc, shouldWobble, ShaderUniformDataType.Int);
 
         return (timeLoc, gridSizeLoc, shouldWobbleLoc);
     }
@@ -110,13 +110,13 @@ public static class AssetManager
         float speedX = 20.0f;
         float speedY = 15.0f;
 
-        SetShaderValue(WobbleEffect, freqXLoc, freqX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, freqYLoc, freqY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, ampXLoc, ampX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, ampYLoc, ampY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, speedXLoc, speedX, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, speedYLoc, speedY, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        SetShaderValue(WobbleEffect, sizeLoc, gridSize, ShaderUniformDataType.SHADER_UNIFORM_VEC2);
+        SetShaderValue(WobbleEffect, freqXLoc, freqX, ShaderUniformDataType.Float);
+        SetShaderValue(WobbleEffect, freqYLoc, freqY, ShaderUniformDataType.Float);
+        SetShaderValue(WobbleEffect, ampXLoc, ampX, ShaderUniformDataType.Float);
+        SetShaderValue(WobbleEffect, ampYLoc, ampY, ShaderUniformDataType.Float);
+        SetShaderValue(WobbleEffect, speedXLoc, speedX, ShaderUniformDataType.Float);
+        SetShaderValue(WobbleEffect, speedYLoc, speedY, ShaderUniformDataType.Float);
+        SetShaderValue(WobbleEffect, sizeLoc, gridSize, ShaderUniformDataType.Vec2);
 
         return (sizeLoc, secondsLoc, shouldWobbleLoc);  //these are the one i set up dynamically
     }
@@ -145,7 +145,7 @@ public static class AssetManager
         ShaderData = InitWobble2(gridSize);
         WelcomeText.Src = GameFont;
         GameOverText.Src = GameFont;
-        TimerText.Src = GameFont;
+        //TimerText.Src = GameFont;
         QuestLogText.Src = GameFont;
     }
 
@@ -153,13 +153,13 @@ public static class AssetManager
     {
         GameOverText.InitSize *= 1f;
         GameOverText.ScaleText(Utils.GetScreen().X);
-        GameOverText.Color = RED;
+        GameOverText.Color = Red;
         GameOverText.Begin = (Utils.GetScreen() * 0.5f) with { X = 0f };
     }
 
     public static void InitWelcomeTxt()
     {
-        WelcomeText.Color = RED;
+        WelcomeText.Color = Red;
         WelcomeText.ScaleText(Utils.GetScreen().X);
         WelcomeText.Begin = (Utils.GetScreen() * 0.5f) with { X = 0f };
     }

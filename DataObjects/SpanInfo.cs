@@ -88,6 +88,6 @@ public readonly ref struct SpanInfo<T>
 
         Between = AreXYNext2EachOther
             ? src[endOfFirstOne..IndexOfLast]
-            : ReadOnlySpan<T>.Empty;
+            : [];
     }
 }

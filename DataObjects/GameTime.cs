@@ -20,7 +20,7 @@ public struct GameTime
         };
     }
 
-    public void CountDown()
+    public bool CountDown()
     {
         if (CurrentSeconds <= MaxTimerValue / 2f)
         {
@@ -28,14 +28,8 @@ public struct GameTime
         }
         // subtract this frame from the globalTimer if it's not already expired
         CurrentSeconds -= (1.15f * MathF.Round(GetFrameTime(), 2));
-    }
 
-    public readonly bool Done()
-    {
-        //bool done = CurrentSeconds.Equals(0f, 0.0f);
-        //CurrentSeconds = done ? 0f : CurrentSeconds;
-        bool done = CurrentSeconds.Trunc(1) == 0.0f;
-        return done;
+        return MathF.Max(CurrentSeconds, 0f) == 0f;
     }
 
     public readonly bool IsInitialized => CurrentSeconds > 0f;

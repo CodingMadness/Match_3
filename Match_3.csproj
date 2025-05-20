@@ -1,11 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <LangVersion>12</LangVersion>
-    <EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <LangVersion>13</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
@@ -39,18 +38,14 @@
   
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.13.10" />
-    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.2" />
-    <PackageReference Include="DotnetNoise" Version="1.0.0" />
-    <PackageReference Include="DotNext" Version="4.15.2" />
-    <PackageReference Include="ImGui.NET" Version="1.89.9.3" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
+    <PackageReference Include="DotNext" Version="5.21.0" />
+    <PackageReference Include="ImGui.NET" Version="1.91.6.1" />
     <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
-    <PackageReference Include="Meziantou.Framework.FastEnumToStringGenerator" Version="1.0.8">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
     <PackageReference Include="NoAlloq" Version="0.2.0" />
-    <PackageReference Include="Raylib-cs" Version="4.5.0.4" />
+    <PackageReference Include="Raylib-cs" Version="7.0.1" />
+    <PackageReference Include="rlImgui-cs" Version="3.1.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Extension.cs" />
@@ -136,11 +131,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\Sprites\GUI\Button" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="FastEnum">
-      <HintPath>..\..\Desktop\FastEnum\FastEnum\FastEnum\src\FastEnum\bin\Debug\net7.0\FastEnum.dll</HintPath>
-    </Reference>
   </ItemGroup>
 </Project>
 

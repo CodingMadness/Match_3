@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using DotNext.Collections.Generic;
 using Match_3.DataObjects;
-using Match_3.Variables.Extensions;
 
 namespace Match_3.Workflow;
 
@@ -240,21 +239,21 @@ public class SwapHandler : QuestHandler
                         int currQuestCount = GameState.Lvl.QuestCount--;
                         int countFromWhenIsLose = (1 * GameState.Lvl.QuestCount / 3);
 
-                        swapState.IsGameOver = currQuestCount == countFromWhenIsLose;
+                        swapState.WasGameLost = currQuestCount == countFromWhenIsLose;
 
-                        if (swapState.IsGameOver)
+                        if (swapState.WasGameLost)
                         {
                             Debug.WriteLine("GAME IS OVER NOW BECAUSE WE LOST ATLEAST 2/3 OF QUESTS! HOW BAD ARE WE ?!");
                             return;
                         }
 
-                        Debug.WriteLine($"You lost this Quest for tiletype: {z.TileKind.ToStringFast().ToUpper()} " +
+                        Debug.WriteLine($"You lost this Quest for tiletype: {z.TileKind.ToString().ToUpper()} " +
                                         $"and you are only {countFromWhenIsLose} entire Quest away to lose!");
                     }
                     else
                     {
                         Debug.WriteLine($"You have still: {maxAllowedSwaps_Quest - missSwap_State} swaps left of tiletype:" +
-                                        $"  {z.TileKind.ToStringFast().ToUpper()} ! use them wisely!");
+                                        $"  {z.TileKind.ToString().ToUpper()} ! use them wisely!");
                     }
                 }
                 //Now we increase the swapCount for the participating-TileColor's only if there was not a match
@@ -292,12 +291,12 @@ public class MatchHandler : QuestHandler
         var currMatch = matchData.Matches;
         var kindWhoTriggeredMatch = currMatch!.Body!.TileKind;
         var kindWhichWasIgnoredByMatch = matchData.IgnoredByMatch;
-        var stateOfMatch = StatesFromQuestRelatedTiles.FirstOrNone(x => x.TileKind == kindWhoTriggeredMatch);
+        var stateOfMatch = StatesFromQuestRelatedTiles.SingleOrDefault(x => x.TileKind == kindWhoTriggeredMatch);
         var questOfMatch = GameState.Lvl.Quests;
         
         //example: RED swapsWith BLUE; RED is in Quest, Blue not;
         //BLUE got a Match, RED not;
-        if (stateOfMatch.IsUndefined)
+        if (stateOfMatch is null)
         {
             //a match with the requested "TileKind" was not found, a "wrong-match", so it was a "miss-match"!
             var stateOfMatchIgnoredKind = allStates.First(x => x.TileKind == kindWhichWasIgnoredByMatch);
@@ -319,7 +318,7 @@ public class MatchHandler : QuestHandler
             var d = currMatch.ToString();
             
             //a match with the requested "TileKind" was found and hence it was a successful Quest-Bound match!
-            int successCount = ++stateOfMatch.Value.SuccessfulMatch.Count;
+            int successCount = ++stateOfMatch.SuccessfulMatch.Count;
             var properQuest = questOfMatch.First(x => x.TileKind == kindWhoTriggeredMatch);
             int diffCount = properQuest.SuccessfulMatches.Count- successCount;
             
@@ -332,7 +331,7 @@ public class MatchHandler : QuestHandler
                 Debug.WriteLine("YUHU, you got the Quest without falling into traps!"); 
             }
             //Reset the missSwaps back to 0 because we won that particular quest
-            stateOfMatch.Value.MissSwaps.Count = 0; 
+            stateOfMatch.MissSwaps.Count = 0; 
             //OnDeleteMatch();
         }
     }

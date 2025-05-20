@@ -31,25 +31,25 @@ public struct FadeableColor : IEquatable<FadeableColor>
     
     private static readonly Dictionary<RayColor, string> ColorsAsText = new()
     {
-        {BLACK, "Black"},
-        {BLUE, "Blue"},
-        {BROWN, "Brown"},
-        {DARKGRAY, "DarkGray"},
-        {GOLD, "Gold"},
-        {GRAY, "Gray"},
-        {GREEN, "Green"},
-        {LIGHTGRAY, "LightGray"},
-        {MAGENTA, "Magenta"},
-        {MAROON, "Maroon"},
-        {ORANGE, "Orange"},
-        {PINK, "Pink"},
-        {PURPLE, "Purple"},
-        {RAYWHITE, "RayWhite"},
-        {RED, "Red"},
-        {SKYBLUE, "SkyBlue"},
-        {VIOLET, "Violet"},
-        {WHITE, "White"},
-        {YELLOW, "Yellow"}
+        {Black, "Black"},
+        {Blue, "Blue"},
+        {Brown, "Brown"},
+        {DarkGray, "DarkGray"},
+        {Gold, "Gold"},
+        {Gray, "Gray"},
+        {Green, "Green"},
+        {LightGray, "LightGray"},
+        {Magenta, "Magenta"},
+        {Maroon, "Maroon"},
+        {Orange, "Orange"},
+        {Pink, "Pink"},
+        {Purple, "Purple"},
+        {RayWhite, "RayWhite"},
+        {Red, "Red"},
+        {SkyBlue, "SkyBlue"},
+        {Violet, "Violet"},
+        {White, "White"},
+        {Yellow, "Yellow"}
     };
     
     private string ToReadableString()

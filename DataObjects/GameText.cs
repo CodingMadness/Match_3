@@ -29,7 +29,7 @@ public class GameText(Font src, string text, float initSize)
     {
         if (Text.Length == 1)
         {
-            Src.baseSize = 10;
+            //Src.baseSize = 10;
             Begin = Begin with { X = Begin.X * 1f };
             ScaledSize = 80f;
             DrawTextEx(Src, Text, Begin, ScaledSize, spacing ?? ScaledSize / InitSize, Color);

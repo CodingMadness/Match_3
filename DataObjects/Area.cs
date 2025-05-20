@@ -18,20 +18,20 @@ public readonly struct Area<T> : IEquatable<Area<T>>, IComparable<Area<T>>
 
     public Area(int start, int length) : this(.., 0)
     {
-        (int offset, int len) tmpRange = (start, length);
-        Start  = tmpRange.offset;
-        Length = tmpRange.len;
-        End    = (tmpRange.offset + tmpRange.len);
+        (int offset, int len) = (start, length);
+        Start  = offset;
+        Length = len;
+        End    = offset + len;
         _srcLen = 0;
     }
 
     public Area(Range r, int srcLen)
     {
         _srcLen = srcLen;
-        (int offset, int len) tmpRange = r.GetOffsetAndLength(srcLen);
-        Start  = tmpRange.offset;
-        Length = tmpRange.len;
-        End    = (tmpRange.offset + tmpRange.len);
+        (int offset, int len) = r.GetOffsetAndLength(srcLen);
+        Start  = offset;
+        Length = len;
+        End    = offset + len;
     }
 
     public Area<T> Slice(Area<T> other)

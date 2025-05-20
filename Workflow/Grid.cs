@@ -80,7 +80,7 @@ public static class Grid
                 if (current is null)
                     continue;
                 
-                current.Body.Color = RED;
+                current.Body.Color = Red;
                 //current.Body.ChangeColor2(Color.Red);
                 Debug.WriteLine(current.Cell);
             }

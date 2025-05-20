@@ -56,8 +56,11 @@ public static class Comparer
             //based on EntireGrid logic, there are only integer cells, but since using 
             //Numerics.Vector2, I have to cast them from float to int,
             //because they are by default floats
-            Intrinsics.Bitcast(x!.Position, out (int x0, int y0) tuple0);
-            Intrinsics.Bitcast(y!.Position, out (int x1, int y1) tuple1);
+
+            //Intrinsics.Bitcast(x!.Position, out (int x0, int y0) tuple0);
+            //Intrinsics.Bitcast(y!.Position, out (int x1, int y1) tuple1);
+            (int x0, int y0) = ((int)x!.Position.X, (int)x.Position.Y);
+            (int x1, int y1) = ((int)y!.Position.X, (int)y.Position.Y);
 
             //So, when "_orderByColumns" is true, we first consider "x" only if x1==x2 then 
             //then we only do care for those x values because it
@@ -68,16 +71,16 @@ public static class Comparer
 
             if (_orderByColumns)
             {
-                if ((result=tuple0.x0.CompareTo(tuple1.x1)) == 0)
-                    return tuple0.y0.CompareTo(tuple1.y1);
+                if ((result=x0.CompareTo(x1)) == 0)
+                    return y0.CompareTo(y1);
                 else
                     return result;
             }
             //we have to order first by rows!
             if (orderByRows)
             {
-                if ((result=tuple0.y0.CompareTo(tuple1.y1)) == 0)
-                    return tuple0.x0.CompareTo(tuple1.x1);
+                if ((result=y0.CompareTo(y1)) == 0)
+                    return x0.CompareTo(x1);
                 else
                     return result;
             }

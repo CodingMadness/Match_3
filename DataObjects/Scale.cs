@@ -48,8 +48,8 @@ public readonly struct Scale(float speed=1f, float min=1f,float max=2f, float cu
     {
         scale.Change();
         (RayRect newBox, var factor) = (default, Factor + 1f);
-        newBox.width = rayRect.width * factor;
-        newBox.height = rayRect.height * factor;
+        newBox.Width = rayRect.Width * factor;
+        newBox.Height = rayRect.Height * factor;
         return (newBox);
     }
 

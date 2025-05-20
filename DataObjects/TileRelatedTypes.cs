@@ -7,9 +7,6 @@ using Match_3.Service;
 using Raylib_cs;
 using Color = System.Drawing.Color;
 
-[assembly:
-    FastEnumToString(typeof(TileColor), IsPublic = true, ExtensionMethodNamespace = "Match_3.Variables.Extensions")]
-
 namespace Match_3.DataObjects;
 
 [Flags]
@@ -41,7 +38,7 @@ public abstract class Texture
 
 public class Shape : Texture
 {
-    public FadeableColor Color = WHITE;
+    public FadeableColor Color = White;
     public override string ToString() => $"Tile type: <{TileKind}>";
     public required TileColor TileKind { get; init; }
 }
