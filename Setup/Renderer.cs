@@ -20,10 +20,10 @@ public static class UiRenderer
 {
     static UiRenderer()
     {
-        rlImGui.Setup(false);
+        
     }
 
-    private static void DrawShape(ImGuiShapes shape, Vector2 position, Color color, ReadOnlySpan<char> text, float thickness, float scaleMultiplier)
+    private static void DrawShape(ImGuiShapes shape, Vector2 position, Color color, ReadOnlySpan<char> text, float thickness, float scaleMultiplier=1f)
     {
         switch (shape)
         {
@@ -41,13 +41,7 @@ public static class UiRenderer
         }
     }
 
-    public static void BeginRendering(Action mainGameLoop)
-    {
-        BeginDrawing();
-        {
-            ClearBackground(White);
-            //ImGui Context Start
-            const ImGuiWindowFlags flags =
+    public const ImGuiWindowFlags EmptyCanvas =
                                            ImGuiWindowFlags.NoScrollbar |
                                            ImGuiWindowFlags.NoDocking |
                                            ImGuiWindowFlags.NoDecoration |
@@ -57,54 +51,43 @@ public static class UiRenderer
                                            ImGuiWindowFlags.NoResize |
                                            ImGuiWindowFlags.NoBringToFrontOnFocus |
                                            ImGuiWindowFlags.NoTitleBar;
+    public static void SetCurrentContext()
+    {
+        // Validate existing context
+        var ctx = ImGui.GetCurrentContext();
+        nint newCtx;
 
-
-            rlImGui.Begin();
-            {
-                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
-                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
-                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
-                ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0f);
-
-                ImGui.SetNextWindowPos(Vector2.Zero);
-                ImGui.SetNextWindowSize(Utils.GetScreen());
-
-                if (ImGui.Begin("Tilemap-overlaying-Canvas", flags))
-                {
-                    mainGameLoop();
-                }
-
-                ImGui.End();
-                ImGui.PopStyleVar(4);
-            }
-            rlImGui.End();
+        if (ctx == IntPtr.Zero)
+        {
+            newCtx = ImGui.CreateContext();
+            ImGui.SetCurrentContext(newCtx);
+            //throw new InvalidOperationException("Call ImGui.CreateContext() first!");
         }
-        EndDrawing();
     }
 
-    public static void DrawText(ReadOnlySpan<char> formatableTxt, CanvasStartingPoints begin, float fontSize)
+    public static void Begin()
     {
-        static float CalcScaleFactor(Vector2 textSize, float fontSize)
+        BeginDrawing();
         {
-            Vector2 screen = Utils.GetScreen();
-            float scaleFactor = fontSize / Config.BaseFontSize;
-            Vector2 finalTxtSize = textSize * scaleFactor;
-
-            if (finalTxtSize.X > screen.X)
+            ClearBackground(White);
+                       
+            rlImGui.Begin();
             {
-                float fitScale = Math.Min(screen.X / finalTxtSize.X, screen.Y / finalTxtSize.Y);
-                return scaleFactor * fitScale; // Return scaled multiplier, not absolute size
+                ImGui.SetNextWindowPos(Vector2.Zero);
+                ImGui.SetNextWindowSize(Utils.GetScreen());                
             }
-            return scaleFactor;
         }
-
-        static float ScaleFont(Vector2 textSize, float fontSize)
-        {
-            float toScale = CalcScaleFactor(textSize, fontSize);
-            ImGui.SetWindowFontScale(toScale);
-            return toScale;
-        }
-
+    }
+   
+    public static void End()
+    {
+        ImGui.End();
+        rlImGui.End();
+        EndDrawing();
+    }
+    
+    public static void DrawText(ReadOnlySpan<char> formatableTxt, CanvasStartingPoints begin, float fontSize)
+    {        
         static Vector2 SetUIStartingPoint(ReadOnlySpan<char> formatableTxt, CanvasStartingPoints begin)
         {
             Vector2 result = Vector2.Zero;
@@ -113,7 +96,7 @@ public static class UiRenderer
             Vector2 paddingAdjustedScreen = new(screen.X - txtSize.X, screen.Y - txtSize.Y);
             Vector2 halfTxtSize = new(txtSize.X * 0.5f, txtSize.Y * 0.5f);
             Vector2 Center = new((screen.X * 0.5f) - halfTxtSize.X, (screen.Y * 0.5f) - halfTxtSize.Y);
-
+ 
             switch (begin)
             {
                 case CanvasStartingPoints.TopLeft:
@@ -156,8 +139,11 @@ public static class UiRenderer
         foreach (ref readonly var txtInfo in formatTextEnumerator)
         {
             ImGui.PushFont(CustomFont);
-            SetUIStartingPoint(txtInfo.Slice2Colorize, begin);
+            
+            var result = SetUIStartingPoint(txtInfo.Slice2Colorize, begin);
+            DrawShape(ImGuiShapes.Rectangle, result, Red, txtInfo.Slice2Colorize, 1f);
             ImGui.TextColored(txtInfo.ColorAsVec4, txtInfo.Slice2Colorize);
+   
             ImGui.PopFont();
         }
     }

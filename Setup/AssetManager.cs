@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using ImGuiNET;
 using Raylib_cs;
+using rlImGui_cs;
 
 namespace Match_3.Setup;
 
@@ -43,18 +44,7 @@ public static class AssetManager
     }
 
     private static unsafe ImFontPtr LoadCustomFont(string relativePath, float fontSize)
-    {
-        // Validate existing context
-        var ctx = ImGui.GetCurrentContext();
-        nint newCtx;
-
-        if (ctx == IntPtr.Zero)
-        {
-            newCtx = ImGui.CreateContext();
-            ImGui.SetCurrentContext(newCtx);
-            //throw new InvalidOperationException("Call ImGui.CreateContext() first!");
-        }
-
+    {       
         var fontConfig = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig());
         var fontBytes = GetEmbeddedResource($"Fonts.{relativePath}");
         GCHandle handle = GCHandle.Alloc(fontBytes, GCHandleType.Pinned);
@@ -70,8 +60,9 @@ public static class AssetManager
                 fontConfig,
                 io.Fonts.GetGlyphRangesDefault()
             );
+            //var customFont = io.Fonts.AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf", 32f, fontConfig, io.Fonts.GetGlyphRangesDefault());
             io.Fonts.Build();
-            
+           // rlImGui.ReloadFonts();
             return customFont;
         }
         finally
@@ -97,7 +88,7 @@ public static class AssetManager
 
     private static Texture2D LoadInGameTexture(string relativePath) => LoadTexture($"Sprites.Tiles.{relativePath}");
 
-    public static void LoadAssets(Vector2 gridSize)
+    public static void LoadAssets(Vector2 gridSize, float fontSize)
     {
         InitAudioDevice();
 
@@ -108,6 +99,6 @@ public static class AssetManager
         GameOverTexture = LoadGuiTexture("Background.bgGameOver.png");
         DefaultTileAtlas = LoadInGameTexture("set3_1.png");
         EnemySprite = LoadInGameTexture("set2.png");
-        CustomFont = LoadCustomFont("font6.ttf", 64f);
+        CustomFont = LoadCustomFont("font6.ttf", fontSize);
     } 
 }

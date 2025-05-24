@@ -1,7 +1,8 @@
-﻿using Match_3.DataObjects;
+﻿using ImGuiNET;
+using Match_3.DataObjects;
 using Match_3.Setup;
 using Raylib_cs;
-
+using rlImGui_cs;
 using static Match_3.Setup.AssetManager;
 
 namespace Match_3.Workflow;
@@ -24,17 +25,19 @@ internal static class Game
 
     private static void Initialize()
     {
-        Config level = new(0, 300, 6, 15, 15);
+        Config level = new(0, 300, 6, 20, 20);
         //_timeBuilder = new(3);
         _gameTimer = GameTime.CreateTimer(level.GameBeginAt);
         _gameOverTimer = GameTime.CreateTimer(level.GameOverScreenCountdown + 10);
         SetTargetFPS(60);
-        //SetConfigFlags(ConfigFlags.ResizableWindow);
         InitWindow(level.WindowWidth, level.WindowHeight, "Match3 By Shpendicus");
         SetTextureFilter(BgIngameTexture, TextureFilter.Bilinear);
-        LoadAssets(new(level.GridWidth, level.GridHeight));
-
-        //this has to be initialized RIGHT HERE in order to work!
+        
+        //<this has to be initialized RIGHT HERE in order to work!>
+        rlImGui.Setup(false);
+        UiRenderer.SetCurrentContext();
+        LoadAssets(new(level.GridWidth, level.GridHeight), 30 );
+        rlImGui.ReloadFonts(); // For raylib only
         GameState.Lvl = level;
         QuestHandler.ActivateHandlers();
         Grid.Init();
@@ -99,16 +102,16 @@ internal static class Game
                 //game still running..!
                 else
                 {
-                    const float debug_fontScale = 90;
+                    const float debug_fontScale = 120f;
                     UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.TopLeft, debug_fontScale);
-                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.MidLeft, debug_fontScale);
-                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.BottomLeft, debug_fontScale);
-                    UiRenderer.DrawText($"(Green) {(int)currTime}", CanvasStartingPoints.TopCenter, debug_fontScale);
-                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.Center, debug_fontScale);
-                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.Bottomcenter, debug_fontScale);
-                    UiRenderer.DrawText($"(Red) {(int)currTime}", CanvasStartingPoints.TopRight, debug_fontScale);
-                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.MidRight, debug_fontScale);
-                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.BottomRight, debug_fontScale);
+                    //UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.MidLeft, debug_fontScale);
+                    //UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.BottomLeft, debug_fontScale);
+                    //UiRenderer.DrawText($"(Green) {(int)currTime}", CanvasStartingPoints.TopCenter, debug_fontScale);
+                    //UiRenderer.DrawText($"(Green) {(int)currTime}", CanvasStartingPoints.Center, debug_fontScale);
+                    //UiRenderer.DrawText($"(Green) {(int)currTime}", CanvasStartingPoints.Bottomcenter, debug_fontScale);
+                    //UiRenderer.DrawText($"(Red) {(int)currTime}", CanvasStartingPoints.TopRight, debug_fontScale);
+                    //UiRenderer.DrawText($"(Red) {(int)currTime}", CanvasStartingPoints.MidRight, debug_fontScale);
+                    //UiRenderer.DrawText($"(Red) {(int)currTime}", CanvasStartingPoints.BottomRight, debug_fontScale);
                     NotifyClickHandler();
                     TileRenderer.DrawGrid(currTime, GameState.Lvl.GridWidth, GameState.Lvl.GridHeight);
                 }
@@ -116,7 +119,16 @@ internal static class Game
         }
 
         while (!WindowShouldClose())
-            UiRenderer.BeginRendering(HandleGameInput);
+        {
+            UiRenderer.Begin();
+            
+            if (ImGui.Begin("Tilemap-overlaying-Canvas", UiRenderer.EmptyCanvas))
+            {
+                HandleGameInput();
+            }
+
+            UiRenderer.End();
+        }
     }
 
     private static void CleanUp()
