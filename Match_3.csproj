@@ -22,6 +22,7 @@
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="Assets\Fonts\font6.ttf" />
     <None Remove="raylib" />
     <None Remove="Raylib-cs" />
     <None Remove="Microsoft.Extensions.Logging.Abstractions" />
@@ -64,6 +65,11 @@
     <None Remove="Wobble_Shader.frag" />
        
 
+    <EmbeddedResource Include="Assets\Fonts\font6.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+       
+
     <EmbeddedResource Include="Assets\Shaders\wobble2.frag">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
@@ -104,10 +110,6 @@
     </EmbeddedResource>
     <None Remove="Assets\Sprites\GUI\Button\btn1.png" />
     <EmbeddedResource Include="Assets\Sprites\GUI\Button\btn1.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Assets\fonts\font5.otf" />
-    <EmbeddedResource Include="Assets\fonts\font5.otf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <None Remove="Assets\Sprites\Tiles\set3_1.png" />

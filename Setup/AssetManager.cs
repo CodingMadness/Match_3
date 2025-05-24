@@ -2,9 +2,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using ImGuiNET;
-using Match_3.DataObjects;
 using Raylib_cs;
-using rlImGui_cs;
 
 namespace Match_3.Setup;
 
@@ -35,15 +33,16 @@ public static class AssetManager
     /// <exception cref="FileNotFoundException"></exception>
     private static byte[] GetEmbeddedResource(string relativePath)
     {
+       
         var fileName = $"Match_3.Assets.{relativePath}";
-        var assembly = Assembly.GetEntryAssembly();
+        var assembly = Assembly.GetEntryAssembly();     
         using var stream = (assembly?.GetManifestResourceStream(fileName)) ?? throw new FileNotFoundException("Cannot find mappings file.", nameof(fileName) + ": " + fileName);
         byte[] data = new byte[stream.Length];
         stream.ReadExactly(data, 0, data.Length);
         return data;
     }
 
-    private static unsafe ImFontPtr LoadCustomFont(string relativePath)
+    private static unsafe ImFontPtr LoadCustomFont(string relativePath, float fontSize)
     {
         // Validate existing context
         var ctx = ImGui.GetCurrentContext();
@@ -67,7 +66,7 @@ public static class AssetManager
             var customFont = io.Fonts.AddFontFromMemoryTTF(
                 nativeInt,
                 fontBytes.Length,
-                16f,
+                fontSize,
                 fontConfig,
                 io.Fonts.GetGlyphRangesDefault()
             );
@@ -109,6 +108,6 @@ public static class AssetManager
         GameOverTexture = LoadGuiTexture("Background.bgGameOver.png");
         DefaultTileAtlas = LoadInGameTexture("set3_1.png");
         EnemySprite = LoadInGameTexture("set2.png");
-        CustomFont = LoadCustomFont("font1.otf");
+        CustomFont = LoadCustomFont("font6.ttf", 64f);
     } 
 }
