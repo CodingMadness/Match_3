@@ -55,6 +55,7 @@ public static class AssetManager
             ImGui.SetCurrentContext(newCtx);
             //throw new InvalidOperationException("Call ImGui.CreateContext() first!");
         }
+
         var fontConfig = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig());
         var fontBytes = GetEmbeddedResource($"Fonts.{relativePath}");
         GCHandle handle = GCHandle.Alloc(fontBytes, GCHandleType.Pinned);
@@ -71,6 +72,7 @@ public static class AssetManager
                 io.Fonts.GetGlyphRangesDefault()
             );
             io.Fonts.Build();
+            
             return customFont;
         }
         finally
@@ -107,8 +109,6 @@ public static class AssetManager
         GameOverTexture = LoadGuiTexture("Background.bgGameOver.png");
         DefaultTileAtlas = LoadInGameTexture("set3_1.png");
         EnemySprite = LoadInGameTexture("set2.png");
-        
-        CustomFont = LoadCustomFont("font2.otf");
-    }
- 
+        CustomFont = LoadCustomFont("font1.otf");
+    } 
 }
