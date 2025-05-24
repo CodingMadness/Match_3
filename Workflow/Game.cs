@@ -26,17 +26,16 @@ internal static class Game
     {
         Config level = new(0, 300, 6, 15, 15);
         //_timeBuilder = new(3);
-        _gameTimer = GameTime.GetTimer(level.GameBeginAt);
-        _gameOverTimer = GameTime.GetTimer(level.GameOverScreenCountdown + 10);
+        _gameTimer = GameTime.CreateTimer(level.GameBeginAt);
+        _gameOverTimer = GameTime.CreateTimer(level.GameOverScreenCountdown + 10);
         SetTargetFPS(60);
-        SetConfigFlags(ConfigFlags.ResizableWindow);
+        //SetConfigFlags(ConfigFlags.ResizableWindow);
         InitWindow(level.WindowWidth, level.WindowHeight, "Match3 By Shpendicus");
         SetTextureFilter(BgIngameTexture, TextureFilter.Bilinear);
         LoadAssets(new(level.GridWidth, level.GridHeight));
-        GameState.Lvl = level;
-        //ShaderData = InitWobble2(Utils.GetScreen());
 
         //this has to be initialized RIGHT HERE in order to work!
+        GameState.Lvl = level;
         QuestHandler.ActivateHandlers();
         Grid.Init();
         QuestBuilder.DefineQuests();

@@ -3,9 +3,6 @@ global using Comparer = Match_3.Service.Comparer;
 using System.Collections;
 using System.Drawing;
 using System.Numerics;
-using Match_3.Service;
-using Raylib_cs;
-using Color = System.Drawing.Color;
 
 namespace Match_3.DataObjects;
 

@@ -66,7 +66,7 @@ public readonly ref struct TextInfo
 {
     public readonly ReadOnlySpan<char> Variable2Replace, Slice2Colorize, ColorAsText;
     public readonly Vector2 TextSize;
-    public readonly Vector4 ColorV4ToApply;
+    public readonly Vector4 ColorAsVec4;
     public readonly TileColor TileColor;
     private readonly char _separator;
     
@@ -101,7 +101,7 @@ public readonly ref struct TextInfo
         ColorAsText = code.TrimEnd('\0');
         var color = Enum.Parse<KnownColor>(ColorAsText);
         TileColor = color; 
-        ColorV4ToApply = Color.FromKnownColor(color).ToVec4();
+        ColorAsVec4 = Color.FromKnownColor(color).ToVec4();
         Vector2 offset = Vector2.One * 1.5f;
         TextSize = ImGui.CalcTextSize(slice2Colorize) + offset;
         Variable2Replace = variable2Replace;

@@ -10,7 +10,7 @@ public struct GameTime
 
     private int MaxTimerValue { get; init; }
 
-    public static GameTime GetTimer(int countDownInSec)
+    public static GameTime CreateTimer(int countDownInSec)
     {
         return new GameTime
         {

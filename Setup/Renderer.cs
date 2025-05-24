@@ -2,6 +2,7 @@ using ImGuiNET;
 using Match_3.DataObjects;
 using Match_3.Service;
 using Match_3.Workflow;
+using Microsoft.CodeAnalysis.Text;
 using Raylib_cs;
 using rlImGui_cs;
 using static Match_3.Setup.AssetManager;
@@ -22,7 +23,7 @@ public static class UiRenderer
         rlImGui.Setup(false);
     }
 
-    private static void DrawShape(ImGuiShapes shape, Vector2 position, Color color, ReadOnlySpan<char> text, float thickness)
+    private static void DrawShape(ImGuiShapes shape, Vector2 position, Color color, ReadOnlySpan<char> text, float thickness, float scaleMultiplier)
     {
         switch (shape)
         {
@@ -30,7 +31,8 @@ public static class UiRenderer
                 ImGui.GetWindowDrawList().AddCircleFilled(position, thickness, ImGui.ColorConvertFloat4ToU32(Utils.ToVec4(color)));
                 break;
             case ImGuiShapes.Rectangle:
-                ImGui.GetWindowDrawList().AddRect(position, position + ImGui.CalcTextSize(text), ImGui.ColorConvertFloat4ToU32(Utils.ToVec4(color)), 0f, ImDrawFlags.RoundCornersAll, thickness);
+                Vector2 actualSize = ImGui.CalcTextSize(text) * scaleMultiplier;
+                ImGui.GetWindowDrawList().AddRect(position, position + actualSize, ImGui.ColorConvertFloat4ToU32(Utils.ToVec4(color)));
                 break;
             case ImGuiShapes.Triangle:
                 break;
@@ -55,7 +57,7 @@ public static class UiRenderer
                                            ImGuiWindowFlags.NoResize |
                                            ImGuiWindowFlags.NoBringToFrontOnFocus |
                                            ImGuiWindowFlags.NoTitleBar;
-                                        
+
 
             rlImGui.Begin();
             {
@@ -63,15 +65,15 @@ public static class UiRenderer
                 ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
                 ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0f);
-               
+
                 ImGui.SetNextWindowPos(Vector2.Zero);
                 ImGui.SetNextWindowSize(Utils.GetScreen());
-           
-                if (ImGui.Begin("Canvas fills the entire Tilemap", flags))
+
+                if (ImGui.Begin("Tilemap-overlaying-Canvas", flags))
                 {
                     mainGameLoop();
                 }
-               
+
                 ImGui.End();
                 ImGui.PopStyleVar(4);
             }
@@ -82,33 +84,25 @@ public static class UiRenderer
 
     public static void DrawText(ReadOnlySpan<char> formatableTxt, CanvasStartingPoints begin, float fontSize)
     {
-        static float CalcScaleFactor(Vector2 screen, Vector2 textSize, float fontSize)
+        static float CalcScaleFactor(Vector2 textSize, float fontSize)
         {
-            //Case1: we compute first the scalefactor normally with the fontsize only
-            //then we check if that scaleFactor would scale the text to large
-            //if its to large we use the scale-by-window-size approach
+            Vector2 screen = Utils.GetScreen();
             float scaleFactor = fontSize / Config.BaseFontSize;
             Vector2 finalTxtSize = textSize * scaleFactor;
 
             if (finalTxtSize.X > screen.X)
             {
-                // Case2: Scale down to fit canvas
-                float scaleX = screen.X / textSize.X;
-                float scaleY = screen.Y / textSize.Y;
-                float fitScale = Math.Min(scaleX, scaleY); // Prevent overflow
-                float fittedFontSize = fontSize * fitScale;
-                return fittedFontSize;
+                float fitScale = Math.Min(screen.X / finalTxtSize.X, screen.Y / finalTxtSize.Y);
+                return scaleFactor * fitScale; // Return scaled multiplier, not absolute size
             }
-            else
-            {
-                return scaleFactor;
-            }            
+            return scaleFactor;
         }
 
-        static void ScaleFont(Vector2 textSize, float fontSize)
+        static float ScaleFont(Vector2 textSize, float fontSize)
         {
-            float toScale = CalcScaleFactor(Utils.GetScreen(), textSize, fontSize);
+            float toScale = CalcScaleFactor(textSize, fontSize);
             ImGui.SetWindowFontScale(toScale);
+            return toScale;
         }
 
         static Vector2 SetUIStartingPoint(ReadOnlySpan<char> formatableTxt, CanvasStartingPoints begin)
@@ -119,21 +113,20 @@ public static class UiRenderer
             Vector2 paddingAdjustedScreen = new(screen.X - txtSize.X, screen.Y - txtSize.Y);
             Vector2 halfTxtSize = new(txtSize.X * 0.5f, txtSize.Y * 0.5f);
             Vector2 Center = new((screen.X * 0.5f) - halfTxtSize.X, (screen.Y * 0.5f) - halfTxtSize.Y);
-            Vector2 IgnoreImGuiPadding = new(0f, 0f);
 
             switch (begin)
             {
                 case CanvasStartingPoints.TopLeft:
-                    result = new(IgnoreImGuiPadding.X, IgnoreImGuiPadding.Y); 
+                    result = new(0f, 0f);
                     break;
                 case CanvasStartingPoints.TopCenter:
-                    result = result with { X = Center.X, Y = IgnoreImGuiPadding.Y };
+                    result = result with { X = Center.X, Y = 0f };
                     break;
                 case CanvasStartingPoints.TopRight:
-                    result = result with { X = paddingAdjustedScreen.X, Y = IgnoreImGuiPadding.Y };
+                    result = result with { X = paddingAdjustedScreen.X, Y = 0f };
                     break;
                 case CanvasStartingPoints.BottomLeft:
-                    result = result with { X = IgnoreImGuiPadding.X, Y = screen.Y - txtSize.Y };
+                    result = result with { X = 0f, Y = screen.Y - txtSize.Y };
                     break;
                 case CanvasStartingPoints.Bottomcenter:
                     result = result with { X = Center.X, Y = paddingAdjustedScreen.Y };
@@ -142,7 +135,7 @@ public static class UiRenderer
                     result = result with { X = paddingAdjustedScreen.X, Y = paddingAdjustedScreen.Y };
                     break;
                 case CanvasStartingPoints.MidLeft:
-                    result = result with { X = IgnoreImGuiPadding.X, Y = Center.Y };
+                    result = result with { X = 0f, Y = Center.Y };
                     break;
                 case CanvasStartingPoints.Center:
                     result = result with { X = Center.X, Y = Center.Y };
@@ -153,21 +146,19 @@ public static class UiRenderer
                 default:
                     break;
             }
+
             ImGui.SetCursorPos(result);
             return result;
         }
- 
+
         var formatTextEnumerator = new FormatTextEnumerator(formatableTxt, 1);
 
-        foreach (var item in formatTextEnumerator)
-        {                    
-            ScaleFont(item.TextSize, fontSize);
-            var result = SetUIStartingPoint(item.Slice2Colorize, begin);            
-            DrawShape(ImGuiShapes.Rectangle, result, Blue, item.Slice2Colorize, 2f);
-            ImGui.PushStyleColor(ImGuiCol.Text, item.ColorV4ToApply);
-            ImGui.Text(item.Slice2Colorize);            
-            ImGui.PopStyleColor();
-            ImGui.SetWindowFontScale(1f); //need to reset it to default value!
+        foreach (ref readonly var txtInfo in formatTextEnumerator)
+        {
+            ImGui.PushFont(CustomFont);
+            SetUIStartingPoint(txtInfo.Slice2Colorize, begin);
+            ImGui.TextColored(txtInfo.ColorAsVec4, txtInfo.Slice2Colorize);
+            ImGui.PopFont();
         }
     }
 
@@ -204,7 +195,7 @@ public static class TileRenderer
 
     public static void DrawGrid(float elapsedTime, int gridWidth, int gridHeight)
     {
-        BeginShaderMode(WobbleEffect);
+        //BeginShaderMode(WobbleEffect);
         {
             for (int x = 0; x < 1; x++)
             {
@@ -219,7 +210,7 @@ public static class TileRenderer
                 }
             }
         }
-        EndShaderMode();
+        //EndShaderMode();
     }
 
     public static void DrawMatches(MatchX match, float currTime, bool shallCreateEnemies)

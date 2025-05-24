@@ -78,7 +78,7 @@ public static class QuestBuilder
             SubEventData swap = new(4, -1f);
             SubEventData replacement = new(5, -1f);
             SubEventData tolerance = new(6, -1f);
-            GameState.Lvl.Quests[trueIdx] = new Quest(color, GameTime.GetTimer(toEven) ,match, swap, replacement, tolerance);
+            GameState.Lvl.Quests[trueIdx] = new Quest(color, GameTime.CreateTimer(toEven) ,match, swap, replacement, tolerance);
             GameState.CurrData.StatePerQuest[trueIdx] = new(color,false, default, new(0, 0f), new(0, 0f), new(0, 0f), new(0, 0f));
             trueIdx++;
         }
