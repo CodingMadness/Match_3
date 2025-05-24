@@ -1,7 +1,4 @@
-﻿using System.Text;
-using ImGuiNET;
-using Match_3.DataObjects;
-using Match_3.Service;
+﻿using Match_3.DataObjects;
 using Match_3.Setup;
 using Raylib_cs;
 
@@ -27,10 +24,8 @@ internal static class Game
 
     private static void Initialize()
     {
-        // GameState.Lvl = new(0, 700, 6, 12, 12);
-        _timeBuilder = new(3);
-        var level = GameState.Lvl;
-        level.QuestCount = 1;
+        Config level = new(0, 300, 6, 15, 15);
+        //_timeBuilder = new(3);
         _gameTimer = GameTime.GetTimer(level.GameBeginAt);
         _gameOverTimer = GameTime.GetTimer(level.GameOverScreenCountdown + 10);
         SetTargetFPS(60);
@@ -38,7 +33,8 @@ internal static class Game
         InitWindow(level.WindowWidth, level.WindowHeight, "Match3 By Shpendicus");
         SetTextureFilter(BgIngameTexture, TextureFilter.Bilinear);
         LoadAssets(new(level.GridWidth, level.GridHeight));
-        ShaderData = InitWobble2(Utils.GetScreen());
+        GameState.Lvl = level;
+        //ShaderData = InitWobble2(Utils.GetScreen());
 
         //this has to be initialized RIGHT HERE in order to work!
         QuestHandler.ActivateHandlers();
@@ -79,14 +75,14 @@ internal static class Game
                     Console.WriteLine(firstClickedTile);
                 }
             }
-                         
+
             float currTime = _gameTimer.CurrentSeconds;
             _inGame |= IsKeyDown(KeyboardKey.Enter);
             // Console.WriteLine(currTime);
 
             if (!_inGame)
             {
-                  //UiRenderer.DrawQuestLog(GameState.GetQuests());
+                //UiRenderer.DrawQuestLog(GameState.GetQuests());
             }
             else if (_inGame)
             {
@@ -104,7 +100,16 @@ internal static class Game
                 //game still running..!
                 else
                 {
-                    UiRenderer.DrawText($"(Red) {currTime}");
+                    const float debug_fontScale = 90;
+                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.TopLeft, debug_fontScale);
+                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.MidLeft, debug_fontScale);
+                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.BottomLeft, debug_fontScale);
+                    UiRenderer.DrawText($"(Green) {(int)currTime}", CanvasStartingPoints.TopCenter, debug_fontScale);
+                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.Center, debug_fontScale);
+                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.Bottomcenter, debug_fontScale);
+                    UiRenderer.DrawText($"(Red) {(int)currTime}", CanvasStartingPoints.TopRight, debug_fontScale);
+                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.MidRight, debug_fontScale);
+                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.BottomRight, debug_fontScale);
                     NotifyClickHandler();
                     TileRenderer.DrawGrid(currTime, GameState.Lvl.GridWidth, GameState.Lvl.GridHeight);
                 }

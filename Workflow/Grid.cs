@@ -25,9 +25,9 @@ public static class Grid
         Utils.Fill(allKinds);
   
         Next8Block:
-        for (int x = (int)begin.X; x < twoBy4Block.X; x++)
+        for (int x = (int)begin.X; x < twoBy4Block.X-1; x++)
         {
-            for (int y = (int)begin.Y; y < twoBy4Block.Y; y++)
+            for (int y = (int)begin.Y; y < twoBy4Block.Y-1; y++)
             {
                 Vector2 current = new(x, y);
                 CSharpRect gridBox = new(current.X, current.Y, 1f, 1f);
@@ -42,7 +42,7 @@ public static class Grid
         {
             begin.X = twoBy4Block.X;
             twoBy4Block.X += xSize;
-            allKinds.Shuffle();
+            allKinds.Randomize();
             j = 0;
             goto Next8Block;  
         }
@@ -55,7 +55,7 @@ public static class Grid
             begin.Y = twoBy4Block.Y;
             twoBy4Block.X = xSize;
             twoBy4Block.Y += ySize;
-            allKinds.Shuffle();
+            allKinds.Randomize();
             j = 0;
             goto Next8Block;  
         }

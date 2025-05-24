@@ -4,7 +4,7 @@ namespace Match_3.DataObjects;
 
 public static class GameState
 {
-    public static readonly Config Lvl = new(0, 60, 6, 12, 12);
+    public static Config Lvl;
     public static readonly SpanQueue<char> Logger = new(1024);
     public static readonly EventState CurrData = new();
 

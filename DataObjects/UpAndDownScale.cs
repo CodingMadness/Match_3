@@ -9,7 +9,7 @@ namespace Match_3.DataObjects;
 ///  * speed
 ///  * ElapsedTime=1f
 /// the greater the time value is, the smaller the final-scale
-public readonly struct Scale(float speed=1f, float min=1f,float max=2f, float currTime=1f)
+public readonly struct UpAndDownScale(float speed=1f, float min=1f,float max=2f, float currTime=1f)
 {
     private static float Factor = 1f;
     private static bool ShallDownScale;
@@ -35,7 +35,7 @@ public readonly struct Scale(float speed=1f, float min=1f,float max=2f, float cu
         }
     }
     
-    public static CSharpRect operator *(Scale scale, CSharpRect cSharpRect)
+    public static CSharpRect operator *(UpAndDownScale scale, CSharpRect cSharpRect)
     {
         scale.Change();
         (CSharpRect newBox, var factor) = (default, Factor + 1f);
@@ -44,7 +44,7 @@ public readonly struct Scale(float speed=1f, float min=1f,float max=2f, float cu
         return (newBox);
     }
 
-    public static RayRect operator *(Scale scale, RayRect rayRect)
+    public static RayRect operator *(UpAndDownScale scale, RayRect rayRect)
     {
         scale.Change();
         (RayRect newBox, var factor) = (default, Factor + 1f);
@@ -53,7 +53,7 @@ public readonly struct Scale(float speed=1f, float min=1f,float max=2f, float cu
         return (newBox);
     }
 
-    public static CSharpRect operator *(Scale scale, SizeF size)
+    public static CSharpRect operator *(UpAndDownScale scale, SizeF size)
     {
         scale.Change();
         (CSharpRect newBox, var factor) = (default, Factor + 1f);

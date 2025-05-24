@@ -52,12 +52,11 @@ public class TileGraph : IEnumerable<Tile>
 
     public TileGraph(Tile[,] bitmap, TileColor color)
     {
-        _sameColored = bitmap
+        _sameColored = [.. bitmap
             .OfType<Tile>()
             .Where(x => x.Body.TileKind == color)
             .OrderBy(x => x, Comparer.CellComparer.Singleton)
-            .Select(x => new Node(x))
-            .ToArray();
+            .Select(x => new Node(x))];
 
         _distanceComparer = new();
     }

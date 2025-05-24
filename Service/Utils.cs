@@ -9,10 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using DotNext;
 using Match_3.DataObjects;
-using Match_3.Setup;
-using Raylib_cs;
 using Color = System.Drawing.Color;
-
 
 namespace Match_3.Service;
 
@@ -36,22 +33,6 @@ public static class Utils
         TileColor.Red,              //--> Rot
       
     ];
-    
-    private static CellBlock EntireGrid
-    {
-        get
-        {
-            var block = new CellBlock
-            {
-                Begin = new Vector2(0, 0),
-                UnitSize = new(GameState.Lvl.GridWidth, GameState.Lvl.GridHeight),
-                Route = Direction.RectBotRight
-            };
-            return block;
-        }
-    }
-    
-    public static Vector2 GetScreen() =>  EntireGrid.End;
     
     public static Vector4 ToVec4(this Color color)
     {
@@ -502,8 +483,6 @@ public static class Utils
             }
         }
     }
-
-    public static void Swap(this scoped ReadOnlySpan<char> input, Range x, Range y) => input.Swap(x, y, ' ');
     
     public static Span<T> TakeRndItemsAtRndPos<T>(this Span<T> items, int levelID) where T : unmanaged
     {
@@ -531,8 +510,27 @@ public static class Utils
         return items[r];
     }
 
-    public static void Shuffle<T>(this Span<T> span) => throw new NotImplementedException("I need to yet code the shuffle logic....");
-    
+    public static void Randomize<T>(this Span<T> span)
+    {
+        
+    }
+
+    private static CellBlock EntireGrid
+    {
+        get
+        {
+            var block = new CellBlock
+            {
+                Begin = new Vector2(0, 0),
+                UnitSize = new(GameState.Lvl.GridWidth, GameState.Lvl.GridHeight),
+                Route = Direction.RectBotRight
+            };
+            return block;
+        }
+    }
+
+    public static Vector2 GetScreen() => (Vector2)EntireGrid.End * Config.TileSize;
+
     public static bool Equals(this float x, float y, float tolerance)
     {
         var diff = MathF.Abs(x - y);
@@ -546,42 +544,10 @@ public static class Utils
         float result = MathF.Truncate(mult * value) / mult;
         return result < 0 ? -result : result;
     }
-    
-    private static bool GreaterOrEqual(this float x, float y, float tolerance)
-    {
-        var diff = MathF.Abs(x - y);
-        return diff > tolerance ||
-               diff > MathF.Max(MathF.Abs(x), MathF.Abs(y)) * tolerance;
-    }
-    
+       
     public static void Fill(Span<TileColor> toFill)
     {
         for (int i = 0; i < Config.TileColorCount; i++)
             toFill[i] = i.ToColor();
-    }
-
-    public static void SetMouseToWorldPos(Vector2 position, int scale = Config.TileSize)
-    {
-        SetMousePosition((int)position.X * scale, (int)position.Y * scale);
-    }
-
-    public static void UpdateShader<T>(int locInShader, T value) where T : unmanaged
-    {
-        switch (value)
-        {
-            case int or bool or long:
-                SetShaderValue(AssetManager.WobbleEffect, locInShader, value, ShaderUniformDataType.Int);
-                break;
-
-            case float or double or Half:
-                SetShaderValue(AssetManager.WobbleEffect, locInShader, value,
-                    ShaderUniformDataType.Float);
-                break;
-
-            case Vector2:
-                SetShaderValue(AssetManager.WobbleEffect, locInShader, value,
-                    ShaderUniformDataType.Vec2);
-                break;
-        }
     }
 }

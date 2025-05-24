@@ -45,7 +45,7 @@ public class Shape : Texture
 
 public class RectShape(IGridRect cellRect) : Shape
 {
-    private Scale ResizeFactor;
+    private UpAndDownScale ResizeFactor;
     private CSharpRect _scaledRect = cellRect.GridBox;
     
     public CSharpRect AsWorld => new(

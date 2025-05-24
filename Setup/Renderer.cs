@@ -1,14 +1,19 @@
-using System.Numerics;
 using ImGuiNET;
 using Match_3.DataObjects;
 using Match_3.Service;
 using Match_3.Workflow;
 using Raylib_cs;
-using Vector2 = System.Numerics.Vector2;
-using static Match_3.Setup.AssetManager;
 using rlImGui_cs;
+using static Match_3.Setup.AssetManager;
+using Vector2 = System.Numerics.Vector2;
 
 namespace Match_3.Setup;
+public enum ImGuiShapes
+{
+    Circle,
+    Rectangle,
+    Triangle
+}
 
 public static class UiRenderer
 {
@@ -17,91 +22,153 @@ public static class UiRenderer
         rlImGui.Setup(false);
     }
 
+    private static void DrawShape(ImGuiShapes shape, Vector2 position, Color color, ReadOnlySpan<char> text, float thickness)
+    {
+        switch (shape)
+        {
+            case ImGuiShapes.Circle:
+                ImGui.GetWindowDrawList().AddCircleFilled(position, thickness, ImGui.ColorConvertFloat4ToU32(Utils.ToVec4(color)));
+                break;
+            case ImGuiShapes.Rectangle:
+                ImGui.GetWindowDrawList().AddRect(position, position + ImGui.CalcTextSize(text), ImGui.ColorConvertFloat4ToU32(Utils.ToVec4(color)), 0f, ImDrawFlags.RoundCornersAll, thickness);
+                break;
+            case ImGuiShapes.Triangle:
+                break;
+            default:
+                break;
+        }
+    }
+
     public static void BeginRendering(Action mainGameLoop)
     {
         BeginDrawing();
         {
             ClearBackground(White);
             //ImGui Context Start
-            const ImGuiWindowFlags flags = ImGuiWindowFlags.NoDecoration |
+            const ImGuiWindowFlags flags =
                                            ImGuiWindowFlags.NoScrollbar |
-                                           ImGuiWindowFlags.NoBackground |
+                                           ImGuiWindowFlags.NoDocking |
+                                           ImGuiWindowFlags.NoDecoration |
+                                           ImGuiWindowFlags.NoInputs |
+                                           ImGuiWindowFlags.NoCollapse |
                                            ImGuiWindowFlags.NoMove |
-                                           ImGuiWindowFlags.NoResize;
+                                           ImGuiWindowFlags.NoResize |
+                                           ImGuiWindowFlags.NoBringToFrontOnFocus |
+                                           ImGuiWindowFlags.NoTitleBar;
+                                        
 
             rlImGui.Begin();
             {
-                if (ImGui.Begin("EntireGrid Overlay", ImGuiWindowFlags.NoResize))
-                {                   
-                    ImGui.SetWindowPos(default);
-                    ImGui.SetWindowSize(Utils.GetScreen());
-
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
+                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
+                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0f);
+               
+                ImGui.SetNextWindowPos(Vector2.Zero);
+                ImGui.SetNextWindowSize(Utils.GetScreen());
+           
+                if (ImGui.Begin("Canvas fills the entire Tilemap", flags))
+                {
                     mainGameLoop();
                 }
-
+               
                 ImGui.End();
+                ImGui.PopStyleVar(4);
             }
             rlImGui.End();
         }
         EndDrawing();
     }
 
-    public static bool? DrawFeatureBtn(out string btnId)
+    public static void DrawText(ReadOnlySpan<char> formatableTxt, CanvasStartingPoints begin, float fontSize)
     {
-        static Vector2 NewPos(Vector2 btnSize)
+        static float CalcScaleFactor(Vector2 screen, Vector2 textSize, float fontSize)
         {
-            var screenCoord = Utils.GetScreen();
-            float halfWidth = screenCoord.X * 0.5f;
-            float indentPos = halfWidth - (btnSize.X * 0.5f);
-            Vector2 newPos = new(indentPos, screenCoord.Y - btnSize.Y);
-            return newPos;
-        }
+            //Case1: we compute first the scalefactor normally with the fontsize only
+            //then we check if that scaleFactor would scale the text to large
+            //if its to large we use the scale-by-window-size approach
+            float scaleFactor = fontSize / Config.BaseFontSize;
+            Vector2 finalTxtSize = textSize * scaleFactor;
 
-        var flags =
-            ImGuiWindowFlags.NoTitleBar |
-            ImGuiWindowFlags.NoScrollbar |
-            ImGuiWindowFlags.NoDecoration;
-        bool open = true;
-
-        var btnSize = new Vector2(FeatureBtn.Width, FeatureBtn.Height) * 0.67f;
-        var newPos = NewPos(btnSize);
-        bool? result = null;
-        btnId = "FeatureBtn";
-
-        //begin rendering sub-window
-        ImGui.SetWindowFocus(btnId);
-
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
-        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
-
-        if (ImGui.Begin(btnId, ref open, flags))
-        {
-            ImGui.SetWindowSize(btnSize * 1.06f);
-            ImGui.SetWindowPos(newPos);
-
-            ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, Vector4.Zero);
-
-            //Center(buttonID);
-            ImGui.SetCursorPos(Vector2.One * 3);
-
-            if (ImGui.ImageButton(btnId, (nint)FeatureBtn.Id, btnSize))
+            if (finalTxtSize.X > screen.X)
             {
-                result = true;
+                // Case2: Scale down to fit canvas
+                float scaleX = screen.X / textSize.X;
+                float scaleY = screen.Y / textSize.Y;
+                float fitScale = Math.Min(scaleX, scaleY); // Prevent overflow
+                float fittedFontSize = fontSize * fitScale;
+                return fittedFontSize;
             }
-
-            ImGui.PopStyleColor(2);
+            else
+            {
+                return scaleFactor;
+            }            
         }
 
-        ImGui.End();
-        ImGui.PopStyleVar(2);
+        static void ScaleFont(Vector2 textSize, float fontSize)
+        {
+            float toScale = CalcScaleFactor(Utils.GetScreen(), textSize, fontSize);
+            ImGui.SetWindowFontScale(toScale);
+        }
 
-        return result;
-    }
+        static Vector2 SetUIStartingPoint(ReadOnlySpan<char> formatableTxt, CanvasStartingPoints begin)
+        {
+            Vector2 result = Vector2.Zero;
+            Vector2 screen = Utils.GetScreen();
+            Vector2 txtSize = ImGui.CalcTextSize(formatableTxt);
+            Vector2 paddingAdjustedScreen = new(screen.X - txtSize.X, screen.Y - txtSize.Y);
+            Vector2 halfTxtSize = new(txtSize.X * 0.5f, txtSize.Y * 0.5f);
+            Vector2 Center = new((screen.X * 0.5f) - halfTxtSize.X, (screen.Y * 0.5f) - halfTxtSize.Y);
+            Vector2 IgnoreImGuiPadding = new(0f, 0f);
 
-    public static void DrawText(ReadOnlySpan<char> formatString)
-    {
-        //....       
+            switch (begin)
+            {
+                case CanvasStartingPoints.TopLeft:
+                    result = new(IgnoreImGuiPadding.X, IgnoreImGuiPadding.Y); 
+                    break;
+                case CanvasStartingPoints.TopCenter:
+                    result = result with { X = Center.X, Y = IgnoreImGuiPadding.Y };
+                    break;
+                case CanvasStartingPoints.TopRight:
+                    result = result with { X = paddingAdjustedScreen.X, Y = IgnoreImGuiPadding.Y };
+                    break;
+                case CanvasStartingPoints.BottomLeft:
+                    result = result with { X = IgnoreImGuiPadding.X, Y = screen.Y - txtSize.Y };
+                    break;
+                case CanvasStartingPoints.Bottomcenter:
+                    result = result with { X = Center.X, Y = paddingAdjustedScreen.Y };
+                    break;
+                case CanvasStartingPoints.BottomRight:
+                    result = result with { X = paddingAdjustedScreen.X, Y = paddingAdjustedScreen.Y };
+                    break;
+                case CanvasStartingPoints.MidLeft:
+                    result = result with { X = IgnoreImGuiPadding.X, Y = Center.Y };
+                    break;
+                case CanvasStartingPoints.Center:
+                    result = result with { X = Center.X, Y = Center.Y };
+                    break;
+                case CanvasStartingPoints.MidRight:
+                    result = result with { X = paddingAdjustedScreen.X, Y = Center.Y };
+                    break;
+                default:
+                    break;
+            }
+            ImGui.SetCursorPos(result);
+            return result;
+        }
+ 
+        var formatTextEnumerator = new FormatTextEnumerator(formatableTxt, 1);
+
+        foreach (var item in formatTextEnumerator)
+        {                    
+            ScaleFont(item.TextSize, fontSize);
+            var result = SetUIStartingPoint(item.Slice2Colorize, begin);            
+            DrawShape(ImGuiShapes.Rectangle, result, Blue, item.Slice2Colorize, 2f);
+            ImGui.PushStyleColor(ImGuiCol.Text, item.ColorV4ToApply);
+            ImGui.Text(item.Slice2Colorize);            
+            ImGui.PopStyleColor();
+            ImGui.SetWindowFontScale(1f); //need to reset it to default value!
+        }
     }
 
     public static void DrawQuestLog(FastSpanEnumerator<Quest> quests)
@@ -115,63 +182,14 @@ public static class UiRenderer
             foreach (ref readonly Quest quest in questRunner)
             {
                 var logger = QuestBuilder.BuildQuestMessageFrom(quest);
-                DrawText(logger);
+                DrawText(logger, CanvasStartingPoints.MidLeft, 50f);
             }
         }
         else
         {
             //Draw here the logs repeatedly from the pool!....
-            DrawText(QuestBuilder.GetPooledQuestLog());
+            DrawText(QuestBuilder.GetPooledQuestLog(), CanvasStartingPoints.MidLeft, 50f);
         }
-    }
-
-    public static void DrawTimer(float elapsedSeconds)
-    {
-        
-    }
-
-    /// <summary>
-    /// NICE WE CAN DRAW NOW TEXT IN CURVY FASHION
-    /// </summary>
-    /// <param name="text"></param>
-    /// <param name="curvature"></param>
-    public static void DrawCurvedText(ReadOnlySpan<char> text, float curvature = 0.05f)
-    {
-        float radius = 200; // Adjust the radius of the curve
-
-        // Calculate the total angle spanned by the curved text
-
-        for (int i = 0; i < text.Length; i++)
-        {
-            // Calculate the angle for each character along the curve
-            float angle = (i - (text.Length - 1) / 2.0f) * curvature;
-
-            // Calculate the position of the character along the curve
-            Vector2 position = new Vector2(
-                GetScreenWidth() / 2f + radius * (float)Math.Sin(angle),
-                GetScreenHeight() / 2f + radius * (1 - (float)Math.Cos(angle))
-            );
-
-            // Draw the character at the calculated position
-            DrawTextEx(GetFontDefault(), text[i].ToString(), position, 11f, 0f, Black);
-        }
-    }
-
-    public static void DrawWelcomeScreen()
-    {
-        InitWelcomeTxt();
-        WelcomeText.Draw(null);
-    }
-
-    public static bool DrawGameOverScreen(bool isDone, bool? gameWon, ReadOnlySpan<char> input)
-    {
-        if (gameWon is null)
-        {
-            return false;
-        }
-
-        DrawText(input);
-        return isDone;
     }
 }
 
@@ -179,7 +197,7 @@ public static class TileRenderer
 {
     private static void DrawTile(Texture2D atlas, Tile tile, float currTime)
     {
-        var body = tile.Body; 
+        var body = tile.Body;
         body.ScaleBox(currTime);
         DrawTexturePro(atlas, body.AssetRect, body.WorldRect, Vector2.Zero, 0f, body.Color);
     }
@@ -208,7 +226,7 @@ public static class TileRenderer
     {
         if (match.Count is 0)
             return;
-        
+
         foreach (var tile in match)
         {
             tile.Body.ScaleBox(currTime);

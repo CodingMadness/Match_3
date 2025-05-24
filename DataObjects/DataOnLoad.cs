@@ -15,11 +15,12 @@ public record Config(int Id,
     public const int MaxTilesPerMatch = 3;
     public const int TileSize = 64 / 1;
     public const int TileColorCount = 12;
+    public const float BaseFontSize = 13f;
     public int WindowHeight => GridHeight * TileSize;
     public int WindowWidth => GridWidth * TileSize;
 
     public Quest[] Quests;
 
-    public int QuestCount;
+    public int QuestCount = 1;
     public byte CountForAllColors;
 }

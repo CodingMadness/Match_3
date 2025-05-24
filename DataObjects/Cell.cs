@@ -1,5 +1,5 @@
-﻿global using RayRect = Raylib_cs.Rectangle;
-global using CSharpRect = System.Drawing.RectangleF;
+﻿global using CSharpRect = System.Drawing.RectangleF;
+global using RayRect = Raylib_cs.Rectangle;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -211,11 +211,11 @@ public readonly struct CellBlock : IGridRect, IMultiCell
     public required Direction Route { get; init; }
     public required SingleCell Begin { get; init; }
 
-    public SingleCell End
+    public readonly SingleCell End
     {
         get
         {
-            var step = new Vector2(UnitSize.Width - 1, UnitSize.Height - 1);
+            var step = new Vector2(UnitSize.Width, UnitSize.Height);
             Vector2 start = Begin;
 
             return Route switch
@@ -230,18 +230,18 @@ public readonly struct CellBlock : IGridRect, IMultiCell
         }
     }
 
-    public Size UnitSize { get; init; }
+    public readonly Size UnitSize { get; init; }
 
     public CellEnumerator GetEnumerator()
     {
         return new CellEnumerator(this);
     }
 
-    Vector2 ICell.Start => Begin.Start;
+    readonly Vector2 ICell.Start => Begin.Start;
 
-    int ICell.Count => ((IGridRect)this).Count;
+    readonly int ICell.Count => ((IGridRect)this).Count;
 
-    public new string ToString() => ((IMultiCell)this).ToString();
+    public new readonly string ToString() => ((IMultiCell)this).ToString();
 }
 
 [StructLayout(LayoutKind.Auto)]

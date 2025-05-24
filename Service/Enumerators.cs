@@ -195,11 +195,10 @@ public ref partial struct FormatTextEnumerator
     private SpanOwner<(int idx, int len)> _matchPool;
     private int _position;
 
-    public FormatTextEnumerator(ReadOnlySpan<char> text, bool skipBlackColor=false)
+    public FormatTextEnumerator(ReadOnlySpan<char> text, int nrOfSlices2Format, bool skipBlackColor=false)
     {
         //dont know a value yet for this but we use 15 for now
-        _matchPool = new(15, false);
-        
+        _matchPool = new(nrOfSlices2Format, false);
         _position = 0;
         _text = text;
         _skipBlackColor = skipBlackColor;
@@ -258,12 +257,12 @@ public ref partial struct FormatTextEnumerator
 
         var color2Use = _text.Slice(match.idx, match.len);
         int beginOfBlack = match.idx + 1;
-        int okayBegin = match.idx + match.len;
+        int properStart = match.idx + match.len;
         int relativeEnd = _position < _colorPositions.Length - 1
             ? _text[beginOfBlack..].IndexOf('(') + beginOfBlack
             : _text.Length;
         
-        _current = new(_text[okayBegin..relativeEnd], color2Use, []);
+        _current = new(_text[properStart..relativeEnd], color2Use, []);
         
         _position++;
         

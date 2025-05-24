@@ -11,9 +11,9 @@ public static class QuestBuilder
      * The Core algorithm is:
      *   - We (efficiently) replace the "TemplateQuestLog" with the quest-data
      *   - Then we store that replaced-version of the log into the "StringPool"
-     *   - We return the newly logString
-     *   - When we have successfully created "QuestCount" Quest Log'S we will
-     *   - Just return from now on the respective string from the pool
+     *   - We return the newly build logString
+     *   - When we have successfully created "QuestCount" Quest Log's we will
+     *     just return from now on the respective questlog from the pool
      */
     private const string QuestLog = $"(Black) You have to collect an amount of" + $" (                     )" +
                                     $" {Quest.MatchCountName}                     " +
@@ -59,7 +59,7 @@ public static class QuestBuilder
         // const int questLogParts = 4;
         scoped Span<TileColor> subset = stackalloc TileColor[tileCount];
         Utils.Fill(subset);
-        subset.Shuffle();
+        subset.Randomize();
         subset = subset.TakeRndItemsAtRndPos(GameState.Lvl.Id);
         scoped FastSpanEnumerator<TileColor> subsetEnumerator = new(subset);
         int questCount = subset.Length;
@@ -93,7 +93,7 @@ public static class QuestBuilder
     {
         //there is a defect in here....!
         var currLog = GameState.Logger.Enqueue(QuestLog);  
-        using scoped var questIterator = new FormatTextEnumerator(currLog, true);
+        using scoped var questIterator = new FormatTextEnumerator(currLog, 10, true);
         
         foreach (TextInfo questPiece in questIterator)
         {
