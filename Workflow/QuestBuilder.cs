@@ -1,46 +1,10 @@
-﻿using System.Diagnostics;
-using DotNext;
-using Match_3.DataObjects;
+﻿using Match_3.DataObjects;
 using Match_3.Service;
 
 namespace Match_3.Workflow;
 
 public static class QuestBuilder 
-{
-    /*
-     * The Core algorithm is:
-     *   - We (efficiently) replace the "TemplateQuestLog" with the quest-data
-     *   - Then we store that replaced-version of the log into the "StringPool"
-     *   - We return the newly build logString
-     *   - When we have successfully created "QuestCount" Quest Log's we will
-     *     just return from now on the respective questlog from the pool
-     */
-    private const string QuestLog = $"(Black) You have to collect an amount of" + $" (                     )" +
-                                    $" {Quest.MatchCountName}                     " +
-                                    $"Matches" + $" (Black) and u have in between those only" + $" (                     ) " +
-                                    $"{Quest.MatchIntervalName} seconds left" + $" (Black) and also just" + $" (                     ) " +
-                                    $"{Quest.SwapCountName} swaps available" + $" (Black) for each new match" + $" (Black) and furthermore, you only are allowed to replace any given tile" + $" (                     ) " +
-                                    $"{Quest.ReplacementCountName} times at max" + $" (Black) for your own help as well as there is the tolerance for" + $" (                     ) {Quest.MissMatchName} miss matches";
-
-    private static int _questRunner;
-
-    private static void DebugQuestLog()
-    {
-        Debug.WriteLine("");
-        Debug.WriteLine($"There are: {GameState.Lvl.QuestCount} Quests to solve, namely: \n");
-
-        scoped var quests = GameState.GetQuests();
-        
-        foreach (var quest in quests)
-        {
-            Debug.Write(quest + "\t");
-            Debug.WriteLine(new string('-', 30));
-        }
-        Debug.WriteLine("");
-    }
-    
-    public static bool ShallRecycle => _questRunner == GameState.Lvl.QuestCount;
-    
+{           
     public static void DefineQuests()
     {
         int GetRandomInterval()
@@ -55,19 +19,20 @@ public static class QuestBuilder
             return toEven;
         }
 
+        var currLvl = GameState.Instance.Lvl;
         const int tileCount = Config.TileColorCount;
         // const int questLogParts = 4;
         scoped Span<TileColor> subset = stackalloc TileColor[tileCount];
         Utils.Fill(subset);
         subset.Randomize();
-        subset = subset.TakeRndItemsAtRndPos(GameState.Lvl.Id);
+        subset = subset.TakeRndItemsAtRndPos(currLvl.Id);
         scoped FastSpanEnumerator<TileColor> subsetEnumerator = new(subset);
         int questCount = subset.Length;
         int trueIdx = 0;
-        GameState.Lvl.Quests = new Quest[questCount];
-        GameState.CurrData.StatePerQuest = new State[questCount];
+        currLvl.Quests = new Quest[questCount];
+        GameState.Instance.CurrData.StatePerQuest = new State[questCount];
         scoped Span<uint> maxCountPerType = stackalloc uint[tileCount];
-        maxCountPerType.Fill(GameState.Lvl.CountForAllColors);
+        maxCountPerType.Fill(currLvl.CountForAllColors);
         
         foreach (var color in subsetEnumerator)
         {
@@ -78,42 +43,32 @@ public static class QuestBuilder
             SubEventData swap = new(4, -1f);
             SubEventData replacement = new(5, -1f);
             SubEventData tolerance = new(6, -1f);
-            GameState.Lvl.Quests[trueIdx] = new Quest(color, GameTime.CreateTimer(toEven) ,match, swap, replacement, tolerance);
-            GameState.CurrData.StatePerQuest[trueIdx] = new(color,false, default, new(0, 0f), new(0, 0f), new(0, 0f), new(0, 0f));
+            currLvl.Quests[trueIdx] = new Quest(color, GameTime.CreateTimer(toEven) ,match, swap, replacement, tolerance);
+            GameState.Instance.CurrData.StatePerQuest[trueIdx] = new(color,false, default, new(0, 0f), new(0, 0f), new(0, 0f), new(0, 0f));
             trueIdx++;
         }
-        
-        GameState.Lvl.QuestCount = questCount;
-        //GameState.Logger = new(questCount * (QuestLog.Length + 1));
 
-        DebugQuestLog();
+        //just for testing purposes we use 1 for now...
+        currLvl.QuestCount = 1;/*questCount*/; 
     }
-    
+        
     public static ReadOnlySpan<char> BuildQuestMessageFrom(in Quest quest)
     {
         //there is a defect in here....!
-        var currLog = GameState.Logger.Enqueue(QuestLog);  
-        using scoped var questIterator = new FormatTextEnumerator(currLog, 10, true);
+        var copiedLog = GameState.Instance.Logger.Enqueue(GameState.QuestLog);
         
-        foreach (TextInfo questPiece in questIterator)
-        {
-            //swap (Transparent) with (<WhatEverColoIUse>)
-            var placeHolderColor = questPiece.ColorAsText.AsWriteable();
-            var newColor = quest.TileKind.ToString().AsSpan().AsWriteable();
-            newColor.CopyTo(placeHolderColor);
-            placeHolderColor[newColor.Length..].Clear();
-            
-            //e.g: Swap Quest.Member=Match.Count with <anyNumber>
-            var memberName = questPiece.Variable2Replace.AsWriteable();
+        copiedLog.AsWriteable().Replace(Quest.TileColorName, quest.TileColor.ToString());
+        scoped var questIterator = new FormatTextEnumerator(copiedLog, 5, true);
+        
+        foreach (TextInfo questPart in questIterator)
+        {                           
+            //e.g: Swap Quest.MemberName with <corresponding value>
+            var memberName = questPart.MemberName2Replace.AsWriteable();
             var value = quest.GetValueByMemberName(memberName).ToString();
             value.CopyTo(memberName);
             memberName[value.Length..].Clear();
         }
-        currLog.Replace(TileColor.Transparent.ToString(), quest.TileKind.ToString());
         
-        _questRunner++;
-        return currLog;
-    }
-    
-    public static ReadOnlySpan<char> GetPooledQuestLog() => GameState.Logger.Dequeue(true);
+        return copiedLog;
+    }    
 }

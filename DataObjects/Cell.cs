@@ -113,7 +113,7 @@ public readonly struct SingleCell : IGridRect
 {
     public static implicit operator SingleCell(Vector2 position)
     {
-        var gameWindowSize = new Vector2(GameState.Lvl.GridWidth, GameState.Lvl.GridHeight);
+        var gameWindowSize = new Vector2(GameState.Instance.Lvl.GridWidth, GameState.Instance.Lvl.GridHeight);
         var gridPos = new Vector2((int)position.X, (int)position.Y);
 
         if (gridPos.Length() <= gameWindowSize.Length())

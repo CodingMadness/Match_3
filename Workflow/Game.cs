@@ -12,7 +12,7 @@ namespace Match_3.Workflow;
 //TODO: 3. Write the algorithm for "TileGraph" which shall exchange 1 Graph with another so that there are not any distant tiles anymore
 internal static class Game
 {
-    private static GameTime _gameTimer, _gameOverTimer;
+    private static GameTime _gameTimer;
     private static bool _inGame;
     public static event Action OnTileClicked = null!;
 
@@ -25,23 +25,38 @@ internal static class Game
 
     private static void Initialize()
     {
-        Config level = new(0, 300, 6, 20, 20);
-        //_timeBuilder = new(3);
-        _gameTimer = GameTime.CreateTimer(level.GameBeginAt);
-        _gameOverTimer = GameTime.CreateTimer(level.GameOverScreenCountdown + 10);
-        SetTargetFPS(60);
-        InitWindow(level.WindowWidth, level.WindowHeight, "Match3 By Shpendicus");
-        SetTextureFilter(BgIngameTexture, TextureFilter.Bilinear);
-        
-        //<this has to be initialized RIGHT HERE in order to work!>
-        rlImGui.Setup(false);
-        UiRenderer.SetCurrentContext();
-        LoadAssets(new(level.GridWidth, level.GridHeight), 30 );
-        rlImGui.ReloadFonts(); // For raylib only
-        GameState.Lvl = level;
-        QuestHandler.ActivateHandlers();
-        Grid.Init();
-        QuestBuilder.DefineQuests();
+        Config level = new(0, 300, 1, 20, 20);
+
+        static void InitRaylib(ref readonly Config lvl)
+        { 
+            SetTargetFPS(60);
+            InitWindow(lvl.WindowWidth, lvl.WindowHeight, "Match3 By Shpendicus");
+            SetTextureFilter(BgIngameTexture, TextureFilter.Bilinear);
+        }
+
+        static void InitImGui(ref readonly Config lvl)
+        {
+            //<this has to be initialized RIGHT HERE in order to work!>
+            rlImGui.Setup(false);
+            UiRenderer.SetCurrentContext();
+            LoadAssets(new(lvl.GridWidth, lvl.GridHeight), 32f);
+            // For raylib only, because raylib needs to update the imgui-font at gpu-level
+            rlImGui.ReloadFonts();
+        }
+
+        static void InitGameLevel(ref readonly Config lvl)
+        {
+            _gameTimer = GameTime.CreateTimer(lvl.GameBeginAt);
+            GameState.Instance.Lvl = lvl;
+            QuestHandler.ActivateHandlers();
+            Grid.Init();
+            QuestBuilder.DefineQuests();
+        }
+
+        //the calling order of these 3 methods is very important! DO NOT change it!
+        InitRaylib(in level);
+        InitImGui(in level);
+        InitGameLevel(in level);
     }
 
     private static void MainGameLoop()
@@ -71,7 +86,7 @@ internal static class Game
 
                 if (TileClicked(out var firstClickedTile))
                 {
-                    var currState = GameState.CurrData;
+                    var currState = GameState.Instance.CurrData;
                     currState.TileX = firstClickedTile;
                     OnTileClicked();
                     Console.WriteLine(firstClickedTile);
@@ -84,11 +99,11 @@ internal static class Game
 
             if (!_inGame)
             {
-                //UiRenderer.DrawQuestLog(GameState.GetQuests());
+                //UiRenderer.DrawQuestLog(GameState.Instance.GetQuests());
             }
             else if (_inGame)
             {
-                var eventData = GameState.CurrData;
+                var eventData = GameState.Instance.CurrData;
                 eventData.WasGameLost = _gameTimer.CountDown();
 
                 if (eventData.WasGameLost)
@@ -102,18 +117,15 @@ internal static class Game
                 //game still running..!
                 else
                 {
-                    const float debug_fontScale = 120f;
-                    UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.TopLeft, debug_fontScale);
-                    //UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.MidLeft, debug_fontScale);
-                    //UiRenderer.DrawText($"(Blue) {(int)currTime}", CanvasStartingPoints.BottomLeft, debug_fontScale);
-                    //UiRenderer.DrawText($"(Green) {(int)currTime}", CanvasStartingPoints.TopCenter, debug_fontScale);
-                    //UiRenderer.DrawText($"(Green) {(int)currTime}", CanvasStartingPoints.Center, debug_fontScale);
-                    //UiRenderer.DrawText($"(Green) {(int)currTime}", CanvasStartingPoints.Bottomcenter, debug_fontScale);
-                    //UiRenderer.DrawText($"(Red) {(int)currTime}", CanvasStartingPoints.TopRight, debug_fontScale);
-                    //UiRenderer.DrawText($"(Red) {(int)currTime}", CanvasStartingPoints.MidRight, debug_fontScale);
-                    //UiRenderer.DrawText($"(Red) {(int)currTime}", CanvasStartingPoints.BottomRight, debug_fontScale);
+                    var colorCodedText = $"(Blue) you have {(int)currTime} left to win! " +
+                                         $"(Violet) and this is " +
+                                         $"(Green) the rest of a long long sentence " +
+                                         $"(Brown) but of course the joy continues, doesnt it?";
+
+                    //UiRenderer.DrawText(colorCodedText, CanvasStartingPoints.TopLeft);
+                    UiRenderer.DrawText(colorCodedText, CanvasStartingPoints.Center);
                     NotifyClickHandler();
-                    TileRenderer.DrawGrid(currTime, GameState.Lvl.GridWidth, GameState.Lvl.GridHeight);
+                    TileRenderer.DrawGrid(currTime, GameState.Instance.Lvl.GridWidth, GameState.Instance.Lvl.GridHeight);
                 }
             }
         }
@@ -121,11 +133,9 @@ internal static class Game
         while (!WindowShouldClose())
         {
             UiRenderer.Begin();
-            
-            if (ImGui.Begin("Tilemap-overlaying-Canvas", UiRenderer.EmptyCanvas))
-            {
-                HandleGameInput();
-            }
+
+            UiRenderer.CreateWindowSizedCanvas();
+            HandleGameInput();
 
             UiRenderer.End();
         }

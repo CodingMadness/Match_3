@@ -19,6 +19,7 @@ namespace Match_3.Service;
 public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquatable<T>
 {
     private MemoryOwner<T> _content = new(ArrayPool<T>.Shared, length + 1);
+    
     private BitPack _lengthPack;
  
     private uint

@@ -64,8 +64,7 @@ public ref struct FastSpanEnumerator<TItem>
 
 public readonly ref struct TextInfo
 {
-    public readonly ReadOnlySpan<char> Variable2Replace, Slice2Colorize, ColorAsText;
-    public readonly Vector2 TextSize;
+    public readonly ReadOnlySpan<char> MemberName2Replace, Slice2Colorize, ColorAsText;
     public readonly Vector4 ColorAsVec4;
     public readonly TileColor TileColor;
     private readonly char _separator;
@@ -75,10 +74,10 @@ public readonly ref struct TextInfo
     /// </summary>
     /// <param name="slice2Colorize">the slice of a span like: (abc def ghi)</param>
     /// <param name="colorCode">the string colorCode like {Black} or {Red}</param>
-    /// <param name="variable2Replace"></param>
+    /// <param name="memberName2Replace"></param>
     /// <param name="separator">the char which is being used to iterate over each word within the piece</param>
     public TextInfo(ReadOnlySpan<char> slice2Colorize, ReadOnlySpan<char> colorCode,
-                    ReadOnlySpan<char> variable2Replace, char separator = ' ')
+                    ReadOnlySpan<char> memberName2Replace, char separator = ' ')
     {
         ReadOnlySpan<char> code;
 
@@ -97,14 +96,13 @@ public readonly ref struct TextInfo
 
         Slice2Colorize = slice2Colorize;
         _separator = separator;
-        //FastEnum.Parse<KnownColor, int>(code); for some reason this does not work.....
         ColorAsText = code.TrimEnd('\0');
         var color = Enum.Parse<KnownColor>(ColorAsText);
         TileColor = color; 
         ColorAsVec4 = Color.FromKnownColor(color).ToVec4();
         Vector2 offset = Vector2.One * 1.5f;
-        TextSize = ImGui.CalcTextSize(slice2Colorize) + offset;
-        Variable2Replace = variable2Replace;
+        //TextSize = ImGui.CalcTextSize(slice2Colorize) + offset;
+        MemberName2Replace = memberName2Replace;
     }
     
     public TextInfo(ReadOnlySpan<char> current, Color sysCol, ReadOnlySpan<char> valuePlaceHolder) :
@@ -112,10 +110,12 @@ public readonly ref struct TextInfo
     {
     }
 
-    public override string ToString() => Slice2Colorize.ToString();
+    public readonly Vector2 TextSize => ImGui.CalcTextSize(Slice2Colorize);
+
+    public readonly override string ToString() => Slice2Colorize.ToString();
     
     [UnscopedRef]
-    public WordEnumerator GetEnumerator() => new(this, _separator);
+    public readonly WordEnumerator GetEnumerator() => new(this, _separator);
 }
 
 public ref struct WordEnumerator
@@ -191,11 +191,12 @@ public ref partial struct FormatTextEnumerator
     private readonly bool _skipBlackColor;
     private readonly Span<(int idx, int len)> _colorPositions;
     private readonly ReadOnlySpan<char> _text;
-    private TextInfo _current;
-    private SpanOwner<(int idx, int len)> _matchPool;
+    private readonly SpanOwner<(int idx, int len)> _matchPool;
+    
     private int _position;
+    private TextInfo _current;
 
-    public FormatTextEnumerator(ReadOnlySpan<char> text, int nrOfSlices2Format, bool skipBlackColor=false)
+    public FormatTextEnumerator(ReadOnlySpan<char> text, int nrOfSlices2Format=10, bool skipBlackColor=false)
     {
         //dont know a value yet for this but we use 15 for now
         _matchPool = new(nrOfSlices2Format, false);
@@ -217,8 +218,7 @@ public ref partial struct FormatTextEnumerator
             {
                 _colorPositions[_position++] = (enumerateMatch.Index, enumerateMatch.Length);
             }
-        }
-
+        }        
         _colorPositions = _colorPositions[.._position];
         _position = 0;
     }
@@ -290,6 +290,6 @@ public ref partial struct FormatTextEnumerator
     [GeneratedRegex(pattern: @$"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex FindAllColorCodes();
     
-    [GeneratedRegex(pattern: @"\((?!black\b|Black\b)[A-Za-z]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
+    [GeneratedRegex(pattern: @"\((?!black\b)[A-Za-z]+[\s\0]*\)", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex FindNonBlackColorCodes();
 }

@@ -144,9 +144,9 @@ public static class Utils
             throw new ArgumentException("Old value could not be found!", nameof(oldValue));
 
         var span = input.AsWriteable();
-        var old = oldValue.AsWriteable();
-        var next = newValue.AsWriteable();
-        int newValueLen = next.Length;
+        var oldVal = oldValue.AsWriteable();
+        var newVal = newValue.AsWriteable();
+        int newValueLen = newVal.Length;
         int searchIndex = 0;
 
         if (oldValueLen >= newValueLen)
@@ -156,11 +156,11 @@ public static class Utils
             while ((matchIndex = span[searchIndex..].IndexOf(oldValue)) != -1)
             {
                 searchIndex += matchIndex;
-                var tmpOld = span.Slice(searchIndex, old.Length);
+                var tmpOld = span.Slice(searchIndex, oldVal.Length);
                 //copy parts of newValue  to oldValue
 
-                next.CopyTo(tmpOld[..newValueLen]);
-                tmpOld[newValueLen..].Fill(default);
+                newVal.CopyTo(tmpOld[..newValueLen]);
+                tmpOld[newValueLen..].Clear();
             }
         }
     }
@@ -522,7 +522,7 @@ public static class Utils
             var block = new CellBlock
             {
                 Begin = new Vector2(0, 0),
-                UnitSize = new(GameState.Lvl.GridWidth, GameState.Lvl.GridHeight),
+                UnitSize = new(GameState.Instance.Lvl.GridWidth, GameState.Instance.Lvl.GridHeight),
                 Route = Direction.RectBotRight
             };
             return block;

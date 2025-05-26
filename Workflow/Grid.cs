@@ -30,8 +30,8 @@ public static class Grid
             for (int y = (int)begin.Y; y < twoBy4Block.Y-1; y++)
             {
                 Vector2 current = new(x, y);
-                CSharpRect gridBox = new(current.X, current.Y, 1f, 1f);
-                Tile tmpTile = _bitmap[x, y] = Bakery.CreateTile(gridBox, allKinds[j++]);
+                CSharpRect grid = new(current.X, current.Y, 1f, 1f);
+                Tile tmpTile = _bitmap[x, y] = Bakery.CreateTile(grid, allKinds[j++]);
                 int index = tmpTile.Body.TileKind.ToIndex();
                 counts[index]++;
             }
@@ -63,7 +63,7 @@ public static class Grid
         //since we know that in this method so far at least,
         //the "counts" consists always of the same byte value, we can pack only the 0th element
         //and fill the result span with that value then we have the Span<byte> back
-        GameState.Lvl.CountForAllColors = counts[0];
+        GameState.Instance.Lvl.CountForAllColors = counts[0];
     }
     
     private static void Test()
@@ -96,7 +96,7 @@ public static class Grid
         ClickHandler.Instance.OnSwapTiles += Swap;
         SwapHandler.Instance.OnCheckForMatch += CheckForMatch;
         MatchHandler.Instance.OnDeleteMatch += Delete;
-        var current = GameState.Lvl;
+        var current = GameState.Instance.Lvl;
         _tileWidth = current.GridWidth;
         _tileHeight = current.GridHeight;
         _bitmap = new Tile[_tileWidth, _tileHeight];
@@ -107,7 +107,7 @@ public static class Grid
 
     private static void CheckForMatch()
     {
-        var state = GameState.CurrData;
+        var state = GameState.Instance.CurrData;
         state.HaveAMatch = WasAMatchInAnyDirection();
         Debug.WriteLine($"CheckForMatch() => returns: {state.HaveAMatch}");
     }
@@ -154,7 +154,7 @@ public static class Grid
 
     private static bool WasAMatchInAnyDirection()
     {
-        var matchData = GameState.CurrData;
+        var matchData = GameState.Instance.CurrData;
         var matches = matchData.Matches!;
         const Direction last = Direction.DiagonalBotRight;
         _lastMatchTrigger = matchData.TileX;
@@ -231,7 +231,7 @@ public static class Grid
 
     private static void Swap()
     {
-        var currData = GameState.CurrData;
+        var currData = GameState.Instance.CurrData;
 
         Tile? a = currData.TileX!,
               b = currData.TileY!;
@@ -252,7 +252,7 @@ public static class Grid
 
     private static void Delete()
     {
-        var matchData = GameState.CurrData;
+        var matchData = GameState.Instance.CurrData;
         var match = matchData.Matches;
         
         foreach (var tile in match)
