@@ -31,8 +31,6 @@ public struct GameTime
 
         return MathF.Max(CurrentSeconds, 0f) == 0f;
     }
-
-    public readonly bool IsInitialized => CurrentSeconds > 0f;
     
     public void Reset(float? newStart)
     {
@@ -40,5 +38,5 @@ public struct GameTime
         IsReset = true;
     }
 
-    public override string ToString() => $"(Time Left: {CurrentSeconds} seconds)";
+    public override readonly string ToString() => $"(Time Left: {CurrentSeconds} seconds)";
 }

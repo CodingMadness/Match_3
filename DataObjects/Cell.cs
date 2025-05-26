@@ -130,11 +130,12 @@ public readonly struct SingleCell : IGridRect
     }
 
     public static implicit operator Vector2(SingleCell position) => position.Start;
-    public required Vector2 Start { get; init; }
-    public int Count => 1; //1x1, cause UnitSize=1x1
+    
+    public readonly required Vector2 Start { get; init; }
+    
+    public readonly int Count => 1; //1x1, cause UnitSize=1x1
 
-    public Size UnitSize => new(1, 1);
-    // public new string ToString() => ((ICell)this).ToString();
+    public readonly Size UnitSize => new(1, 1);
 }
 
 [StructLayout(LayoutKind.Auto)]
@@ -232,7 +233,7 @@ public readonly struct CellBlock : IGridRect, IMultiCell
 
     public readonly Size UnitSize { get; init; }
 
-    public CellEnumerator GetEnumerator()
+    public readonly CellEnumerator GetEnumerator()
     {
         return new CellEnumerator(this);
     }

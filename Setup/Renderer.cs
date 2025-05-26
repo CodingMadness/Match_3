@@ -181,7 +181,7 @@ public static class UiRenderer
         ImGui.PopFont();
     }
 
-    public static void DrawQuestLog(FastSpanEnumerator<Quest> quests)
+    public static void DrawQuestLog(Span<Quest> quests)
     {
         var questRunner = quests;
         int questCount = GameState.Instance.Lvl.QuestCount;

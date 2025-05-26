@@ -3,8 +3,7 @@ using System.Runtime.InteropServices;
 namespace Match_3.DataObjects;
 
 [StructLayout(LayoutKind.Auto)]
-public readonly ref struct SpanInfo<T>
-    where T : unmanaged, IEquatable<T>
+public readonly ref struct SpanInfo<T> where T : unmanaged, IEquatable<T>
 {
     public readonly int SrcLength;
     public readonly ReadOnlySpan<T> First, Between, Last;
@@ -15,15 +14,15 @@ public readonly ref struct SpanInfo<T>
     public readonly bool AreXYNext2EachOther;
     public readonly bool IsFirstLargerThanLast;
     public readonly int LengthDiff;
-    public readonly Area<T> LargeOneArea, SmallOneArea;
+    public readonly Slice<T> LargeOneArea, SmallOneArea;
     public readonly bool IsImpossible2Swap;
 
     public SpanInfo(ReadOnlySpan<T> src, Range x, Range y)
     {
         SrcLength = src.Length;
 
-        Area<T> areaX = new(x, SrcLength);
-        Area<T> areaY = new(y, SrcLength);
+        Slice<T> areaX = new(x, SrcLength);
+        Slice<T> areaY = new(y, SrcLength);
 
         IsImpossible2Swap = src == ReadOnlySpan<T>.Empty || areaX == areaY;
 
@@ -78,7 +77,6 @@ public readonly ref struct SpanInfo<T>
             IsLastAtEnd = SrcLength - areaX.End == 0;
         }
 
-      
         //when they are really close and only split by a delimiter from each other
         //then the addition of idxOfFirst + firstLen + sizeof(T) should be same as IndexOfLast
         int endOfFirstOne = IndexOfFirst + First.Length;

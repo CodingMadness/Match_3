@@ -7,7 +7,7 @@ public static class QuestBuilder
 {           
     public static void DefineQuests()
     {
-        int GetRandomInterval()
+        static int GetRandomInterval()
         {
             //we do netSingle() * 10f to have a real representative value for interval, like:
             // 0.4f * 10f => 2f will be the time we have left to make a match! and so on....
@@ -26,7 +26,7 @@ public static class QuestBuilder
         Utils.Fill(subset);
         subset.Randomize();
         subset = subset.TakeRndItemsAtRndPos(currLvl.Id);
-        scoped FastSpanEnumerator<TileColor> subsetEnumerator = new(subset);
+        scoped var tmpSubset = subset;
         int questCount = subset.Length;
         int trueIdx = 0;
         currLvl.Quests = new Quest[questCount];
@@ -34,7 +34,7 @@ public static class QuestBuilder
         scoped Span<uint> maxCountPerType = stackalloc uint[tileCount];
         maxCountPerType.Fill(currLvl.CountForAllColors);
         
-        foreach (var color in subsetEnumerator)
+        foreach (var color in tmpSubset)
         {
             int toEven = GetRandomInterval();
             SubEventData match = new((int)(maxCountPerType[trueIdx] / Config.MaxTilesPerMatch), toEven);

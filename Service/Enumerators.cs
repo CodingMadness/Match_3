@@ -1,66 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 using DotNext.Buffers;
 using ImGuiNET;
 
 namespace Match_3.Service;
-
-/// <summary>
-/// A faster span enumerator than .NET currently provides
-/// </summary>
-/// <typeparam name="TItem"></typeparam>
-public ref struct FastSpanEnumerator<TItem>
-{
-    private ref TItem _currentItem;
-    private readonly ref TItem _lastItemOffsetByOne;
-
-    public FastSpanEnumerator(Span<TItem> span) :
-        this(ref MemoryMarshal.GetReference(span), span.Length)
-    {
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private FastSpanEnumerator(ref TItem item, nint length)
-    {
-        //we store 1 address BEHIND '_currentItem' in order to have an 'invalid' address, so that our "MoveNext()"
-        //func can do + 1 and be at the 0t index! and vice versa with '_lastItemOffsetByOne'
-        _currentItem = ref Unsafe.Subtract(ref item, 1);
-        _lastItemOffsetByOne = ref Unsafe.Add(ref _currentItem, length + 1);
-    }
-
-    [UnscopedRef] public ref TItem Current => ref _currentItem;
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool MoveNext()
-    {
-        _currentItem = ref Unsafe.Add(ref _currentItem, 1);
-        return Unsafe.IsAddressLessThan(ref _currentItem, ref _lastItemOffsetByOne);
-    }
-
-    /// <summary>
-    ///
-    /// </summary>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool MoveBack()
-    {
-        _currentItem = ref Unsafe.Subtract(ref _currentItem, 1);
-        return Unsafe.IsAddressLessThan(ref _currentItem, ref _lastItemOffsetByOne);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    [UnscopedRef]
-    public ref FastSpanEnumerator<TItem> GetEnumerator()
-    {
-        return ref this;
-    }
-}
 
 public readonly ref struct TextInfo
 {
@@ -113,77 +59,6 @@ public readonly ref struct TextInfo
     public readonly Vector2 TextSize => ImGui.CalcTextSize(Slice2Colorize);
 
     public readonly override string ToString() => Slice2Colorize.ToString();
-    
-    [UnscopedRef]
-    public readonly WordEnumerator GetEnumerator() => new(this, _separator);
-}
-
-public ref struct WordEnumerator
-{
-    private readonly char _separator;
-    private readonly TextInfo _original;
-    private TextInfo _tmp;
-    private ReadOnlySpan<char> _remainder;
-
-    [UnscopedRef] public ref readonly TextInfo Current => ref _tmp;
-
-    /// <summary>
-    /// An Enumerator who iterates over an array of string interpreted as an array of words, stored as ROS
-    /// </summary>
-    /// <param name="stringArray">the ROS which is interpreted as an array of words</param>
-    /// <param name="separator">the character who will be used to split the ROS</param>
-    private WordEnumerator(ReadOnlySpan<char> stringArray, char separator)
-    {
-        _separator = separator;
-
-        _remainder = stringArray.Contains(separator) ? stringArray[1..] : stringArray;
-
-        if (!stringArray.Contains(separator))
-            throw new ArgumentException(
-                "The Enumerator expects a char which shall function as line splitter! If there is none" +
-                "it cannot slice the ROS which shall be viewed as string[]");
-    }
-
-    public WordEnumerator(in TextInfo original, char separator) : this(original.Slice2Colorize, separator)
-    {
-        _original = original;
-    }
-
-    public bool MoveNext()
-    {
-        //ReadOnlySpan<char> items = "abc <separator> def <separator> ghi <separator> jkl <separator> mno"
-        int idxOfChar = _remainder.IndexOf(_separator);
-        ReadOnlySpan<char> word;
-
-        //this separate check serves 2 purposes:
-        //1. when "idxOfChar" is -1 and "separator" as well as "_remainder" are empty than indeed
-        //its safe to assume that the entire thing is empty or was built up badly...
-        if (idxOfChar == -1)
-        {
-            if (_separator is (char)32 && _remainder.Length == 0)
-                return false;
-
-            //the 2. purpose is to determine, when the above if condition is false, that there is really
-            //only 1 word left and we have to treat this separately...
-            word = _remainder;
-            _remainder = [];
-        }
-        else
-        {
-            word = _remainder[..idxOfChar];
-            _remainder = _remainder[(word.Length + 1)..];
-        }
-
-        _tmp = new(word, _original.TileColor.ToString(), []);
-
-        return word.Length > 0;
-    }
-
-    [UnscopedRef]
-    public WordEnumerator GetEnumerator()
-    {
-        return this;
-    }
 }
 
 public ref partial struct FormatTextEnumerator

@@ -204,7 +204,7 @@ public static class Utils
     /// Moves a slice within the input span by "moveBy" steps, 
     /// if that value is > 0, it moves to the RIGHT, else to the LEFT 
     /// </summary>
-    public static Area<T>? MoveBy<T>(this scoped ReadOnlySpan<T> input,
+    public static Slice<T>? MoveBy<T>(this scoped ReadOnlySpan<T> input,
         Range area2Move, int moveBy, bool shallAdjustInput,
         T fillEmpties = default)
         where T : unmanaged, IEquatable<T>
@@ -214,8 +214,8 @@ public static class Utils
 
         var source = input.AsWriteable();
         int srcLen = source.Length;
-        Area<T> moveableArea = new(area2Move, srcLen);
-        Area<T> area2CopyInto, area2Clear;
+        Slice<T> moveableArea = new(area2Move, srcLen);
+        Slice<T> area2CopyInto, area2Clear;
         (int startOfMoveArea, int length2Move, _) = moveableArea.Deconstruct();
         int newOffset = startOfMoveArea + moveBy;
 
@@ -228,8 +228,8 @@ public static class Utils
 
             area2Clear = area2CopyInto.Overlaps(moveableArea) > 0
                 //(-moveBy) to turn it positive, since its already < 0 !
-                ? new Area<T>(area2CopyInto.End, -moveBy)
-                : new Area<T>(area2Move.Start..area2Move.End, srcLen);
+                ? new Slice<T>(area2CopyInto.End, -moveBy)
+                : new Slice<T>(area2Move.Start..area2Move.End, srcLen);
         }
         else
         {
@@ -255,7 +255,7 @@ public static class Utils
             var adjustableArea = area2CopyInto;
             var adjustedArea = input.MoveBy(adjustableArea, -moveBy, false, fillEmpties)!.Value;
             int startOfRemain2Move = adjustedArea.End;
-            Area<T> remain = new(startOfRemain2Move.., srcLen);
+            Slice<T> remain = new(startOfRemain2Move.., srcLen);
             input.MoveBy(remain, -1, false, fillEmpties);
             return null;
         }
@@ -381,7 +381,7 @@ public static class Utils
 
                 //TEMP-instructions:
                 //calculate a slice-range from "LargeOne" by "SmallOne.length" 
-                var sliceFromLargeOne = info.LargeOneArea.Slice(info.SmallOneArea);
+                var sliceFromLargeOne = info.LargeOneArea.GetSlice(info.SmallOneArea);
                 //This is a copy-buffer which holds enough space to store the nessecary parts, in this case (smallOne + between) needed for the swap!
                 using var copyBuffer = new SpanQueue<T>(smallOneLen + between.Length);
                 var smallOneCopy = copyBuffer.CoreEnqueue(first);

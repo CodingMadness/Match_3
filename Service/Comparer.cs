@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.Contracts;
 using System.Numerics;
-using DotNext.Runtime;
 using Match_3.DataObjects;
 
 namespace Match_3.Service;
@@ -89,15 +88,8 @@ public static class Comparer
         }
     }
 
-    public sealed class DistanceComparer : CellComparer
+    public sealed class DistanceComparer(float toleratedDistance = 3.5f) : CellComparer
     {
-        private readonly float _toleratedDistance;
-        
-        public DistanceComparer(float toleratedDistance = 3.5f)
-        {
-            _toleratedDistance = toleratedDistance;
-        }
-
         public override int Compare(IGameObject? x, IGameObject? y)
         {
             if (Equals(x, y))
@@ -107,7 +99,7 @@ public static class Comparer
             int result;
 
             //to close! they cluster...
-            if (distance <= _toleratedDistance)
+            if (distance <= toleratedDistance)
             {
                 result = -1;
                 // Console.WriteLine($"Is {x!.GridCell} to close to {y!.GridCell}?   Range is: {distance}");
@@ -127,12 +119,12 @@ public static class Comparer
             // 1 => BOT/RIGHT
             bool? res = Compare(x, y) switch
             {
-                < 0 => true, /*-1 means that the distance between x and y is < 3f (_tolerance) and hence to close!
+                < 0 => true,    /*-1 means that the distance between x and y is < 3.5f (_tolerance) and hence to close!
                                  so they will be sorted to the top of the collection!*/
 
-                > 0 => false, /* 1 means its > 3f, so its enough space, so they will be sorted to the bottom of the collection!*/
+                > 0 => false,   /* 1 means its > 3f, so its enough space, so they will be sorted to the bottom of the collection!*/
 
-                0 => null,
+                0 => null,      /* are same, hence no action needed thats why null is returned */
             };
             return res;
         }

@@ -35,14 +35,13 @@ public sealed class GameState
     // --- Current State ---
     public readonly EventState CurrData = new();  
 
-    public FastSpanEnumerator<Quest> GetQuests()
-        => new(Lvl.Quests.AsSpan(0, Lvl.QuestCount));
+    public Span<Quest> GetQuests() => Lvl.Quests.AsSpan(0, Lvl.QuestCount);
 
     public ref readonly Quest GetQuestBy(TileColor tileColor)
     {
-        var iterator = new FastSpanEnumerator<Quest>(Lvl.Quests.AsSpan(0, Lvl.QuestCount));
+        var onlyNeededQuests = Lvl.Quests.AsSpan(0, Lvl.QuestCount);
 
-        foreach (ref readonly Quest quest in iterator)
+        foreach (ref readonly Quest quest in onlyNeededQuests)
         {
             if (quest.TileColor == tileColor)
                 return ref quest;
@@ -53,9 +52,9 @@ public sealed class GameState
     
     public State GetStateBy(TileColor tileColor)
     {
-        var iterator = new FastSpanEnumerator<State>(CurrData.StatePerQuest.AsSpan(0, Lvl.QuestCount));
+        var states = CurrData.StatePerQuest.AsSpan(0, Lvl.QuestCount);
 
-        foreach (State state in iterator)
+        foreach (State state in states)
         {
             if (state.TileKind == tileColor)
                 return state;

@@ -16,7 +16,7 @@ namespace Match_3.Service;
 ///  <typeparam name="T"></typeparam>
 /// <param name="length">the total length of the span, if shallMultiply is true,
 ///  it will allocate: (approxCount * length) * sizeof(T) elements</param>
-public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquatable<T>
+public struct SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquatable<T>
 {
     private MemoryOwner<T> _content = new(ArrayPool<T>.Shared, length + 1);
     
@@ -84,7 +84,7 @@ public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, 
         _enQCount++;
         return copyOfPoolSlice;
     }
-    
+        
      /// <summary>
      /// Gives you back, based on FIFO model, the current frame of the Pool
      /// </summary>
@@ -115,7 +115,7 @@ public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, 
         return currPart;
     }
 
-    public void Clear()
+    public void MarkForOverwrite()
     {
         _enQCharIdx = 0;
         _enQCount = 0;
@@ -124,6 +124,7 @@ public sealed class SpanQueue<T>(int length) : IDisposable where T : unmanaged, 
 
     public void Dispose()
     {
+        MarkForOverwrite();
         _content.Dispose();
     }
 }
