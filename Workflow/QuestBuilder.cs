@@ -11,7 +11,7 @@ public static class QuestBuilder
         {
             //we do netSingle() * 10f to have a real representative value for interval, like:
             // 0.4f * 10f => 2f will be the time we have left to make a match! and so on....
-            float rndValue = Utils.Randomizer.NextSingle().Trunc(1);
+            float rndValue = Utility.Randomizer.NextSingle().Trunc(1);
             rndValue = rndValue.Equals(0f, 0.0f) ? 0.25f : rndValue;
             float finalInterval = MathF.Round(rndValue * 10f);
             finalInterval = finalInterval <= 2.5f ? 2.5f : finalInterval;
@@ -23,7 +23,7 @@ public static class QuestBuilder
         const int tileCount = Config.TileColorCount;
         // const int questLogParts = 4;
         scoped Span<TileColor> subset = stackalloc TileColor[tileCount];
-        Utils.Fill(subset);
+        FadeableColor.Fill(subset);
         subset.Randomize();
         subset = subset.TakeRndItemsAtRndPos(currLvl.Id);
         scoped var tmpSubset = subset;

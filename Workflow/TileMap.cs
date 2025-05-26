@@ -22,7 +22,7 @@ public static class TileMap
         Vector2 twoBy4Block = new(xSize, ySize);
         Vector2 begin = new(0, 0);
         int j = 0;
-        Utils.Fill(allKinds);
+        FadeableColor.Fill(allKinds);
   
         Next8Block:
         for (int x = (int)begin.X; x < twoBy4Block.X-1; x++)
@@ -32,10 +32,11 @@ public static class TileMap
                 Vector2 current = new(x, y);
                 CSharpRect grid = new(current.X, current.Y, 1f, 1f);
                 Tile tmpTile = _bitmap[x, y] = Bakery.CreateTile(grid, allKinds[j++]);
-                int index = tmpTile.Body.TileKind.ToIndex();
+                int index = FadeableColor.ToIndex(tmpTile.Body.TileKind);
                 counts[index]++;
             }
         }
+        
         //6rows => 6x2 = 12 tiles in X, but since we are beginning from 0,
         //we have to -2 like with array index
         if (begin.X < _tileWidth - xSize)  
@@ -48,7 +49,7 @@ public static class TileMap
         }
         //3columns => 3x4 = 12 tiles in Y, but since we are beginning from 0,
         //we have to -4 like with array index
-        else if (begin.Y < _tileHeight - ySize)
+        if (begin.Y < _tileHeight - ySize)
         {
             //set begin to point to (x=0, y=4)
             begin.X = 0;
@@ -59,7 +60,7 @@ public static class TileMap
             j = 0;
             goto Next8Block;  
         }
-        
+
         //since we know that in this method so far at least,
         //the "counts" consists always of the same byte value, we can pack only the 0th element
         //and fill the result span with that value then we have the Span<byte> back
@@ -69,7 +70,7 @@ public static class TileMap
     private static void Test()
     {
         scoped Span<TileColor> allKinds = stackalloc TileColor[Config.TileColorCount];
-        Utils.Fill(allKinds);
+        FadeableColor.Fill(allKinds);
         
         foreach (var color in allKinds)
         {
@@ -77,11 +78,8 @@ public static class TileMap
             
             foreach (Tile current in clusteredGraph)
             {
-                if (current is null)
-                    continue;
-                
-                current.Body.Color = Red;
-                //current.Body.ChangeColor2(Color.Red);
+                current.Body.Colour = Red;
+                //current.Body.ChangeColor2(Colour.Red);
                 Debug.WriteLine(current.Cell);
             }
             break;
@@ -126,7 +124,7 @@ public static class TileMap
         {
             case >= 0 when cellPos.X < _tileWidth && cellPos.Y >= 0 && cellPos.Y < _tileHeight:
             {
-                //its within bounds!
+                //it's within bounds!
                 tmp = _bitmap[(int)cellPos.X, (int)cellPos.Y];
                 tmp = tmp is { IsDeleted: true, State: TileState.Disabled  } ? null : tmp;
                 break;
@@ -136,7 +134,7 @@ public static class TileMap
         return tmp;
     }
 
-    public static void SetTile(Tile value, Vector2? newCoord = null)
+    private static void SetTile(Tile value, Vector2? newCoord = null)
     {
         if (value is null)
             throw new ArgumentException("you cannot Add a NULL @tile! check your @tile-creation logic!");

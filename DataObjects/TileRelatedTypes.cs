@@ -35,7 +35,7 @@ public abstract class Texture
 
 public class Shape : Texture
 {
-    public FadeableColor Color = White;
+    public FadeableColor Colour = White;
     public override string ToString() => $"Tile type: <{TileKind}>";
     public required TileColor TileKind { get; init; }
 }
@@ -82,7 +82,7 @@ public class Tile : IGameObject
     
     /// <summary>
     /// Body consists of :
-    ///   * Color
+    ///   * Colour
     ///   * TileKind
     ///   * Rectangle
     /// </summary>
