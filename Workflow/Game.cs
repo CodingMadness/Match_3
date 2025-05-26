@@ -49,7 +49,7 @@ internal static class Game
             _gameTimer = GameTime.CreateTimer(lvl.GameBeginAt);
             GameState.Instance.Lvl = lvl;
             QuestHandler.ActivateHandlers();
-            Grid.Init();
+            TileMap.Init();
             QuestBuilder.DefineQuests();
         }
 
@@ -79,7 +79,7 @@ internal static class Game
                         return false;
 
                     SingleCell tileCell = GetMousePosition();
-                    tile = Grid.GetTile(tileCell.Start);
+                    tile = TileMap.GetTile(tileCell.Start);
                     // Console.WriteLine(tile);
                     return tile is not null;
                 }

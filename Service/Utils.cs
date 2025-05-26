@@ -16,70 +16,7 @@ namespace Match_3.Service;
 public static class Utils
 {
     public static readonly Random Randomizer = new(DateTime.UtcNow.Ticks.GetHashCode());
-    //public static readonly DotnetNoise.FastNoise NoiseMaker = new(DateTime.UtcNow.Ticks.GetHashCode());
-    private static readonly TileColor[] AllTileColors =
-    [
-        TileColor.LightBlue,          //--> Hellblau
-        TileColor.Turquoise,        //--> Türkis
-        TileColor.Blue,             //--> Blau
-        TileColor.LightGreen,      //--> Hellgrün
-        TileColor.Green,            //--> Grün
-        TileColor.Brown,            //--> Braun
-        TileColor.Orange,           //--> Orange
-        TileColor.Yellow,           //--> Gelb
-        TileColor.MediumVioletRed,  //--> RotPink
-        TileColor.Purple,       //--> Rosa
-        TileColor.Magenta,          //--> Pink
-        TileColor.Red,              //--> Rot
-      
-    ];
-    
-    public static Vector4 ToVec4(this Color color)
-    {
-        return new(
-            color.R / 255.0f,
-            color.G / 255.0f,
-            color.B / 255.0f,
-            color.A / 255.0f);
-    }
-
-    public static Color ToColor(this Vector4 color) =>
-        Color.FromArgb((int)(color.W * 255), (int)(color.X * 255), (int)(color.Y * 255), (int)(color.Z * 255));
-
-    public static Vector4 ToVec4(this RayColor color)
-    {
-        return new(
-            color.R / 255.0f,
-            color.G / 255.0f,
-            color.B / 255.0f,
-            color.A / 255.0f);
-    }
-
-    public static RayColor AsRayColor(this Color color) => new(color.R, color.G, color.B, color.A);
-
-    public static Color AsSysColor(this RayColor color) => Color.FromArgb(color.A, color.R, color.G, color.B);
-
-    public static int ToIndex(this TileColor color)
-    {
-        return color switch
-        {
-            TileColor.LightBlue => 0,           //--> Hellblau
-            TileColor.Turquoise => 1,           //--> Dunkelblau
-            TileColor.Blue => 2,                //--> Blau
-            TileColor.LightGreen =>3,           //--> Hellgrün
-            TileColor.Green => 4,               //--> Grün
-            TileColor.Brown => 5,               //--> Braun
-            TileColor.Orange => 6,              //--> Orange
-            TileColor.Yellow => 7,              //--> Gelb
-            TileColor.MediumVioletRed => 8,     //--> RotPink
-            TileColor.Purple => 9,              //--> Rosa
-            TileColor.Magenta => 10,            //--> Pink
-            TileColor.Red => 11,
-            _ => throw new ArgumentOutOfRangeException(nameof(color), color, "No other color is senseful since we do not need other or more colors!")
-        };
-    }
-
-    public static TileColor ToColor(this int color) => AllTileColors[color];
+   
 
     //nested helper functions!
     public static Span<char> AsSpan(this StringBuilder self)
@@ -215,7 +152,7 @@ public static class Utils
         var source = input.AsWriteable();
         int srcLen = source.Length;
         Slice<T> moveableArea = new(area2Move, srcLen);
-        Slice<T> area2CopyInto, area2Clear;
+        Slice<T> area2CopyInto, slice2Clear;
         (int startOfMoveArea, int length2Move, _) = moveableArea.Deconstruct();
         int newOffset = startOfMoveArea + moveBy;
 
@@ -226,7 +163,7 @@ public static class Utils
 
             source[area2Move].CopyTo(source[(Range)area2CopyInto]);
 
-            area2Clear = area2CopyInto.Overlaps(moveableArea) > 0
+            slice2Clear = area2CopyInto.Overlaps(moveableArea) > 0
                 //(-moveBy) to turn it positive, since its already < 0 !
                 ? new Slice<T>(area2CopyInto.End, -moveBy)
                 : new Slice<T>(area2Move.Start..area2Move.End, srcLen);
@@ -241,17 +178,17 @@ public static class Utils
 
             source[area2Move].CopyTo(source[(Range)area2CopyInto]);
 
-            area2Clear = area2CopyInto.Overlaps(moveableArea) > 0
+            slice2Clear = area2CopyInto.Overlaps(moveableArea) > 0
                 ? new(startOfMoveArea, doesExceedLength ? length2Move : moveBy)
                 : new(area2Move.Start..area2Move.End, srcLen);
         }
 
-        source[(Range)area2Clear].Fill(fillEmpties);
+        source[(Range)slice2Clear].Fill(fillEmpties);
 
         if (shallAdjustInput)
         {
             //step1: move the "newArea" now by "moveBy" BACK/TOP
-            moveBy = area2Clear.Length;
+            moveBy = slice2Clear.Length;
             var adjustableArea = area2CopyInto;
             var adjustedArea = input.MoveBy(adjustableArea, -moveBy, false, fillEmpties)!.Value;
             int startOfRemain2Move = adjustedArea.End;
@@ -260,7 +197,7 @@ public static class Utils
             return null;
         }
 
-        return area2Clear;
+        return slice2Clear;
     }
 
     private static int Internal_MoveBy<T>(this scoped ReadOnlySpan<T> input,
@@ -515,11 +452,14 @@ public static class Utils
         
     }
 
-    private static CellBlock EntireGrid
+    public static Color ToColor(this Vector4 vec4) =>
+        Color.FromArgb((int)(vec4.W * 255), (int)(vec4.X * 255), (int)(vec4.Y * 255), (int)(vec4.Z * 255));
+
+    private static Grid EntireGrid
     {
         get
         {
-            var block = new CellBlock
+            var block = new Grid
             {
                 Begin = new Vector2(0, 0),
                 UnitSize = new(GameState.Instance.Lvl.GridWidth, GameState.Instance.Lvl.GridHeight),
@@ -544,10 +484,5 @@ public static class Utils
         float result = MathF.Truncate(mult * value) / mult;
         return result < 0 ? -result : result;
     }
-       
-    public static void Fill(Span<TileColor> toFill)
-    {
-        for (int i = 0; i < Config.TileColorCount; i++)
-            toFill[i] = i.ToColor();
-    }
+
 }

@@ -103,7 +103,7 @@ public class MatchX : IGameObject, IEnumerable<Tile>
     {
         {
             Layout.Block,
-            MultiCell<CellBlock>.FromIMultiCell(new CellBlock
+            MultiCell<Grid>.FromIMultiCell(new Grid
             {
                 Begin = default,
                 UnitSize = default,

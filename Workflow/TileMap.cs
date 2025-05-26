@@ -7,7 +7,7 @@ using Match_3.Setup;
 
 namespace Match_3.Workflow;
 
-public static class Grid
+public static class TileMap
 {
     private static Tile[,] _bitmap = null!;
     private static Tile? _lastMatchTrigger;

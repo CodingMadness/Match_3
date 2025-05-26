@@ -221,7 +221,7 @@ public static class TileRenderer
             {
                 for (int y = 0; y < 1; y++)
                 {
-                    Tile? basicTile = Grid.GetTile(new(x, y));
+                    Tile? basicTile = TileMap.GetTile(new(x, y));
 
                     if (basicTile is not null && !basicTile.IsDeleted)
                     {

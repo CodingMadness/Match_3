@@ -102,7 +102,7 @@ public interface IMultiCell : ICell
 
 public interface IGridRect : ICell
 {
-    public Size UnitSize { get; }
+    public  Size UnitSize { get; }
     public new int Count => UnitSize.Width * UnitSize.Height;
     public CSharpRect GridBox => new(Start.X, Start.Y, UnitSize.Width, UnitSize.Width);
     public int Area => UnitSize.Width * UnitSize.Height;
@@ -139,7 +139,7 @@ public readonly struct SingleCell : IGridRect
 }
 
 [StructLayout(LayoutKind.Auto)]
-public readonly struct CellBlock : IGridRect, IMultiCell
+public readonly struct Grid : IGridRect, IMultiCell
 {
     public ref struct CellEnumerator
     {
@@ -148,11 +148,11 @@ public readonly struct CellBlock : IGridRect, IMultiCell
         private int _currCount;
 
         private readonly int _totalCount;
-        private readonly CellBlock _caller;
+        private readonly Grid _caller;
         private readonly int _currLine;
         private readonly int _direction;
 
-        public CellEnumerator(CellBlock caller)
+        public CellEnumerator(Grid caller)
         {
             _totalCount = ((ICell)_caller).Count;
             _currLine = _totalCount / caller.UnitSize.Height; //this gets us the 'width'
@@ -250,7 +250,7 @@ public readonly struct LinearCellLine : IGridRect, IMultiCell
 {
     Vector2 ICell.Start => Begin.Start;
 
-    public Size UnitSize
+    public readonly Size UnitSize
     {
         get
         {
@@ -263,7 +263,7 @@ public readonly struct LinearCellLine : IGridRect, IMultiCell
         }
     }
 
-    public SingleCell End
+    public readonly SingleCell End
     {
         get
         {
@@ -287,7 +287,7 @@ public readonly struct LinearCellLine : IGridRect, IMultiCell
         throw new NotImplementedException();
     }
 
-    public new string ToString() => ((IMultiCell)this).ToString();
+    public readonly new string ToString() => ((IMultiCell)this).ToString();
 }
 
 [StructLayout(LayoutKind.Auto)]
