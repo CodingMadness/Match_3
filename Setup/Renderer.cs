@@ -8,7 +8,8 @@ using static Match_3.Setup.AssetManager;
 using Vector2 = System.Numerics.Vector2;
 
 namespace Match_3.Setup;
-public enum Debug_ImGuiShapes
+
+public enum DebugImGuiShapes
 {
     Circle,
     Rectangle,
@@ -17,34 +18,32 @@ public enum Debug_ImGuiShapes
 
 public static class UiRenderer
 {
-    static UiRenderer()
-    {
-        
-    }
-
-    private static int _currQuest = 0;
+    private static int _currQuest;
 
     /// <summary>
     /// Only for debug purposes!
     /// </summary>
     /// <param name="shape"></param>
     /// <param name="position"></param>
-    /// <param name="color"></param>
+    /// <param name="colorKind"></param>
     /// <param name="text"></param>
     /// <param name="thickness"></param>
     /// <param name="scaleMultiplier"></param>
-    private static void DrawShape(Debug_ImGuiShapes shape, Vector2 position, Color color, ReadOnlySpan<char> text, float thickness, float scaleMultiplier=1f)
+    private static void DrawShape(DebugImGuiShapes shape, Vector2 position, TileColor colorKind,
+        ReadOnlySpan<char> text, float thickness = 1f, float scaleMultiplier = 1f)
     {
         switch (shape)
         {
-            case Debug_ImGuiShapes.Circle:
-                ImGui.GetWindowDrawList().AddCircleFilled(position, thickness, ImGui.ColorConvertFloat4ToU32(Utils.ToVec4(color)));
+            case DebugImGuiShapes.Circle:
+                ImGui.GetWindowDrawList().AddCircleFilled(position, thickness,
+                    ImGui.ColorConvertFloat4ToU32(FadeableColor.ToVec4(colorKind)));
                 break;
-            case Debug_ImGuiShapes.Rectangle:
+            case DebugImGuiShapes.Rectangle:
                 Vector2 actualSize = ImGui.CalcTextSize(text) * scaleMultiplier;
-                ImGui.GetWindowDrawList().AddRect(position, position + actualSize, ImGui.ColorConvertFloat4ToU32(Utils.ToVec4(color)));
+                ImGui.GetWindowDrawList().AddRect(position, position + actualSize,
+                    ImGui.ColorConvertFloat4ToU32(FadeableColor.ToVec4(colorKind)));
                 break;
-            case Debug_ImGuiShapes.Triangle:
+            case DebugImGuiShapes.Triangle:
                 break;
             default:
                 break;
@@ -55,13 +54,11 @@ public static class UiRenderer
     {
         // Validate existing context
         var ctx = ImGui.GetCurrentContext();
-        nint newCtx;
 
         if (ctx == IntPtr.Zero)
         {
-            newCtx = ImGui.CreateContext();
+            var newCtx = ImGui.CreateContext();
             ImGui.SetCurrentContext(newCtx);
-            //throw new InvalidOperationException("Call ImGui.CreateContext() first!");
         }
     }
 
@@ -70,15 +67,15 @@ public static class UiRenderer
         BeginDrawing();
         {
             ClearBackground(White);
-                       
+
             rlImGui.Begin();
             {
                 ImGui.SetNextWindowPos(Vector2.Zero);
-                ImGui.SetNextWindowSize(Utils.GetScreen());                
+                ImGui.SetNextWindowSize(Grid.GetWindowSize());
             }
         }
     }
-   
+
     public static void End()
     {
         ImGui.End();
@@ -88,93 +85,77 @@ public static class UiRenderer
 
     public static void CreateWindowSizedCanvas()
     {
-        const ImGuiWindowFlags EmptyCanvas =
-                                           ImGuiWindowFlags.NoScrollbar |
-                                           ImGuiWindowFlags.NoDocking |
-                                           ImGuiWindowFlags.NoDecoration |
-                                           ImGuiWindowFlags.NoInputs |
-                                           ImGuiWindowFlags.NoCollapse |
-                                           ImGuiWindowFlags.NoMove |
-                                           ImGuiWindowFlags.NoResize |
-                                           ImGuiWindowFlags.NoBringToFrontOnFocus |
-                                           ImGuiWindowFlags.NoTitleBar;
+        const ImGuiWindowFlags emptyCanvas =
+            ImGuiWindowFlags.NoScrollbar |
+            ImGuiWindowFlags.NoDocking |
+            ImGuiWindowFlags.NoDecoration |
+            ImGuiWindowFlags.NoInputs |
+            ImGuiWindowFlags.NoCollapse |
+            ImGuiWindowFlags.NoMove |
+            ImGuiWindowFlags.NoResize |
+            ImGuiWindowFlags.NoBringToFrontOnFocus |
+            ImGuiWindowFlags.NoTitleBar;
 
-        ImGui.Begin("Tilemap-overlaying-Canvas", EmptyCanvas);
+        ImGui.Begin("Tilemap-overlaying-Canvas", emptyCanvas);
     }
 
-    public static void DrawText(ReadOnlySpan<char> formatableTxt, CanvasStartingPoints anchor)
-    {        
-        static Vector2 SetUIStartingPoint(ReadOnlySpan<char> formatableTxt, CanvasStartingPoints offset, Vector2 sameLine)
-        {    
+    public static void DrawText(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints anchor)
+    {
+        static Vector2 SetUiStartingPoint(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints offset, Vector2 sameLine)
+        {
             Vector2 result = Vector2.Zero;
-            Vector2 screen = Utils.GetScreen();
-            Vector2 txtSize = ImGui.CalcTextSize(formatableTxt);
+            Vector2 screen = Grid.GetWindowSize();
+            Vector2 txtSize = ImGui.CalcTextSize(colorCodedTxt);
             Vector2 paddingAdjustedScreen = new(screen.X - txtSize.X, screen.Y - txtSize.Y);
             Vector2 halfTxtSize = new(txtSize.X * 0.5f, txtSize.Y * 0.5f);
-            Vector2 Center = new((screen.X * 0.5f) - halfTxtSize.X, (screen.Y * 0.5f) - halfTxtSize.Y);
-            
-            switch (offset)
+            Vector2 center = new(screen.X * 0.5f - halfTxtSize.X, screen.Y * 0.5f - halfTxtSize.Y);
+
+            result = offset switch
             {
-                case CanvasStartingPoints.TopLeft:
-                    result = ImGui.GetStyle().FramePadding;  
-                    break;
-                case CanvasStartingPoints.TopCenter:
-                    result = result with { X = Center.X, Y = 0f };
-                    break;
-                case CanvasStartingPoints.TopRight:
-                    result = result with { X = paddingAdjustedScreen.X, Y = 0f };
-                    break;
-                case CanvasStartingPoints.BottomLeft:
-                    result = result with { X = 0f, Y = screen.Y - txtSize.Y };
-                    break;
-                case CanvasStartingPoints.Bottomcenter:
-                    result = result with { X = Center.X, Y = paddingAdjustedScreen.Y };
-                    break;
-                case CanvasStartingPoints.BottomRight:
-                    result = result with { X = paddingAdjustedScreen.X, Y = paddingAdjustedScreen.Y };
-                    break;
-                case CanvasStartingPoints.MidLeft:
-                    result = result with { X = 0f, Y = Center.Y };
-                    break;
-                case CanvasStartingPoints.Center:
-                    result = result with { X = Center.X, Y = Center.Y };                
-                    break;
-                case CanvasStartingPoints.MidRight:
-                    result = result with { X = paddingAdjustedScreen.X, Y = Center.Y };
-                    break;
-                default:
-                    break;
-            }
-           
+                CanvasStartingPoints.TopLeft => ImGui.GetStyle().FramePadding,
+                CanvasStartingPoints.TopCenter => result with { X = center.X, Y = 0f },
+                CanvasStartingPoints.TopRight => result with { X = paddingAdjustedScreen.X, Y = 0f },
+                CanvasStartingPoints.BottomLeft => result with { X = 0f, Y = screen.Y - txtSize.Y },
+                CanvasStartingPoints.Bottomcenter => result with { X = center.X, Y = paddingAdjustedScreen.Y },
+                CanvasStartingPoints.BottomRight => result with
+                {
+                    X = paddingAdjustedScreen.X, Y = paddingAdjustedScreen.Y
+                },
+                CanvasStartingPoints.MidLeft => result with { X = 0f, Y = center.Y },
+                CanvasStartingPoints.Center => result with { X = center.X, Y = center.Y },
+                CanvasStartingPoints.MidRight => result with { X = paddingAdjustedScreen.X, Y = center.Y },
+                _ => result
+            };
+
             sameLine = sameLine == Vector2.Zero ? result : sameLine;
             //sameLine becomes the actual newLine since it is overwritten with the newLine-pos
-            Vector2 newLine = sameLine; 
-            var offsetResult = sameLine.Y == result.Y ? new Vector2(sameLine.X, result.Y) : newLine; 
+            Vector2 newLine = sameLine;
+            var offsetResult = (int)sameLine.Y == (int)result.Y ? new Vector2(sameLine.X, result.Y) : newLine;
             ImGui.SetCursorPos(offsetResult);
             return offsetResult;
         }
 
-        var formatTextEnumerator = new FormatTextEnumerator(formatableTxt, 4);
+        static Vector2 GetWrappedPos(Vector2 result, Vector2? anchorPos)
+        {
+            var screen = Grid.GetWindowSize();
+            return result.X > screen.X ? anchorPos!.Value with { Y = ImGui.GetCursorPosY() } : result;
+        }
+
+        var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt, 4);
 
         ImGui.PushFont(CustomFont);
-        Vector2 result = Vector2.Zero;
-        Vector2? anchorPos = null;
-        Vector2 screen = Utils.GetScreen();
-
+        var result = Vector2.Zero;
+        Vector2? anchorFixPos = null;
+        
         foreach (ref readonly var txtInfo in formatTextEnumerator)
         {
             ImGui.PushStyleColor(ImGuiCol.Text, txtInfo.ColorAsVec4);
-            result = SetUIStartingPoint(txtInfo.Slice2Colorize, anchor, result);
-            anchorPos ??= result;
-            DrawShape(Debug_ImGuiShapes.Rectangle, result, Red, txtInfo.Slice2Colorize, 1f);
+            result = SetUiStartingPoint(txtInfo.Slice2Colorize, anchor, result);
+            anchorFixPos ??= result;
+            DrawShape(DebugImGuiShapes.Rectangle, result, TileColor.Red, txtInfo.Slice2Colorize);
             ImGui.TextWrapped(txtInfo.Slice2Colorize);
-            result = new(result.X + txtInfo.TextSize.X, result.Y);
-
-            if (result.X > screen.X)
-            {                
-                result.X = anchorPos.Value.X;
-                result.Y = ImGui.GetCursorPosY();
-            }
+            result = result with { X = result.X + txtInfo.TextSize.X };
+            result = GetWrappedPos(result, anchorFixPos);
             ImGui.PopStyleColor();
         }
 
@@ -185,7 +166,7 @@ public static class UiRenderer
     {
         var questRunner = quests;
         int questCount = GameState.Instance.Lvl.QuestCount;
-        
+
         bool shallGetNewQuest = _currQuest++ < questCount;
 
         if (shallGetNewQuest)
@@ -210,16 +191,16 @@ public static class TileRenderer
     {
         var body = tile.Body;
         body.ScaleBox(currTime);
-        DrawTexturePro(atlas, body.AssetRect, body.WorldRect, Vector2.Zero, 0f, body.Color);
+        DrawTexturePro(atlas, body.AssetRect, body.WorldRect, Vector2.Zero, 0f, body.Colour);
     }
 
     public static void DrawGrid(float elapsedTime, int gridWidth, int gridHeight)
     {
         //BeginShaderMode(WobbleEffect);
         {
-            for (int x = 0; x < 1; x++)
+            for (int x = 0; x < gridWidth; x++)
             {
-                for (int y = 0; y < 1; y++)
+                for (int y = 0; y < gridHeight; y++)
                 {
                     Tile? basicTile = TileMap.GetTile(new(x, y));
 
