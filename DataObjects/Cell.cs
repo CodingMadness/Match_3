@@ -295,7 +295,6 @@ public readonly struct LinearCellLine : IGridRect, IMultiCell
     public required SingleCell Begin { get; init; }
     public required Direction Route { get; init; }
     public required int Count { get; init; }
-
     public IEnumerator<ICell> GetEnumerator()
     {
         throw new NotImplementedException();

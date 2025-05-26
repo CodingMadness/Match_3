@@ -1,5 +1,4 @@
-﻿using ImGuiNET;
-using Match_3.DataObjects;
+﻿using Match_3.DataObjects;
 using Match_3.Setup;
 using Raylib_cs;
 using rlImGui_cs;
@@ -14,6 +13,7 @@ internal static class Game
 {
     private static GameTime _gameTimer;
     private static bool _inGame;
+    
     public static event Action OnTileClicked = null!;
 
     private static void Main()
@@ -61,19 +61,14 @@ internal static class Game
 
     private static void MainGameLoop()
     {
-        /// <summary>
-        /// this checks for a lot of scenarios in which the game could end, either by failure OR
-        /// by actually winning in time!
-        /// </summary>
-        /// <returns></returns>
-        //------------------------------------------------------------
+        //this checks for a lot of scenarios in which the game could end, either by failure OR by actually winning in time
         static void HandleGameInput()
         {
             static void NotifyClickHandler()
             {
                 static bool TileClicked(out Tile? tile)
                 {
-                    tile = default!;
+                    tile = null!;
 
                     if (!IsMouseButtonPressed(MouseButton.Left))
                         return false;
@@ -114,15 +109,15 @@ internal static class Game
                 {
                     //print to the main-window that the user has won
                 }
-                //game still running..!
+                //game still running...!
                 else
                 {
                     var colorCodedText = $"(Blue) you have {(int)currTime} left to win! " +
                                          $"(Violet) and this is " +
-                                         $"(Green) the rest of a long long sentence " +
-                                         $"(Brown) but of course the joy continues, doesnt it?";
+                                         $"(Green) the rest of a long phrase" +
+                                         $"(Brown) but of course the joy continues, doesnt it? " +
+                                         $"(Yellow) and i dont know what to type here anymore lol :D";
 
-                    //UiRenderer.DrawText(colorCodedText, CanvasStartingPoints.TopLeft);
                     UiRenderer.DrawText(colorCodedText, CanvasStartingPoints.Center);
                     NotifyClickHandler();
                     TileRenderer.DrawGrid(currTime, GameState.Instance.Lvl.GridWidth, GameState.Instance.Lvl.GridHeight);

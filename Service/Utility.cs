@@ -103,7 +103,7 @@ public static class Utility
         MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in readOnlySpan[0]), readOnlySpan.Length);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Move2<T>(this scoped ReadOnlySpan<T> input, Range slice2Move, int newPos)
+    private static int Move2<T>(this scoped ReadOnlySpan<T> input, Range slice2Move, int newPos)
         where T : unmanaged, IEquatable<T>
     {
         var (_, length) = slice2Move.GetOffsetAndLength(input.Length);
@@ -117,8 +117,7 @@ public static class Utility
     /// if that value is > 0, it moves to the RIGHT, else to the LEFT 
     /// </summary>
     public static Slice<T>? MoveBy<T>(this scoped ReadOnlySpan<T> input,
-        Range area2Move, int moveBy, bool shallAdjustInput,
-        T fillEmpties = default)
+        Range slice2Move, int moveBy, bool shallAdjustInput, T fillEmpties = default)
         where T : unmanaged, IEquatable<T>
     {
         if (moveBy == 0)
@@ -126,7 +125,7 @@ public static class Utility
 
         var source = input.AsWriteable();
         int srcLen = source.Length;
-        Slice<T> moveableArea = new(area2Move, srcLen);
+        Slice<T> moveableArea = new(slice2Move, srcLen);
         Slice<T> area2CopyInto, slice2Clear;
         (int startOfMoveArea, int length2Move, _) = moveableArea.Deconstruct();
         int newOffset = startOfMoveArea + moveBy;
@@ -136,12 +135,12 @@ public static class Utility
             newOffset = newOffset < 0 ? 0 : newOffset;
             area2CopyInto = new(newOffset, length2Move);
 
-            source[area2Move].CopyTo(source[(Range)area2CopyInto]);
+            source[slice2Move].CopyTo(source[(Range)area2CopyInto]);
 
             slice2Clear = area2CopyInto.Overlaps(moveableArea) > 0
                 //(-moveBy) to turn it positive, since its already < 0 !
                 ? new Slice<T>(area2CopyInto.End, -moveBy)
-                : new Slice<T>(area2Move.Start..area2Move.End, srcLen);
+                : new Slice<T>(slice2Move.Start..slice2Move.End, srcLen);
         }
         else
         {
@@ -151,11 +150,11 @@ public static class Utility
                 ? new(^length2Move.., srcLen)
                 : new(newOffset, length2Move);
 
-            source[area2Move].CopyTo(source[(Range)area2CopyInto]);
+            source[slice2Move].CopyTo(source[(Range)area2CopyInto]);
 
             slice2Clear = area2CopyInto.Overlaps(moveableArea) > 0
                 ? new(startOfMoveArea, doesExceedLength ? length2Move : moveBy)
-                : new(area2Move.Start..area2Move.End, srcLen);
+                : new(slice2Move.Start..slice2Move.End, srcLen);
         }
 
         source[(Range)slice2Clear].Fill(fillEmpties);

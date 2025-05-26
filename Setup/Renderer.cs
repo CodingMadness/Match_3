@@ -45,8 +45,6 @@ public static class UiRenderer
                 break;
             case DebugImGuiShapes.Triangle:
                 break;
-            default:
-                break;
         }
     }
 
@@ -101,7 +99,7 @@ public static class UiRenderer
 
     public static void DrawText(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints anchor)
     {
-        static Vector2 SetUiStartingPoint(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints offset, Vector2 sameLine)
+        static Vector2 SetUiStartingPoint(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints offset)
         {
             Vector2 result = Vector2.Zero;
             Vector2 screen = Grid.GetWindowSize();
@@ -117,46 +115,59 @@ public static class UiRenderer
                 CanvasStartingPoints.TopRight => result with { X = paddingAdjustedScreen.X, Y = 0f },
                 CanvasStartingPoints.BottomLeft => result with { X = 0f, Y = screen.Y - txtSize.Y },
                 CanvasStartingPoints.Bottomcenter => result with { X = center.X, Y = paddingAdjustedScreen.Y },
-                CanvasStartingPoints.BottomRight => result with
-                {
-                    X = paddingAdjustedScreen.X, Y = paddingAdjustedScreen.Y
-                },
+                CanvasStartingPoints.BottomRight => result with { X = paddingAdjustedScreen.X, Y = paddingAdjustedScreen.Y },
                 CanvasStartingPoints.MidLeft => result with { X = 0f, Y = center.Y },
                 CanvasStartingPoints.Center => result with { X = center.X, Y = center.Y },
                 CanvasStartingPoints.MidRight => result with { X = paddingAdjustedScreen.X, Y = center.Y },
                 _ => result
             };
 
-            sameLine = sameLine == Vector2.Zero ? result : sameLine;
-            //sameLine becomes the actual newLine since it is overwritten with the newLine-pos
-            Vector2 newLine = sameLine;
-            var offsetResult = (int)sameLine.Y == (int)result.Y ? new Vector2(sameLine.X, result.Y) : newLine;
-            ImGui.SetCursorPos(offsetResult);
-            return offsetResult;
+            ImGui.SetCursorPos(result);
+            return result;
         }
 
-        static Vector2 GetWrappedPos(Vector2 result, Vector2? anchorPos)
+        static bool TextShouldWrap(Vector2 current, Vector2 textSize)
         {
             var screen = Grid.GetWindowSize();
-            return result.X > screen.X ? anchorPos!.Value with { Y = ImGui.GetCursorPosY() } : result;
+            return current.X + textSize.X > screen.X; //? current with { Y = current.Y + textSize.Y } : result;
+        }
+        
+        static Vector2 SetNextLine(Vector2? fixStart)
+        {
+            ImGui.NewLine();
+            Vector2 newLine = fixStart!.Value with { Y = ImGui.GetCursorPosY() };
+            ImGui.SetCursorPos(newLine);
+            return newLine;
         }
 
-        var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt, 4);
+        //I am passing a null but only for easier code usage, semantically this is usually not good practise!
+        static void UpdateNextPos(ref Vector2? current, ref readonly TextInfo txtInfo)
+        {
+            current = current!.Value with { X = current.Value.X + txtInfo.TextSize.X };
+            ImGui.SetCursorPos(current!.Value);
+        }
+        
+        var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt);
 
         ImGui.PushFont(CustomFont);
-        var result = Vector2.Zero;
-        Vector2? anchorFixPos = null;
-        
+        Vector2? fixStartingPos = null, current = null;
+
         foreach (ref readonly var txtInfo in formatTextEnumerator)
         {
-            ImGui.PushStyleColor(ImGuiCol.Text, txtInfo.ColorAsVec4);
-            result = SetUiStartingPoint(txtInfo.Slice2Colorize, anchor, result);
-            anchorFixPos ??= result;
-            DrawShape(DebugImGuiShapes.Rectangle, result, TileColor.Red, txtInfo.Slice2Colorize);
-            ImGui.TextWrapped(txtInfo.Slice2Colorize);
-            result = result with { X = result.X + txtInfo.TextSize.X };
-            result = GetWrappedPos(result, anchorFixPos);
-            ImGui.PopStyleColor();
+            fixStartingPos ??= SetUiStartingPoint(txtInfo.Slice2Colorize, anchor);
+            current ??= fixStartingPos;
+
+            if (TextShouldWrap(current.Value, txtInfo.TextSize))
+            {
+                current = SetNextLine(fixStartingPos);
+                ImGui.TextColored(txtInfo.ColorAsVec4, txtInfo.Slice2Colorize);
+                UpdateNextPos(ref current, in  txtInfo);
+            }
+            else
+            {
+                ImGui.TextColored(txtInfo.ColorAsVec4, txtInfo.Slice2Colorize);
+                UpdateNextPos(ref current, in  txtInfo);
+            }
         }
 
         ImGui.PopFont();
