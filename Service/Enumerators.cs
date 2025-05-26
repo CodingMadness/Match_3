@@ -5,25 +5,23 @@ using System.Text.RegularExpressions;
 
 using DotNext.Buffers;
 using ImGuiNET;
+using Match_3.DataObjects;
 
 namespace Match_3.Service;
 
 public readonly ref struct TextInfo
 {
-    public readonly ReadOnlySpan<char> MemberName2Replace, Slice2Colorize, ColorAsText;
+    public readonly ReadOnlySpan<char> MemberName2Replace, Slice2Colorize;
     public readonly Vector4 ColorAsVec4;
-    public readonly TileColor TileColor;
-    private readonly char _separator;
-    
+
     /// <summary>
     /// represents the color we want to convert to a Vector4 type
     /// </summary>
     /// <param name="slice2Colorize">the slice of a span like: (abc def ghi)</param>
     /// <param name="colorCode">the string colorCode like {Black} or {Red}</param>
     /// <param name="memberName2Replace"></param>
-    /// <param name="separator">the char which is being used to iterate over each word within the piece</param>
     public TextInfo(ReadOnlySpan<char> slice2Colorize, ReadOnlySpan<char> colorCode,
-                    ReadOnlySpan<char> memberName2Replace, char separator = ' ')
+                    ReadOnlySpan<char> memberName2Replace)
     {
         ReadOnlySpan<char> code;
 
@@ -41,24 +39,15 @@ public readonly ref struct TextInfo
         }
 
         Slice2Colorize = slice2Colorize;
-        _separator = separator;
-        ColorAsText = code.TrimEnd('\0');
-        var color = Enum.Parse<KnownColor>(ColorAsText);
-        TileColor = color; 
-        ColorAsVec4 = Color.FromKnownColor(color).ToVec4();
-        Vector2 offset = Vector2.One * 1.5f;
-        //TextSize = ImGui.CalcTextSize(slice2Colorize) + offset;
+        var colorAsText = code.TrimEnd('\0');
+        var color = Enum.Parse<TileColor>(colorAsText);
+        ColorAsVec4 = FadeableColor.ToVec4(color);
         MemberName2Replace = memberName2Replace;
     }
-    
-    public TextInfo(ReadOnlySpan<char> current, Color sysCol, ReadOnlySpan<char> valuePlaceHolder) :
-        this(current, sysCol.Name, valuePlaceHolder)
-    {
-    }
 
-    public readonly Vector2 TextSize => ImGui.CalcTextSize(Slice2Colorize);
+    public Vector2 TextSize => ImGui.CalcTextSize(Slice2Colorize);
 
-    public readonly override string ToString() => Slice2Colorize.ToString();
+    public override string ToString() => Slice2Colorize.ToString();
 }
 
 public ref partial struct FormatTextEnumerator
@@ -66,21 +55,21 @@ public ref partial struct FormatTextEnumerator
     private readonly bool _skipBlackColor;
     private readonly Span<(int idx, int len)> _colorPositions;
     private readonly ReadOnlySpan<char> _text;
-    private readonly SpanOwner<(int idx, int len)> _matchPool;
-    
+
     private int _position;
     private TextInfo _current;
 
     public FormatTextEnumerator(ReadOnlySpan<char> text, int nrOfSlices2Format=10, bool skipBlackColor=false)
     {
-        //dont know a value yet for this but we use 15 for now
-        _matchPool = new(nrOfSlices2Format, false);
+        SpanOwner<(int idx, int len)> matchPool =
+            //don't know a value yet for this but we use 15 for now
+            new(nrOfSlices2Format, false);
         _position = 0;
         _text = text;
         _skipBlackColor = skipBlackColor;
         //var result = rgx.Split(_text);
         //{Black} This is a {Red} super nice {Green} shiny looking text
-        _colorPositions = _matchPool.Span;
+        _colorPositions = matchPool.Span;
 
         var colorFinder = skipBlackColor
             ? FindNonBlackColorCodes().EnumerateMatches(text)
@@ -156,13 +145,8 @@ public ref partial struct FormatTextEnumerator
     {
         return ref this;
     }
-    
-    public void Dispose()
-    {
-        _matchPool.Dispose();
-    }
 
-    [GeneratedRegex(pattern: @$"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
+    [GeneratedRegex(pattern: @"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex FindAllColorCodes();
     
     [GeneratedRegex(pattern: @"\((?!black\b)[A-Za-z]+[\s\0]*\)", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
