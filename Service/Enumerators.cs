@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
@@ -12,6 +13,7 @@ public readonly ref struct TextInfo
 {
     public readonly ReadOnlySpan<char> MemberName2Replace, Slice2Colorize;
     public readonly Vector4 ColorAsVec4;
+    public readonly TileColor ColorKind;
 
     /// <summary>
     /// represents the color we want to convert to a Vector4 type
@@ -39,8 +41,8 @@ public readonly ref struct TextInfo
 
         Slice2Colorize = slice2Colorize.TrimEnd('\0');
         var colorAsText = code.TrimEnd('\0');
-        var color = Enum.Parse<TileColor>(colorAsText);
-        ColorAsVec4 = FadeableColor.ToVec4(color);
+        ColorKind = Enum.Parse<TileColor>(colorAsText);
+        ColorAsVec4 = FadeableColor.ToVec4(ColorKind);
         MemberName2Replace = memberName2Replace;
     }
 
