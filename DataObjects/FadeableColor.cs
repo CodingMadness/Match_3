@@ -1,5 +1,4 @@
-﻿using System;
-using System.Drawing;
+﻿using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Match_3.Service;
@@ -9,69 +8,37 @@ namespace Match_3.DataObjects;
 public struct FadeableColor : IEquatable<FadeableColor>
 {
     private Color _toWrap;
-    public float CurrentAlpha, TargetAlpha;
-    private float _currSeconds;
+    private float _currentAlpha;
+    private readonly float _targetAlpha, _currSeconds;
 
     /// <summary>
     /// The greater this Value, the faster it fades!
     /// </summary>
-    public float AlphaSpeed;
-
-    public void AddTime(float currSeconds)
-    {
-        _currSeconds = !currSeconds.Equals(0f, 0.001f) ? currSeconds : 1f;
-    }
-
+    private readonly float _alphaSpeed;
+    
     private FadeableColor(Color toWrap)
     {
         _toWrap = toWrap;
-        AlphaSpeed = 0.5f;
-        CurrentAlpha = 1.0f;
-        TargetAlpha = 0.0f;
+        _alphaSpeed = 0.5f;
+        _currentAlpha = 1.0f;
+        _targetAlpha = 0.0f;
         _currSeconds = 1f;
-    }
-
-    private static readonly Dictionary<RayColor, string> ColorsAsText = new()
-    {
-        {Black, "Black"},
-        {Blue, "Blue"},
-        {Brown, "Brown"},
-        {DarkGray, "DarkGray"},
-        {Gold, "Gold"},
-        {Gray, "Gray"},
-        {Green, "Green"},
-        {LightGray, "LightGray"},
-        {Magenta, "Magenta"},
-        {Maroon, "Maroon"},
-        {Orange, "Orange"},
-        {Pink, "Pink"},
-        {Purple, "Purple"},
-        {RayWhite, "RayWhite"},
-        {Red, "Red"},
-        {SkyBlue, "SkyBlue"},
-        {Violet, "Violet"},
-        {White, "White"},
-        {Yellow, "Yellow"}
-    };
-
-    private readonly string ToReadableString()
-    {
-        RayColor compare = AsRayColor();
-        return ColorsAsText.TryGetValue(compare, out var value) ? value : _toWrap.ToString();
     }
 
     private void Lerp()
     {
-        //if u wanna maybe stop fading at 0.5f so we explicitly check if currAlpha > Target-Alpha
-        if (CurrentAlpha > TargetAlpha)
-            CurrentAlpha -= AlphaSpeed * (1f / _currSeconds);
+        //if you want to maybe stop fading at 0.5f so we explicitly check if currAlpha > Target-Alpha
+        if (_currentAlpha > _targetAlpha)
+            _currentAlpha -= _alphaSpeed * (1f / _currSeconds);
     }
 
     public FadeableColor Apply()
     {
         Lerp();
-        return Fade(AsRayColor(), CurrentAlpha);         
+        return Fade(AsRayColor(), _currentAlpha);         
     }
+
+    public readonly string Name => _toWrap.Name;
 
     private static readonly TileColor[] AllTileColors =
     [
@@ -90,13 +57,15 @@ public struct FadeableColor : IEquatable<FadeableColor>
    
      ];
 
-    public readonly Vector4 ToVec4()
+    public static Vector4 ToVec4(TileColor colorKind)
     {
+        Color systemColor = Color.FromKnownColor(colorKind);
+
         return new(
-            _toWrap.R / 255.0f,
-            _toWrap.G / 255.0f,
-            _toWrap.B / 255.0f,
-            _toWrap.A / 255.0f);
+            systemColor.R / 255.0f,
+            systemColor.G / 255.0f,
+            systemColor.B / 255.0f,
+            systemColor.A / 255.0f);
     }
 
     public static void Fill(Span<TileColor> toFill)
@@ -105,13 +74,13 @@ public struct FadeableColor : IEquatable<FadeableColor>
             toFill[i] = AllTileColors[i];
     }
 
-    public readonly RayColor AsRayColor() => new(_toWrap.R, _toWrap.G, _toWrap.B, _toWrap.A);
+    private readonly Raylib_cs.Color AsRayColor() => new(_toWrap.R, _toWrap.G, _toWrap.B, _toWrap.A);
 
-    public readonly Color AsSysColor() => Color.FromArgb(_toWrap.A, _toWrap.R, _toWrap.G, _toWrap.B);
+    private readonly Color AsSysColor() => Color.FromArgb(_toWrap.A, _toWrap.R, _toWrap.G, _toWrap.B);
 
-    public static int ToIndex(TileColor _toWrap)
+    public static int ToIndex(TileColor toWrap)
     {
-        return _toWrap switch
+        return toWrap switch
         {
             TileColor.LightBlue => 0,           //--> Hellblau
             TileColor.Turquoise => 1,           //--> Dunkelblau
@@ -125,17 +94,17 @@ public struct FadeableColor : IEquatable<FadeableColor>
             TileColor.Purple => 9,              //--> Rosa
             TileColor.Magenta => 10,            //--> Pink
             TileColor.Red => 11,
-            _ => throw new ArgumentOutOfRangeException(nameof(_toWrap), _toWrap, "No other _toWrap is senseful since we do not need other or more colors!")
+            _ => throw new ArgumentOutOfRangeException(nameof(toWrap), toWrap, "No other _toWrap is senseful since we do not need other or more colors!")
         };
     }
 
-    public static implicit operator RayColor(FadeableColor toWrap) => toWrap.AsRayColor();
+    public static implicit operator Raylib_cs.Color(FadeableColor toWrap) => toWrap.AsRayColor();
 
     public static implicit operator Color(FadeableColor toWrap) => toWrap.AsSysColor();
 
     public static implicit operator FadeableColor(Color toWrap) => new(toWrap);
 
-    public static implicit operator FadeableColor(RayColor toWrap) => new(Color.FromArgb(toWrap.R, toWrap.G, toWrap.B));
+    public static implicit operator FadeableColor(Raylib_cs.Color toWrap) => new(Color.FromArgb(toWrap.R, toWrap.G, toWrap.B));
 
     public static bool operator ==(FadeableColor c1, FadeableColor c2)
     {
@@ -149,11 +118,11 @@ public struct FadeableColor : IEquatable<FadeableColor>
         return this == other;
     }
 
-    public override readonly bool Equals(object? obj) => obj is FadeableColor other && this == other;
+    public readonly override bool Equals(object? obj) => obj is FadeableColor other && this == other;
 
-    public override readonly int GetHashCode() => HashCode.Combine(_toWrap, CurrentAlpha);
+    public readonly override int GetHashCode() => HashCode.Combine(_toWrap, _currentAlpha);
 
     public static bool operator !=(FadeableColor c1, FadeableColor c2) => !(c1 == c2);
 
-    public override readonly string ToString() => ToReadableString();
+    public readonly override string ToString() => _toWrap.Name;
 }
