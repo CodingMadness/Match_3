@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Drawing;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
@@ -38,7 +37,7 @@ public readonly ref struct TextInfo
             code = colorCode[1..^1];
         }
 
-        Slice2Colorize = slice2Colorize;
+        Slice2Colorize = slice2Colorize.TrimEnd('\0');
         var colorAsText = code.TrimEnd('\0');
         var color = Enum.Parse<TileColor>(colorAsText);
         ColorAsVec4 = FadeableColor.ToVec4(color);
@@ -126,7 +125,18 @@ public ref partial struct FormatTextEnumerator
             ? _text[beginOfBlack..].IndexOf('(') + beginOfBlack
             : _text.Length;
         
-        _current = new(_text[properStart..relativeEnd], color2Use, []);
+        //we need here to check if we have empty chars inside this slice and get rid of them
+        //span looks like: {11           Matches }
+        var tmp = _text[properStart..relativeEnd];
+        
+        if (tmp.Contains(char.MinValue))
+        {
+            Range allZeroes = tmp.IndexOf(char.MinValue)..tmp.LastIndexOf(char.MinValue);
+            Range desired = (allZeroes.End.Value + 1)..;
+            tmp.AsWriteable().Swap(allZeroes, desired);
+        }
+
+        _current = new(tmp, color2Use, []);
         
         _position++;
         
