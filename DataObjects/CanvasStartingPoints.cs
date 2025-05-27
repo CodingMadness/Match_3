@@ -3,7 +3,8 @@
     public enum CanvasStartingPoints
     {
         TopLeft, TopCenter, TopRight,  
-        BottomLeft, Bottomcenter ,BottomRight,
-        MidLeft, Center, MidRight
+        BottomLeft, BottomCenter ,BottomRight,
+        MidLeft, Center, MidRight,
+        CursorPos
     }
 }
