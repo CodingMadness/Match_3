@@ -51,7 +51,7 @@ public static class QuestBuilder
         currLvl.QuestCount = 1;/*questCount*/; 
     }
         
-    public static ReadOnlySpan<char> BuildQuestMessageFrom(in Quest quest)
+    public static ReadOnlySpan<char> BuildQuestMessageFrom(ref readonly Quest quest)
     {
         //the issue is, that there are Colors inside the internal TileColor-span
         //which exceed the length of the (TileColor) inside the QuestLog and hence he cannot replace those
@@ -60,12 +60,15 @@ public static class QuestBuilder
         var copiedLog = GameState.Instance.Logger.Enqueue(GameState.QuestLog);
  
         copiedLog.AsWriteable().Replace(Quest.TileColorName, quest.TileColor.ToString());
-        scoped var questIterator = new FormatTextEnumerator(copiedLog, 5, true);
+        scoped var questIterator = new FormatTextEnumerator(copiedLog, true, 5);
         
-        foreach (TextInfo questPart in questIterator)
-        {                           
+        foreach (ref readonly TextInfo segment in questIterator)
+        {                
+            if (segment.MemberName2Replace is [])
+                continue;
+            
             //e.g: Swap Quest.MemberName with <corresponding value>
-            var memberName = questPart.MemberName2Replace.AsWriteable();
+            var memberName = segment.MemberName2Replace.AsWriteable();
             var value = quest.GetValueByMemberName(memberName).ToString();
             value.CopyTo(memberName);
             memberName[value.Length..].Clear();
