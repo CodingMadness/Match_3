@@ -4,69 +4,14 @@ global using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAtt
 global using DAMTypes = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using DotNext;
 using Match_3.DataObjects;
-
 
 namespace Match_3.Service;
 
 public static class Utility
 {
     public static readonly Random Randomizer = new(DateTime.UtcNow.Ticks.GetHashCode());
-   
-    //nested helper functions!
-    private static Span<char> AsSpan(this StringBuilder self)
-    {
-        foreach (var chunk in self.GetChunks())
-        {
-            return chunk.Span.AsWriteable();
-        }
-
-        return [];
-    }
-
-    public static StringBuilder Replace(this StringBuilder input,
-        ReadOnlySpan<char> oldValue,
-        ReadOnlySpan<char> newValue)
-    {
-        if (oldValue.Length == 0)
-            throw new ArgumentException("Old value could not be found!", nameof(oldValue));
-
-        var span = AsSpan(input);
-        int matchIndex;
-        int replacementLength = newValue.Length;
-        int resultLength = input.Length;
-        int searchIndex = 0;
-
-        while ((matchIndex = span[searchIndex..].IndexOf(oldValue)) != -1)
-        {
-            searchIndex += matchIndex;
-
-            resultLength = resultLength - oldValue.Length + replacementLength;
-
-            if (resultLength > input.Length)
-            {
-                throw new InvalidOperationException("Resulting span length exceeds input span length.");
-            }
-
-            if (replacementLength == 0)
-            {
-                // Remove the old value
-                span.Slice(searchIndex, oldValue.Length)
-                    .CopyTo(span[(searchIndex + replacementLength)..]);
-            }
-            else
-            {
-                // Replace the old value with the new value
-                span[(searchIndex + oldValue.Length)..].CopyTo(span[(searchIndex + replacementLength)..]);
-                newValue.CopyTo(span.Slice(searchIndex, replacementLength));
-            }
-        }
-
-        // var area = span[..resultLength];
-        return input;
-    }
 
     public static void Replace(this ReadOnlySpan<char> input,
         ReadOnlySpan<char> oldValue,
@@ -111,78 +56,16 @@ public static class Utility
         input[slice2Move].CopyTo(areaToCopyInto.AsWriteable());
         return newPos + length;
     }
-
-    /// <summary>
-    /// Moves a slice within the input span by "moveBy" steps, 
-    /// if that value is > 0, it moves to the RIGHT, else to the LEFT 
-    /// </summary>
-    public static Slice<T>? MoveBy<T>(this scoped ReadOnlySpan<T> input,
-        Range slice2Move, int moveBy, bool shallAdjustInput, T fillEmpties = default)
-        where T : unmanaged, IEquatable<T>
-    {
-        if (moveBy == 0)
-            return null;
-
-        var source = input.AsWriteable();
-        int srcLen = source.Length;
-        Slice<T> moveableArea = new(slice2Move, srcLen);
-        Slice<T> area2CopyInto, slice2Clear;
-        (int startOfMoveArea, int length2Move, _) = moveableArea.Deconstruct();
-        int newOffset = startOfMoveArea + moveBy;
-
-        if (moveBy < 0)
-        {
-            newOffset = newOffset < 0 ? 0 : newOffset;
-            area2CopyInto = new(newOffset, length2Move);
-
-            source[slice2Move].CopyTo(source[(Range)area2CopyInto]);
-
-            slice2Clear = area2CopyInto.Overlaps(moveableArea) > 0
-                //(-moveBy) to turn it positive, since its already < 0 !
-                ? new Slice<T>(area2CopyInto.End, -moveBy)
-                : new Slice<T>(slice2Move.Start..slice2Move.End, srcLen);
-        }
-        else
-        {
-            bool doesExceedLength = (newOffset > srcLen) || (newOffset + length2Move) >= srcLen;
-
-            area2CopyInto = doesExceedLength
-                ? new(^length2Move.., srcLen)
-                : new(newOffset, length2Move);
-
-            source[slice2Move].CopyTo(source[(Range)area2CopyInto]);
-
-            slice2Clear = area2CopyInto.Overlaps(moveableArea) > 0
-                ? new(startOfMoveArea, doesExceedLength ? length2Move : moveBy)
-                : new(slice2Move.Start..slice2Move.End, srcLen);
-        }
-
-        source[(Range)slice2Clear].Fill(fillEmpties);
-
-        if (shallAdjustInput)
-        {
-            //step1: move the "newArea" now by "moveBy" BACK/TOP
-            moveBy = slice2Clear.Length;
-            var adjustableArea = area2CopyInto;
-            var adjustedArea = input.MoveBy(adjustableArea, -moveBy, false, fillEmpties)!.Value;
-            int startOfRemain2Move = adjustedArea.End;
-            Slice<T> remain = new(startOfRemain2Move.., srcLen);
-            input.MoveBy(remain, -1, false, fillEmpties);
-            return null;
-        }
-
-        return slice2Clear;
-    }
-
+     
     private static int Internal_MoveBy<T>(this scoped ReadOnlySpan<T> input,
         Range area2Move, int moveBy,
         T fillEmpties = default)
         where T : struct, IEquatable<T>
     {
         var source = input.AsWriteable();
-        var (Offset, Length) = area2Move.GetOffsetAndLength(source.Length);
-        int newOffset = Offset + moveBy;
-        Range areaToCopyInto = newOffset..(Length + newOffset);
+        var (offset, length) = area2Move.GetOffsetAndLength(source.Length);
+        int newOffset = offset + moveBy;
+        Range areaToCopyInto = newOffset..(length + newOffset);
         source[area2Move].CopyTo(source[areaToCopyInto]);
 
         int endOfArea2Move;
@@ -190,21 +73,21 @@ public static class Utility
 
         if (moveBy < 0)
         {
-            endOfArea2Move = Offset + Length;
+            endOfArea2Move = offset + length;
             //go "moveBy" back
             begin2Clear = endOfArea2Move + moveBy;
         }
         else
         {
             //go "moveBy" forward
-            begin2Clear = Offset;
+            begin2Clear = offset;
             endOfArea2Move = begin2Clear + moveBy;
         }
 
         Range area2Clear = begin2Clear..endOfArea2Move;
         source[area2Clear].Fill(fillEmpties);
 
-        return newOffset + Length;
+        return newOffset + length;
     }
 
     /// <summary>
@@ -215,7 +98,7 @@ public static class Utility
     /// <param name="y">the 2. span to swap with the 1. one</param>
     /// <param name="delimiter">a value which functions as a delimiter to say when a new block of an arbitrary numeric value begins and ends..</param>
     /// <typeparam name="T">The type of the span</typeparam>
-    private static void Swap<T>(this scoped ReadOnlySpan<T> input, Range x, Range y, T delimiter = default)
+    public static void Swap<T>(this scoped ReadOnlySpan<T> input, Range x, Range y, T delimiter = default)
         where T : unmanaged, IEquatable<T>
     {
         //get all the needed information about the occuring spans here!
@@ -395,33 +278,28 @@ public static class Utility
         }
     }
     
-    public static Span<T> TakeRndItemsAtRndPos<T>(this Span<T> items, int levelID) where T : unmanaged
+    public static Span<T> TakeRndItemsAtRndPos<T>(this Span<T> items, int leveliD) where T : unmanaged
     {
-        int len = items.Length;
-        int m = len / 2;
-        float distribution = Randomizer.NextSingle();
-        int levelId = levelID;
-        
-        int amount2Take = levelId switch
-        {
-            0 => Randomizer.Next(3, 4),
-            1 => Randomizer.Next(5, 6),
-            2 => Randomizer.Next(7, 7),
-            _ => throw new ArgumentOutOfRangeException(nameof(levelId))
-        };
-        
-        Range r = distribution switch
-        {
-            >= 0.0f and < 0.33f => ..amount2Take,
-            >= 0.33f and < 0.66f => m..,
-            >= 0.66f and < 1.00f => ^amount2Take..,
-            _ => throw new NotImplementedException()
-        };
+        if (items.Length < 2)
+            throw new ArgumentException("Span must have at least 2 items", nameof(items));
 
-        return items[r];
+        var random = new Random(DateTime.UtcNow.Ticks.GetHashCode());
+
+        // Clamp levelID to ensure it doesn't force a slice bigger than the span
+        leveliD = Math.Max(1, Math.Min(leveliD, items.Length / 2));
+
+        // Higher levelID = bigger slice (but never more than half the span)
+        int maxPossibleTake = Math.Max(2, Math.Min(items.Length / 2, 2 + leveliD));
+        int takeAmount = random.Next(2, maxPossibleTake + 1);
+
+        // Ensure we don't go out of bounds when choosing a start position
+        int maxStart = items.Length - takeAmount;
+        int startPos = random.Next(0, maxStart + 1);
+
+        return items.Slice(startPos, takeAmount);
     }
 
-    public static void Randomize<T>(this Span<T> span)
+    public static void Shuffle<T>(this Span<T> span)
     {
 
     }
