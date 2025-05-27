@@ -38,8 +38,6 @@ public struct FadeableColor : IEquatable<FadeableColor>
         return Fade(AsRayColor(), _currentAlpha);         
     }
 
-    public readonly string Name => _toWrap.Name;
-
     private static readonly TileColor[] AllTileColors =
     [
         TileColor.LightBlue,          //--> Hellblau
@@ -96,7 +94,6 @@ public struct FadeableColor : IEquatable<FadeableColor>
             _ => throw new ArgumentOutOfRangeException(nameof(toWrap), toWrap, "No other _toWrap is senseful since we do not need other or more colors!")
         };
     }
-
     public static implicit operator Raylib_cs.Color(FadeableColor toWrap) => toWrap.AsRayColor();
 
     public static implicit operator Color(FadeableColor toWrap) => toWrap.AsSysColor();

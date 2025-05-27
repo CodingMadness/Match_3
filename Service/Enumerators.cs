@@ -41,6 +41,7 @@ public readonly ref struct TextInfo
 
         Slice2Colorize = slice2Colorize.TrimEnd('\0');
         var colorAsText = code.TrimEnd('\0');
+      
         ColorKind = Enum.Parse<TileColor>(colorAsText);
         ColorAsVec4 = FadeableColor.ToVec4(ColorKind);
         MemberName2Replace = memberName2Replace;
