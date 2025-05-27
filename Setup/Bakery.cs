@@ -19,7 +19,6 @@ public static class Bakery
                 TileColor.Brown => new Vector2(0f, 2f),
                 TileColor.Orange =>new Vector2(1f, 2f),
                 TileColor.Yellow => new Vector2(1f, 1f),
-                TileColor.MediumVioletRed =>  new Vector2(1f, 0f),
                 TileColor.Purple => new Vector2(3f, 0f),
                 TileColor.Magenta =>  new Vector2(3f, 3f),
                 TileColor.Red => new Vector2(2f, 0f),
