@@ -1,8 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Drawing;
 using System.Numerics;
+using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-
 using DotNext.Buffers;
 using ImGuiNET;
 using Match_3.DataObjects;
@@ -15,7 +16,7 @@ public readonly ref struct TextInfo
     public readonly Vector4 ColorAsVec4;
     public readonly TileColor ColorKind;
     public readonly (int spanIdx, int spanLen) Occurence;
-    
+
     /// <summary>
     /// represents the color we want to convert to a Vector4 type
     /// </summary>
@@ -41,8 +42,8 @@ public readonly ref struct TextInfo
         }
         else
         {
-            ColorCode = colorCode;       //(Color)
-            code = colorCode[1..^1];    //Color
+            ColorCode = colorCode; //(Color)
+            code = colorCode[1..^1]; //Color
         }
 
         Text = slice2Colorize.TrimEnd('\0');
@@ -59,13 +60,17 @@ public readonly ref struct TextInfo
     public override string ToString() => Text.ToString();
 }
 
-public ref struct WordEnumerator
+public unsafe ref struct WordEnumerator
 {
     private readonly char _separator;
-    private readonly TextInfo _original;
+    private readonly TextInfo _originalPhrase; //the sentence with
+    
     private TextInfo _tmp;
     private ReadOnlySpan<char> _remainder;
-
+    
+    //TEST CODE ONLY!
+    private TextInfo* _ptr2OriginalPhrase;
+    
     [UnscopedRef] public ref readonly TextInfo Current => ref _tmp;
 
     /// <summary>
@@ -73,21 +78,22 @@ public ref struct WordEnumerator
     /// </summary>
     /// <param name="span">the ROS which is interpreted as an array of words</param>
     /// <param name="separator">the character who will be used to split the ROS</param>
-    private WordEnumerator(ReadOnlySpan<char> span, char separator)
+    private WordEnumerator(ReadOnlySpan<char> span, char separator = ' ')
     {
         _separator = separator;
 
         _remainder = span.Contains(separator) ? span[1..] : span;
 
-        if (!span.Contains(separator))
-            throw new ArgumentException(
-                "The Enumerator expects a char which shall function as line splitter! If there is none" +
-                "it cannot slice the ROS which shall be viewed as string[]");
+        // if (!span.Contains(separator))
+        //     throw new ArgumentException(
+        //         "The Enumerator expects a char which shall function as line splitter! If there is none" +
+        //         "it cannot slice the ROS which shall be viewed as <separator> seperated string");
     }
 
-    public WordEnumerator(in TextInfo original, char separator) : this(original.Text, separator)
+    public WordEnumerator(ref readonly TextInfo originalPhrase, char separator = ' ') : this(originalPhrase.Text, separator)
     {
-        _original = original;
+        _originalPhrase = originalPhrase;
+        _ptr2OriginalPhrase = (TextInfo*)Unsafe.AsPointer(ref _originalPhrase);
     }
 
     public bool MoveNext()
@@ -115,11 +121,11 @@ public ref struct WordEnumerator
             _remainder = _remainder[(word.Length)..];
         }
 
-        _tmp = new(word, 
-                             _original.ColorKind.ToString(),
-                             [], 
-                             [],
-                             (_tmp.Occurence.spanIdx, word.Length));
+        _tmp = new(word,
+            _originalPhrase.ColorKind.ToString(),
+            [],
+            [],
+            (_tmp.Occurence.spanIdx, word.Length));
 
         return word.Length > 0;
     }
@@ -136,25 +142,27 @@ public ref partial struct FormatTextEnumerator
     private readonly bool _skipBlackColor;
     private readonly Span<(int idx, int len)> _colorPositions;
     private readonly ReadOnlySpan<char> _text;
+    private readonly WordEnumerator _words;
 
     private int _position;
-    private TextInfo _current;
+    private TextInfo _phrase;
 
-    public FormatTextEnumerator(ReadOnlySpan<char> text, int nrOfSlices2Format=10, bool skipBlackColor=false)
+    public FormatTextEnumerator(ReadOnlySpan<char> text, bool needWords = false,int nrOfSlices2Format = 10,
+        bool skipBlackColor = false)
     {
         //don't know a value yet for this, but we use 10 for now
         SpanOwner<(int idx, int len)> matchPool = new(nrOfSlices2Format, false);
         _position = 0;
         _text = text;
         _skipBlackColor = skipBlackColor;
-        //var result = rgx.Split(_text);
+
         //{Black} This is a {Red} super nice {Green} shiny looking text
         _colorPositions = matchPool.Span;
 
         var colorFinder = skipBlackColor
             ? FindNonBlackColorCodes().EnumerateMatches(text)
             : FindAllColorCodes().EnumerateMatches(text);
-        
+
         foreach (var enumerateMatch in colorFinder)
         {
             //reset:
@@ -162,18 +170,26 @@ public ref partial struct FormatTextEnumerator
             {
                 _colorPositions[_position++] = (enumerateMatch.Index, enumerateMatch.Length);
             }
-        }        
+        }
+
         _colorPositions = _colorPositions[.._position];
         _position = 0;
+        
+        if (needWords)
+        {
+            //Note: I am forced to pass mutable ref to readonly ref because otherwise:
+            //error: 'Struct members cannot return 'this' or other instance members by reference' 
+            _words = new(ref Unsafe.AsRef(ref _phrase));
+        }
     }
-    
-    [UnscopedRef] public ref readonly TextInfo Current => ref _current;
+
+    [UnscopedRef] public ref readonly TextInfo Current => ref _phrase;
 
     private bool GetNextNonBlackColor()
     {
         if (_position == _colorPositions.Length)
             return false;
-        
+
         ref var match = ref _colorPositions[_position];
         var color2Use = _text.Slice(match.idx, match.len);
         int text = match.idx + match.len + 1;
@@ -182,17 +198,17 @@ public ref partial struct FormatTextEnumerator
             : _text.Length - text;
         var slice2Colorize = _text.Slice(text, lengthTilNextColor);
         bool isAMemberName = slice2Colorize.Contains('.'); //like: Match.Count and so on...
-        var variable2Replace = isAMemberName                  
-                                                  ? slice2Colorize[..slice2Colorize.IndexOf(' ')] 
-                                                  : [];
+        var variable2Replace = isAMemberName
+            ? slice2Colorize[..slice2Colorize.IndexOf(' ')]
+            : [];
         var textWithColorCode = _text.Slice(match.idx, lengthTilNextColor);
         var occurence = (match.idx, match.len);
-        _current = new(slice2Colorize, color2Use, variable2Replace, textWithColorCode, occurence);
+        _phrase = new(slice2Colorize, color2Use, variable2Replace, textWithColorCode, occurence);
         _position++;
 
         return slice2Colorize.Length > 0;
     }
-    
+
     private bool GetNextColor()
     {
         if (_position >= _colorPositions.Length)
@@ -206,11 +222,11 @@ public ref partial struct FormatTextEnumerator
         int lengthTilNextColor = _position < _colorPositions.Length - 1
             ? _text[beginOfBlack..].IndexOf('(') + beginOfBlack
             : _text.Length;
-        
+
         //we need here to check if we have empty chars inside this slice and get rid of them
         //span looks like: {11 Matches }
         var txt = _text[properStart..lengthTilNextColor];
-        
+
         //try to remove them if you can, if not, execute the below code
         if (txt.TrimEnd('\0').Contains(char.MinValue))
         {
@@ -218,31 +234,34 @@ public ref partial struct FormatTextEnumerator
             Range desired = (allZeroes.End.Value + 1)..;
             txt.AsWriteable().Swap(allZeroes, desired);
         }
+
         var textWithColorCode = _text[match.idx..lengthTilNextColor];
         var occurence = (match.idx, match.len);
-        _current = new(txt, color2Use, [], textWithColorCode, occurence);
-        
+        _phrase = new(txt, color2Use, [], textWithColorCode, occurence);
+
         _position++;
-        
+
         return true;
     }
-   
+
     public bool MoveNext()
     {
-        return _skipBlackColor 
-            ? GetNextNonBlackColor() 
+        return _skipBlackColor
+            ? GetNextNonBlackColor()
             : GetNextColor();
     }
-    
+
     [UnscopedRef]
     public ref readonly FormatTextEnumerator GetEnumerator()
     {
         return ref this;
     }
 
+    [UnscopedRef] public ref readonly WordEnumerator GetWords() => ref _words;
+
     [GeneratedRegex(pattern: @"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex FindAllColorCodes();
-    
+
     [GeneratedRegex(pattern: @"\((?!black\b)[A-Za-z]+[\s\0]*\)", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex FindNonBlackColorCodes();
 }
