@@ -22,19 +22,19 @@ public readonly record struct Quest(
     public const string SwapCountName        = nameof(State.WrongSwaps) + "." + nameof(State.WrongSwaps.Count);
     public const string ReplacementCountName = nameof(State.Replacement) + "." + nameof(State.Replacement.Count);
     public const string WrongMatchName       = nameof(State.WrongMatch) + "." + nameof(State.WrongMatch.Count);
-    public const string TileColorName        = nameof(Quest.TileColor);
+    public const string TileColorName        = nameof(Quest.TileColor) + "\0\0\0";  //HARDCODED Value, DO NOT CHANGE!
 
     public int GetValueByMemberName(ReadOnlySpan<char> name)
     {
         if (name.BitwiseEquals(MatchCountName))
             return SuccessfulMatches.Count;
-        else if (name.BitwiseEquals(MatchIntervalName))
+        if (name.BitwiseEquals(MatchIntervalName))
             return (int)SuccessfulMatches.Elapsed;
-        else if (name.BitwiseEquals(SwapCountName))
+        if (name.BitwiseEquals(SwapCountName))
             return SwapsAllowed.Count;
-        else if (name.BitwiseEquals(ReplacementCountName))
+        if (name.BitwiseEquals(ReplacementCountName))
             return ReplacementsAllowed.Count;
-        else if (name.BitwiseEquals(WrongMatchName))
+        if (name.BitwiseEquals(WrongMatchName))
             return NumberOfWrongMatchesAllowed.Count;
 
         throw new ArgumentException("this code should not be reached at all!");
