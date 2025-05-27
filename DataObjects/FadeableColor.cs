@@ -1,7 +1,6 @@
 ﻿using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using Match_3.Service;
 
 namespace Match_3.DataObjects;
 

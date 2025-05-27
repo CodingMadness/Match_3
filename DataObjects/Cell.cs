@@ -300,7 +300,7 @@ public readonly struct LinearCellLine : IGridRect, IMultiCell
         throw new NotImplementedException();
     }
 
-    public new string ToString() => ((IMultiCell)this).ToString();
+    public new string ToString() => this.ToString();
 }
 
 [StructLayout(LayoutKind.Auto)]
@@ -332,7 +332,7 @@ public readonly struct DiagonalCellLine : IMultiCell
         throw new NotImplementedException();
     }
 
-    public override string ToString() => ((IMultiCell)this).ToString();
+    public override string ToString() => this.ToString();
 }
 
 public class MultiCell<TCell> : IMultiCell where TCell: struct, IMultiCell 

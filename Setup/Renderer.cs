@@ -162,7 +162,7 @@ public static class UiRenderer
             ImGui.SetCursorPos(current!.Value);
         }
         
-        var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt);
+        var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt, true);
         
         Vector2? fixStartingPos = null, current = null;
 
@@ -179,10 +179,12 @@ public static class UiRenderer
                 //if we are about to wrap the text,
                 //we need to know if its only black-default text so we  
                 //put the words 1 by 1 while they fit still in the same line 
-                //and only then put the non-fitting ones into the next line 
-                if (txtInfo.ColorKind is TileColor.Black)
+                //and only then put the non-fitting ones into the next line
+                bool onlySameLineForBlackTxt = txtInfo.ColorKind is TileColor.Black;
+                
+                if (onlySameLineForBlackTxt)
                 {
-                    WordEnumerator blackWordsEnumerator = new(txtInfo, ' ');
+                    WordEnumerator blackWordsEnumerator = new(txtInfo);
 
                     foreach (var wordInfo in blackWordsEnumerator)
                     {
@@ -192,10 +194,7 @@ public static class UiRenderer
                         DrawText(SliceOutAWord(in txtInfo, in wordInfo), CanvasStartingPoints.CursorPos);
                     }
                 }
-                else
-                {
-                    
-                }
+
                 current = SetNextLine(fixStartingPos);
                 ImGui.TextColored(txtInfo.ColorAsVec4, txtInfo.Text);
                 UpdateNextPos(ref current, in  txtInfo);

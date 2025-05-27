@@ -71,7 +71,7 @@ public struct SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquat
             if ((entireSpan.IndexOf(input)) != -1)
                 return withoutEmpties;
 
-            else if ((input.LastIndexOf(withoutEmpties)) != -1)
+            if ((input.LastIndexOf(withoutEmpties)) != -1)
             {
                 input = input[withoutEmpties.Length..];
             }

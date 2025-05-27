@@ -3,7 +3,6 @@ using System.Numerics;
 using CommunityToolkit.HighPerformance;
 using DotNext.Collections.Generic;
 
- 
 namespace Match_3.DataObjects;
 
 /// <summary>

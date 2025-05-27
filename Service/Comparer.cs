@@ -72,19 +72,17 @@ public static class Comparer
             {
                 if ((result=x0.CompareTo(x1)) == 0)
                     return y0.CompareTo(y1);
-                else
-                    return result;
+                return result;
             }
             //we have to order first by rows!
             if (orderByRows)
             {
                 if ((result=y0.CompareTo(y1)) == 0)
                     return x0.CompareTo(x1);
-                else
-                    return result;
+                return result;
             }
 
-            throw new ArgumentException($"something went heavily wrong inside: CellComparer.CompareTo(x, y)...");
+            throw new ArgumentException("something went heavily wrong inside: CellComparer.CompareTo(x, y)...");
         }
     }
 

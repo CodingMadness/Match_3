@@ -4,7 +4,6 @@ global using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAtt
 global using DAMTypes = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using DotNext;
 using Match_3.DataObjects;
 
 namespace Match_3.Service;
@@ -189,7 +188,7 @@ public static class Utility
 
                 //MUTATING instructions:
                 //swap instantly a subset of largeOne with smallOne
-                input.Swap((Range)info.SmallOneArea, (Range)sliceFromLargeOne, delimiter);
+                input.Swap(info.SmallOneArea, sliceFromLargeOne, delimiter);
                 //move remainder to the "endOfSmallOne" 
                 int idxOfSmallOne = input.Internal_MoveBy(remainder2Move, -len2Copy, delimiter);
                 //before we can copy the smallOne where it belongs
