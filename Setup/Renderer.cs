@@ -18,8 +18,6 @@ public enum DebugImGuiShapes
 
 public static class UiRenderer
 {
-    private static int _currQuest;
-
     /// <summary>
     /// Only for debug purposes!
     /// </summary>
@@ -175,23 +173,10 @@ public static class UiRenderer
 
     public static void DrawQuestLog(Span<Quest> quests)
     {
-        var questRunner = quests;
-        int questCount = GameState.Instance.Lvl.QuestCount;
-
-        bool shallGetNewQuest = _currQuest++ < questCount;
-
-        if (shallGetNewQuest)
+        foreach (ref readonly Quest quest in quests)
         {
-            foreach (ref readonly Quest quest in questRunner)
-            {
-                var logger = QuestBuilder.BuildQuestMessageFrom(quest);
-                DrawText(logger, CanvasStartingPoints.MidLeft);
-            }
-        }
-        else
-        {
-            //Draw here the logs repeatedly from the Queue.
-            DrawText(GameState.Instance.GetPooledQuestLog(), CanvasStartingPoints.MidLeft);
+            var logger = QuestBuilder.BuildQuestMessageFrom(quest);
+            DrawText(logger, CanvasStartingPoints.MidLeft);
         }
     }
 }
