@@ -50,7 +50,6 @@ public struct FadeableColor : IEquatable<FadeableColor>
          TileColor.Brown,            //--> Braun
          TileColor.Orange,           //--> Orange
          TileColor.Yellow,           //--> Gelb
-         TileColor.MediumVioletRed,  //--> RotPink
          TileColor.Purple,       //--> Rosa
          TileColor.Magenta,          //--> Pink
          TileColor.Red,              //--> Rot

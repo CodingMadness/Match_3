@@ -24,9 +24,8 @@ public static class QuestBuilder
         // const int questLogParts = 4;
         scoped Span<TileColor> subset = stackalloc TileColor[tileCount];
         FadeableColor.Fill(subset);
-        subset.Randomize();
+        subset.Shuffle();
         subset = subset.TakeRndItemsAtRndPos(currLvl.Id);
-        scoped var tmpSubset = subset;
         int questCount = subset.Length;
         int trueIdx = 0;
         currLvl.Quests = new Quest[questCount];
@@ -34,7 +33,7 @@ public static class QuestBuilder
         scoped Span<uint> maxCountPerType = stackalloc uint[tileCount];
         maxCountPerType.Fill(currLvl.CountForAllColors);
         
-        foreach (var color in tmpSubset)
+        foreach (var color in subset)
         {
             int toEven = GetRandomInterval();
             SubEventData match = new((int)(maxCountPerType[trueIdx] / Config.MaxTilesPerMatch), toEven);
@@ -54,9 +53,12 @@ public static class QuestBuilder
         
     public static ReadOnlySpan<char> BuildQuestMessageFrom(in Quest quest)
     {
-        //there is a defect in here....!
+        //the issue is, that there are Colors inside the internal TileColor-span
+        //which exceed the length of the (TileColor) inside the QuestLog and hence he cannot replace those
+        //placeholder names and then tries to create a color out of the litteral "TileColor" string
+        //which is nonsense of course and throws an exception 
         var copiedLog = GameState.Instance.Logger.Enqueue(GameState.QuestLog);
-        
+ 
         copiedLog.AsWriteable().Replace(Quest.TileColorName, quest.TileColor.ToString());
         scoped var questIterator = new FormatTextEnumerator(copiedLog, 5, true);
         

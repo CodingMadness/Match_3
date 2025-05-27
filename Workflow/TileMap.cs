@@ -43,7 +43,7 @@ public static class TileMap
         {
             begin.X = twoBy4Block.X;
             twoBy4Block.X += xSize;
-            allKinds.Randomize();
+            allKinds.Shuffle();
             j = 0;
             goto Next8Block;  
         }
@@ -56,7 +56,7 @@ public static class TileMap
             begin.Y = twoBy4Block.Y;
             twoBy4Block.X = xSize;
             twoBy4Block.Y += ySize;
-            allKinds.Randomize();
+            allKinds.Shuffle();
             j = 0;
             goto Next8Block;  
         }

@@ -1,4 +1,5 @@
-﻿using Match_3.DataObjects;
+﻿using System.Diagnostics;
+using Match_3.DataObjects;
 using Match_3.Setup;
 using Raylib_cs;
 using rlImGui_cs;
@@ -94,7 +95,10 @@ internal static class Game
 
             if (!_inGame)
             {
-                //UiRenderer.DrawQuestLog(GameState.Instance.GetQuests());
+                var quests = GameState.Instance.GetQuests();
+                // int len = quests.Length;
+                // Debug.WriteLine($"QUESTS to do? {len}");
+                UiRenderer.DrawQuestLog(quests);
             }
             else if (_inGame)
             {
