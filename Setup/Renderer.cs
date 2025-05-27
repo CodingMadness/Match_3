@@ -65,7 +65,8 @@ public static class UiRenderer
             ClearBackground(White);
 
             rlImGui.Begin();
-            {
+            { 
+                ImGui.PushFont(CustomFont);
                 ImGui.SetNextWindowPos(Vector2.Zero);
                 ImGui.SetNextWindowSize(Grid.GetWindowSize());
             }
@@ -74,6 +75,7 @@ public static class UiRenderer
 
     public static void End()
     {
+        ImGui.PopFont();
         ImGui.End();
         rlImGui.End();
         EndDrawing();
@@ -97,6 +99,21 @@ public static class UiRenderer
 
     public static void DrawText(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints anchor)
     {
+        static ReadOnlySpan<char> SliceOutAWord(ref readonly TextInfo textInfo, ref readonly TextInfo wordInfo)
+        {
+            //(Black) and also just
+            //---->
+            //(Black) also just and
+            // Span<char> withoutTheWord = stackalloc char[textInfo.TextWithColorCode.Length];
+            SpanQueue<char> withoutTheWord = new(textInfo.TextWithColorCode.Length);
+            int word2SkipPos = wordInfo.Occurence.spanIdx + wordInfo.Occurence.spanLen;
+            var tmp = textInfo.TextWithColorCode;
+            withoutTheWord.CoreEnqueue(textInfo.ColorCode);
+            withoutTheWord.CoreEnqueue(textInfo.Text.Slice(word2SkipPos));
+             
+            return withoutTheWord.ConcatEntirePool();
+        }
+        
         static Vector2 SetUiStartingPoint(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints offset)
         {
             Vector2 result = Vector2.Zero;
@@ -112,7 +129,7 @@ public static class UiRenderer
                 CanvasStartingPoints.TopCenter => result with { X = center.X, Y = 0f },
                 CanvasStartingPoints.TopRight => result with { X = paddingAdjustedScreen.X, Y = 0f },
                 CanvasStartingPoints.BottomLeft => result with { X = 0f, Y = screen.Y - txtSize.Y },
-                CanvasStartingPoints.Bottomcenter => result with { X = center.X, Y = paddingAdjustedScreen.Y },
+                CanvasStartingPoints.BottomCenter => result with { X = center.X, Y = paddingAdjustedScreen.Y },
                 CanvasStartingPoints.BottomRight => result with { X = paddingAdjustedScreen.X, Y = paddingAdjustedScreen.Y },
                 CanvasStartingPoints.MidLeft => result with { X = 0f, Y = center.Y },
                 CanvasStartingPoints.Center => result with { X = center.X, Y = center.Y },
@@ -123,7 +140,7 @@ public static class UiRenderer
             ImGui.SetCursorPos(result);
             return result;
         }
-
+        
         static bool TextShouldWrap(Vector2 current, Vector2 textSize)
         {
             var screen = Grid.GetWindowSize();
@@ -146,29 +163,49 @@ public static class UiRenderer
         }
         
         var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt);
-
-        ImGui.PushFont(CustomFont);
+        
         Vector2? fixStartingPos = null, current = null;
 
         foreach (ref readonly var txtInfo in formatTextEnumerator)
         {
-            fixStartingPos ??= SetUiStartingPoint(txtInfo.Slice2Colorize, anchor);
+            fixStartingPos ??= anchor is not CanvasStartingPoints.CursorPos ?
+                               SetUiStartingPoint(txtInfo.Text, anchor) :
+                               ImGui.GetCursorPos();
+            
             current ??= fixStartingPos;
 
             if (TextShouldWrap(current.Value, txtInfo.TextSize))
             {
+                //if we are about to wrap the text,
+                //we need to know if its only black-default text so we  
+                //put the words 1 by 1 while they fit still in the same line 
+                //and only then put the non-fitting ones into the next line 
+                if (txtInfo.ColorKind is TileColor.Black)
+                {
+                    WordEnumerator blackWordsEnumerator = new(txtInfo, ' ');
+
+                    foreach (var wordInfo in blackWordsEnumerator)
+                    {
+                        ImGui.TextColored(wordInfo.ColorAsVec4, wordInfo.Text);
+                        UpdateNextPos(ref current, in  wordInfo);
+                        //call from here recursively
+                        DrawText(SliceOutAWord(in txtInfo, in wordInfo), CanvasStartingPoints.CursorPos);
+                    }
+                }
+                else
+                {
+                    
+                }
                 current = SetNextLine(fixStartingPos);
-                ImGui.TextColored(txtInfo.ColorAsVec4, txtInfo.Slice2Colorize);
+                ImGui.TextColored(txtInfo.ColorAsVec4, txtInfo.Text);
                 UpdateNextPos(ref current, in  txtInfo);
             }
             else
             {
-                ImGui.TextColored(txtInfo.ColorAsVec4, txtInfo.Slice2Colorize);
+                ImGui.TextColored(txtInfo.ColorAsVec4, txtInfo.Text);
                 UpdateNextPos(ref current, in  txtInfo);
             }
         }
-
-        ImGui.PopFont();
     }
 
     public static void DrawQuestLog(Span<Quest> quests)
