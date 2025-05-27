@@ -14,8 +14,7 @@ public record Config(int Id,
 {
     public const int MaxTilesPerMatch = 3;
     public const int TileSize = 64 / 1;
-    public const int TileColorCount = 12;
-    public const float BaseFontSize = 13f;
+    public const int TileColorCount = 11;
     public int WindowHeight => GridHeight * TileSize;
     public int WindowWidth => GridWidth * TileSize;
 
