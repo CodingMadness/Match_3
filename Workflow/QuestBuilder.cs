@@ -1,4 +1,5 @@
-﻿using Match_3.DataObjects;
+﻿using System.Runtime.CompilerServices;
+using Match_3.DataObjects;
 using Match_3.Service;
 
 namespace Match_3.Workflow;
@@ -51,7 +52,7 @@ public static class QuestBuilder
         currLvl.QuestCount = 1;/*questCount*/; 
     }
         
-    public static ReadOnlySpan<char> BuildQuestMessageFrom(ref readonly Quest quest)
+    public static unsafe ReadOnlySpan<char> BuildQuestMessageFrom(ref readonly Quest quest)
     {
         //the issue is, that there are Colors inside the internal TileColor-span
         //which exceed the length of the (TileColor) inside the QuestLog and hence he cannot replace those
@@ -59,16 +60,17 @@ public static class QuestBuilder
         //which is nonsense of course and throws an exception 
         var copiedLog = GameState.Instance.Logger.Enqueue(GameState.QuestLog);
  
-        copiedLog.AsWriteable().Replace(Quest.TileColorName, quest.TileColor.ToString());
-        scoped var questIterator = new FormatTextEnumerator(copiedLog, true, 5);
+        copiedLog.Mutable().Replace(Quest.TileColorName, quest.TileColor.ToString());
+        scoped var questIterator = new FormatTextEnumerator(copiedLog, true, 5,true);
         
-        foreach (ref readonly TextInfo segment in questIterator)
-        {                
-            if (segment.MemberName2Replace is [])
-                continue;
-            
+        // NOTE: we need to use while loop
+        //       because foreach creates a hidden copy of my iterator and
+        //       hence my original iterator is empty hence I need valid data!
+        while (questIterator.MoveNext()) 
+        {
+            var segment = questIterator.Current;
             //e.g: Swap Quest.MemberName with <corresponding value>
-            var memberName = segment.MemberName2Replace.AsWriteable();
+            var memberName = segment.MemberName2Replace.Mutable();
             var value = quest.GetValueByMemberName(memberName).ToString();
             value.CopyTo(memberName);
             memberName[value.Length..].Clear();
