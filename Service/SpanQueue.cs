@@ -45,14 +45,15 @@ public struct SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquat
         _enQCharIdx += _currLogLen;
         return fullItemsCopy;
     }
-    
+
     /// <summary>
     /// Enqueues a span into the message pool and
     /// gives you back the span from the pool
     /// </summary>
     /// <param name="input"></param>
+    /// <param name="ignoreSeparatorChars">notes if the user actually do not want any delimiters in his span</param>
     /// <returns></returns>
-    public ReadOnlySpan<T> Enqueue(ReadOnlySpan<T> input)
+    public ReadOnlySpan<T> Enqueue(ReadOnlySpan<T> input, bool ignoreSeparatorChars = true)
     {
         //check if we are already at max or the current "items" is already in the span, if so, just return back the one from the pool!
         // if (_Infos.Span[_enQCount].hash == items.BitwiseHashCode())
@@ -64,7 +65,7 @@ public struct SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquat
 
         //check if the current "items" is only a slice of what is already in the pool
         //OR if the current pool is only a slice of "items"
-        if (_enQCharIdx > 0)
+        if (_enQCharIdx > 0 || ignoreSeparatorChars)
         {
             var withoutEmpties = _content.Span.TrimLength((int)_enQCharIdx);
 
@@ -115,8 +116,10 @@ public struct SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquat
         return currPart;
     }
 
-    public readonly ReadOnlySpan<T> ConcatEntirePool() => _content.Span.Slice(0);
-     
+    public readonly ReadOnlySpan<T> ConcatEntirePool() => _content.Span;
+
+    public override string ToString() => _content.ToString();
+
     public void MarkForOverwrite()
     {
         _enQCharIdx = 0;

@@ -116,12 +116,12 @@ internal static class Game
                 else
                 {
                     var colorCodedText = $"(Blue) you have {(int)currTime} left to win! " +
-                                         $"(Violet) and this is " +
-                                         $"(Green) the rest of a long phrase" +
+                                         $"(Black) and this is " +
+                                         $"(Green) the rest of a long phrase " +
                                          $"(Brown) but of course the joy continues, doesnt it? " +
-                                         $"(Yellow) and i dont know what to type here anymore lol :D" +
+                                         $"(Yellow) and i dont know what to type here anymore lol :D " +
                                          $"(Black) but maybe I will find some more placeholder " +
-                                         $"(Black) so we can debug this game";
+                                         $"(Purple) so we can debug this game";
 
                     UiRenderer.DrawText(colorCodedText, CanvasStartingPoints.Center);
                     NotifyClickHandler();

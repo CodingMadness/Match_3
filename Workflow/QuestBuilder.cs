@@ -54,12 +54,8 @@ public static class QuestBuilder
         
     public static unsafe ReadOnlySpan<char> BuildQuestMessageFrom(ref readonly Quest quest)
     {
-        //the issue is, that there are Colors inside the internal TileColor-span
-        //which exceed the length of the (TileColor) inside the QuestLog and hence he cannot replace those
-        //placeholder names and then tries to create a color out of the litteral "TileColor" string
-        //which is nonsense of course and throws an exception 
         var copiedLog = GameState.Instance.Logger.Enqueue(GameState.QuestLog);
- 
+        
         copiedLog.Mutable().Replace(Quest.TileColorName, quest.TileColor.ToString());
         scoped var questIterator = new FormatTextEnumerator(copiedLog, 5,true);
         
@@ -75,7 +71,6 @@ public static class QuestBuilder
             value.CopyTo(memberName);
             memberName[value.Length..].Clear();
         }
-        
         return copiedLog;
     }    
 }
