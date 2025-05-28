@@ -60,19 +60,16 @@ public readonly ref struct TextInfo
     public override string ToString() => Text.ToString();
 }
 
-public unsafe ref struct WordEnumerator
+public ref struct WordEnumerator
 {
     private readonly char _separator;
-    private readonly TextInfo _originalPhrase; //the sentence with
+    public readonly TextInfo OriginalPhrase;  
     
     private TextInfo _tmp;
     private ReadOnlySpan<char> _remainder;
     
-    //TEST CODE ONLY!
-    private TextInfo* _ptr2OriginalPhrase;
-    
     [UnscopedRef] public ref readonly TextInfo Current => ref _tmp;
-
+    
     /// <summary>
     /// An Enumerator who iterates over an array of string interpreted as an array of words, stored as ROS
     /// </summary>
@@ -90,10 +87,9 @@ public unsafe ref struct WordEnumerator
         //         "it cannot slice the ROS which shall be viewed as <separator> seperated string");
     }
 
-    public WordEnumerator(ref readonly TextInfo originalPhrase, char separator = ' ') : this(originalPhrase.Text, separator)
+    public WordEnumerator(scoped ref TextInfo originalPhrase, char separator = ' ') : this(originalPhrase.Text, separator)
     {
-        _originalPhrase = originalPhrase;
-        _ptr2OriginalPhrase = (TextInfo*)Unsafe.AsPointer(ref _originalPhrase);
+        OriginalPhrase = originalPhrase;
     }
 
     public bool MoveNext()
@@ -122,7 +118,7 @@ public unsafe ref struct WordEnumerator
         }
 
         _tmp = new(word,
-            _originalPhrase.ColorKind.ToString(),
+            OriginalPhrase.ColorKind.ToString(),
             [],
             [],
             (_tmp.Occurence.spanIdx, word.Length));
@@ -142,7 +138,6 @@ public ref partial struct FormatTextEnumerator
     private readonly bool _skipBlackColor;
     private readonly Span<(int idx, int len)> _colorPositions;
     private readonly ReadOnlySpan<char> _text;
-    private readonly WordEnumerator _words;
 
     private int _position;
     private TextInfo _phrase;
@@ -174,16 +169,9 @@ public ref partial struct FormatTextEnumerator
 
         _colorPositions = _colorPositions[.._position];
         _position = 0;
-        
-        if (needWords)
-        {
-            //Note: I am forced to pass mutable ref to readonly ref because otherwise:
-            //error: 'Struct members cannot return 'this' or other instance members by reference' 
-            _words = new(ref Unsafe.AsRef(ref _phrase));
-        }
     }
 
-    [UnscopedRef] public ref readonly TextInfo Current => ref _phrase;
+    [UnscopedRef] public ref TextInfo Current => ref _phrase;
 
     private bool GetNextNonBlackColor()
     {
@@ -201,7 +189,7 @@ public ref partial struct FormatTextEnumerator
         var variable2Replace = isAMemberName
             ? slice2Colorize[..slice2Colorize.IndexOf(' ')]
             : [];
-        var textWithColorCode = _text.Slice(match.idx, lengthTilNextColor);
+        var textWithColorCode = _text.Slice(match.idx, lengthTilNextColor + match.len);
         var occurence = (match.idx, match.len);
         _phrase = new(slice2Colorize, color2Use, variable2Replace, textWithColorCode, occurence);
         _position++;
@@ -232,7 +220,7 @@ public ref partial struct FormatTextEnumerator
         {
             Range allZeroes = txt.IndexOf(char.MinValue)..txt.LastIndexOf(char.MinValue);
             Range desired = (allZeroes.End.Value + 1)..;
-            txt.AsWriteable().Swap(allZeroes, desired);
+            txt.Mutable().Swap(allZeroes, desired);
         }
 
         var textWithColorCode = _text[match.idx..lengthTilNextColor];
@@ -252,12 +240,9 @@ public ref partial struct FormatTextEnumerator
     }
 
     [UnscopedRef]
-    public ref readonly FormatTextEnumerator GetEnumerator()
-    {
-        return ref this;
-    }
-
-    [UnscopedRef] public ref readonly WordEnumerator GetWords() => ref _words;
+    public ref readonly FormatTextEnumerator GetEnumerator() => ref this;
+    
+    public readonly WordEnumerator EnumerateSegment() => new(ref Current); 
 
     [GeneratedRegex(pattern: @"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex FindAllColorCodes();
