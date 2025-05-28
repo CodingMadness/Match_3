@@ -61,7 +61,7 @@ public static class QuestBuilder
         var copiedLog = GameState.Instance.Logger.Enqueue(GameState.QuestLog);
  
         copiedLog.Mutable().Replace(Quest.TileColorName, quest.TileColor.ToString());
-        scoped var questIterator = new FormatTextEnumerator(copiedLog, true, 5,true);
+        scoped var questIterator = new FormatTextEnumerator(copiedLog, 5,true);
         
         // NOTE: we need to use while loop
         //       because foreach creates a hidden copy of my iterator and

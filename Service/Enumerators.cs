@@ -87,7 +87,7 @@ public ref struct WordEnumerator
         //         "it cannot slice the ROS which shall be viewed as <separator> seperated string");
     }
 
-    public WordEnumerator(scoped ref TextInfo originalPhrase, char separator = ' ') : this(originalPhrase.Text, separator)
+    public WordEnumerator(scoped in TextInfo originalPhrase, char separator = ' ') : this(originalPhrase.Text, separator)
     {
         OriginalPhrase = originalPhrase;
     }
@@ -142,8 +142,7 @@ public ref partial struct FormatTextEnumerator
     private int _position;
     private TextInfo _phrase;
 
-    public FormatTextEnumerator(ReadOnlySpan<char> text, bool needWords = false,int nrOfSlices2Format = 10,
-        bool skipBlackColor = false)
+    public FormatTextEnumerator(ReadOnlySpan<char> text,int nrOfSlices2Format = 10, bool skipBlackColor = false)
     {
         //don't know a value yet for this, but we use 10 for now
         SpanOwner<(int idx, int len)> matchPool = new(nrOfSlices2Format, false);
@@ -171,7 +170,7 @@ public ref partial struct FormatTextEnumerator
         _position = 0;
     }
 
-    [UnscopedRef] public ref TextInfo Current => ref _phrase;
+    [UnscopedRef] public ref readonly TextInfo Current => ref _phrase;
 
     private bool GetNextNonBlackColor()
     {
@@ -242,7 +241,7 @@ public ref partial struct FormatTextEnumerator
     [UnscopedRef]
     public ref readonly FormatTextEnumerator GetEnumerator() => ref this;
     
-    public readonly WordEnumerator EnumerateSegment() => new(ref Current); 
+    public readonly WordEnumerator EnumerateSegment() => new(in _phrase); 
 
     [GeneratedRegex(pattern: @"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex FindAllColorCodes();

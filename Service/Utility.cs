@@ -21,9 +21,9 @@ public static class Utility
         if (oldValueLen == 0)
             throw new ArgumentException("Old value could not be found!", nameof(oldValue));
 
-        var span = input.AsWriteable();
-        var oldVal = oldValue.AsWriteable();
-        var newVal = newValue.AsWriteable();
+        var span = input.Mutable();
+        var oldVal = oldValue.Mutable();
+        var newVal = newValue.Mutable();
         int newValueLen = newVal.Length;
         int searchIndex = 0;
 
@@ -43,7 +43,7 @@ public static class Utility
         }
     }
 
-    public static Span<T> AsWriteable<T>(this scoped ReadOnlySpan<T> readOnlySpan) =>
+    public static Span<T> Mutable<T>(this scoped ReadOnlySpan<T> readOnlySpan) =>
         MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in readOnlySpan[0]), readOnlySpan.Length);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -52,7 +52,7 @@ public static class Utility
     {
         var (_, length) = slice2Move.GetOffsetAndLength(input.Length);
         var areaToCopyInto = input.Slice(newPos, length);
-        input[slice2Move].CopyTo(areaToCopyInto.AsWriteable());
+        input[slice2Move].CopyTo(areaToCopyInto.Mutable());
         return newPos + length;
     }
      
@@ -61,7 +61,7 @@ public static class Utility
         T fillEmpties = default)
         where T : struct, IEquatable<T>
     {
-        var source = input.AsWriteable();
+        var source = input.Mutable();
         var (offset, length) = area2Move.GetOffsetAndLength(source.Length);
         int newOffset = offset + moveBy;
         Range areaToCopyInto = newOffset..(length + newOffset);
@@ -111,7 +111,7 @@ public static class Utility
             between = info.Between,
             last = info.Last;
 
-        var source = input.AsWriteable();
+        var source = input.Mutable();
 
         //NOTE: We have to +1 to every "endOf...." variable because it is EXCLUSIVE inside the "Range", which means 
         //      that END value is excluded from the span, so in order to include it into the range,
@@ -139,9 +139,9 @@ public static class Utility
 
                 //TEMP-STEPS:
                 //slice "smallOne" 
-                var smallOne = last.AsWriteable();
+                var smallOne = last.Mutable();
                 //slice "largeOne"
-                var largeOne = first.AsWriteable();
+                var largeOne = first.Mutable();
                 //make the nessecary slice from the largeOne
                 var sliceOfLargeOne = largeOne[..smallOneLen];
                 //make the nessecary slice to get the remainder
@@ -272,7 +272,7 @@ public static class Utility
 
                 //get what is left and store that to the "smallOneCopy"
                 smallOneCopy = source[area2CopyRemainderInto];
-                remainderCopy.CopyTo(smallOneCopy[remainingArea2Copy].AsWriteable());
+                remainderCopy.CopyTo(smallOneCopy[remainingArea2Copy].Mutable());
             }
         }
     }

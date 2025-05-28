@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using ImGuiNET;
 using Match_3.DataObjects;
 using Match_3.Service;
@@ -162,7 +163,7 @@ public static class UiRenderer
             ImGui.SetCursorPos(current!.Value);
         }
         
-        var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt, true);
+        var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt);
         
         Vector2? fixStartingPos = null, current = null;
 
@@ -184,7 +185,7 @@ public static class UiRenderer
                 
                 if (onlySameLineForBlackTxt)
                 {
-                    WordEnumerator blackWordsEnumerator = new(txtInfo);
+                    var blackWordsEnumerator = formatTextEnumerator.EnumerateSegment();
 
                     foreach (var wordInfo in blackWordsEnumerator)
                     {
