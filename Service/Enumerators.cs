@@ -1,8 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
-using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using DotNext.Buffers;
 using ImGuiNET;
@@ -56,16 +53,17 @@ public readonly ref struct TextInfo
     }
 
     public Vector2 TextSize => ImGui.CalcTextSize(Text);
-
+    
     public override string ToString() => Text.ToString();
 }
 
 public ref struct WordEnumerator
 {
     private readonly char _separator;
-    public readonly TextInfo OriginalPhrase;  
+    private readonly TextInfo _originalPhrase;  
     
     private TextInfo _tmp;
+    private int _lastCharPos;
     private ReadOnlySpan<char> _remainder;
     
     [UnscopedRef] public ref readonly TextInfo Current => ref _tmp;
@@ -89,9 +87,11 @@ public ref struct WordEnumerator
 
     public WordEnumerator(scoped in TextInfo originalPhrase, char separator = ' ') : this(originalPhrase.Text, separator)
     {
-        OriginalPhrase = originalPhrase;
+        _originalPhrase = originalPhrase;
     }
-
+    
+    public bool IsLast => _remainder is [];
+    
     public bool MoveNext()
     {
         //ReadOnlySpan<char> items = "abc <separator> def <separator> ghi <separator> jkl <separator> mno"
@@ -115,10 +115,11 @@ public ref struct WordEnumerator
         {
             word = _remainder[..(idxOfChar + 1)];
             _remainder = _remainder[(word.Length)..];
+            _lastCharPos += word.Length; 
         }
 
         _tmp = new(word,
-            OriginalPhrase.ColorKind.ToString(),
+            _originalPhrase.ColorKind.ToString(),
             [],
             [],
             (_tmp.Occurence.spanIdx, word.Length));
@@ -126,10 +127,23 @@ public ref struct WordEnumerator
         return word.Length > 0;
     }
 
-    [UnscopedRef]
-    public WordEnumerator GetEnumerator()
+    public bool MoveBack()
     {
-        return this;
+        //example: and you have in between those only really like
+        //Current: those
+        //(New) Current:  between
+       
+        var slice = _originalPhrase.Text.Slice(0, _lastCharPos + 1);
+        //state: and u have in between 
+        int foundAt = slice[.._lastCharPos].LastIndexOf(_separator) + 1;
+        var lastWord = slice.Slice(foundAt);
+        int wordLen = lastWord.Length;
+        _tmp = new(lastWord,
+            _originalPhrase.ColorCode.ToString(),
+            [],
+            [], (foundAt, wordLen));
+
+        return _lastCharPos > 0;
     }
 }
 
