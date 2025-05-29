@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Match_3.DataObjects;
+﻿using Match_3.DataObjects;
 using Match_3.Service;
 
 namespace Match_3.Workflow;
@@ -12,7 +11,7 @@ public static class QuestBuilder
         {
             //we do netSingle() * 10f to have a real representative value for interval, like:
             // 0.4f * 10f => 2f will be the time we have left to make a match! and so on....
-            float rndValue = Utility.Randomizer.NextSingle().Trunc(1);
+            float rndValue = SpanUtility.Randomizer.NextSingle().Trunc(1);
             rndValue = rndValue.Equals(0f, 0.0f) ? 0.25f : rndValue;
             float finalInterval = MathF.Round(rndValue * 10f);
             finalInterval = finalInterval <= 2.5f ? 2.5f : finalInterval;
@@ -52,11 +51,11 @@ public static class QuestBuilder
         currLvl.QuestCount = 1;/*questCount*/; 
     }
         
-    public static unsafe ReadOnlySpan<char> BuildQuestMessageFrom(ref readonly Quest quest)
+    public static ReadOnlySpan<char> BuildQuestMessageFrom(ref readonly Quest quest)
     {
         var copiedLog = GameState.Instance.Logger.Enqueue(GameState.QuestLog);
         
-        copiedLog.Mutable().Replace(Quest.TileColorName, quest.TileColor.ToString());
+        copiedLog.Replace(Quest.TileColorName, quest.TileColor.ToString());
         scoped var questIterator = new FormatTextEnumerator(copiedLog, 5,true);
         
         // NOTE: we need to use while loop

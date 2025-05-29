@@ -8,7 +8,7 @@ using Match_3.DataObjects;
 
 namespace Match_3.Service;
 
-public static class Utility
+public static class SpanUtility
 {
     public static readonly Random Randomizer = new(DateTime.UtcNow.Ticks.GetHashCode());
 
@@ -42,7 +42,7 @@ public static class Utility
             }
         }
     }
-
+ 
     public static Span<T> Mutable<T>(this scoped ReadOnlySpan<T> readOnlySpan) =>
         MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in readOnlySpan[0]), readOnlySpan.Length);
 
