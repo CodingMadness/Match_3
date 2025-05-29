@@ -9,11 +9,14 @@ public struct FadeableColor : IEquatable<FadeableColor>
     private Color _toWrap;
     private float _currentAlpha;
     private readonly float _targetAlpha, _currSeconds;
-
     /// <summary>
     /// The greater this Value, the faster it fades!
     /// </summary>
     private readonly float _alphaSpeed;
+
+    public readonly KnownColor Type;
+    public readonly string Name;
+    public readonly Vector4 Vector;
     
     private FadeableColor(Color toWrap)
     {
@@ -22,6 +25,9 @@ public struct FadeableColor : IEquatable<FadeableColor>
         _currentAlpha = 1.0f;
         _targetAlpha = 0.0f;
         _currSeconds = 1f;
+        Type = toWrap.ToKnownColor();
+        Name =  toWrap.Name;
+        Vector = ToVec4(Type);
     }
 
     private void Lerp()
