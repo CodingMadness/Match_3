@@ -9,7 +9,7 @@ public record SubEventData(int Count, float Elapsed)
 }
 
 public readonly record struct Quest(
-    TileColor TileColor,
+    FadeableColor Colour,
     GameTime Timer,
     SubEventData SuccessfulMatches,
     SubEventData SwapsAllowed,
@@ -22,7 +22,7 @@ public readonly record struct Quest(
     public const string SwapCountName        = nameof(State.WrongSwaps) + "." + nameof(State.WrongSwaps.Count);
     public const string ReplacementCountName = nameof(State.Replacement) + "." + nameof(State.Replacement.Count);
     public const string WrongMatchName       = nameof(State.WrongMatch) + "." + nameof(State.WrongMatch.Count);
-    public const string TileColorName        = nameof(Quest.TileColor) + "\0\0\0";  //HARDCODED Value, DO NOT CHANGE!
+    public const string TileColorName        = nameof(Quest.Colour) + "\0\0\0";  //HARDCODED Value, DO NOT CHANGE!
 
     public int GetValueByMemberName(ReadOnlySpan<char> name)
     {
@@ -42,7 +42,7 @@ public readonly record struct Quest(
 }
 
 public record State(
-    TileColor TileKind,
+    TileColorTypes TileKind,
     bool IsQuestLost,
     TimeOnly Now,
     SubEventData SuccessfulMatch,

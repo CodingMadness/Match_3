@@ -6,7 +6,7 @@ public class EventState
     public Tile? TileX, TileY;
     public IEnumerable<State>? StatesFromQuestRelatedTiles;
     
-    public TileColor IgnoredByMatch;
+    public TileColorTypes IgnoredByMatch;
     public Direction LookUpUsedInMatchFinder;
     public readonly MatchX Matches = new();
     public bool HaveAMatch, 

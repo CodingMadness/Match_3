@@ -42,13 +42,13 @@ public sealed class GameState
     public Span<Quest> GetQuests() => Lvl.Quests.AsSpan(0, Lvl.QuestCount);
 
     [Pure]
-    public ref readonly Quest GetQuestBy(TileColor tileColor)
+    public ref readonly Quest GetQuestBy(TileColorTypes tileColorTypes)
     {
         var onlyNeededQuests = Lvl.Quests.AsSpan(0, Lvl.QuestCount);
 
         foreach (ref readonly Quest quest in onlyNeededQuests)
         {
-            if (quest.TileColor == tileColor)
+            if (quest.Colour.Type == tileColorTypes)
                 return ref quest;
         }
 
@@ -56,13 +56,13 @@ public sealed class GameState
     }
     
     [Pure]
-    public State GetStateBy(TileColor tileColor)
+    public State GetStateBy(TileColorTypes tileColorTypes)
     {
         var states = CurrData.StatePerQuest.AsSpan(0, Lvl.QuestCount);
 
         foreach (State state in states)
         {
-            if (state.TileKind == tileColor)
+            if (state.TileKind == tileColorTypes)
                 return state;
         }
 

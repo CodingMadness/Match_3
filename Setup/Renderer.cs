@@ -24,23 +24,23 @@ public static class UiRenderer
     /// </summary>
     /// <param name="shape"></param>
     /// <param name="position"></param>
-    /// <param name="colorKind"></param>
+    /// <param name="colorTypesKind"></param>
     /// <param name="text"></param>
     /// <param name="thickness"></param>
     /// <param name="scaleMultiplier"></param>
-    private static void DrawShape(DebugImGuiShapes shape, Vector2 position, TileColor colorKind,
+    private static void DrawShape(DebugImGuiShapes shape, Vector2 position, TileColorTypes colorTypesKind,
         ReadOnlySpan<char> text, float thickness = 1f, float scaleMultiplier = 1f)
     {
         switch (shape)
         {
             case DebugImGuiShapes.Circle:
                 ImGui.GetWindowDrawList().AddCircleFilled(position, thickness,
-                    ImGui.ColorConvertFloat4ToU32(FadeableColor.ToVec4(colorKind)));
+                    ImGui.ColorConvertFloat4ToU32(FadeableColor.ToVec4(colorTypesKind)));
                 break;
             case DebugImGuiShapes.Rectangle:
                 Vector2 actualSize = ImGui.CalcTextSize(text) * scaleMultiplier;
                 ImGui.GetWindowDrawList().AddRect(position, position + actualSize,
-                    ImGui.ColorConvertFloat4ToU32(FadeableColor.ToVec4(colorKind)));
+                    ImGui.ColorConvertFloat4ToU32(FadeableColor.ToVec4(colorTypesKind)));
                 break;
             case DebugImGuiShapes.Triangle:
                 break;
@@ -180,7 +180,7 @@ public static class UiRenderer
             scoped ref Vector2? current, Vector2? fixStart,
             scoped ref readonly TextInfo segment)
         {
-            if (segment.Colour.Type is not TileColor.Black)
+            if (segment.Colour.Type is not TileColorTypes.Black)
                 return;
 
             DrawUntilEnd(in enumerator, ref current);
@@ -225,6 +225,7 @@ public static class UiRenderer
             }
         }
     }
+ 
     public static void DrawQuestLog(Span<Quest> quests)
     {
         foreach (ref readonly Quest quest in quests)

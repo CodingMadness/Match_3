@@ -17,7 +17,7 @@ public static class TileMap
     {
         const byte ySize = 4, xSize = 3;
         scoped Span<byte> counts = stackalloc byte[Config.TileColorCount];
-        scoped Span<TileColor> allKinds = stackalloc TileColor[Config.TileColorCount];
+        scoped Span<TileColorTypes> allKinds = stackalloc TileColorTypes[Config.TileColorCount];
         Vector2 twoBy4Block = new(xSize, ySize);
         Vector2 begin = new(0, 0);
         int j = 0;
@@ -68,7 +68,7 @@ public static class TileMap
     
     private static void Test()
     {
-        scoped Span<TileColor> allKinds = stackalloc TileColor[Config.TileColorCount];
+        scoped Span<TileColorTypes> allKinds = stackalloc TileColorTypes[Config.TileColorCount];
         FadeableColor.Fill(allKinds);
         
         foreach (var color in allKinds)

@@ -6,30 +6,30 @@ namespace Match_3.Setup;
 
 public static class Bakery
 {
-    private static RectShape DefineBody(TileColor kind, IGridRect gridBox)
+    private static RectShape DefineBody(KnownColor kind, IGridRect gridBox)
     {
         return new RectShape(gridBox)
         {
             TextureLocation = kind switch
             {
-                TileColor.LightBlue => new(1f, 3f),
-                TileColor.Turquoise => new Vector2(2f, 1f),
-                TileColor.Blue =>new Vector2(3f, 2f),
-                TileColor.LightGreen => new Vector2(0f, 3f),
-                TileColor.Green =>  new Vector2(3f, 1f),
-                TileColor.Brown => new Vector2(0f, 2f),
-                TileColor.Orange =>new Vector2(1f, 2f),
-                TileColor.Yellow => new Vector2(1f, 1f),
-                TileColor.Purple => new Vector2(3f, 0f),
-                TileColor.Magenta =>  new Vector2(3f, 3f),
-                TileColor.Red => new Vector2(2f, 0f),
+                KnownColor.LightBlue => new(1f, 3f),
+                KnownColor.Turquoise => new Vector2(2f, 1f),
+                KnownColor.Blue =>new Vector2(3f, 2f),
+                KnownColor.LightGreen => new Vector2(0f, 3f),
+                KnownColor.Green =>  new Vector2(3f, 1f),
+                KnownColor.Brown => new Vector2(0f, 2f),
+                KnownColor.Orange =>new Vector2(1f, 2f),
+                KnownColor.Yellow => new Vector2(1f, 1f),
+                KnownColor.Purple => new Vector2(3f, 0f),
+                KnownColor.Magenta =>  new Vector2(3f, 3f),
+                KnownColor.Red => new Vector2(2f, 0f),
                 _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "undefined color was passed!")
             },
             Colour = Color.FromKnownColor(kind)
         };
     }
 
-    public static Tile CreateTile(CSharpRect gridBox, TileColor kind)
+    public static Tile CreateTile(CSharpRect gridBox, KnownColor kind)
     {
         var tile = new Tile
         {

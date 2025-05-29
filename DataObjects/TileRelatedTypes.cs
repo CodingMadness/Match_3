@@ -1,4 +1,4 @@
-﻿global using TileColor = System.Drawing.KnownColor;
+﻿global using TileColorTypes = System.Drawing.KnownColor;
 global using Comparer = Match_3.Service.Comparer;
 using System.Collections;
 using System.Drawing;

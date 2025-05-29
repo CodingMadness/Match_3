@@ -1,4 +1,5 @@
-﻿using Match_3.DataObjects;
+﻿using System.Drawing;
+using Match_3.DataObjects;
 using Match_3.Service;
 
 namespace Match_3.Workflow;
@@ -22,7 +23,7 @@ public static class QuestBuilder
         var currLvl = GameState.Instance.Lvl;
         const int tileCount = Config.TileColorCount;
         // const int questLogParts = 4;
-        scoped Span<TileColor> subset = stackalloc TileColor[tileCount];
+        scoped Span<KnownColor> subset = stackalloc KnownColor[tileCount];
         FadeableColor.Fill(subset);
         subset.Shuffle();
         subset = subset.TakeRndItemsAtRndPos(currLvl.Id);
@@ -33,7 +34,7 @@ public static class QuestBuilder
         scoped Span<uint> maxCountPerType = stackalloc uint[tileCount];
         maxCountPerType.Fill(currLvl.CountForAllColors);
         
-        foreach (var color in subset)
+        foreach (var colorType in subset)
         {
             int toEven = GetRandomInterval();
             SubEventData match = new((int)(maxCountPerType[trueIdx] / Config.MaxTilesPerMatch), toEven);
@@ -42,8 +43,8 @@ public static class QuestBuilder
             SubEventData swap = new(4, -1f);
             SubEventData replacement = new(5, -1f);
             SubEventData tolerance = new(6, -1f);
-            currLvl.Quests[trueIdx] = new Quest(color, GameTime.CreateTimer(toEven) ,match, swap, replacement, tolerance);
-            GameState.Instance.CurrData.StatePerQuest[trueIdx] = new(color,false, default, new(0, 0f), new(0, 0f), new(0, 0f), new(0, 0f));
+            currLvl.Quests[trueIdx] = new Quest(Color.FromKnownColor(colorType), GameTime.CreateTimer(toEven) ,match, swap, replacement, tolerance);
+            GameState.Instance.CurrData.StatePerQuest[trueIdx] = new(colorType,false, default, new(0, 0f), new(0, 0f), new(0, 0f), new(0, 0f));
             trueIdx++;
         }
 
@@ -55,7 +56,7 @@ public static class QuestBuilder
     {
         var copiedLog = GameState.Instance.Logger.Enqueue(GameState.QuestLog);
         
-        copiedLog.Replace(Quest.TileColorName, quest.TileColor.ToString());
+        copiedLog.Replace(Quest.TileColorName, quest.Colour.ToString());
         scoped var questIterator = new FormatTextEnumerator(copiedLog, 5,true);
         
         // NOTE: we need to use while loop

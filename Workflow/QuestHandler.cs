@@ -178,7 +178,7 @@ public class SwapHandler : QuestHandler
 
     public event Action OnCheckForMatch, OnMatchFound;
 
-    private static (TileColor x, TileColor y) GetTileColorAndQuestData(in EventState state, out Quest? eventDataOfX, out Quest? eventDataOfY)
+    private static (TileColorTypes x, TileColorTypes y) GetTileColorAndQuestData(in EventState state, out Quest? eventDataOfX, out Quest? eventDataOfY)
     {
         var colorX = state.TileX!.Body.Colour.Type;
         var colorY = state.TileY!.Body.Colour.Type;
@@ -196,8 +196,8 @@ public class SwapHandler : QuestHandler
         
         //1. check if the tiles which were swapped are even needed for the Quest!
         //define some condition by which we can assert that all possible combinations are being gathered!
-        if ((x != quest0?.TileColor && x != quest0?.TileColor) &&
-            (y != quest1?.TileColor && y != quest1?.TileColor))
+        if ((x != quest0?.Colour.Type && x != quest0?.Colour.Type) &&
+            (y != quest1?.Colour.Type && y != quest1?.Colour.Type))
         {
             Debug.WriteLine($"Neither { nameof(x) } nor { nameof(y) } have to do anything with the Quest!?" +
                             $"so you have to be (in some way or another) to be punished!");
@@ -229,7 +229,7 @@ public class SwapHandler : QuestHandler
                 void HandleSwaps(in State z)
                 {
                     int missSwap_State = ++z.WrongSwaps.Count;
-                    int maxAllowedSwaps_Quest = (int)(z.TileKind == quest0?.TileColor ? quest0?.SwapsAllowed.Count : quest1?.SwapsAllowed.Count)!;
+                    int maxAllowedSwaps_Quest = (int)(z.TileKind == quest0?.Colour.Type ? quest0?.SwapsAllowed.Count : quest1?.SwapsAllowed.Count)!;
                     
                     z.IsQuestLost = missSwap_State == maxAllowedSwaps_Quest;
 
@@ -299,7 +299,7 @@ public class MatchHandler : QuestHandler
         {
             //a match with the requested "TileKind" was not found, a "wrong-match", so it was a "miss-match"!
             var stateOfMatchIgnoredKind = allStates.First(x => x.TileKind == kindWhichWasIgnoredByMatch);
-            var properQuest = questOfMatch.First(x => x.TileColor == kindWhichWasIgnoredByMatch);
+            var properQuest = questOfMatch.First(x => x.Colour.Type == kindWhichWasIgnoredByMatch);
             int missMatchCount = stateOfMatchIgnoredKind.WrongMatch.Count++;
             int diffCount = properQuest.SuccessfulMatches.Count- missMatchCount;
             stateOfMatchIgnoredKind.IsQuestLost = diffCount > 0;
@@ -318,7 +318,7 @@ public class MatchHandler : QuestHandler
             
             //a match with the requested "TileKind" was found and hence it was a successful Quest-Bound match!
             int successCount = ++stateOfMatch.SuccessfulMatch.Count;
-            var properQuest = questOfMatch.First(x => x.TileColor == kindWhoTriggeredMatch);
+            var properQuest = questOfMatch.First(x => x.Colour.Type == kindWhoTriggeredMatch);
             int diffCount = properQuest.SuccessfulMatches.Count- successCount;
             
             if (diffCount > 0)

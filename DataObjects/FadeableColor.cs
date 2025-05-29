@@ -43,25 +43,25 @@ public struct FadeableColor : IEquatable<FadeableColor>
         return Fade(AsRayColor(), _currentAlpha);         
     }
 
-    private static readonly TileColor[] AllTileColors =
+    private static readonly KnownColor[] AllTileColors =
     [
-        TileColor.LightBlue,          //--> Hellblau
-         TileColor.Turquoise,        //--> Türkis
-         TileColor.Blue,             //--> Blau
-         TileColor.LightGreen,      //--> Hellgrün
-         TileColor.Green,            //--> Grün
-         TileColor.Brown,            //--> Braun
-         TileColor.Orange,           //--> Orange
-         TileColor.Yellow,           //--> Gelb
-         TileColor.Purple,       //--> Rosa
-         TileColor.Magenta,          //--> Pink
-         TileColor.Red,              //--> Rot
+        KnownColor.LightBlue,          //--> Hellblau
+         KnownColor.Turquoise,        //--> Türkis
+         KnownColor.Blue,             //--> Blau
+         KnownColor.LightGreen,      //--> Hellgrün
+         KnownColor.Green,            //--> Grün
+         KnownColor.Brown,            //--> Braun
+         KnownColor.Orange,           //--> Orange
+         KnownColor.Yellow,           //--> Gelb
+         KnownColor.Purple,       //--> Rosa
+         KnownColor.Magenta,          //--> Pink
+         KnownColor.Red,              //--> Rot
    
      ];
 
-    public static Vector4 ToVec4(TileColor colorKind)
+    public static Vector4 ToVec4(KnownColor colorTypesKind)
     {
-        Color systemColor = Color.FromKnownColor(colorKind);
+        Color systemColor = Color.FromKnownColor(colorTypesKind);
 
         return new(
             systemColor.R / 255.0f,
@@ -70,7 +70,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
             systemColor.A / 255.0f);
     }
 
-    public static void Fill(Span<TileColor> toFill)
+    public static void Fill(Span<KnownColor> toFill)
     {
         for (int i = 0; i < Config.TileColorCount; i++)
             toFill[i] = AllTileColors[i];
@@ -80,22 +80,22 @@ public struct FadeableColor : IEquatable<FadeableColor>
 
     private readonly Color AsSysColor() => Color.FromArgb(_toWrap.A, _toWrap.R, _toWrap.G, _toWrap.B);
 
-    public static int ToIndex(TileColor toWrap)
+    public static int ToIndex(KnownColor toWrap)
     {
         return toWrap switch
         {
-            TileColor.LightBlue => 0,           //--> Hellblau
-            TileColor.Turquoise => 1,           //--> Dunkelblau
-            TileColor.Blue => 2,                //--> Blau
-            TileColor.LightGreen => 3,           //--> Hellgrün
-            TileColor.Green => 4,               //--> Grün
-            TileColor.Brown => 5,               //--> Braun
-            TileColor.Orange => 6,              //--> Orange
-            TileColor.Yellow => 7,              //--> Gelb
-            TileColor.MediumVioletRed => 8,     //--> RotPink
-            TileColor.Purple => 9,              //--> Rosa
-            TileColor.Magenta => 10,            //--> Pink
-            TileColor.Red => 11,
+            KnownColor.LightBlue => 0,           //--> Hellblau
+            KnownColor.Turquoise => 1,           //--> Dunkelblau
+            KnownColor.Blue => 2,                //--> Blau
+            KnownColor.LightGreen => 3,           //--> Hellgrün
+            KnownColor.Green => 4,               //--> Grün
+            KnownColor.Brown => 5,               //--> Braun
+            KnownColor.Orange => 6,              //--> Orange
+            KnownColor.Yellow => 7,              //--> Gelb
+            KnownColor.MediumVioletRed => 8,     //--> RotPink
+            KnownColor.Purple => 9,              //--> Rosa
+            KnownColor.Magenta => 10,            //--> Pink
+            KnownColor.Red => 11,
             _ => throw new ArgumentOutOfRangeException(nameof(toWrap), toWrap, "No other _toWrap is senseful since we do not need other or more colors!")
         };
     }

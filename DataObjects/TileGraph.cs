@@ -49,11 +49,11 @@ public class TileGraph : IEnumerable<Tile>
     private readonly Node[] _sameColored;
     private readonly Comparer.DistanceComparer _distanceComparer;
 
-    public TileGraph(Tile[,] bitmap, TileColor color)
+    public TileGraph(Tile[,] bitmap, TileColorTypes colorTypes)
     {
         _sameColored = [.. bitmap
             .OfType<Tile>()
-            .Where(x => x.Body.Colour.Type == color)
+            .Where(x => x.Body.Colour.Type == colorTypes)
             .OrderBy(x => x, Comparer.CellComparer.Singleton)
             .Select(x => new Node(x))];
 
