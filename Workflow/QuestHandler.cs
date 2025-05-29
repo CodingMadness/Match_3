@@ -268,7 +268,6 @@ public class SwapHandler : QuestHandler
     }
 }
 
-//RECEIVER 
 public class MatchHandler : QuestHandler
 {
     public static readonly MatchHandler Instance = GetInstance<MatchHandler>();

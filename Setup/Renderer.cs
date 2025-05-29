@@ -137,7 +137,7 @@ public static class UiRenderer
             return wrappedAt < 0;
         }
 
-        static Vector2 SetNextLine(Vector2? fixStart)
+        static void SetNextLine(Vector2? fixStart, ref Vector2? current)
         {
             ImGui.NewLine();
             Vector2 framePadding = ImGui.GetStyle().FramePadding;
@@ -147,7 +147,7 @@ public static class UiRenderer
                 Y = ImGui.GetCursorPosY() + framePadding.Y
             };
             ImGui.SetCursorPos(newLine);
-            return newLine;
+            current = newLine;
         }
 
         //I am passing a null but only for easier code usage, semantically this is usually not good practise!
@@ -176,26 +176,25 @@ public static class UiRenderer
             }
         }
 
-        static void SplitBlackText(scoped in WordEnumerator enumerator,
+        static void SplitText(scoped in WordEnumerator enumerator,
             scoped ref Vector2? current, Vector2? fixStart,
             scoped ref readonly TextInfo segment)
         {
-            if (segment.Colour.Type is not TileColorTypes.Black)
-                return;
+            if (segment.Colour.Type is TileColorTypes.Black)
+                DrawUntilEnd(in enumerator, ref current);
 
-            DrawUntilEnd(in enumerator, ref current);
-            current = SetNextLine(fixStart);
+            SetNextLine(fixStart, ref current);
 
             while (!enumerator.EndReached)
             {
                 DrawUntilEnd(in enumerator, ref current);
             }
-        }
+        } 
         //------------------------------------------------------------------------------------------------------------//
 
         var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt);
         Vector2? fixStartingPos = null, current = null;
-        
+
         while (formatTextEnumerator.MoveNext())
         {
             ref readonly var segment = ref formatTextEnumerator.Current;
@@ -213,7 +212,7 @@ public static class UiRenderer
                 //put the words 1 by 1 while they fit still in the same line 
                 //and only then put the non-fitting ones into the next line
 
-                SplitBlackText(in formatTextEnumerator.EnumerateSegment(), ref current, fixStartingPos, in segment);
+                SplitText(in formatTextEnumerator.EnumerateSegment(), ref current, fixStartingPos, in segment);
                 //TODO: we yet need to handle the color-cases where these would actually have to be wrapped to, but since we are in this IF block
                 //and we do not handle them, the iterator just skips over them and nothing gets rendered!!
             }
@@ -225,7 +224,7 @@ public static class UiRenderer
             }
         }
     }
- 
+
     public static void DrawQuestLog(Span<Quest> quests)
     {
         foreach (ref readonly Quest quest in quests)
