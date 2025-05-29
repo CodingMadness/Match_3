@@ -22,9 +22,9 @@ public sealed class GameState
     // QuestLog remains a computed string (now with instance access)
     
     public const string QuestLog = $"(Black) You have to collect ({Quest.TileColorName}\0\0\0) {Quest.MatchCountName} Matches " +
-                             $"(Black) and you have in between those only really like ({Quest.TileColorName}\0\0\0) {Quest.MatchIntervalName} seconds left " +
+                             $"(Black) for which you have in between those only really like ({Quest.TileColorName}\0\0\0) {Quest.MatchIntervalName} seconds left " +
                              $"(Black) and also just ({Quest.TileColorName}\0\0\0) {Quest.SwapCountName} swaps available per match " +
-                             $"(Black) and furthermore, you only are allowed to replace any given tile ({Quest.TileColorName}\0\0\0) {Quest.ReplacementCountName} times maximum " +
+                             $"(Black) furthermore, you only are allowed to replace any given tile ({Quest.TileColorName}\0\0\0) {Quest.ReplacementCountName} times maximum " +
                              $"(Black) for your own help as well as there is only tolerance for ({Quest.TileColorName}\0\0\0) {Quest.WrongMatchName} wrong matches";
 
     // --- Lazy-Loaded Resources ---

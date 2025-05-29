@@ -157,17 +157,17 @@ public static class UiRenderer
             ImGui.SetCursorPos(current!.Value);
         }
 
-        static void DrawUntilEnd(scoped ref WordEnumerator enumerator, scoped ref Vector2? current)
+        static void DrawUntilEnd(scoped in WordEnumerator enumerator, scoped ref Vector2? current)
         {
-            ref var blackWordsEnumerator = ref enumerator;
-
+            ref var blackWordsEnumerator = ref Unsafe.AsRef(in enumerator);
+            
             while (blackWordsEnumerator.MoveNext())
             {
                 ref readonly var currentWordInfo = ref blackWordsEnumerator.Current;
 
                 if (TextShouldWrap(ref current, currentWordInfo.TextSize, out _))
                 {
-                    enumerator.MoveBack();
+                    blackWordsEnumerator.MoveBack();
                     return;
                 }
 
@@ -176,25 +176,28 @@ public static class UiRenderer
             }
         }
 
-        static void SplitBlackText(scoped ref WordEnumerator enumerator,
+        static void SplitBlackText(scoped in WordEnumerator enumerator,
             scoped ref Vector2? current, Vector2? fixStart,
             scoped ref readonly TextInfo segment)
         {
             if (segment.Colour.Type is not TileColor.Black)
                 return;
 
-            DrawUntilEnd(ref enumerator, ref current);
+            DrawUntilEnd(in enumerator, ref current);
             current = SetNextLine(fixStart);
 
-            while (!enumerator.IsLast)
+            while (!enumerator.EndReached || enumerator.AtLeastOneWordLeft)
             {
-                DrawUntilEnd(ref enumerator, ref current);
+                DrawUntilEnd(in enumerator, ref current);
             }
         }
-
-        var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt, 20);
+        //------------------------------------------------------------------------------------------------------------//
+        
+        var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt);
         Vector2? fixStartingPos = null, current = null;
 
+        // int enumerationCounter = 0;
+        
         while (formatTextEnumerator.MoveNext())
         {
             ref readonly var segment = ref formatTextEnumerator.Current;
@@ -211,11 +214,11 @@ public static class UiRenderer
                 //we need to know if its only black-default text so we  
                 //put the words 1 by 1 while they fit still in the same line 
                 //and only then put the non-fitting ones into the next line
-
-                var wordEnumerator = formatTextEnumerator.EnumerateSegment();
-                SplitBlackText(ref wordEnumerator, ref current, fixStartingPos, in segment);
+ 
+                SplitBlackText(in formatTextEnumerator.EnumerateSegment(), ref current, fixStartingPos, in segment);
                 
-                //TODO: we yet need to handle the color-cases!
+                //TODO: we yet need to handle the color-cases where these would actually have to be wrapped to, but since we are in this IF block
+                //and we do not handle them, the iterator just skips over them and nothing gets rendered!!
             }
             else
             {
@@ -223,6 +226,8 @@ public static class UiRenderer
                 ImGui.TextColored(segment.Colour.Vector, segment.Text);
                 MoveCursorRight(ref current, in segment);
             }
+
+            // enumerationCounter++;
         }
     }
 
