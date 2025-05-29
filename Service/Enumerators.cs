@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 using System.Numerics;
 using System.Text.RegularExpressions;
+
 using DotNext.Buffers;
 using ImGuiNET;
 using Match_3.DataObjects;
@@ -9,9 +11,8 @@ namespace Match_3.Service;
 
 public readonly ref struct TextInfo
 {
-    public readonly ReadOnlySpan<char> MemberName2Replace, Text, TextWithColorCode, ColorCode;
-    public readonly Vector4 ColorAsVec4;
-    public readonly TileColor ColorKind;
+    public readonly ReadOnlySpan<char> MemberName2Replace, Text;
+    public readonly FadeableColor Colour;
     public readonly (int spanIdx, int spanLen) Occurence;
 
     /// <summary>
@@ -20,10 +21,9 @@ public readonly ref struct TextInfo
     /// <param name="slice2Colorize">the slice of a span like: (abc def ghi)</param>
     /// <param name="colorCode">the string colorCode like {Black} or {Red}</param>
     /// <param name="memberName2Replace">The member identifier inside a Class, like "nameof(Animal.Age)"</param>
-    /// <param name="textWithColorCode">The color code with the corresponding text</param>
     /// <param name="occurence"></param>
     public TextInfo(ReadOnlySpan<char> slice2Colorize, ReadOnlySpan<char> colorCode,
-        ReadOnlySpan<char> memberName2Replace, ReadOnlySpan<char> textWithColorCode,
+        ReadOnlySpan<char> memberName2Replace,
         (int spanIdx, int spanLen) occurence)
     {
         ReadOnlySpan<char> code = [];
@@ -35,19 +35,15 @@ public readonly ref struct TextInfo
         else if (!colorCode.Contains('('))
         {
             code = colorCode;
-            ColorCode = code;
         }
         else
         {
-            ColorCode = colorCode; //(Color)
             code = colorCode[1..^1]; //Color
         }
 
         Text = slice2Colorize.TrimEnd('\0');
-        var colorAsText = code.TrimEnd('\0');
-        TextWithColorCode = textWithColorCode;
-        ColorKind = Enum.Parse<TileColor>(colorAsText);
-        ColorAsVec4 = FadeableColor.ToVec4(ColorKind);
+        var colorAsText = code.TrimEnd('\0').ToString();
+        Colour = Color.FromName(colorAsText);
         MemberName2Replace = memberName2Replace;
         Occurence = occurence;
     }
@@ -90,20 +86,21 @@ public ref struct WordEnumerator
         _originalPhrase = originalPhrase;
     }
     
-    public bool IsLast => _remainder is [];
+    public readonly bool IsLast => _remainder is [];
     
     public bool MoveNext()
     {
         //ReadOnlySpan<char> items = "abc <separator> def <separator> ghi <separator> jkl <separator> mno"
         int idxOfChar = _remainder.IndexOf(_separator);
         ReadOnlySpan<char> word;
-
+        const int separatorLen = 1;
+        
         //this separate check serves 2 purposes:
         //1. when "idxOfChar" is -1 and "separator" as well as "_remainder" are empty than indeed
         //it's safe to assume that the entire thing is empty or was built up badly...
         if (idxOfChar == -1)
         {
-            if (_separator is (char)32 && _remainder.Length == 0)
+            if (_separator is ' ' && _remainder.Length == 0)
                 return false;
 
             //the 2. purpose is to determine, when the above if condition is false, that there is really
@@ -113,14 +110,13 @@ public ref struct WordEnumerator
         }
         else
         {
-            word = _remainder[..(idxOfChar + 1)];
-            _remainder = _remainder[(word.Length)..];
+            word = _remainder[..(idxOfChar + separatorLen)];
+            _remainder = _remainder[word.Length..];
             _lastCharPos += word.Length; 
         }
 
         _tmp = new(word,
-            _originalPhrase.ColorKind.ToString(),
-            [],
+            _originalPhrase.Colour.Name,
             [],
             (_tmp.Occurence.spanIdx, word.Length));
 
@@ -129,20 +125,13 @@ public ref struct WordEnumerator
 
     public bool MoveBack()
     {
-        //example: and you have in between those only really like
-        //Current: those
-        //(New) Current:  between
-       
         var slice = _originalPhrase.Text.Slice(0, _lastCharPos + 1);
         //state: and u have in between 
         int foundAt = slice[.._lastCharPos].LastIndexOf(_separator) + 1;
         var lastWord = slice.Slice(foundAt);
-        int wordLen = lastWord.Length;
         _tmp = new(lastWord,
-            _originalPhrase.ColorCode.ToString(),
-            [],
-            [], (foundAt, wordLen));
-
+            _originalPhrase.Colour.Name,
+            [], (foundAt, lastWord.Length));
         return _lastCharPos > 0;
     }
 }
@@ -202,9 +191,9 @@ public ref partial struct FormatTextEnumerator
         var variable2Replace = isAMemberName
             ? slice2Colorize[..slice2Colorize.IndexOf(' ')]
             : [];
-        var textWithColorCode = _text.Slice(match.idx, lengthTilNextColor + match.len);
+        _text.Slice(match.idx, lengthTilNextColor + match.len);
         var occurence = (match.idx, match.len);
-        _phrase = new(slice2Colorize, color2Use, variable2Replace, textWithColorCode, occurence);
+        _phrase = new(slice2Colorize, color2Use, variable2Replace, occurence);
         _position++;
 
         return slice2Colorize.Length > 0;
@@ -238,7 +227,7 @@ public ref partial struct FormatTextEnumerator
 
         var textWithColorCode = _text[match.idx..lengthTilNextColor];
         var occurence = (match.idx, match.len);
-        _phrase = new(txt, color2Use, [], textWithColorCode, occurence);
+        _phrase = new(txt, color2Use, [], occurence);
 
         _position++;
 
@@ -251,9 +240,6 @@ public ref partial struct FormatTextEnumerator
             ? GetNextNonBlackColor()
             : GetNextColor();
     }
-
-    [UnscopedRef]
-    public ref readonly FormatTextEnumerator GetEnumerator() => ref this;
     
     public readonly WordEnumerator EnumerateSegment() => new(in _phrase); 
 
