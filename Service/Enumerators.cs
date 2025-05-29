@@ -1,9 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-
 using DotNext.Buffers;
+using DotNext.Runtime.InteropServices;
 using ImGuiNET;
 using Match_3.DataObjects;
 
@@ -26,7 +28,7 @@ public readonly ref struct TextInfo
         ReadOnlySpan<char> memberName2Replace,
         (int spanIdx, int spanLen) occurence)
     {
-        ReadOnlySpan<char> code = [];
+        ReadOnlySpan<char> code;
 
         if (colorCode == ReadOnlySpan<char>.Empty)
         {
@@ -53,52 +55,51 @@ public readonly ref struct TextInfo
     public override string ToString() => Text.ToString();
 }
 
-public ref struct WordEnumerator
+public unsafe ref struct WordEnumerator
 {
     private readonly char _separator;
-    private readonly TextInfo _originalPhrase;  
-    
-    private TextInfo _tmp;
-    private int _lastCharPos;
+
+    private bool _wasEnumeratedOnce;
+    private TextInfo* _rootSegment;
+    private TextInfo _currentWordInfo;
     private ReadOnlySpan<char> _remainder;
     
-    [UnscopedRef] public ref readonly TextInfo Current => ref _tmp;
+    [UnscopedRef] public ref readonly TextInfo Current => ref _currentWordInfo;
     
-    /// <summary>
-    /// An Enumerator who iterates over an array of string interpreted as an array of words, stored as ROS
-    /// </summary>
-    /// <param name="span">the ROS which is interpreted as an array of words</param>
-    /// <param name="separator">the character who will be used to split the ROS</param>
-    private WordEnumerator(ReadOnlySpan<char> span, char separator = ' ')
+    private ref readonly TextInfo RootSegment => ref *_rootSegment;
+  
+    public WordEnumerator(scoped in TextInfo rootSegment, char separator = ' ') 
     {
         _separator = separator;
-
-        _remainder = span.Contains(separator) ? span[1..] : span;
-
-        // if (!span.Contains(separator))
-        //     throw new ArgumentException(
-        //         "The Enumerator expects a char which shall function as line splitter! If there is none" +
-        //         "it cannot slice the ROS which shall be viewed as <separator> seperated string");
-    }
-
-    public WordEnumerator(scoped in TextInfo originalPhrase, char separator = ' ') : this(originalPhrase.Text, separator)
-    {
-        _originalPhrase = originalPhrase;
+        _rootSegment = (TextInfo*)Unsafe.AsPointer(ref Unsafe.AsRef(in rootSegment));
     }
     
-    public readonly bool IsLast => _remainder is [];
+    public bool EndReached { get; private set; }
+
+    public bool AtLeastOneWordLeft => _remainder is not [];
     
     public bool MoveNext()
     {
-        //ReadOnlySpan<char> items = "abc <separator> def <separator> ghi <separator> jkl <separator> mno"
-        int idxOfChar = _remainder.IndexOf(_separator);
-        ReadOnlySpan<char> word;
+        //ReadOnlySpan<char> items = " abc <separator> def <separator> ghi <separator> jkl <separator> mno"
         const int separatorLen = 1;
+        var remaining = RootSegment.Text[separatorLen..];
+        bool veryFirstCallOfMoveNext = !EndReached && _remainder is [];
+        _remainder = veryFirstCallOfMoveNext ? remaining : _remainder;
+
+        //there has to be none word left in the remaining span!
+        if (EndReached && !AtLeastOneWordLeft) 
+        {
+            _wasEnumeratedOnce = true;
+            return false;
+        }
+
+        int idxOfSeparator = _remainder.IndexOf(_separator);
+        ReadOnlySpan<char> word;
         
         //this separate check serves 2 purposes:
         //1. when "idxOfChar" is -1 and "separator" as well as "_remainder" are empty than indeed
         //it's safe to assume that the entire thing is empty or was built up badly...
-        if (idxOfChar == -1)
+        if (idxOfSeparator == -1)
         {
             if (_separator is ' ' && _remainder.Length == 0)
                 return false;
@@ -110,29 +111,36 @@ public ref struct WordEnumerator
         }
         else
         {
-            word = _remainder[..(idxOfChar + separatorLen)];
+            word = _remainder.Slice(0, idxOfSeparator + 1);
             _remainder = _remainder[word.Length..];
-            _lastCharPos += word.Length; 
         }
 
-        _tmp = new(word,
-            _originalPhrase.Colour.Name,
+        _currentWordInfo = new(word,
+            RootSegment.Colour.Name,
             [],
-            (_tmp.Occurence.spanIdx, word.Length));
+            (_currentWordInfo.Occurence.spanIdx, word.Length));
 
-        return word.Length > 0;
+        EndReached = _remainder is [];
+        
+        return true;
     }
 
     public bool MoveBack()
     {
-        var slice = _originalPhrase.Text.Slice(0, _lastCharPos + 1);
-        //state: and u have in between 
-        int foundAt = slice[.._lastCharPos].LastIndexOf(_separator) + 1;
-        var lastWord = slice.Slice(foundAt);
-        _tmp = new(lastWord,
-            _originalPhrase.Colour.Name,
-            [], (foundAt, lastWord.Length));
-        return _lastCharPos > 0;
+         //current remainder: "those only really like "
+         //desired remainder: "between those only really like "
+         //root:              " and you have in between those only really like " 
+         var root = RootSegment.Text;
+         var currentPos = root.IndexOf(Current.Text);
+         _remainder = root.Slice(currentPos);
+         return true;
+    }
+
+    public void Reset()
+    {
+        _remainder = [];
+        _currentWordInfo = default;
+        EndReached = false;
     }
 }
 
@@ -141,7 +149,8 @@ public ref partial struct FormatTextEnumerator
     private readonly bool _skipBlackColor;
     private readonly Span<(int idx, int len)> _colorPositions;
     private readonly ReadOnlySpan<char> _text;
-
+    private readonly WordEnumerator _wordEnumerator;
+    
     private int _position;
     private TextInfo _phrase;
 
@@ -171,6 +180,8 @@ public ref partial struct FormatTextEnumerator
 
         _colorPositions = _colorPositions[.._position];
         _position = 0;
+
+        _wordEnumerator = new(in Unsafe.AsRef(in Current));
     }
 
     [UnscopedRef] public ref readonly TextInfo Current => ref _phrase;
@@ -241,7 +252,14 @@ public ref partial struct FormatTextEnumerator
             : GetNextColor();
     }
     
-    public readonly WordEnumerator EnumerateSegment() => new(in _phrase); 
+    [UnscopedRef] public ref readonly WordEnumerator EnumerateSegment()
+    {
+        ref readonly var tmp = ref _wordEnumerator;
+        ref var mutable = ref Unsafe.AsRef(in tmp);
+        mutable.Reset();
+        return ref tmp;
+        //I need 'mutable.Current' to point to 
+    }
 
     [GeneratedRegex(pattern: @"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex FindAllColorCodes();
