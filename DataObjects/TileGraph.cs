@@ -53,7 +53,7 @@ public class TileGraph : IEnumerable<Tile>
     {
         _sameColored = [.. bitmap
             .OfType<Tile>()
-            .Where(x => x.Body.TileKind == color)
+            .Where(x => x.Body.Colour.Type == color)
             .OrderBy(x => x, Comparer.CellComparer.Singleton)
             .Select(x => new Node(x))];
 

@@ -31,7 +31,7 @@ public static class TileMap
                 Vector2 current = new(x, y);
                 CSharpRect grid = new(current.X, current.Y, 1f, 1f);
                 Tile tmpTile = _bitmap[x, y] = Bakery.CreateTile(grid, allKinds[j++]);
-                int index = FadeableColor.ToIndex(tmpTile.Body.TileKind);
+                int index = FadeableColor.ToIndex(tmpTile.Body.Colour.Type);
                 counts[index]++;
             }
         }

@@ -171,7 +171,7 @@ public static class UiRenderer
                     return;
                 }
 
-                ImGui.TextColored(currentWordInfo.ColorAsVec4, currentWordInfo.Text);
+                ImGui.TextColored(currentWordInfo.Colour.Vector, currentWordInfo.Text);
                 MoveCursorRight(ref current, in currentWordInfo);
             }
         }
@@ -180,7 +180,7 @@ public static class UiRenderer
             scoped ref Vector2? current, Vector2? fixStart,
             scoped ref readonly TextInfo segment)
         {
-            if (segment.ColorKind is not TileColor.Black)
+            if (segment.Colour.Type is not TileColor.Black)
                 return;
 
             DrawUntilEnd(ref enumerator, ref current);
@@ -205,7 +205,7 @@ public static class UiRenderer
 
             current ??= fixStartingPos;
 
-            if (TextShouldWrap(in current, segment.TextSize, out var wrappedAt))
+            if (TextShouldWrap(in current, segment.TextSize, out _))
             {
                 //if we are about to wrap the text,
                 //we need to know if its only black-default text so we  
@@ -220,7 +220,7 @@ public static class UiRenderer
             else
             {
                 //this part only cares to mindlessly draw each segments if it can be done so safely
-                ImGui.TextColored(segment.ColorAsVec4, segment.Text);
+                ImGui.TextColored(segment.Colour.Vector, segment.Text);
                 MoveCursorRight(ref current, in segment);
             }
         }

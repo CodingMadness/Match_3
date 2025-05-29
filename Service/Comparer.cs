@@ -19,7 +19,7 @@ public static class Comparer
         /// <returns></returns>
         public override bool Equals(IGameObject? x, IGameObject? y)
         {
-            return ReferenceEquals(x, y) || x!.Body.TileKind == y!.Body.TileKind;
+            return ReferenceEquals(x, y) || x!.Body.Colour.Type == y!.Body.Colour.Type;
         }
 
         public override int GetHashCode(IGameObject obj)

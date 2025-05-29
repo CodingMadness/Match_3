@@ -8,5 +8,5 @@ public interface IGameObject
     
     public Shape Body { get; }
     
-    public string ToString() => $"Tile at: {Position}; ---- with type: {Body.TileKind}";
+    public string ToString() => $"Tile at: {Position}; ---- with type: {Body.Colour.Type}";
 }

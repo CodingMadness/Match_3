@@ -36,16 +36,15 @@ public abstract class Texture
 public class Shape : Texture
 {
     public FadeableColor Colour = White;
-    public override string ToString() => $"Tile type: <{TileKind}>";
-    public required TileColor TileKind { get; init; }
+    public override string ToString() => $"Tile type: <{Colour.Type}>";
 }
 
 public class RectShape(IGridRect cellRect) : Shape
 {
-    private UpAndDownScale ResizeFactor;
+    private UpAndDownScale _resizeFactor;
     private CSharpRect _scaledRect = cellRect.GridBox;
-    
-    public CSharpRect AsWorld => new(
+
+    private CSharpRect AsWorld => new(
         _scaledRect.X * Config.TileSize,
         _scaledRect.Y * Config.TileSize,
         _scaledRect.Width * Config.TileSize,
@@ -55,8 +54,8 @@ public class RectShape(IGridRect cellRect) : Shape
 
     public void ScaleBox(float currTime)
     {
-        ResizeFactor = new(currTime: currTime);
-        _scaledRect = ResizeFactor * cellRect.GridBox;
+        _resizeFactor = new(currTime: currTime);
+        _scaledRect = _resizeFactor * cellRect.GridBox;
     }
 }
 
@@ -97,9 +96,9 @@ public class MatchX : IGameObject, IEnumerable<Tile>
 {
     private Vector2 _position;
 
-    protected readonly SortedSet<Tile> Matches = new(Comparer.CellComparer.Singleton);
+    private readonly SortedSet<Tile> Matches = new(Comparer.CellComparer.Singleton);
 
-    protected static readonly Dictionary<Layout, IMultiCell> CachedCellTemplates = new(3)
+    private static readonly Dictionary<Layout, IMultiCell> CachedCellTemplates = new(3)
     {
         {
             Layout.Block,
@@ -232,5 +231,5 @@ public class MatchX : IGameObject, IEnumerable<Tile>
         return GetEnumerator();
     }
 
-    public new string ToString() => $"A match{Count} of type: {Body.TileKind} starting at position: {Place}";
+    public new string ToString() => $"A match{Count} of type: {Body.Colour.Name} starting at position: {Place}";
 }

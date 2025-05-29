@@ -153,8 +153,8 @@ public class ClickHandler : QuestHandler
                 //it can be ONLY 1 OR 2 but NEVER 0!
                 var second = secondClicked;
                 currData.StatesFromQuestRelatedTiles = currData.StatePerQuest!
-                    .Where(x => x.TileKind == firstClicked.Body.TileKind ||
-                                x.TileKind == second.Body.TileKind);
+                    .Where(x => x.TileKind == firstClicked.Body.Colour.Type ||
+                                x.TileKind == second.Body.Colour.Type);
 
                 OnTilesAlreadySwapped();
                 secondClicked = null; //he is the first now
@@ -180,8 +180,8 @@ public class SwapHandler : QuestHandler
 
     private static (TileColor x, TileColor y) GetTileColorAndQuestData(in EventState state, out Quest? eventDataOfX, out Quest? eventDataOfY)
     {
-        var colorX = state.TileX!.Body.TileKind;
-        var colorY = state.TileY!.Body.TileKind;
+        var colorX = state.TileX!.Body.Colour.Type;
+        var colorY = state.TileY!.Body.Colour.Type;
         eventDataOfX = GameState.Instance.GetQuestBy(colorX);
         eventDataOfY = GameState.Instance.GetQuestBy(colorY);
         return (colorX, colorY);
@@ -221,7 +221,7 @@ public class SwapHandler : QuestHandler
 
             if (swapState.HaveAMatch)
             {
-                swapState.IgnoredByMatch = x == swapState.Matches!.Body!.TileKind ? y : x;
+                swapState.IgnoredByMatch = x == swapState.Matches.Body.Colour.Type ? y : x;
                 OnMatchFound();
             }
             else
@@ -288,7 +288,7 @@ public class MatchHandler : QuestHandler
         var allStates = matchData.StatePerQuest!;
         var StatesFromQuestRelatedTiles = matchData.StatesFromQuestRelatedTiles!;
         var currMatch = matchData.Matches;
-        var kindWhoTriggeredMatch = currMatch!.Body!.TileKind;
+        var kindWhoTriggeredMatch = currMatch.Body.Colour.Type;
         var kindWhichWasIgnoredByMatch = matchData.IgnoredByMatch;
         var stateOfMatch = StatesFromQuestRelatedTiles.SingleOrDefault(x => x.TileKind == kindWhoTriggeredMatch);
         var questOfMatch = GameState.Instance.Lvl.Quests;

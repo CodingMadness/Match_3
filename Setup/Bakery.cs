@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Drawing;
+using System.Numerics;
 using Match_3.DataObjects;
 
 namespace Match_3.Setup;
@@ -24,7 +25,7 @@ public static class Bakery
                 TileColor.Red => new Vector2(2f, 0f),
                 _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "undefined color was passed!")
             },
-            TileKind = kind,
+            Colour = Color.FromKnownColor(kind)
         };
     }
 
