@@ -130,10 +130,10 @@ public static class UiRenderer
             return result;
         }
 
-        static bool TextShouldWrap(ref readonly Vector2? current, Vector2 textSize, out int wrappedAt)
+        static bool TextShouldWrap(ref readonly Vector2? current, Vector2 textSize)
         {
             var screen = Grid.GetWindowSize();
-            wrappedAt = (int)(screen.X - (current!.Value.X + textSize.X));
+            var wrappedAt = (int)(screen.X - (current!.Value.X + textSize.X));
             return wrappedAt < 0;
         }
 
@@ -154,18 +154,18 @@ public static class UiRenderer
         static void MoveCursorRight(ref Vector2? current, ref readonly TextInfo txtInfo)
         {
             current = current!.Value with { X = current.Value.X + txtInfo.TextSize.X };
-            ImGui.SetCursorPos(current!.Value);
+            ImGui.SetCursorPos(current.Value);
         }
 
         static void DrawUntilEnd(scoped in WordEnumerator enumerator, scoped ref Vector2? current)
         {
             ref var blackWordsEnumerator = ref Unsafe.AsRef(in enumerator);
-            
+
             while (blackWordsEnumerator.MoveNext())
             {
                 ref readonly var currentWordInfo = ref blackWordsEnumerator.Current;
 
-                if (TextShouldWrap(ref current, currentWordInfo.TextSize, out _))
+                if (TextShouldWrap(ref current, currentWordInfo.TextSize))
                 {
                     blackWordsEnumerator.MoveBack();
                     return;
@@ -186,17 +186,15 @@ public static class UiRenderer
             DrawUntilEnd(in enumerator, ref current);
             current = SetNextLine(fixStart);
 
-            while (!enumerator.EndReached || enumerator.AtLeastOneWordLeft)
+            while (!enumerator.EndReached)
             {
                 DrawUntilEnd(in enumerator, ref current);
             }
         }
         //------------------------------------------------------------------------------------------------------------//
-        
+
         var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt);
         Vector2? fixStartingPos = null, current = null;
-
-        // int enumerationCounter = 0;
         
         while (formatTextEnumerator.MoveNext())
         {
@@ -208,15 +206,14 @@ public static class UiRenderer
 
             current ??= fixStartingPos;
 
-            if (TextShouldWrap(in current, segment.TextSize, out _))
+            if (TextShouldWrap(in current, segment.TextSize))
             {
                 //if we are about to wrap the text,
                 //we need to know if its only black-default text so we  
                 //put the words 1 by 1 while they fit still in the same line 
                 //and only then put the non-fitting ones into the next line
- 
+
                 SplitBlackText(in formatTextEnumerator.EnumerateSegment(), ref current, fixStartingPos, in segment);
-                
                 //TODO: we yet need to handle the color-cases where these would actually have to be wrapped to, but since we are in this IF block
                 //and we do not handle them, the iterator just skips over them and nothing gets rendered!!
             }
@@ -226,11 +223,8 @@ public static class UiRenderer
                 ImGui.TextColored(segment.Colour.Vector, segment.Text);
                 MoveCursorRight(ref current, in segment);
             }
-
-            // enumerationCounter++;
         }
     }
-
     public static void DrawQuestLog(Span<Quest> quests)
     {
         foreach (ref readonly Quest quest in quests)
