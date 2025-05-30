@@ -5,7 +5,6 @@ namespace Match_3.DataObjects;
 [StructLayout(LayoutKind.Auto)]
 public readonly ref struct SpanInfo<T> where T : unmanaged, IEquatable<T>
 {
-    public readonly int SrcLength;
     public readonly ReadOnlySpan<T> First, Between, Last;
     public readonly int IndexOfFirst;
     public readonly int IndexOfLast;
@@ -15,18 +14,17 @@ public readonly ref struct SpanInfo<T> where T : unmanaged, IEquatable<T>
     public readonly bool IsFirstLargerThanLast;
     public readonly int LengthDiff;
     public readonly Slice<T> LargeOneArea, SmallOneArea;
-    public readonly bool IsImpossible2Swap;
 
     public SpanInfo(ReadOnlySpan<T> src, Range x, Range y)
     {
-        SrcLength = src.Length;
+        var srcLength = src.Length;
 
-        Slice<T> areaX = new(x, SrcLength);
-        Slice<T> areaY = new(y, SrcLength);
+        Slice<T> areaX = new(x, srcLength);
+        Slice<T> areaY = new(y, srcLength);
 
-        IsImpossible2Swap = src == ReadOnlySpan<T>.Empty || areaX == areaY;
+        var isImpossible2Swap = src == ReadOnlySpan<T>.Empty || areaX == areaY;
 
-        if (IsImpossible2Swap)
+        if (isImpossible2Swap)
             return;
         
         if (areaX < areaY)
@@ -50,7 +48,7 @@ public readonly ref struct SpanInfo<T> where T : unmanaged, IEquatable<T>
             IndexOfFirst = areaX.Start;
             IndexOfLast = areaY.Start;
             
-            IsLastAtEnd = SrcLength - y.End.Value == 0;
+            IsLastAtEnd = srcLength - y.End.Value == 0;
         }
 
         if (areaX > areaY)
@@ -74,7 +72,7 @@ public readonly ref struct SpanInfo<T> where T : unmanaged, IEquatable<T>
             IndexOfFirst = areaY.Start;
             IndexOfLast = areaX.Start;
             
-            IsLastAtEnd = SrcLength - areaX.End == 0;
+            IsLastAtEnd = srcLength - areaX.End == 0;
         }
 
         //when they are really close and only split by a delimiter from each other

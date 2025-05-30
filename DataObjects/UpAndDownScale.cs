@@ -35,30 +35,21 @@ public readonly struct UpAndDownScale(float speed=1f, float min=1f,float max=2f,
         }
     }
     
-    public static CSharpRect operator *(UpAndDownScale scale, CSharpRect cSharpRect)
+    public static Rectangle operator *(UpAndDownScale scale, IGridRect rect)
     {
         scale.Change();
-        (CSharpRect newBox, var factor) = (default, _factor + 1f);
-        newBox.Width = cSharpRect.Width * factor;
-        newBox.Height = cSharpRect.Height * factor;
-        return (newBox);
+        (Rectangle newBox, var factor) = (default, _factor + 1f);
+        newBox.Width = (int)(rect.GridBox.Width * factor);
+        newBox.Height = (int)(rect.GridBox.Height * factor);
+        return newBox;
     }
 
-    public static RayRect operator *(UpAndDownScale scale, RayRect rayRect)
+    public static Rectangle operator *(UpAndDownScale scale, SizeF size)
     {
         scale.Change();
-        (RayRect newBox, var factor) = (default, _factor + 1f);
-        newBox.Width = rayRect.Width * factor;
-        newBox.Height = rayRect.Height * factor;
-        return (newBox);
-    }
-
-    public static CSharpRect operator *(UpAndDownScale scale, SizeF size)
-    {
-        scale.Change();
-        (CSharpRect newBox, var factor) = (default, _factor + 1f);
-        newBox.Width = size.Width * factor;
-        newBox.Height = size.Height * factor;
+        (Rectangle newBox, var factor) = (default, _factor + 1f);
+        newBox.Width = (int)(size.Width * factor);
+        newBox.Height = (int)(size.Height * factor);
         return (newBox);
     }
 

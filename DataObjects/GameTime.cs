@@ -6,8 +6,6 @@ public struct GameTime
 {
     public float CurrentSeconds { get; private set; }
 
-    public bool IsReset {get; private set;}
-
     private int MaxTimerValue { get; init; }
 
     public static GameTime CreateTimer(int countDownInSec)
@@ -15,8 +13,7 @@ public struct GameTime
         return new GameTime
         {
             MaxTimerValue = countDownInSec,
-            CurrentSeconds = countDownInSec,
-            IsReset = false
+            CurrentSeconds = countDownInSec
         };
     }
 
@@ -31,12 +28,6 @@ public struct GameTime
 
         return MathF.Max(CurrentSeconds, 0f) == 0f;
     }
-    
-    public void Reset(float? newStart)
-    {
-        CurrentSeconds = newStart ?? MaxTimerValue;
-        IsReset = true;
-    }
 
-    public override readonly string ToString() => $"(Time Left: {CurrentSeconds} seconds)";
+    public readonly override string ToString() => $"(Time Left: {CurrentSeconds} seconds)";
 }

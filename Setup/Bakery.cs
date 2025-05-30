@@ -6,9 +6,9 @@ namespace Match_3.Setup;
 
 public static class Bakery
 {
-    private static RectShape DefineBody(TileColorTypes kind, IGridRect gridBox)
+    private static ConcreteRectangularBody DefineBody(TileColorTypes kind, IGridRect gridBox)
     {
-        return new RectShape(gridBox)
+        return new ConcreteRectangularBody(gridBox)
         {
             TextureLocation = kind switch
             {
@@ -29,15 +29,16 @@ public static class Bakery
         };
     }
 
-    public static Tile CreateTile(CSharpRect gridBox, TileColorTypes kind)
+    public static Tile CreateTile(in SingleCell cell, TileColorTypes kind)
     {
         var tile = new Tile
         {
-            Cell = gridBox.Location.ToVector2(),
+            Cell = cell,
             CellB4Swap = -Vector2.One,
             State = TileState.UnChanged,
-            Body = DefineBody(kind, (SingleCell)gridBox.Location.ToVector2()) 
+            Body = DefineBody(kind,cell) 
         };
+        
         return tile;
     }
 }

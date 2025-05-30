@@ -12,14 +12,11 @@ namespace Match_3.Workflow;
 internal static class Game
 {
     public static Config ConfigPerStartUp { get; private set; }
-
     public static Logger QuestLogger { get; private set; } = null!;
-    
     public static QuestHolder QuestHolder { get; private set; } = null!;
     
     private static GameTime _gameTimer;
     private static bool _inGame;
-    
     public static event Action OnTileClicked = null!;
 
     private static void Main()
@@ -56,7 +53,7 @@ internal static class Game
             _gameTimer = GameTime.CreateTimer(ConfigPerStartUp.GameBeginAt);
             QuestHolder = QuestBuilder.BuildQuests();
             QuestLogger = new(QuestHolder); 
-            QuestHandler.ActivateHandlers();
+            QuestHandler.ActivateEventHandlers();
             TileMap.Init();
         }
 

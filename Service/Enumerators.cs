@@ -15,7 +15,6 @@ public readonly ref struct TextInfo
     public readonly FadeableColor Colour;
     public readonly (int spanIdx, int spanLen) Occurence;
 
-
     /// <summary>
     /// represents the color we want to convert to a Vector4 type
     /// </summary>

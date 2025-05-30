@@ -11,6 +11,7 @@ namespace Match_3.DataObjects;
 [StructLayout(LayoutKind.Auto)]
 public struct BitPack
 {
+    //can store up 2
     [InlineArray(2*sizeof(long))]
     private struct Buffer
     {
@@ -24,8 +25,8 @@ public struct BitPack
     public readonly int Count => _idxAdd; 
         
     public BitPack(){ }
-    
-    public byte GetBitWidth(uint value)
+
+    private byte GetBitWidth(uint value)
     {
         var bitWidth = (byte)((BigInteger)value).GetBitLength();
         return (_countOfBits[_idxAdd++] = bitWidth);

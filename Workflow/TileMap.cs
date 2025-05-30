@@ -8,7 +8,7 @@ namespace Match_3.Workflow;
 
 public static class TileMap
 {
-    private static Tile[,] _bitmap = null!;
+    private static Tile[,] _map = null!;
     private static Tile? _lastMatchTrigger;
     private static byte _match3FuncCounter;
     private static int _tileWidth, _tileHeight;
@@ -20,17 +20,17 @@ public static class TileMap
         scoped Span<TileColorTypes> allKinds = stackalloc TileColorTypes[Config.TileColorCount];
         Vector2 twoBy4Block = new(xSize, ySize);
         Vector2 begin = new(0, 0);
-        int j = 0;
         FadeableColor.Fill(allKinds);
-  
+        int j = 0;
+        
         Next8Block:
         for (int x = (int)begin.X; x < twoBy4Block.X-1; x++)
         {
             for (int y = (int)begin.Y; y < twoBy4Block.Y-1; y++)
             {
                 Vector2 current = new(x, y);
-                CSharpRect grid = new(current.X, current.Y, 1f, 1f);
-                Tile tmpTile = _bitmap[x, y] = Bakery.CreateTile(grid, allKinds[j++]);
+                SingleCell cell = new Vector2(current.X, current.Y);
+                Tile tmpTile = _map[x, y] = Bakery.CreateTile(cell, allKinds[j++]);
                 int index = FadeableColor.ToIndex(tmpTile.Body.Colour.Type);
                 counts[index]++;
             }
@@ -71,7 +71,7 @@ public static class TileMap
         //MatchHandler.Instance.OnDeleteMatch += Delete;
         _tileWidth = Game.ConfigPerStartUp.GridWidth;
         _tileHeight = Game.ConfigPerStartUp.GridHeight;
-        _bitmap = new Tile[_tileWidth, _tileHeight];
+        _map = new Tile[_tileWidth, _tileHeight];
         CreateMap();
         Console.Clear();
     }
@@ -98,7 +98,7 @@ public static class TileMap
             case >= 0 when cellPos.X < _tileWidth && cellPos.Y >= 0 && cellPos.Y < _tileHeight:
             {
                 //it's within bounds!
-                tmp = _bitmap[(int)cellPos.X, (int)cellPos.Y];
+                tmp = _map[(int)cellPos.X, (int)cellPos.Y];
                 tmp = tmp is { IsDeleted: true, State: TileState.Disabled  } ? null : tmp;
                 break;
             }
@@ -114,12 +114,12 @@ public static class TileMap
 
         Vector2 coord = newCoord ?? value.Cell.Start;
 
-        _bitmap[(int)coord.X, (int)coord.Y] = coord.X switch
+        _map[(int)coord.X, (int)coord.Y] = coord.X switch
         {
             >= 0 when coord.Y >= 0 && coord.X < _tileWidth && coord.Y < _tileHeight
                 => value ?? throw new NullReferenceException(
                     "You cannot store NULL inside the EntireGrid anymore, use EntireGrid.Delete(vector2) instead"),
-            _ => _bitmap[(int)coord.X, (int)coord.Y]
+            _ => _map[(int)coord.X, (int)coord.Y]
         };
     }
 
@@ -219,23 +219,5 @@ public static class TileMap
         b.CellB4Swap = b.Cell;
         (a.Cell, b.Cell) = (b.Cell, a.Cell);
         currData.WasSwapped = true;
-    }
-
-    private static void Delete()
-    {
-        var matchData = GameState.Instance;
-        var match = matchData.Matches;
-        
-        foreach (var tile in match)
-        {
-            Disable(tile);
-        }
-
-        match.Clear(matchData.LookUpUsedInMatchFinder);
-    }
-
-    private static void Disable(Tile tile)
-    {
-        throw new NotImplementedException("Here we have to do some logic which deals with disabling the @tile in the EntireGrid!");
     }
 }

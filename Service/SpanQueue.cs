@@ -116,11 +116,9 @@ public struct SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquat
         return currPart;
     }
 
-    public readonly ReadOnlySpan<T> ConcatEntirePool() => _content.Span;
-
     public override string ToString() => _content.ToString();
 
-    public void MarkForOverwrite()
+    private void MarkForOverwrite()
     {
         _enQCharIdx = 0;
         _enQCount = 0;

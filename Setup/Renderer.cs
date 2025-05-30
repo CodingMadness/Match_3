@@ -245,7 +245,7 @@ public static class TileRenderer
     {
         var body = tile.Body;
         body.ScaleBox(currTime);
-        DrawTexturePro(atlas, body.AssetRect, body.WorldRect, Vector2.Zero, 0f, body.Colour);
+        DrawTexturePro(atlas, body.AtlasInfo, body.WorldRect, Vector2.Zero, 0f, body.Colour);
     }
 
     public static void DrawGrid(float elapsedTime, int gridWidth, int gridHeight)

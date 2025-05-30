@@ -78,7 +78,7 @@ public abstract class QuestHandler
 
     protected abstract void CompareQuestWithState();
 
-    public static void ActivateHandlers()
+    public static void ActivateEventHandlers()
     {
         ClickHandler.Instance.Subscribe();
         SwapHandler.Instance.Subscribe();
