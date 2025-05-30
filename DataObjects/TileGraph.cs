@@ -10,20 +10,15 @@ namespace Match_3.DataObjects;
 /// </summary>
 public class TileGraph : IEnumerable<Tile>
 {
-    public class Node : IGameObject
+    public class Node(Tile root) : IGameObject
     {
         private const int MaxEdges = 4;
-        public readonly Tile Root;
+        public readonly Tile Root = root;
         public readonly List<Node> Links = new(MaxEdges);
         /// <summary>
         /// Describes the amount of how many connections to close neighbors it got
         /// </summary>
         public int Edges;
-
-        public Node(Tile root)
-        {
-            Root = root;
-        }
 
         public override string ToString() => ((IGameObject)this).ToString();
         
@@ -71,7 +66,7 @@ public class TileGraph : IEnumerable<Tile>
         for (var i = 0; i < _sameColored.Length; i++)
         {
             var current = _sameColored[i];
-            
+           
             var list = _sameColored
                 .Skip(1 + i)
                 .Where(x =>
@@ -87,11 +82,13 @@ public class TileGraph : IEnumerable<Tile>
                    
                     return true;
                 });
-
-            if (!list.Any())
+            
+            var enumerable = list as Node[] ?? list.ToArray();
+            
+            if (enumerable.Length is 0)
                 continue;
 
-            yield return list.Prepend(current);
+            yield return enumerable.Prepend(current);
         }
     }
 

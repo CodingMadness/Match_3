@@ -59,9 +59,7 @@ public static class AssetManager
                 fontConfig,
                 io.Fonts.GetGlyphRangesDefault()
             );
-            //var customFont = io.Fonts.AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf", 32f, fontConfig, io.Fonts.GetGlyphRangesDefault());
             io.Fonts.Build();
-           // rlImGui.ReloadFonts();
             return customFont;
         }
         finally

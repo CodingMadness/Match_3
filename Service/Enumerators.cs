@@ -251,7 +251,6 @@ public ref partial struct FormatTextEnumerator
         ref var mutable = ref Unsafe.AsRef(in tmp);
         mutable.Reset();
         return ref tmp;
-        //I need 'mutable.Current' to point to 
     }
 
     [GeneratedRegex(pattern: @"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]

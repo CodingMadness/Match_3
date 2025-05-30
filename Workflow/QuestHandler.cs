@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
+using System.Reflection;
 using Match_3.DataObjects;
 
 namespace Match_3.Workflow;
@@ -17,13 +17,24 @@ file static class SingletonManager
             if (QuestHandlerStorage.TryGetValue(typeof(T), out var toReturn))
             {
                 return (T)toReturn;
-                //got val to return
             }
 
-            toReturn = Activator.CreateInstance(typeof(T), true) as QuestHandler;
+            // Ensure the type has a parameterless constructor (public or non-public)
+            var constructor = typeof(T).GetConstructor(
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                Type.EmptyTypes,
+                null
+            );
 
+            if (constructor == null)
+            {
+                throw new InvalidOperationException($"Type {typeof(T).Name} must have a parameterless constructor (private or protected).");
+            }
+
+            // Now create the instance (suppress warning since we've validated at runtime)
+            toReturn = (T)Activator.CreateInstance(typeof(T), true)!;
             QuestHandlerStorage.Add(typeof(T), toReturn);
-
             return (T)toReturn;
         }
     }
@@ -74,9 +85,9 @@ public abstract class QuestHandler
         MatchHandler.Instance.Subscribe();
     }
 
-    //its private for now until I will need my other Handlers for Clicks and Destruction events, which has to be 
+    //it's private for now until I will need my other Handlers for Clicks and Destruction events, which has to be 
     //subbed and un-subbed at certain times..
-    public void Subscribe()
+    private void Subscribe()
     {
         if (IsActive) return;
 
@@ -96,8 +107,8 @@ public abstract class QuestHandler
 public class ClickHandler : QuestHandler
 {
     public static readonly ClickHandler Instance = GetInstance<ClickHandler>();
-
-    public event Action OnSwapTiles, OnTilesAlreadySwapped;
+    public event Action? OnSwapTiles;
+    public event Action? OnTilesAlreadySwapped;
 
     private ClickHandler() : base(typeof(ClickHandler)) //--> NOTIFIER!
     {
@@ -140,7 +151,7 @@ public class ClickHandler : QuestHandler
             firstClicked.State &= ~TileState.Selected;
             currData.TileY = secondClicked;
             currData.TileX = firstClicked;
-            OnSwapTiles();
+            OnSwapTiles?.Invoke();
 
             if (currData.WasSwapped)
             {
@@ -153,11 +164,10 @@ public class ClickHandler : QuestHandler
                 //find all states whose "TileColor" were part of the swap!
                 //it can be ONLY 1 OR 2 but NEVER 0!
                 var second = secondClicked;
-                currData.StatesFromQuestRelatedTiles = currData.States!
-                    .Where(x => x.ColourType == firstClicked.Body.Colour.Type ||
-                                x.ColourType == second.Body.Colour.Type);
+                currData.StatesFromQuestRelatedTiles = currData.States
+                    .Where(x => x.ColourType == firstClicked.Body.Colour.Type || x.ColourType == second.Body.Colour.Type);
 
-                OnTilesAlreadySwapped();
+                OnTilesAlreadySwapped?.Invoke();
                 secondClicked = null; //he is the first now
             }
             else
@@ -177,7 +187,8 @@ public class SwapHandler : QuestHandler
 
     public static readonly SwapHandler Instance = GetInstance<SwapHandler>();
 
-    public event Action OnCheckForMatch, OnMatchFound;
+    public event Action? OnCheckForMatch;
+    public event Action? OnMatchFound;
 
     private static (TileColorTypes x, TileColorTypes y) GetTileColorAndQuestData(out Quest? eventDataOfX, out Quest? eventDataOfY)
     {
@@ -221,21 +232,22 @@ public class SwapHandler : QuestHandler
             }
                     
             //2. Check if we didnt exceed the allowed Swap-Count for all the different quests
-            OnCheckForMatch();
+            OnCheckForMatch?.Invoke();
 
+            //since we have a 3x match the Body cannot be null so we use '.Body!' expression
             if (swapState.HaveAMatch)
             {
-                swapState.IgnoredByMatch = x == swapState.Matches.Body.Colour.Type ? y : x;
-                OnMatchFound();
+                swapState.IgnoredByMatch = x == swapState.Matches.Body!.Colour.Type ? y : x;
+                OnMatchFound?.Invoke();
             }
             else
             {
                 void HandleSwaps(in QuestState z)
                 {
-                    int missSwap_State = ++z.WrongSwaps.Count;
-                    int maxAllowedSwaps_Quest = (int)(z.ColourType == quest0?.Colour.Type ? quest0?.SwapsAllowed.Count : quest1?.SwapsAllowed.Count)!;
+                    int missSwapState = ++z.WrongSwaps.Count;
+                    int maxAllowedSwapsQuest = (int)(z.ColourType == quest0?.Colour.Type ? quest0?.SwapsAllowed.Count : quest1?.SwapsAllowed.Count)!;
                     
-                    z.IsQuestLost = missSwap_State == maxAllowedSwaps_Quest;
+                    z.IsQuestLost = missSwapState == maxAllowedSwapsQuest;
 
                     if (z.IsQuestLost)
                     {
@@ -255,7 +267,7 @@ public class SwapHandler : QuestHandler
                     }
                     else
                     {
-                        Debug.WriteLine($"You have still: {maxAllowedSwaps_Quest - missSwap_State} swaps left of tiletype:" +
+                        Debug.WriteLine($"You have still: {maxAllowedSwapsQuest - missSwapState} swaps left of tiletype:" +
                                         $"  {z.ColourType.ToString().ToUpper()} ! use them wisely!");
                     }
                 }
@@ -276,7 +288,7 @@ public class MatchHandler : QuestHandler
 {
     public static readonly MatchHandler Instance = GetInstance<MatchHandler>();
 
-    public event Action OnDeleteMatch;
+    // public event Action? OnDeleteMatch;
     
     private MatchHandler() : base(typeof(MatchHandler))
     {
@@ -288,12 +300,13 @@ public class MatchHandler : QuestHandler
         //IF the incoming match was a "Miss-match (a match not allowed to do because its not in the Quest written!)", then
         //we do +1 the "QuestState.MissMatch.Count", ELSE we do +1 the "QuestState.Match.Count"
         var matchData = GameState.Instance;
-        var allStates = matchData.States!;
-        var StatesFromQuestRelatedTiles = matchData.StatesFromQuestRelatedTiles!;
+        var allStates = matchData.States;
+        var statesFromQuestRelatedTiles = matchData.StatesFromQuestRelatedTiles!;
         var currMatch = matchData.Matches;
-        var kindWhoTriggeredMatch = currMatch.Body.Colour.Type;
+        //since we seemingly triggered a 3x-match the Body cannot (should not?) be null so we use '.Body!' expression
+        var kindWhoTriggeredMatch = currMatch.Body!.Colour.Type;
         var kindWhichWasIgnoredByMatch = matchData.IgnoredByMatch;
-        var stateOfMatch = StatesFromQuestRelatedTiles.SingleOrDefault(x => x.ColourType == kindWhoTriggeredMatch);
+        var stateOfMatch = statesFromQuestRelatedTiles.SingleOrDefault(x => x.ColourType == kindWhoTriggeredMatch);
         var questOfMatch = Game.QuestHolder.Quests;
         
         //example: RED swapsWith BLUE; RED is in Quest, Blue not;
@@ -317,8 +330,6 @@ public class MatchHandler : QuestHandler
         else
         {
             matchData.Matches.BuildMatchBox(matchData.LookUpUsedInMatchFinder);
-            var d = currMatch.ToString();
-            
             //a match with the requested "ColourType" was found and hence it was a successful Quest-Bound match!
             int successCount = ++stateOfMatch.FoundMatch.Count;
             var properQuest = questOfMatch.First(x => x.Colour.Type == kindWhoTriggeredMatch);

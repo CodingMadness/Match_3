@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.Contracts;
-using System.Numerics;
-using DotNext;
+﻿using System.Numerics;
 
 namespace Match_3.DataObjects;
 

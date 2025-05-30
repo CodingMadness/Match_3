@@ -68,7 +68,7 @@ public static class TileMap
         //--> registrations/subscriptions to events!
         ClickHandler.Instance.OnSwapTiles += Swap;
         SwapHandler.Instance.OnCheckForMatch += CheckForMatch;
-        MatchHandler.Instance.OnDeleteMatch += Delete;
+        //MatchHandler.Instance.OnDeleteMatch += Delete;
         _tileWidth = Game.ConfigPerStartUp.GridWidth;
         _tileHeight = Game.ConfigPerStartUp.GridHeight;
         _bitmap = new Tile[_tileWidth, _tileHeight];

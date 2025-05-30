@@ -17,7 +17,7 @@ public record QuestState(
     SubEventData ReplacementsUsed,
     SubEventData WrongMatch)
 {
-    public bool IsQuestLost { get; set; }
+    public bool IsQuestLost { get; set; } = IsQuestLost;
 
     public Tile? Current { get; set; }
 }
@@ -57,10 +57,10 @@ public sealed class GameState
         States[index] = new(colorType,
             false,
             default,
-            default,
-            default,
-            default,
-            default);
+            null!,
+            null!,
+            null!,
+            null!);
     }
 
     public static GameState Instance => _instance.Value;
@@ -76,7 +76,7 @@ public sealed class GameState
     {
         var states = States.AsSpan(0, _questCount);
 
-        foreach (QuestState state in states)
+        foreach (var state in states)
         {
             if (state.ColourType == tileColorTypes)
                 return state;
