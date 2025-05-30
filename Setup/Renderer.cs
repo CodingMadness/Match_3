@@ -69,7 +69,7 @@ public static class UiRenderer
             {
                 ImGui.PushFont(CustomFont);
                 ImGui.SetNextWindowPos(Vector2.Zero);
-                ImGui.SetNextWindowSize(Grid.GetWindowSize());
+                ImGui.SetNextWindowSize(Game.ConfigPerStartUp.WindowInWorldCoordinates);
             }
         }
     }
@@ -103,7 +103,7 @@ public static class UiRenderer
         static Vector2 SetUiStartingPoint(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints offset)
         {
             Vector2 result = Vector2.Zero;
-            Vector2 screen = Grid.GetWindowSize();
+            Vector2 screen = Game.ConfigPerStartUp.WindowInWorldCoordinates;
             Vector2 txtSize = ImGui.CalcTextSize(colorCodedTxt);
             Vector2 paddingAdjustedScreen = new(screen.X - txtSize.X, screen.Y - txtSize.Y);
             Vector2 halfTxtSize = new(txtSize.X * 0.5f, txtSize.Y * 0.5f);
@@ -132,12 +132,12 @@ public static class UiRenderer
 
         static bool TextShouldWrap(ref readonly Vector2? current, Vector2 textSize)
         {
-            var screen = Grid.GetWindowSize();
-            var wrappedAt = (int)(screen.X - (current!.Value.X + textSize.X));
+            var canvas = Game.ConfigPerStartUp.WindowInWorldCoordinates;
+            var wrappedAt = (int)(canvas.X - (current!.Value.X + textSize.X));
             return wrappedAt < 0;
         }
 
-        static void SetNextLine(Vector2? fixStart, ref Vector2? current)
+        static void SetNextLine(scoped ref readonly Vector2? fixStart, ref Vector2? current)
         {
             ImGui.NewLine();
             Vector2 framePadding = ImGui.GetStyle().FramePadding;
@@ -150,6 +150,12 @@ public static class UiRenderer
             current = newLine;
         }
 
+        static void DrawWord(scoped in TextInfo segment, ref Vector2? current)
+        {
+            ImGui.TextColored(segment.Colour.Vector, segment.Text);
+            MoveCursorRight(ref current, in segment);
+        }
+        
         //I am passing a null but only for easier code usage, semantically this is usually not good practise!
         static void MoveCursorRight(ref Vector2? current, ref readonly TextInfo txtInfo)
         {
@@ -163,27 +169,33 @@ public static class UiRenderer
 
             while (blackWordsEnumerator.MoveNext())
             {
-                ref readonly var currentWordInfo = ref blackWordsEnumerator.Current;
+                ref readonly var wordSegment = ref blackWordsEnumerator.Current;
 
-                if (TextShouldWrap(ref current, currentWordInfo.TextSize))
+                if (TextShouldWrap(ref current, wordSegment.TextSize))
                 {
                     blackWordsEnumerator.MoveBack();
                     return;
                 }
 
-                ImGui.TextColored(currentWordInfo.Colour.Vector, currentWordInfo.Text);
-                MoveCursorRight(ref current, in currentWordInfo);
+                DrawWord(in wordSegment, ref current);
             }
         }
 
         static void SplitText(scoped in WordEnumerator enumerator,
-            scoped ref Vector2? current, Vector2? fixStart,
+            scoped ref Vector2? current, scoped ref readonly Vector2? fixStart,
             scoped ref readonly TextInfo segment)
         {
+            //if we are about to wrap the text,
+            //we need to know if its only black-default text so we  
+            //put the words 1 by 1 while they fit still in the same line 
+            //and only then put the non-fitting ones into the next line
             if (segment.Colour.Type is TileColorTypes.Black)
                 DrawUntilEnd(in enumerator, ref current);
 
-            SetNextLine(fixStart, ref current);
+            //if its colored-text which has to be actually wrapped
+            //we need to place it directly to the next line since we   
+            //don't want a 2-line split colored-text only a sequential line 
+            SetNextLine(in fixStart, ref current);
 
             while (!enumerator.EndReached)
             {
@@ -197,30 +209,22 @@ public static class UiRenderer
 
         while (formatTextEnumerator.MoveNext())
         {
-            ref readonly var segment = ref formatTextEnumerator.Current;
+            ref readonly var phraseSegment = ref formatTextEnumerator.Current;
 
             fixStartingPos ??= anchor is not CanvasStartingPoints.CursorPos
-                ? SetUiStartingPoint(segment.Text, anchor)
+                ? SetUiStartingPoint(phraseSegment.Text, anchor)
                 : ImGui.GetCursorPos();
 
             current ??= fixStartingPos;
 
-            if (TextShouldWrap(in current, segment.TextSize))
+            if (TextShouldWrap(in current, phraseSegment.TextSize))
             {
-                //if we are about to wrap the text,
-                //we need to know if its only black-default text so we  
-                //put the words 1 by 1 while they fit still in the same line 
-                //and only then put the non-fitting ones into the next line
-
-                SplitText(in formatTextEnumerator.EnumerateSegment(), ref current, fixStartingPos, in segment);
-                //TODO: we yet need to handle the color-cases where these would actually have to be wrapped to, but since we are in this IF block
-                //and we do not handle them, the iterator just skips over them and nothing gets rendered!!
+                SplitText(in formatTextEnumerator.EnumerateSegment(), ref current, in fixStartingPos, in phraseSegment);
             }
             else
             {
-                //this part only cares to mindlessly draw each segments if it can be done so safely
-                ImGui.TextColored(segment.Colour.Vector, segment.Text);
-                MoveCursorRight(ref current, in segment);
+                //this part simply draws each segments directly 1 by 1 next to each other
+                DrawWord(in phraseSegment, ref current);
             }
         }
     }
@@ -229,7 +233,7 @@ public static class UiRenderer
     {
         foreach (ref readonly Quest quest in quests)
         {
-            var logger = QuestBuilder.BuildQuestMessageFrom(quest);
+            var logger = QuestBuilder.BuildQuestMessageFrom(in quest, Game.QuestLogger);
             DrawText(logger, CanvasStartingPoints.Center);
         }
     }

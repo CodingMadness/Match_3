@@ -1,13 +1,68 @@
 ﻿using JetBrains.Annotations;
-using Match_3.Service;
 
 namespace Match_3.DataObjects;
+
+public record SubEventData(int Count, float Elapsed)
+{
+    public int Count { get; set; } = Count;
+    public float Elapsed { get; set; } = Elapsed;
+}
+
+public record QuestState(
+    TileColorTypes ColourType,
+    bool IsQuestLost,
+    TimeOnly Now,
+    SubEventData FoundMatch,
+    SubEventData WrongSwaps,
+    SubEventData ReplacementsUsed,
+    SubEventData WrongMatch)
+{
+    public bool IsQuestLost { get; set; }
+
+    public Tile? Current { get; set; }
+}
 
 public sealed class GameState
 {
     // Singleton instance (thread-safe & lazy)
     private static readonly Lazy<GameState> _instance = new(() => new GameState());
-    
+
+    public readonly MatchX Matches = [];
+    private int _questCount;
+
+    public int QuestCount { get; set; }
+    public QuestState[] States { get; private set; }
+    public bool WasGameLost { get; set; }
+    public bool WasGameWon { get; set; }
+    public bool HaveAMatch { get; set; }
+    public bool WasSwapped { get; set; }
+    public int LevelId { get; set; }
+    public Tile? TileY; //they must be fields, because I need later them to be used via "ref" directly!
+    public Tile? TileX; //they must be fields, because I need later them to be used via "ref" directly!
+
+    public IEnumerable<QuestState>? StatesFromQuestRelatedTiles;
+
+    public TileColorTypes IgnoredByMatch { get; set; }
+
+    public Direction LookUpUsedInMatchFinder { get; set; }
+
+    public void InitStates(int questCount)
+    {
+        _questCount = questCount;
+        States = new QuestState[questCount];
+    }
+
+    public void DefineStateType(int index, TileColorTypes colorType)
+    {
+        States[index] = new(colorType,
+            false,
+            default,
+            default,
+            default,
+            default,
+            default);
+    }
+
     public static GameState Instance => _instance.Value;
 
     // Private constructor to prevent external instantiation
@@ -16,53 +71,14 @@ public sealed class GameState
         // Initialize Logger only when first needed (lazy via property)
     }
 
-    // --- Core Quest Data (immutable after initialization) ---
-    public Config Lvl { get; set; }  // Set this during game initialization
-
-    // QuestLog remains a computed string (now with instance access)
-    
-    public const string QuestLog = $"(Black) You have to collect ({Quest.TileColorName}\0\0\0) {Quest.MatchCountName} Matches " +
-                             $"(Black) for which you have in between those only really like ({Quest.TileColorName}\0\0\0) {Quest.MatchIntervalName} seconds left " +
-                             $"(Black) and also just ({Quest.TileColorName}\0\0\0) {Quest.SwapCountName} swaps available per match " +
-                             $"(Black) furthermore, you only are allowed to replace any given tile ({Quest.TileColorName}\0\0\0) {Quest.ReplacementCountName} times maximum " +
-                             $"(Black) for your own help as well as there is only tolerance for ({Quest.TileColorName}\0\0\0) {Quest.WrongMatchName} wrong matches";
-
-    // --- Lazy-Loaded Resources ---
-    private SpanQueue<char>? _logger;
-
-    public SpanQueue<char> Logger => _logger ??= new SpanQueue<char>(QuestLog.Length * Lvl.QuestCount);
-
     [Pure]
-    public ReadOnlySpan<char> GetPooledQuestLog() => Logger.Dequeue(true);
-
-    // --- Current State ---
-    public readonly EventState CurrData = new();  
-
-    [Pure]
-    public Span<Quest> GetQuests() => Lvl.Quests.AsSpan(0, Lvl.QuestCount);
-
-    [Pure]
-    public ref readonly Quest GetQuestBy(TileColorTypes tileColorTypes)
+    public QuestState GetStateBy(TileColorTypes tileColorTypes)
     {
-        var onlyNeededQuests = Lvl.Quests.AsSpan(0, Lvl.QuestCount);
+        var states = States.AsSpan(0, _questCount);
 
-        foreach (ref readonly Quest quest in onlyNeededQuests)
+        foreach (QuestState state in states)
         {
-            if (quest.Colour.Type == tileColorTypes)
-                return ref quest;
-        }
-
-        return ref Quest.Empty;
-    }
-    
-    [Pure]
-    public State GetStateBy(TileColorTypes tileColorTypes)
-    {
-        var states = CurrData.StatePerQuest.AsSpan(0, Lvl.QuestCount);
-
-        foreach (State state in states)
-        {
-            if (state.TileKind == tileColorTypes)
+            if (state.ColourType == tileColorTypes)
                 return state;
         }
 

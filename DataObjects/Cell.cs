@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
+using Match_3.Workflow;
 
 
 namespace Match_3.DataObjects;
@@ -102,10 +103,9 @@ public interface IMultiCell : ICell
 
 public interface IGridRect : ICell
 {
-    public  Size UnitSize { get; }
+    public Size UnitSize { get; }
     public new int Count => UnitSize.Width * UnitSize.Height;
     public CSharpRect GridBox => new(Start.X, Start.Y, UnitSize.Width, UnitSize.Width);
-    public int Area => UnitSize.Width * UnitSize.Height;
 }
 
 [StructLayout(LayoutKind.Auto)]
@@ -113,7 +113,7 @@ public readonly struct SingleCell : IGridRect
 {
     public static implicit operator SingleCell(Vector2 position)
     {
-        var gameWindowSize = new Vector2(GameState.Instance.Lvl.GridWidth, GameState.Instance.Lvl.GridHeight);
+        var gameWindowSize = Game.ConfigPerStartUp.WindowInGridCoordinates;
         var gridPos = new Vector2((int)position.X, (int)position.Y);
 
         if (gridPos.Length() <= gameWindowSize.Length())
@@ -128,9 +128,9 @@ public readonly struct SingleCell : IGridRect
     }
 
     public static implicit operator Vector2(SingleCell position) => position.Start;
-    
+
     public required Vector2 Start { get; init; }
-    
+
     public int Count => 1; //1x1, cause UnitSize=1x1
 
     public Size UnitSize => new(1, 1);
@@ -236,22 +236,6 @@ public readonly struct Grid : IGridRect, IMultiCell
         return new CellEnumerator(this);
     }
 
-    private static Grid EntireGrid
-    {
-        get
-        {
-            var block = new Grid
-            {
-                Begin = new Vector2(0, 0),
-                UnitSize = new(GameState.Instance.Lvl.GridWidth, GameState.Instance.Lvl.GridHeight),
-                Route = Direction.RectBotRight
-            };
-            return block;
-        }
-    }
-
-    public static Vector2 GetWindowSize() => (Vector2)EntireGrid.End * Config.TileSize;
-
     Vector2 ICell.Start => Begin.Start;
 
     int ICell.Count => ((IGridRect)this).Count;
@@ -295,12 +279,13 @@ public readonly struct LinearCellLine : IGridRect, IMultiCell
     public required SingleCell Begin { get; init; }
     public required Direction Route { get; init; }
     public required int Count { get; init; }
+
     public IEnumerator<ICell> GetEnumerator()
     {
         throw new NotImplementedException();
     }
 
-    public new string ToString() => this.ToString();
+    public override string ToString() => $"{((IMultiCell)this).ToString()} and follows {Route} pathing";
 }
 
 [StructLayout(LayoutKind.Auto)]
@@ -332,10 +317,10 @@ public readonly struct DiagonalCellLine : IMultiCell
         throw new NotImplementedException();
     }
 
-    public override string ToString() => this.ToString();
+    public override string ToString() => ((IMultiCell)this).ToString();
 }
 
-public class MultiCell<TCell> : IMultiCell where TCell: struct, IMultiCell 
+public class MultiCell<TCell> : IMultiCell where TCell : struct, IMultiCell
 {
     public TCell Cell;
 
@@ -349,10 +334,10 @@ public class MultiCell<TCell> : IMultiCell where TCell: struct, IMultiCell
     public SingleCell End => Cell.End;
 
     public Direction Route => Cell.Route;
-        
+
     public Layout Layout => Cell.Layout;
 
     public override string ToString() => ((IMultiCell)Cell).ToString();
-        
+
     public static MultiCell<TCell> FromIMultiCell(TCell self) => new() { Cell = self };
 }

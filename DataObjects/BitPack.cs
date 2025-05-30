@@ -14,7 +14,7 @@ public struct BitPack
     [InlineArray(2*sizeof(long))]
     private struct Buffer
     {
-        public byte bits;
+        public byte Bits;
     }
     
     private BigInteger _packedSlot = 0;

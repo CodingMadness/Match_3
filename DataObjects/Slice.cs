@@ -7,35 +7,26 @@ public readonly struct Slice<T> : IEquatable<Slice<T>>, IComparable<Slice<T>>
 
     private readonly int _srcLen;
     public readonly int Start;
-    public readonly int Length;
+    private readonly int _length;
     public readonly int End;
-
-    public Slice(int start, int length) : this(.., 0)
-    {
-        (int offset, int len) = (start, length);
-        Start  = offset;
-        Length = len;
-        End    = offset + len;
-        _srcLen = 0;
-    }
 
     public Slice(Range r, int srcLen)
     {
         _srcLen = srcLen;
         (int offset, int len) = r.GetOffsetAndLength(srcLen);
         Start  = offset;
-        Length = len;
+        _length = len;
         End    = offset + len;
     }
 
     public Slice<T> GetSlice(Slice<T> other)
     {
-        int diff = Math.Abs(Length - other.Length);
+        int diff = Math.Abs(_length - other._length);
         Slice<T> newOne = this - diff;
         return newOne;
     }
 
-    public (int start, int length, int end) Deconstruct() => (Start, Length, End);
+    public (int start, int length, int end) Deconstruct() => (Start, _length, End);
 
     public bool Equals(Slice<T> other) => Start == other.Start;
 
@@ -73,7 +64,7 @@ public readonly struct Slice<T> : IEquatable<Slice<T>>, IComparable<Slice<T>>
         return isOverlap ? endOther - startOther : 0;
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is Slice<T> slice && Equals(slice);
     }

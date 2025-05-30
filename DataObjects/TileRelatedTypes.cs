@@ -18,19 +18,19 @@ public enum TileState : byte
 
 public abstract class Texture
 {
-    private readonly Vector2 mTextureLoc;
+    private readonly Vector2 _textureLoc;
 
     public required Vector2 TextureLocation
     {
-        init => mTextureLoc = value * Config.TileSize;
-        get => mTextureLoc;
+        init => _textureLoc = value * Config.TileSize;
+        get => _textureLoc;
     }
 
     public static readonly Size TextureSize = new(Config.TileSize, Config.TileSize);
 
-    public CSharpRect CSTextureRect => new(TextureLocation.X, TextureLocation.Y, TextureSize.Width, TextureSize.Height);
+    private CSharpRect CsTextureRect => new(TextureLocation.X, TextureLocation.Y, TextureSize.Width, TextureSize.Height);
 
-    public RayRect AssetRect => new(CSTextureRect.X, CSTextureRect.Y, CSTextureRect.Width, CSTextureRect.Height);
+    public RayRect AssetRect => new(CsTextureRect.X, CsTextureRect.Y, CsTextureRect.Width, CsTextureRect.Height);
 }
 
 public class Shape : Texture
@@ -82,7 +82,7 @@ public class Tile : IGameObject
     /// <summary>
     /// Body consists of :
     ///   * Colour
-    ///   * TileKind
+    ///   * ColourType
     ///   * Rectangle
     /// </summary>
     Shape IGameObject.Body => Body;
@@ -96,7 +96,7 @@ public class MatchX : IGameObject, IEnumerable<Tile>
 {
     private Vector2 _position;
 
-    private readonly SortedSet<Tile> Matches = new(Comparer.CellComparer.Singleton);
+    private readonly SortedSet<Tile> _matches = new(Comparer.CellComparer.Singleton);
 
     private static readonly Dictionary<Layout, IMultiCell> CachedCellTemplates = new(3)
     {
@@ -150,11 +150,11 @@ public class MatchX : IGameObject, IEnumerable<Tile>
         }
     }
 
-    public int Count => Matches.Count;
+    public int Count => _matches.Count;
 
     public bool IsMatchFilled => Count == Config.MaxTilesPerMatch;
 
-    public IMultiCell? Place { get; private set; }
+    private IMultiCell? _place;
 
     public Tile? FirstInOrder { get; set; }
 
@@ -166,7 +166,7 @@ public class MatchX : IGameObject, IEnumerable<Tile>
 
     public void Add(Tile matchTile)
     {
-        Matches.Add(matchTile);
+        _matches.Add(matchTile);
 
         if (!IsMatchFilled)
             return;
@@ -210,12 +210,12 @@ public class MatchX : IGameObject, IEnumerable<Tile>
             }
         }
 
-        Place = matchBox;
+        _place = matchBox;
     }
 
     public void Clear(Direction lookUpUsedInMatchFinder)
     {
-        Matches.Clear();
+        _matches.Clear();
         FirstInOrder = null;
         Body = null!;
         ClearMatchBox(lookUpUsedInMatchFinder);
@@ -223,7 +223,7 @@ public class MatchX : IGameObject, IEnumerable<Tile>
 
     public IEnumerator<Tile> GetEnumerator()
     {
-        return Matches.GetEnumerator();
+        return _matches.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -231,5 +231,5 @@ public class MatchX : IGameObject, IEnumerable<Tile>
         return GetEnumerator();
     }
 
-    public new string ToString() => $"A match{Count} of type: {Body.Colour.Name} starting at position: {Place}";
+    public new string ToString() => $"A match{Count} of type: {Body.Colour.Name} starting at position: {_place}";
 }

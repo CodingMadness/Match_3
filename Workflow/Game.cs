@@ -11,6 +11,12 @@ namespace Match_3.Workflow;
 //TODO: 3. Write the algorithm for "TileGraph" which shall exchange 1 Graph with another so that there are not any distant tiles anymore
 internal static class Game
 {
+    public static Config ConfigPerStartUp { get; private set; }
+
+    public static Logger QuestLogger { get; private set; } = null!;
+    
+    public static QuestHolder QuestHolder { get; private set; } = null!;
+    
     private static GameTime _gameTimer;
     private static bool _inGame;
     
@@ -25,38 +31,39 @@ internal static class Game
 
     private static void Initialize()
     {
-        Config level = new(0, 300, 1, 20, 20);
-
-        static void InitRaylib(ref readonly Config lvl)
+        //config only once when the application/game is started and never changed!
+        ConfigPerStartUp = new(0, 300, 1, 20, 20);
+         
+        static void InitRaylib()
         { 
             SetTargetFPS(60);
-            InitWindow(lvl.WindowWidth, lvl.WindowHeight, "Match3 By Shpendicus");
+            InitWindow(ConfigPerStartUp.WindowWidth, ConfigPerStartUp.WindowHeight, "Match3 By Shpendicus");
             SetTextureFilter(BgIngameTexture, TextureFilter.Bilinear);
         }
 
-        static void InitImGui(ref readonly Config lvl)
+        static void InitImGui()
         {
             //<this has to be initialized RIGHT HERE in order to work!>
             rlImGui.Setup(false);
             UiRenderer.SetCurrentContext();
-            LoadAssets(new(lvl.GridWidth, lvl.GridHeight), 32f);
+            LoadAssets(new(ConfigPerStartUp.GridWidth, ConfigPerStartUp.GridHeight), 32f);
             // For raylib only, because raylib needs to update the imgui-font at gpu-level
             rlImGui.ReloadFonts();
         }
 
-        static void InitGameLevel(ref readonly Config lvl)
+        static void InitGameLevel()
         {
-            _gameTimer = GameTime.CreateTimer(lvl.GameBeginAt);
-            GameState.Instance.Lvl = lvl;
+            _gameTimer = GameTime.CreateTimer(ConfigPerStartUp.GameBeginAt);
+            QuestHolder = QuestBuilder.BuildQuests();
+            QuestLogger = new(QuestHolder); 
             QuestHandler.ActivateHandlers();
             TileMap.Init();
-            QuestBuilder.DefineQuests();
         }
 
         //the calling order of these 3 methods is very important! DO NOT change it!
-        InitRaylib(in level);
-        InitImGui(in level);
-        InitGameLevel(in level);
+        InitRaylib();
+        InitImGui();
+        InitGameLevel();
     }
 
     private static void MainGameLoop()
@@ -81,8 +88,8 @@ internal static class Game
 
                 if (TileClicked(out var firstClickedTile))
                 {
-                    var currState = GameState.Instance.CurrData;
-                    currState.TileX = firstClickedTile;
+                    var currState = GameState.Instance.GetStateBy(firstClickedTile!.Body.Colour.Type);
+                    currState.Current = firstClickedTile;
                     OnTileClicked();
                     Console.WriteLine(firstClickedTile);
                 }
@@ -94,21 +101,19 @@ internal static class Game
 
             if (!_inGame)
             {
-                var quests = GameState.Instance.GetQuests();
-                // int len = quests.Length;
-                // Debug.WriteLine($"QUESTS to do? {len}");
+                var quests = QuestHolder.Quests;
                 UiRenderer.DrawQuestLog(quests);
             }
             else if (_inGame)
             {
-                var eventData = GameState.Instance.CurrData;
-                eventData.WasGameLost = _gameTimer.CountDown();
+                var gameState = GameState.Instance;
+                gameState.WasGameLost = _gameTimer.CountDown();
 
-                if (eventData.WasGameLost)
+                if (gameState.WasGameLost)
                 {
                     //print to the main-window that the user has lost
                 }
-                else if (eventData.WasGameWon)
+                else if (gameState.WasGameWon)
                 {
                     //print to the main-window that the user has won
                 }
@@ -125,7 +130,7 @@ internal static class Game
 
                     UiRenderer.DrawText(colorCodedText, CanvasStartingPoints.Center);
                     NotifyClickHandler();
-                    TileRenderer.DrawGrid(currTime, GameState.Instance.Lvl.GridWidth, GameState.Instance.Lvl.GridHeight);
+                    TileRenderer.DrawGrid(currTime, ConfigPerStartUp.GridWidth, ConfigPerStartUp.GridHeight);
                 }
             }
         }

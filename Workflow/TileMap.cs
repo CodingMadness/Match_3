@@ -59,30 +59,6 @@ public static class TileMap
             j = 0;
             goto Next8Block;  
         }
-
-        //since we know that in this method so far at least,
-        //the "counts" consists always of the same byte value, we can pack only the 0th element
-        //and fill the result span with that value then we have the Span<byte> back
-        GameState.Instance.Lvl.CountForAllColors = counts[0];
-    }
-    
-    private static void Test()
-    {
-        scoped Span<TileColorTypes> allKinds = stackalloc TileColorTypes[Config.TileColorCount];
-        FadeableColor.Fill(allKinds);
-        
-        foreach (var color in allKinds)
-        {
-            TileGraph clusteredGraph = new(_bitmap, color);
-            
-            foreach (Tile current in clusteredGraph)
-            {
-                current.Body.Colour = Red;
-                //current.Body.ChangeColor2(Colour.Red);
-                Debug.WriteLine(current.Cell);
-            }
-            break;
-        }
     }
     
     public static void Init() //--> RECEIVER!
@@ -93,18 +69,16 @@ public static class TileMap
         ClickHandler.Instance.OnSwapTiles += Swap;
         SwapHandler.Instance.OnCheckForMatch += CheckForMatch;
         MatchHandler.Instance.OnDeleteMatch += Delete;
-        var current = GameState.Instance.Lvl;
-        _tileWidth = current.GridWidth;
-        _tileHeight = current.GridHeight;
+        _tileWidth = Game.ConfigPerStartUp.GridWidth;
+        _tileHeight = Game.ConfigPerStartUp.GridHeight;
         _bitmap = new Tile[_tileWidth, _tileHeight];
         CreateMap();
         Console.Clear();
-        Test();
     }
 
     private static void CheckForMatch()
     {
-        var state = GameState.Instance.CurrData;
+        var state = GameState.Instance;
         state.HaveAMatch = WasAMatchInAnyDirection();
         Debug.WriteLine($"CheckForMatch() => returns: {state.HaveAMatch}");
     }
@@ -151,8 +125,8 @@ public static class TileMap
 
     private static bool WasAMatchInAnyDirection()
     {
-        var matchData = GameState.Instance.CurrData;
-        var matches = matchData.Matches!;
+        var matchData = GameState.Instance;
+        var matches = matchData.Matches;
         const Direction last = Direction.DiagonalBotRight;
         _lastMatchTrigger = matchData.TileX;
        
@@ -228,7 +202,7 @@ public static class TileMap
 
     private static void Swap()
     {
-        var currData = GameState.Instance.CurrData;
+        var currData = GameState.Instance;
 
         Tile? a = currData.TileX!,
               b = currData.TileY!;
@@ -249,7 +223,7 @@ public static class TileMap
 
     private static void Delete()
     {
-        var matchData = GameState.Instance.CurrData;
+        var matchData = GameState.Instance;
         var match = matchData.Matches;
         
         foreach (var tile in match)

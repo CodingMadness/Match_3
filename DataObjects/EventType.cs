@@ -7,5 +7,5 @@ public enum EventType : byte
     Matched,
     RePainted,
     Destroyed,
-    COUNT = Destroyed + 1
+    Count = Destroyed + 1
 }

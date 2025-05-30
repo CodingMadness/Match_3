@@ -6,7 +6,7 @@ namespace Match_3.Workflow;
 
 public static class QuestBuilder 
 {           
-    public static void DefineQuests()
+    public static QuestHolder BuildQuests()
     {
         static int GetRandomInterval()
         {
@@ -20,44 +20,44 @@ public static class QuestBuilder
             return toEven;
         }
 
-        var currLvl = GameState.Instance.Lvl;
+        var currLvl = GameState.Instance;
         const int tileCount = Config.TileColorCount;
         // const int questLogParts = 4;
-        scoped Span<KnownColor> subset = stackalloc KnownColor[tileCount];
+        scoped Span<TileColorTypes> subset = stackalloc TileColorTypes[tileCount];
         FadeableColor.Fill(subset);
         subset.Shuffle();
-        subset = subset.TakeRndItemsAtRndPos(currLvl.Id);
+        subset = subset.TakeRndItemsAtRndPos(currLvl.LevelId);
         int questCount = subset.Length;
-        int trueIdx = 0;
-        currLvl.Quests = new Quest[questCount];
-        GameState.Instance.CurrData.StatePerQuest = new State[questCount];
+        int idx = 0;
+        var quests = new Quest[questCount];
+        
+        GameState.Instance.InitStates(questCount);
         scoped Span<uint> maxCountPerType = stackalloc uint[tileCount];
-        maxCountPerType.Fill(currLvl.CountForAllColors);
+        //maxCountPerType.Fill(maxCountPerType);
         
         foreach (var colorType in subset)
         {
             int toEven = GetRandomInterval();
-            SubEventData match = new((int)(maxCountPerType[trueIdx] / Config.MaxTilesPerMatch), toEven);
+            SubEventData match = new((int)(maxCountPerType[idx] / Config.MaxTilesPerMatch), toEven);
             //these subQuests below are just placeholders until this class is done then I change them to
             //smth meaningful
             SubEventData swap = new(4, -1f);
             SubEventData replacement = new(5, -1f);
             SubEventData tolerance = new(6, -1f);
-            currLvl.Quests[trueIdx] = new Quest(Color.FromKnownColor(colorType), GameTime.CreateTimer(toEven) ,match, swap, replacement, tolerance);
-            GameState.Instance.CurrData.StatePerQuest[trueIdx] = new(colorType,false, default, new(0, 0f), new(0, 0f), new(0, 0f), new(0, 0f));
-            trueIdx++;
+            quests[idx] = new Quest(Color.FromKnownColor(colorType), GameTime.CreateTimer(toEven) ,match, swap, replacement, tolerance);
+            GameState.Instance.DefineStateType(idx, colorType);
+            idx++;
         }
-
-        //just for testing purposes we use 1 for now...
-        currLvl.QuestCount = 1;/*questCount*/; 
+        
+        QuestHolder holder = new(quests);
+        return holder;
     }
         
-    public static ReadOnlySpan<char> BuildQuestMessageFrom(ref readonly Quest quest)
+    public static ReadOnlySpan<char> BuildQuestMessageFrom(ref readonly Quest quest, Logger logger)
     {
-        var copiedLog = GameState.Instance.Logger.Enqueue(GameState.QuestLog);
+        logger.UpdateQuestLog(quest);
         
-        copiedLog.Replace(Quest.TileColorName, quest.Colour.ToString());
-        scoped var questIterator = new FormatTextEnumerator(copiedLog, 5,true);
+        scoped var questIterator = new FormatTextEnumerator(logger.CopiedLog, 5,true);
         
         // NOTE: we need to use while loop
         //       because foreach creates a hidden copy of my iterator and
@@ -71,6 +71,6 @@ public static class QuestBuilder
             value.CopyTo(memberName);
             memberName[value.Length..].Clear();
         }
-        return copiedLog;
+        return logger.CopiedLog;
     }    
 }
