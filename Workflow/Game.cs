@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using DotNext.Runtime;
 using Match_3.DataObjects;
+using Match_3.Service;
 using Match_3.Setup;
 using Raylib_cs;
 using rlImGui_cs;
@@ -14,8 +15,10 @@ namespace Match_3.Workflow;
 internal static class Game
 {
     public static Config ConfigPerStartUp { get; private set; }
-    public static QuestLogger QuestLogger { get; private set; } = null!;
-    public static QuestHolder QuestHolder { get; private set; } = null!;
+
+    private static QuestLogger QuestLogger = null!;
+
+    private static QuestHolder QuestHolder = null!;
     
     private static GameTime _gameTimer;
     private static bool _inGame;
@@ -55,7 +58,9 @@ internal static class Game
         {
             _gameTimer = GameTime.CreateTimer(ConfigPerStartUp.GameBeginAt);
             QuestHolder = QuestBuilder.BuildQuests();
-            QuestLogger = new(QuestHolder); 
+            QuestLogger = new(QuestHolder);
+            GameState.Instance.Holder = QuestHolder;
+            QuestBuilder.BuildQuestText(QuestHolder.Quests, QuestLogger);
             QuestHandler.ActivateEventHandlers();
             TileMap.Init();
         }
@@ -101,8 +106,7 @@ internal static class Game
 
             if (!_inGame)
             {
-                var quests = QuestHolder.Quests;
-                UiRenderer.DrawQuestLog(quests);
+                UiRenderer.DrawQuests(QuestLogger);
             }
             else if (_inGame)
             {
