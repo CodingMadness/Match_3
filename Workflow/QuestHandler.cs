@@ -194,7 +194,7 @@ public class SwapHandler : QuestHandler
     private static (TileColorTypes x, TileColorTypes y) GetTileColorAndQuestData(out Quest? eventDataOfX, out Quest? eventDataOfY)
     {
         var gameState = GameState.Instance;
-        var questHolder = Game.QuestHolder;
+        var questHolder = gameState.Holder;
         
         var colorX = gameState.TileX!.Body.Colour.Type;
         var colorY = gameState.TileY!.Body.Colour.Type;
@@ -253,8 +253,8 @@ public class SwapHandler : QuestHandler
 
                     if (z.IsQuestLost)
                     {
-                        int currQuestCount = swapState.QuestCount--;
-                        int countFromWhenIsLose = 1 * Game.QuestHolder.QuestCount / 3;
+                        int currQuestCount = swapState.Holder.QuestCount--;
+                        int countFromWhenIsLose = 1 * swapState.Holder.QuestCount / 3;
 
                         swapState.WasGameLost = currQuestCount == countFromWhenIsLose;
 
@@ -309,7 +309,7 @@ public class MatchHandler : QuestHandler
         var kindWhoTriggeredMatch = currMatch.Body!.Colour.Type;
         var kindWhichWasIgnoredByMatch = matchData.IgnoredByMatch;
         var stateOfMatch = statesFromQuestRelatedTiles.SingleOrDefault(x => x.ColourType == kindWhoTriggeredMatch);
-        var questOfMatch = Game.QuestHolder.Quests;
+        var questOfMatch = matchData.Holder.Quests;
         
         //example: RED swapsWith BLUE; RED is in Quest, Blue not;
         //BLUE got a Match, RED not;
