@@ -150,12 +150,12 @@ public static class UiRenderer
             current = newLine;
         }
 
-        static void DrawWord(scoped in TextInfo segment, ref Vector2? current)
+        static void DrawSegment(scoped in TextInfo segment, ref Vector2? current)
         {
             ImGui.TextColored(segment.Colour.Vector, segment.Text);
             MoveCursorRight(ref current, in segment);
         }
-        
+
         //I am passing a null but only for easier code usage, semantically this is usually not good practise!
         static void MoveCursorRight(ref Vector2? current, ref readonly TextInfo txtInfo)
         {
@@ -177,7 +177,7 @@ public static class UiRenderer
                     return;
                 }
 
-                DrawWord(in wordSegment, ref current);
+                DrawSegment(in wordSegment, ref current);
             }
         }
 
@@ -201,7 +201,7 @@ public static class UiRenderer
             {
                 DrawUntilEnd(in enumerator, ref current);
             }
-        } 
+        }
         //------------------------------------------------------------------------------------------------------------//
 
         var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt);
@@ -224,7 +224,7 @@ public static class UiRenderer
             else
             {
                 //this part simply draws each segments directly 1 by 1 next to each other
-                DrawWord(in phraseSegment, ref current);
+                DrawSegment(in phraseSegment, ref current);
             }
         }
     }
@@ -233,8 +233,13 @@ public static class UiRenderer
     {
         foreach (ref readonly Quest quest in quests)
         {
-            var logger = QuestBuilder.BuildQuestMessageFrom(in quest, Game.QuestLogger);
+            var logger = !Game.QuestLogger.IsLoggerFull
+                ? QuestBuilder.BuildQuestMessageFrom(in quest, Game.QuestLogger)
+                : Game.QuestLogger.CurrentLog;
+
+            int x = 1;
             DrawText(logger, CanvasStartingPoints.Center);
+            break;
         }
     }
 }
