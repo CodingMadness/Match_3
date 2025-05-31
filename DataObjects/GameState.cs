@@ -2,24 +2,21 @@
 
 namespace Match_3.DataObjects;
 
-public record SubEventData(int Count, float Elapsed)
-{
-    public int Count { get; set; } = Count;
-    public float Elapsed { get; set; } = Elapsed;
-}
-
-public record QuestState(
+public class QuestState(
     TileColorTypes ColourType,
     bool IsQuestLost,
-    TimeOnly Now,
-    SubEventData FoundMatch,
-    SubEventData WrongSwaps,
-    SubEventData ReplacementsUsed,
-    SubEventData WrongMatch)
+    (int Count, float Elapsed) _foundMatch,
+    (int Count, float Elapsed) _wrongSwaps,
+    (int Count, float Elapsed) _replacementsUsed,
+    (int Count, float Elapsed) _wrongMatch)
 {
+    public (int Count, float Elapsed) FoundMatch { get; set;} = _foundMatch;
+    public (int Count, float Elapsed) WrongSwaps { get; set;} = _wrongSwaps;
+    public (int Count, float Elapsed) ReplacementsUsed { get; set;} = _replacementsUsed;
+    public (int Count, float Elapsed) WrongMatch { get; set;} = _wrongMatch;
     public bool IsQuestLost { get; set; } = IsQuestLost;
-
     public Tile? Current { get; set; }
+    public TileColorTypes ColourType { get; } = ColourType;
 }
 
 public sealed class GameState
@@ -31,7 +28,7 @@ public sealed class GameState
     private int _questCount;
 
     public int QuestCount { get; set; }
-    public QuestState[] States { get; private set; }
+    public QuestState[] States { get; private set; } = null!;
     public bool WasGameLost { get; set; }
     public bool WasGameWon { get; set; }
     public bool HaveAMatch { get; set; }
@@ -56,11 +53,10 @@ public sealed class GameState
     {
         States[index] = new(colorType,
             false,
-            default,
-            null!,
-            null!,
-            null!,
-            null!);
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0));
     }
 
     public static GameState Instance => _instance.Value;
@@ -68,7 +64,7 @@ public sealed class GameState
     // Private constructor to prevent external instantiation
     private GameState()
     {
-        // Initialize Logger only when first needed (lazy via property)
+        // Initialize QuestLogger only when first needed (lazy via property)
     }
 
     [Pure]
