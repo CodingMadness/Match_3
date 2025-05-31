@@ -55,7 +55,7 @@ public static class SpanUtility
         input[slice2Move].CopyTo(areaToCopyInto.Mutable());
         return newPos + length;
     }
-     
+
     private static int Internal_MoveBy<T>(this scoped ReadOnlySpan<T> input,
         Range area2Move, int moveBy,
         T fillEmpties = default)
@@ -120,8 +120,8 @@ public static class SpanUtility
         if (info.AreSameLength)
         {
             //store a copy of the smaller one
-            using var copyBuffer = new SpanQueue<T>(last.Length);
-            var lastCopy = copyBuffer.CoreEnqueue(last);
+            using var copyBuffer = new SpanPool<T>(last.Length, null);
+            var lastCopy = copyBuffer.CorePush(last);
 
             first.CopyTo(source.Slice(info.IndexOfLast, first.Length));
             lastCopy.CopyTo(source.Slice(info.IndexOfFirst, lastCopy.Length));
@@ -150,9 +150,9 @@ public static class SpanUtility
                 Range areaOfSmallOne = (endOfLargeOne)..(endOfSmallOne);
 
                 //This is a copy-buffer which holds enough space to store the nessecary parts needed for the swap!
-                using var copyBuffer = new SpanQueue<T>(smallOneLen + remainderOfLargeOne.Length);
-                var sliceOfLargeOneCopy = copyBuffer.CoreEnqueue(sliceOfLargeOne);
-                var remainderCopy = copyBuffer.CoreEnqueue(remainderOfLargeOne);
+                using var copyBuffer = new SpanPool<T>(smallOneLen + remainderOfLargeOne.Length, null);
+                var sliceOfLargeOneCopy = copyBuffer.CorePush(sliceOfLargeOne);
+                var remainderCopy = copyBuffer.CorePush(remainderOfLargeOne);
 
                 //MUTATING-STEPS:
                 //copy "smallOne" to "largeOne"
@@ -176,9 +176,9 @@ public static class SpanUtility
                 //calculate a slice-range from "LargeOne" by "SmallOne.length" 
                 var sliceFromLargeOne = info.LargeOneArea.GetSlice(info.SmallOneArea);
                 //This is a copy-buffer which holds enough space to store the nessecary parts, in this case (smallOne + between) needed for the swap!
-                using var copyBuffer = new SpanQueue<T>(smallOneLen + between.Length);
-                var smallOneCopy = copyBuffer.CoreEnqueue(first);
-                var betweenCopy = copyBuffer.CoreEnqueue(between);
+                using var copyBuffer = new SpanPool<T>(smallOneLen + between.Length, null);
+                var smallOneCopy = copyBuffer.CorePush(first);
+                var betweenCopy = copyBuffer.CorePush(between);
                 //compute the last index of smallOne from the largeOne
                 int idxOfSlice = startOfLargeOne + smallOneLen;
                 //compute Range from where it shall move to another location
@@ -213,9 +213,9 @@ public static class SpanUtility
 
                 //This is a copy-buffer which holds enough space to store the nessecary parts,
                 //in this case (last + first) in order to not overwrite these needed memories!
-                using var copyBuffer = new SpanQueue<T>(smallOneLen + largeOneLen);
-                var smallOneCopy = copyBuffer.CoreEnqueue(last);
-                var largeOneCopy = copyBuffer.CoreEnqueue(first);
+                using var copyBuffer = new SpanPool<T>(smallOneLen + largeOneLen, null);
+                var smallOneCopy = copyBuffer.CorePush(last);
+                var largeOneCopy = copyBuffer.CorePush(first);
 
                 //FirstInOrder we copy what we have from "SmallOne" 
                 smallOneCopy.CopyTo(source.Slice(startOfLargeOne, smallOneLen));
@@ -243,9 +243,9 @@ public static class SpanUtility
 
                 //This is a copy-buffer which holds enough space to store the nessecary parts,
                 //in this case (last + first) needed for the swap!
-                using var copyBuffer = new SpanQueue<T>(smallOneLen + largeOneLen + diffInLength);
-                var smallOneCopy = copyBuffer.CoreEnqueue(first);
-                var largeOneCopy = copyBuffer.CoreEnqueue(last);
+                using var copyBuffer = new SpanPool<T>(smallOneLen + largeOneLen + diffInLength, null);
+                var smallOneCopy = copyBuffer.CorePush(first);
+                var largeOneCopy = copyBuffer.CorePush(last);
 
                 /*step1: copy 'largeOne' into 'smallOne' until 'smallOne' is filled*/
                 largeOneCopy[..smallOneLen].CopyTo(source.Slice(startOfSmallOne, smallOneLen));
@@ -260,7 +260,7 @@ public static class SpanUtility
 
                 //step4: slice and copy the 'remaining' parts of 'largerOne' locally
                 var remainderSlice = input.Slice(startOfLargeOne + smallOneLen, diffInLength);
-                var remainderCopy = copyBuffer.CoreEnqueue(remainderSlice);
+                var remainderCopy = copyBuffer.CorePush(remainderSlice);
 
                 //step5: Move now the slice by "remainder.Length" towards the end  
                 int _ = input.Internal_MoveBy(area2Move, diffInLength, delimiter);
@@ -306,6 +306,8 @@ public static class SpanUtility
 
 public static class BaseTypeUtility
 {
+    public static readonly Random Randomizer = new(DateTime.UtcNow.Ticks.GetHashCode());
+    
     public static bool Equals(this float x, float y, float tolerance)
     {
         var diff = MathF.Abs(x - y);
@@ -318,5 +320,15 @@ public static class BaseTypeUtility
         float mult = MathF.Pow(10.0f, digits);
         float result = MathF.Truncate(mult * value) / mult;
         return result < 0 ? -result : result;
+    }
+
+    //Need to have this method because we cannot modify a return value of a tuple directly!
+    public static void SetCount(this (int, float) tuple, int value)
+    {
+        tuple.Item1 = value;
+    }
+    public static void IncCount(this (int, float) tuple, int value2IncreaseBy)
+    {
+        tuple.Item1+=value2IncreaseBy;
     }
 }
