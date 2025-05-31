@@ -54,7 +54,7 @@ public readonly struct Slice<T> : IEquatable<Slice<T>>, IComparable<Slice<T>>
 
     public static bool operator <(Slice<T> self, Slice<T> other) => !(self > other || self == other);
 
-    public static implicit operator Range(Slice<T> self) => self.Start..(self.End);
+    public static implicit operator Range(Slice<T> self) => self.Start..self.End;
 
     public int Overlaps(Slice<T> other)
     {

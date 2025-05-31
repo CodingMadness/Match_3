@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using DotNext;
 using DotNext.Buffers;
 using Match_3.DataObjects;
@@ -16,18 +17,15 @@ namespace Match_3.Service;
 ///  <typeparam name="T"></typeparam>
 /// <param name="length">the total length of the span, if shallMultiply is true,
 ///  it will allocate: (approxCount * length) * sizeof(T) elements</param>
-public struct SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquatable<T>
+public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where T : unmanaged, IEquatable<T>
 {
-    private MemoryOwner<T> _content = new(ArrayPool<T>.Shared, length + 1);
-    
-    private BitPack _lengthPack;
- 
-    private uint
-        _enQCount, 
+    private MemoryOwner<T> _content = new(ArrayPool<T>.Shared, length);
+    private readonly MemoryOwner<Slice<T>> _slices = new(ArrayPool<Slice<T>>.Shared, sliceCount2Track ?? 0);
+
+    private int
+        _pushCount,
         _enQCharIdx,
-        _deQCharIdx,
-        _currLogLen, 
-        _nextLen;
+        _currLogLen;
 
     /// <summary>
     /// This one is only for internal use, like for performance-based algorithms,
@@ -35,11 +33,11 @@ public struct SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquat
     /// </summary>
     /// <param name="items"></param>
     /// <returns></returns>
-    internal ReadOnlySpan<T> CoreEnqueue(ReadOnlySpan<T> items)
+    internal ReadOnlySpan<T> CorePush(ReadOnlySpan<T> items)
     {
         var span = _content.Span; 
         //copy the new span into the pool and update members.
-        _currLogLen = (uint)items.Length;
+        _currLogLen = items.Length;
         var fullItemsCopy = span.Slice((int)_enQCharIdx, (int)_currLogLen);
         items.CopyTo(fullItemsCopy);
         _enQCharIdx += _currLogLen;
@@ -53,10 +51,10 @@ public struct SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquat
     /// <param name="input"></param>
     /// <param name="ignoreSeparatorChars">notes if the user actually do not want any delimiters in his span</param>
     /// <returns></returns>
-    public ReadOnlySpan<T> Enqueue(ReadOnlySpan<T> input, bool ignoreSeparatorChars = true)
+    public ReadOnlySpan<T> Push(ReadOnlySpan<T> input, bool ignoreSeparatorChars = false)
     {
         //check if we are already at max or the current "items" is already in the span, if so, just return back the one from the pool!
-        // if (_Infos.Span[_enQCount].hash == items.BitwiseHashCode())
+        // if (_Infos.Span[_pushCount].hash == items.BitwiseHashCode())
         //     return ReadOnlySpan<T>.Empty;
         var entireSpan=_content.Span;
 
@@ -69,65 +67,47 @@ public struct SpanQueue<T>(int length) : IDisposable where T : unmanaged, IEquat
         {
             var withoutEmpties = _content.Span.TrimLength((int)_enQCharIdx);
 
-            if ((entireSpan.IndexOf(input)) != -1)
+            if (entireSpan.IndexOf(input) != -1)
                 return withoutEmpties;
 
-            if ((input.LastIndexOf(withoutEmpties)) != -1)
+            if (input.LastIndexOf(withoutEmpties) != -1)
             {
                 input = input[withoutEmpties.Length..];
             }
         }
 
-        var copyOfPoolSlice = CoreEnqueue(input);
-        
-        //these 2 lines here are only needed if you intent to call "Dequeue()" at some point!
-        _lengthPack.Pack(_currLogLen);
-        _enQCount++;
+        //we save here the '_enQCharIdx' before it was pushed in, because we need that snapshot for later "Peeks()";
+        int first = _enQCharIdx;
+        var copyOfPoolSlice = CorePush(input);
+        _slices[_pushCount++] = new(first..(first + _currLogLen), entireSpan.Length);
+        //now we push as well the updated length so we basically pushed a '(int start, int length)'
         return copyOfPoolSlice;
     }
-        
-     /// <summary>
-     /// Gives you back, based on FIFO model, the current frame of the Pool
-     /// </summary>
-     /// <param name="shallRecycle">A value indicating if the very 1. valid return of this method
-     /// shall give you the same span over and over again</param>
-     /// <returns></returns>
-    public ReadOnlySpan<T> Dequeue(bool shallRecycle=false)
+
+    /// <summary>
+    /// Gives you back, based on FIFO model, the current frame of the Pool
+    /// </summary>
+    /// <returns></returns>
+    public ReadOnlySpan<T> Peek(int index)
     {
-        if (_enQCount == 0)
+        if (_pushCount == 0)
             return [];
 
-        var span = _content.Span;
-        //we have to avoid somehow, that once the "nextLen" is obtained we need to check 
-        //if the value is already in the pack, so it doesnt iterate the entire pack if it can just 
-        //give you back the same stuff over and over!
-        _nextLen = _lengthPack.Unpack() ?? _nextLen;
-        var currPart = span.Slice((int)_deQCharIdx, (int)_nextLen);
-        
-        //when the 'End=_lengthPack.Count' is reached, we will just recycle and begin from 0 again..
-        if (!shallRecycle)
-        {
-            if (_deQCharIdx == span.Length)
-                _deQCharIdx = 0;
-
-            _deQCharIdx += _nextLen;
-        }
-        
-        return currPart;
+        var slice = (Range)_slices[index];
+        return _content.Span[slice];
     }
 
-    public override string ToString() => _content.ToString();
+    public readonly bool EndReached => _enQCharIdx == _content.Length;
 
-    private void MarkForOverwrite()
+    private void Flush()
     {
         _enQCharIdx = 0;
-        _enQCount = 0;
-        _deQCharIdx = 0;
+        _pushCount = 0;
     }
 
     public void Dispose()
     {
-        MarkForOverwrite();
+        Flush();
         _content.Dispose();
     }
 }

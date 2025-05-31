@@ -1,4 +1,6 @@
-﻿using Match_3.DataObjects;
+﻿using System.Runtime.InteropServices;
+using DotNext.Runtime;
+using Match_3.DataObjects;
 using Match_3.Setup;
 using Raylib_cs;
 using rlImGui_cs;
@@ -12,11 +14,12 @@ namespace Match_3.Workflow;
 internal static class Game
 {
     public static Config ConfigPerStartUp { get; private set; }
-    public static Logger QuestLogger { get; private set; } = null!;
+    public static QuestLogger QuestLogger { get; private set; } = null!;
     public static QuestHolder QuestHolder { get; private set; } = null!;
     
     private static GameTime _gameTimer;
     private static bool _inGame;
+
     public static event Action OnTileClicked = null!;
 
     private static void Main()
