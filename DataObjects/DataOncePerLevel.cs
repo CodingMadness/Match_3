@@ -40,7 +40,7 @@ public readonly record struct Quest(
 public record QuestHolder(Quest[] Quests)
 {
     private static readonly Quest Empty   = default!;
-    public int QuestCount { get; } = Quests.Length;
+    public int QuestCount { get; set; } = Quests.Length;
 
     public ref readonly Quest GetQuestBy(TileColorTypes tileColorTypes)
     {
@@ -62,21 +62,22 @@ public class QuestLogger(QuestHolder Holder)
     private SpanPool<char> _pool = new(Config.QuestLog.Length * Holder.QuestCount, Config.SegmentsOfQuestLog);
     private int _next;
 
-    public bool IsLoggerFull
+    public int QuestCount => Holder.QuestCount;
+
+    public bool IsLoggerFull => _next == QuestCount;
+
+    public ReadOnlySpan<char> CurrentLog
     {
         get
         {
-            if (_pool.EndReached )
-            {
-                _next = field is false ? 0 : _next;
-                return field = true;
-            }
-
-            return field = false;
+            var x = _pool.Peek(_next);
+            _next++;
+            return x;
         }
     }
 
-    public ReadOnlySpan<char> CurrentLog => _pool.Peek(_next++);
+    public void Reset() => _next = 0;
+
     public void UpdateNextQuestLog(Quest quest)
     {
         var copyLog = _pool.Push(Config.QuestLog);
