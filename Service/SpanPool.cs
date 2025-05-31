@@ -58,7 +58,7 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
         //     return ReadOnlySpan<T>.Empty;
         var entireSpan=_content.Span;
 
-        if (entireSpan.Length == _enQCharIdx)
+        if (EndReached)
             return [];
 
         //check if the current "items" is only a slice of what is already in the pool
@@ -102,6 +102,11 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
     private void Flush()
     {
         _enQCharIdx = 0;
+        _pushCount = 0;
+    }
+
+    public void Reset()
+    {
         _pushCount = 0;
     }
 
