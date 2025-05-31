@@ -64,8 +64,6 @@ public class QuestLogger(QuestHolder Holder)
 
     public int QuestCount => Holder.QuestCount;
 
-    public bool IsLoggerFull => _next == QuestCount;
-
     public ReadOnlySpan<char> CurrentLog
     {
         get
