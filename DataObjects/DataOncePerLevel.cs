@@ -1,4 +1,5 @@
-﻿using DotNext;
+﻿using System.Runtime.CompilerServices;
+using DotNext;
 using JetBrains.Annotations;
 using Match_3.Service;
 
@@ -7,10 +8,10 @@ namespace Match_3.DataObjects;
 public readonly record struct Quest(
     FadeableColor Colour,
     GameTime Timer,
-    SubEventData Matches2Have,
-    SubEventData SwapsAllowed,
-    SubEventData ReplacementsAllowed,
-    SubEventData NumberOfWrongMatchesAllowed)
+    (int Count, float CountDown) Matches2Have,
+    (int Count, float CountDown) SwapsAllowed,
+    (int Count, float CountDown) ReplacementsAllowed,
+    (int Count, float CountDown) NumberOfWrongMatchesAllowed)
 {
     public const string MatchCountName       = nameof(QuestState.FoundMatch) + "." + nameof(QuestState.FoundMatch.Count);
     public const string MatchIntervalName    = nameof(QuestState.FoundMatch) + "." + nameof(QuestState.FoundMatch.Elapsed);
@@ -24,7 +25,7 @@ public readonly record struct Quest(
         if (name.BitwiseEquals(MatchCountName))
             return Matches2Have.Count;
         if (name.BitwiseEquals(MatchIntervalName))
-            return (int)Matches2Have.Elapsed;
+            return (int)Matches2Have.CountDown;
         if (name.BitwiseEquals(SwapCountName))
             return SwapsAllowed.Count;
         if (name.BitwiseEquals(ReplacementCountName))
@@ -55,18 +56,30 @@ public record QuestHolder(Quest[] Quests)
     }
 }
 
-public record Logger(QuestHolder Holder)
+public class QuestLogger(QuestHolder Holder)
 {
     // --- Lazy-Loaded Resources ---
-    private SpanQueue<char> _logger = new(Config.QuestLog.Length * Holder.QuestCount);
+    private SpanPool<char> _pool = new(Config.QuestLog.Length * Holder.QuestCount, Config.SegmentsOfQuestLog);
+    private int _next;
 
-    public ReadOnlySpan<char> CopiedLog => _logger.Enqueue(Config.QuestLog);
-    
-    [Pure]
-    public ReadOnlySpan<char> GetPooledQuestLog() => _logger.Dequeue(true);
-
-    public void UpdateQuestLog(Quest quest)
+    public bool IsLoggerFull
     {
-        CopiedLog.Replace(Quest.TileColorName, quest.Colour.Name);
+        get
+        {
+            if (_pool.EndReached )
+            {
+                _next = field is false ? 0 : _next;
+                return field = true;
+            }
+
+            return field = false;
+        }
+    }
+
+    public ReadOnlySpan<char> CurrentLog => _pool.Peek(_next++);
+    public void UpdateNextQuestLog(Quest quest)
+    {
+        var copyLog = _pool.Push(Config.QuestLog);
+        copyLog.Replace(Quest.TileColorName, quest.Colour.Name);
     }
 }
