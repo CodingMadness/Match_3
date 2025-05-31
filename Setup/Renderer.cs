@@ -229,18 +229,15 @@ public static class UiRenderer
         }
     }
 
-    public static void DrawQuestLog(Span<Quest> quests)
+    public static void DrawQuests(QuestLogger logger)
     {
-        foreach (ref readonly Quest quest in quests)
+        for (int i = 0; i < logger.QuestCount; i++)
         {
-            var logger = !Game.QuestLogger.IsLoggerFull
-                ? QuestBuilder.BuildQuestMessageFrom(in quest, Game.QuestLogger)
-                : Game.QuestLogger.CurrentLog;
-
-            int x = 1;
-            DrawText(logger, CanvasStartingPoints.Center);
+            CanvasStartingPoints start = i is 0 ? CanvasStartingPoints.Center : CanvasStartingPoints.MidLeft;
+            DrawText(logger.CurrentLog, start);
             break;
         }
+        logger.Reset();
     }
 }
 
