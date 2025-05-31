@@ -6,6 +6,32 @@ namespace Match_3.Workflow;
 
 public static class QuestBuilder
 {
+    private static void UpdateQuestLogger(ref readonly Quest quest, QuestLogger questLogger)
+    {
+        static void SwapMemberNameWithValue(ref readonly Quest quest, ref readonly TextInfo segment)
+        {
+            //e.g: Swap Quest.MemberName with <corresponding value>
+            var memberName = segment.MemberName2Replace.Mutable();
+            var value = quest.GetValueByMemberName(memberName).ToString();
+            value.CopyTo(memberName);
+            memberName[value.Length..].Clear();
+        }
+
+        questLogger.UpdateNextQuestLog(quest);
+        var nextLog = questLogger.CurrentLog;
+
+        scoped var enumerator = new FormatTextEnumerator(nextLog, 5,true);
+
+        // NOTE: we need to use while loop
+        //       because foreach creates a hidden copy of my iterator and
+        //       hence my original iterator is empty hence I need valid data!
+        while (enumerator.MoveNext())
+        {
+            ref readonly var segment = ref enumerator.Current;
+            SwapMemberNameWithValue(in quest, in segment);
+        }
+    }
+
     public static QuestHolder BuildQuests()
     {
         static int GetRandomInterval()
@@ -48,32 +74,13 @@ public static class QuestBuilder
         QuestHolder holder = new(quests);
         return holder;
     }
-        
-    public static ReadOnlySpan<char> BuildQuestMessageFrom(ref readonly Quest quest, QuestLogger questLogger)
+
+    public static void BuildQuestText(Span<Quest> quests, QuestLogger logger)
     {
-        static void SwapMemberNameWithValue(ref readonly Quest quest, ref readonly TextInfo segment)
+        foreach (ref readonly var quest in quests)
         {
-            //e.g: Swap Quest.MemberName with <corresponding value>
-            var memberName = segment.MemberName2Replace.Mutable();
-            var value = quest.GetValueByMemberName(memberName).ToString();
-            value.CopyTo(memberName);
-            memberName[value.Length..].Clear();
+            UpdateQuestLogger(in quest, logger);
         }
-
-        questLogger.UpdateNextQuestLog(quest);
-        var nextLog = questLogger.CurrentLog;
-
-        scoped var enumerator = new FormatTextEnumerator(nextLog, 5,true);
-        
-        // NOTE: we need to use while loop
-        //       because foreach creates a hidden copy of my iterator and
-        //       hence my original iterator is empty hence I need valid data!
-        while (enumerator.MoveNext())
-        {
-            ref readonly var segment = ref enumerator.Current;
-            SwapMemberNameWithValue(in quest, in segment);
-        }
-
-        return nextLog;
-    }    
+        logger.Reset();
+    }
 }
