@@ -42,7 +42,7 @@ public static class SpanUtility
             }
         }
     }
- 
+
     public static Span<T> Mutable<T>(this scoped ReadOnlySpan<T> readOnlySpan) =>
         MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in readOnlySpan[0]), readOnlySpan.Length);
 
@@ -276,7 +276,7 @@ public static class SpanUtility
             }
         }
     }
-    
+
     public static Span<T> TakeRndItemsAtRndPos<T>(this Span<T> items, int leveliD) where T : unmanaged
     {
         if (items.Length < 2)
@@ -300,14 +300,13 @@ public static class SpanUtility
 
     public static void Shuffle<T>(this Span<T> span)
     {
-
     }
 }
 
 public static class BaseTypeUtility
 {
     public static readonly Random Randomizer = new(DateTime.UtcNow.Ticks.GetHashCode());
-    
+
     public static bool Equals(this float x, float y, float tolerance)
     {
         var diff = MathF.Abs(x - y);
@@ -327,8 +326,14 @@ public static class BaseTypeUtility
     {
         tuple.Item1 = value;
     }
+
     public static void IncCount(this (int, float) tuple, int value2IncreaseBy)
     {
-        tuple.Item1+=value2IncreaseBy;
+        tuple.Item1 += value2IncreaseBy;
+    }
+
+    public static unsafe TextInfo* GetPtr(this in TextInfo textInfo)
+    {
+        return (TextInfo*)Unsafe.AsPointer(ref Unsafe.AsRef(in textInfo));
     }
 }
