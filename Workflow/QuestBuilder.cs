@@ -4,8 +4,8 @@ using Match_3.Service;
 
 namespace Match_3.Workflow;
 
-public static class QuestBuilder 
-{           
+public static class QuestBuilder
+{
     public static QuestHolder BuildQuests()
     {
         static int GetRandomInterval()
@@ -32,18 +32,14 @@ public static class QuestBuilder
         var quests = new Quest[questCount];
         
         GameState.Instance.InitStates(questCount);
-        scoped Span<uint> maxCountPerType = stackalloc uint[tileCount];
-        //maxCountPerType.Fill(maxCountPerType);
         
         foreach (var colorType in subset)
         {
             int toEven = GetRandomInterval();
-            SubEventData match = new((int)(maxCountPerType[idx] / Config.MaxTilesPerMatch), toEven);
-            //these subQuests below are just placeholders until this class is done then I change them to
-            //smth meaningful
-            SubEventData swap = new(4, -1f);
-            SubEventData replacement = new(5, -1f);
-            SubEventData tolerance = new(6, -1f);
+            (int Count, float CountDown) match = new(BaseTypeUtility.Randomizer.Next(2,5), toEven);
+            (int Count, float CountDown) swap = new(4, -1f);
+            (int Count, float CountDown) replacement = new(5, -1f);
+            (int Count, float CountDown) tolerance = new(6, -1f);
             quests[idx] = new Quest(Color.FromKnownColor(colorType), GameTime.CreateTimer(toEven) ,match, swap, replacement, tolerance);
             GameState.Instance.DefineStateType(idx, colorType);
             idx++;
@@ -53,24 +49,31 @@ public static class QuestBuilder
         return holder;
     }
         
-    public static ReadOnlySpan<char> BuildQuestMessageFrom(ref readonly Quest quest, Logger logger)
+    public static ReadOnlySpan<char> BuildQuestMessageFrom(ref readonly Quest quest, QuestLogger questLogger)
     {
-        logger.UpdateQuestLog(quest);
-        
-        scoped var questIterator = new FormatTextEnumerator(logger.CopiedLog, 5,true);
-        
-        // NOTE: we need to use while loop
-        //       because foreach creates a hidden copy of my iterator and
-        //       hence my original iterator is empty hence I need valid data!
-        while (questIterator.MoveNext()) 
+        static void SwapMemberNameWithValue(ref readonly Quest quest, ref readonly TextInfo segment)
         {
-            var segment = questIterator.Current;
             //e.g: Swap Quest.MemberName with <corresponding value>
             var memberName = segment.MemberName2Replace.Mutable();
             var value = quest.GetValueByMemberName(memberName).ToString();
             value.CopyTo(memberName);
             memberName[value.Length..].Clear();
         }
-        return logger.CopiedLog;
+
+        questLogger.UpdateNextQuestLog(quest);
+        var nextLog = questLogger.CurrentLog;
+
+        scoped var enumerator = new FormatTextEnumerator(nextLog, 5,true);
+        
+        // NOTE: we need to use while loop
+        //       because foreach creates a hidden copy of my iterator and
+        //       hence my original iterator is empty hence I need valid data!
+        while (enumerator.MoveNext())
+        {
+            ref readonly var segment = ref enumerator.Current;
+            SwapMemberNameWithValue(in quest, in segment);
+        }
+
+        return nextLog;
     }    
 }
