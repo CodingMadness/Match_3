@@ -22,16 +22,15 @@ public readonly record struct Config(int Id,
     public readonly Vector2 WindowInWorldCoordinates = new Vector2(GridWidth, GridHeight) * TileSize; 
     public readonly Vector2 WindowInGridCoordinates = new(GridWidth, GridHeight);
 
+    /// <summary>
+    /// This is the Number in which the below 'QuestLog' variable HAVE TO be iterated
+    /// in order to get all the proper segements been drawn properly,
+    /// </summary>
+    public const int SegmentsOfQuestLog = 8;
     // QuestLog remains a computed string (now with instance access)
-    public const string QuestLog = $"(Black) You have to collect ({Quest.TileColorName}\0\0\0) {Quest.MatchCountName} Matches " +
-                                   $"(Black) for which you have in between those only really like ({Quest.TileColorName}\0\0\0) {Quest.MatchIntervalName} seconds left " +
-                                   $"(Black) and also just ({Quest.TileColorName}\0\0\0) {Quest.SwapCountName} swaps available per match " +
-                                   $"(Black) furthermore, you only are allowed to replace any given tile ({Quest.TileColorName}\0\0\0) {Quest.ReplacementCountName} times maximum " +
-                                   $"(Black) for your own help as well as there is only tolerance for ({Quest.TileColorName}\0\0\0) {Quest.WrongMatchName} wrong matches";
+    public const string QuestLog = $"(Black) You have to collect ({Quest.TileColorName}\0\0\0\0\0\0) {Quest.MatchCountName} Matches " +
+                                   $"(Black) for which you have in between those only really like ({Quest.TileColorName}\0\0\0\0\0\0) {Quest.MatchIntervalName} seconds left " +
+                                   $"(Black) and also just ({Quest.TileColorName}\0\0\0\0\0\0) {Quest.SwapCountName} swaps available per match " +
+                                   $"(Black) furthermore, you only are allowed to replace any given tile ({Quest.TileColorName}\0\0\0\0\0\0) {Quest.ReplacementCountName} times maximum " +
+                                   $"(Black) for your own help as well as there is only tolerance for ({Quest.TileColorName}\0\0\0\0\0\0) {Quest.WrongMatchName} wrong matches";
 }
-
-
-
-
-
-
