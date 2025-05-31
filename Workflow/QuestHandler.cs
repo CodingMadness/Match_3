@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using Match_3.DataObjects;
+using Match_3.Service;
 
 namespace Match_3.Workflow;
 
@@ -244,7 +245,8 @@ public class SwapHandler : QuestHandler
             {
                 void HandleSwaps(in QuestState z)
                 {
-                    int missSwapState = ++z.WrongSwaps.Count;
+                    z.WrongSwaps.IncCount(1);
+                    int missSwapState = z.WrongSwaps.Count;
                     int maxAllowedSwapsQuest = (int)(z.ColourType == quest0?.Colour.Type ? quest0?.SwapsAllowed.Count : quest1?.SwapsAllowed.Count)!;
                     
                     z.IsQuestLost = missSwapState == maxAllowedSwapsQuest;
@@ -316,8 +318,12 @@ public class MatchHandler : QuestHandler
             //a match with the requested "ColourType" was not found, a "wrong-match", so it was a "miss-match"!
             var stateOfMatchIgnoredKind = allStates.First(x => x.ColourType == kindWhichWasIgnoredByMatch);
             var properQuest = questOfMatch.First(x => x.Colour.Type == kindWhichWasIgnoredByMatch);
-            int missMatchCount = stateOfMatchIgnoredKind.WrongMatch.Count++;
-            int diffCount = properQuest.Matches2Have.Count- missMatchCount;
+            (int Count, float CountDown) match = stateOfMatchIgnoredKind.WrongMatch;
+            match.Count++;
+            stateOfMatchIgnoredKind.WrongMatch = match;
+            int missMatchCount = stateOfMatchIgnoredKind.WrongMatch.Count;
+            stateOfMatchIgnoredKind.WrongMatch.IncCount(1);
+            int diffCount = properQuest.Matches2Have.Count - missMatchCount;
             stateOfMatchIgnoredKind.IsQuestLost = diffCount > 0;
             currMatch.Clear(matchData.LookUpUsedInMatchFinder);
 
@@ -331,7 +337,8 @@ public class MatchHandler : QuestHandler
         {
             matchData.Matches.BuildMatchBox(matchData.LookUpUsedInMatchFinder);
             //a match with the requested "ColourType" was found and hence it was a successful Quest-Bound match!
-            int successCount = ++stateOfMatch.FoundMatch.Count;
+            stateOfMatch.FoundMatch.IncCount(1);
+            int successCount = stateOfMatch.FoundMatch.Count;
             var properQuest = questOfMatch.First(x => x.Colour.Type == kindWhoTriggeredMatch);
             int diffCount = properQuest.Matches2Have.Count- successCount;
             
@@ -344,7 +351,8 @@ public class MatchHandler : QuestHandler
                 Debug.WriteLine("YUHU, you got the Quest without falling into traps!"); 
             }
             //Reset the missSwaps back to 0 because we won that particular quest
-            stateOfMatch.WrongSwaps.Count = 0; 
+            
+            stateOfMatch.WrongSwaps.SetCount(0);
             //OnDeleteMatch();
         }
     }
