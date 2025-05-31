@@ -71,15 +71,14 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
                 return withoutEmpties;
 
             if (input.LastIndexOf(withoutEmpties) != -1)
-            {
                 input = input[withoutEmpties.Length..];
-            }
         }
 
         //we save here the '_enQCharIdx' before it was pushed in, because we need that snapshot for later "Peeks()";
         int first = _enQCharIdx;
         var copyOfPoolSlice = CorePush(input);
-        _slices[_pushCount++] = new(first..(first + _currLogLen), entireSpan.Length);
+        Slice<T> spanInfo = new(first..(first + _currLogLen), entireSpan.Length);
+        _slices[_pushCount++] = spanInfo;
         //now we push as well the updated length so we basically pushed a '(int start, int length)'
         return copyOfPoolSlice;
     }
@@ -97,16 +96,11 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
         return _content.Span[slice];
     }
 
-    public readonly bool EndReached => _enQCharIdx == _content.Length;
+    private readonly bool EndReached => _enQCharIdx == _content.Length;
 
     private void Flush()
     {
         _enQCharIdx = 0;
-        _pushCount = 0;
-    }
-
-    public void Reset()
-    {
         _pushCount = 0;
     }
 
