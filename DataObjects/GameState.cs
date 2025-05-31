@@ -27,8 +27,8 @@ public sealed class GameState
     public readonly MatchX Matches = [];
     private int _questCount;
 
-    public int QuestCount { get; set; }
-    public QuestState[] States { get; private set; } = null!;
+    public QuestState[] States { get; private set; }
+    public QuestHolder Holder { get; set; }
     public bool WasGameLost { get; set; }
     public bool WasGameWon { get; set; }
     public bool HaveAMatch { get; set; }
