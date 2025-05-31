@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using DotNext.Buffers;
 using ImGuiNET;
@@ -55,7 +56,7 @@ public readonly ref struct TextInfo
 
 public unsafe ref struct WordEnumerator(scoped in TextInfo rootSegment, char separator = ' ')
 {
-    private TextInfo* _rootSegment = (TextInfo*)Unsafe.AsPointer(ref Unsafe.AsRef(in rootSegment));
+    private TextInfo* _rootSegment = rootSegment.GetPtr();
     private TextInfo _currentWordInfo;
     private ReadOnlySpan<char> _remainder;
 
@@ -173,7 +174,7 @@ public ref partial struct FormatTextEnumerator
         _colorPositions = _colorPositions[.._position];
         _position = 0;
 
-        _wordEnumerator = new(in Unsafe.AsRef(in Current));
+        _wordEnumerator = new(in Unsafe.AsRef(in Current), new());
     }
 
     [UnscopedRef] public ref readonly TextInfo Current => ref _phrase;
