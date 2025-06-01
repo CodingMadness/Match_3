@@ -17,7 +17,7 @@ public readonly record struct Config(int Id,
     public const int TileColorCount = 11;
     public readonly int WindowHeight = GridHeight * TileSize;
     public readonly int WindowWidth = GridWidth * TileSize;
-    public readonly Vector2 WindowInWorldCoordinates = new Vector2(GridWidth, GridHeight) * TileSize; 
+    public readonly Vector2 WindowSize = new Vector2(GridWidth, GridHeight) * TileSize; 
     public readonly Vector2 WindowInGridCoordinates = new(GridWidth, GridHeight);
 
     /// <summary>
