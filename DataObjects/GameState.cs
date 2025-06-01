@@ -19,7 +19,7 @@ public sealed class GameState
     public MatchX Matches { get; } = [];
 
     //make this be loaded only once on a custom method()!
-    public QuestState[] States { get; set; } = null!;
+    public QuestState[] QuestStates { get; set; } = null!;
     public Quest[] ToAccomplish { get; set; } = null!;
     public QuestLogger Logger { get; set; } = null!;
 

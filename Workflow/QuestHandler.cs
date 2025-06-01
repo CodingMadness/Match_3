@@ -167,7 +167,7 @@ public class ClickHandler : QuestHandler
                 //it can be ONLY 1 OR 2 but NEVER 0!
                 var second = secondClicked;
                 _gameState.StatesFromQuestRelatedTiles
-                    = _gameState.States.AsEnumerable()
+                    = _gameState.QuestStates.AsEnumerable()
                                        .Where(x => x.ColourType == firstClicked.Body.Colour.Type || x.ColourType == second.Body.Colour.Type);
 
                 OnTilesAlreadySwapped?.Invoke();
@@ -305,7 +305,7 @@ public class MatchHandler : QuestHandler
         //IF the incoming match was a "Miss-match (a match not allowed to do because its not in the Quest written!)", then
         //we do +1 the "QuestState.MissMatch.Count", ELSE we do +1 the "QuestState.Match.Count"
         var currMatchState = GameState.Instance;
-        var allStates = currMatchState.States;
+        var allStates = currMatchState.QuestStates;
         var statesFromQuestRelatedTiles = currMatchState.StatesFromQuestRelatedTiles!;
         var currMatch = currMatchState.Matches;
         //since we seemingly triggered a 3x-match the Body cannot (should not?) be null so we use '.Body!' expression

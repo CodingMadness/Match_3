@@ -41,15 +41,7 @@ public class QuestLogger(int QuestCount)
     private SpanPool<char> _pool = new(Config.QuestLog.Length * QuestCount, Config.SegmentsOfQuestLog);
     public int _next;
 
-    public ReadOnlySpan<char> CurrentLog
-    {
-        get
-        {
-            var x = _pool.Peek(_next);
-            _next++;
-            return x;
-        }
-    }
+    public ReadOnlySpan<char> CurrentLog => _pool.Peek(_next++);
 
     public int QuestIndex => _pool.PushCount;
 

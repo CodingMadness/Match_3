@@ -14,7 +14,7 @@ public static class Game
 {
     public static Config ConfigPerStartUp { get; private set; }
 
-    private static readonly GameState State = GameState.Instance;
+    private static readonly GameState MainState = GameState.Instance;
     public static event Action OnTileClicked = null!;
 
     private static void Main()
@@ -50,11 +50,11 @@ public static class Game
         static void InitGameLevel()
         {
             QuestBuilder.DefineGameRules(out var states, out var quests);
-            State.States = states;
-            State.ToAccomplish = quests;
-            State.Logger = new(quests.Length);
-            QuestBuilder.DefineQuestTextPerQuest(quests, State.Logger);
-            State.Logger.BeginFromStart();
+            MainState.QuestStates = states;
+            MainState.ToAccomplish = quests;
+            MainState.Logger = new(quests.Length);
+            QuestBuilder.DefineQuestTextPerQuest(quests, MainState.Logger);
+            MainState.Logger.BeginFromStart();
             QuestHandler.ActivateQuestHandlers();
             TileMap.Init();
         }
@@ -87,31 +87,31 @@ public static class Game
 
                 if (TileClicked(out var firstClickedTile))
                 {
-                    var currState = State.States.Single(x => x.ColourType == firstClickedTile.Body.Colour.Type);
+                    var currState = MainState.QuestStates.Single(x => x.ColourType == firstClickedTile.Body.Colour.Type);
                     currState.Current = firstClickedTile;
                     OnTileClicked();
                     Console.WriteLine(firstClickedTile);
                 }
             }
 
-            var gameTimer = State.GetCurrentTime(ConfigPerStartUp);
+            var gameTimer = MainState.GetCurrentTime(ConfigPerStartUp);
             float currTime = gameTimer.CurrentSeconds;
-            State.IsInGame |= IsKeyDown(KeyboardKey.Enter);
+            MainState.IsInGame |= IsKeyDown(KeyboardKey.Enter);
 
-            if (!State.IsInGame)
+            if (!MainState.IsInGame)
             {
-                ref int n = ref State.Logger._next;
-                UiRenderer.DrawQuestsFrom(State.Logger);
+                ref int n = ref MainState.Logger._next;
+                UiRenderer.DrawQuestsFrom(MainState.Logger);
             }
             else
             {
-                State.WasGameLost = gameTimer.CountDown();
+                MainState.WasGameLost = gameTimer.CountDown();
 
-                if (State.WasGameLost)
+                if (MainState.WasGameLost)
                 {
                     //print to the main-window that the user has lost
                 }
-                else if (State.WasGameWon)
+                else if (MainState.WasGameWon)
                 {
                     //print to the main-window that the user has won
                 }
