@@ -1,3 +1,6 @@
+global using Vector2 = System.Numerics.Vector2;
+using static Match_3.Setup.AssetManager;
+
 using System.Runtime.CompilerServices;
 using ImGuiNET;
 using Match_3.DataObjects;
@@ -5,8 +8,6 @@ using Match_3.Service;
 using Match_3.Workflow;
 using Raylib_cs;
 using rlImGui_cs;
-using static Match_3.Setup.AssetManager;
-using Vector2 = System.Numerics.Vector2;
 
 namespace Match_3.Setup;
 
