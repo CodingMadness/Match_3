@@ -235,7 +235,7 @@ public static class UiRenderer
         for (int i = 0; i < logger.QuestIndex; i++)
         {
             CanvasStartingPoints start = i is 0 ? CanvasStartingPoints.Center : CanvasStartingPoints.MidLeft;
-            DrawText(logger.CurrentLog, start);  //---> TODO: Investigate Endless loop!
+            DrawText(logger.CurrentLog, start);
         }
         logger.BeginFromStart();
     }

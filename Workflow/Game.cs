@@ -102,7 +102,6 @@ public static class Game
 
             if (!MainState.IsInGame)
             {
-                ref int n = ref MainState.Logger._next;
                 UiRenderer.DrawQuestsFrom(MainState.Logger);
             }
             else
@@ -120,15 +119,6 @@ public static class Game
                 //game still running...!
                 else
                 {
-                    var colorCodedText = $"(Blue) you have {(int)currTime} left to win! " +
-                                         $"(Black) and this is " +
-                                         $"(Green) the rest of a long phrase " +
-                                         $"(Brown) but of course the joy continues, doesnt it? " +
-                                         $"(Yellow) and i dont know what to type here anymore lol :D " +
-                                         $"(Black) but maybe I will find some more placeholder " +
-                                         $"(Purple) so we can debug this game";
-
-                    UiRenderer.DrawText(colorCodedText, CanvasStartingPoints.Center);
                     NotifyClickHandler();
                     TileRenderer.DrawGrid(currTime, ConfigPerStartUp.GridWidth, ConfigPerStartUp.GridHeight);
                 }

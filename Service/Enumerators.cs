@@ -172,7 +172,7 @@ public ref partial struct FormatTextEnumerator
         _colorPositions = _colorPositions[.._position];
         _position = 0;
 
-        _wordEnumerator = new(in Unsafe.AsRef(in Current), new());
+        _wordEnumerator = new(in Unsafe.AsRef(in Current));
     }
 
     [UnscopedRef] public ref readonly TextInfo Current => ref _phrase;
@@ -254,7 +254,6 @@ public ref partial struct FormatTextEnumerator
     [GeneratedRegex(pattern: @"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex FindAllColorCodes();
 
-    [GeneratedRegex(pattern: @"\((?!black\b)[A-Za-z]+[\s\0]*\)",
-        RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(pattern: @"\((?!black\b)[A-Za-z]+[\s\0]*\)", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex FindNonBlackColorCodes();
 }

@@ -43,7 +43,7 @@ public class QuestLogger(int QuestCount)
 
     public ReadOnlySpan<char> CurrentLog => _pool.Peek(_next++);
 
-    public int QuestIndex => _pool.PushCount;
+    public int QuestIndex => 1/*_pool.PushCount*/;
 
     public void BeginFromStart() => _next = 0;
 
