@@ -1,7 +1,5 @@
-﻿using System.Runtime.InteropServices;
-using DotNext.Runtime;
+﻿using System.Runtime.CompilerServices;
 using Match_3.DataObjects;
-using Match_3.Service;
 using Match_3.Setup;
 using Raylib_cs;
 using rlImGui_cs;
@@ -12,17 +10,11 @@ namespace Match_3.Workflow;
 //TODO: 1. Make all the "TileRelatedTypes" structs because they represent nothing but value holder with minimal state change
 //TODO: 2. Fix the entire "QuestHandler" related Event logic, like what shall happen when certain tiles or matches are done, etc...
 //TODO: 3. Write the algorithm for "TileGraph" which shall exchange 1 Graph with another so that there are not any distant tiles anymore
-internal static class Game
+public static class Game
 {
     public static Config ConfigPerStartUp { get; private set; }
 
-    private static QuestLogger QuestLogger = null!;
-
-    private static QuestHolder QuestHolder = null!;
-    
-    private static GameTime _gameTimer;
-    private static bool _inGame;
-
+    private static readonly GameState State = GameState.Instance;
     public static event Action OnTileClicked = null!;
 
     private static void Main()
@@ -34,6 +26,7 @@ internal static class Game
 
     private static void Initialize()
     {
+        //Singleton!
         //config only once when the application/game is started and never changed!
         ConfigPerStartUp = new(0, 300, 1, 20, 20);
          
@@ -56,12 +49,13 @@ internal static class Game
 
         static void InitGameLevel()
         {
-            _gameTimer = GameTime.CreateTimer(ConfigPerStartUp.GameBeginAt);
-            QuestHolder = QuestBuilder.BuildQuests();
-            QuestLogger = new(QuestHolder);
-            GameState.Instance.Holder = QuestHolder;
-            QuestBuilder.BuildQuestText(QuestHolder.Quests, QuestLogger);
-            QuestHandler.ActivateEventHandlers();
+            QuestBuilder.DefineGameRules(out var states, out var quests);
+            State.States = states;
+            State.ToAccomplish = quests;
+            State.Logger = new(quests.Length);
+            QuestBuilder.DefineQuestTextPerQuest(quests, State.Logger);
+            State.Logger.BeginFromStart();
+            QuestHandler.ActivateQuestHandlers();
             TileMap.Init();
         }
 
@@ -93,31 +87,31 @@ internal static class Game
 
                 if (TileClicked(out var firstClickedTile))
                 {
-                    var currState = GameState.Instance.GetStateBy(firstClickedTile!.Body.Colour.Type);
+                    var currState = State.States.Single(x => x.ColourType == firstClickedTile.Body.Colour.Type);
                     currState.Current = firstClickedTile;
                     OnTileClicked();
                     Console.WriteLine(firstClickedTile);
                 }
             }
 
-            float currTime = _gameTimer.CurrentSeconds;
-            _inGame |= IsKeyDown(KeyboardKey.Enter);
-            // Console.WriteLine(currTime);
+            var gameTimer = State.GetCurrentTime(ConfigPerStartUp);
+            float currTime = gameTimer.CurrentSeconds;
+            State.IsInGame |= IsKeyDown(KeyboardKey.Enter);
 
-            if (!_inGame)
+            if (!State.IsInGame)
             {
-                UiRenderer.DrawQuests(QuestLogger);
+                ref int n = ref State.Logger._next;
+                UiRenderer.DrawQuestsFrom(State.Logger);
             }
-            else if (_inGame)
+            else
             {
-                var gameState = GameState.Instance;
-                gameState.WasGameLost = _gameTimer.CountDown();
+                State.WasGameLost = gameTimer.CountDown();
 
-                if (gameState.WasGameLost)
+                if (State.WasGameLost)
                 {
                     //print to the main-window that the user has lost
                 }
-                else if (gameState.WasGameWon)
+                else if (State.WasGameWon)
                 {
                     //print to the main-window that the user has won
                 }
@@ -152,7 +146,6 @@ internal static class Game
 
     private static void CleanUp()
     {
-        UnloadShader(WobbleEffect);
         UnloadTexture(DefaultTileAtlas);
         CloseWindow();
     }
