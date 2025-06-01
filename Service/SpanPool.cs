@@ -8,21 +8,27 @@ namespace Match_3.Service;
 /// <summary>
 /// This Pool has the following attributes:
 ///   * It checks if the incoming span is already inside the pool to avoid copy and just return back the one inside the pool.
-///   * It is a recyclable pool, so when End reached it begins from 0 again.
-///   * It works like a FIFO-Queue, and gives you back the first -> last in that order
-///   * It gives you only back spans, which all points to the inner pool, and dont create new ones. 
-///   * It can grow dynamically, if need be, so you can EnQueue() infinitive.
+///   * It is a recyclable pool, so when end reached it begins from 0 again.
+///   * It works like a FIRO-Queue(First-In-Random-Out), and gives you back the desired slice at any arbitrary position
+///   * It gives you only back pushed-in spans nothing new will be created
+///   * It is an one-time init Pool, meaning you define an initial size as precisely as needed
+///     and the Pool will allocate a <example>maximumPushCount *</example> more than that
 ///  </summary>
 ///  <typeparam name="T"></typeparam>
-/// <param name="length">the total length of the span, if shallMultiply is true,
+/// <param name="length">the total length of the span, if 'maximumPushCount' is set,
 ///  it will allocate: (approxCount * length) * sizeof(T) elements</param>
 public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where T : unmanaged, IEquatable<T>
 {
     private MemoryOwner<T> _content = new(ArrayPool<T>.Shared, length);
-    private readonly MemoryOwner<Slice<T>> _slices = new(ArrayPool<Slice<T>>.Shared, sliceCount2Track ?? 0);
+    private readonly MemoryOwner<Slice<T>>? _ContentSlices
+        = sliceCount2Track is not null ? new(ArrayPool<Slice<T>>.Shared, sliceCount2Track.Value) : null;
 
-    private int _enQCharIdx,
-        _currLogLen;
+    private int _enQCharIdx, _currLogLen;
+
+    /// <summary>
+    /// The amount of times a Push(span) has been made
+    /// </summary>
+    public int PushCount { get; private set; }
 
     /// <summary>
     /// This one is only for internal use, like for performance-based algorithms,
@@ -74,22 +80,33 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
         //we save here the '_enQCharIdx' before it was pushed in, because we need that snapshot for later "Peeks()";
         int first = _enQCharIdx;
         var copyOfPoolSlice = CorePush(input);
-        Slice<T> spanInfo = new(first..(first + _currLogLen), entireSpan.Length);
-        _slices[PushCount++] = spanInfo;
+
+        if (_ContentSlices is not null)
+        {
+            Slice<T> spanInfo = new(first..(first + _currLogLen), entireSpan.Length);
+            _ContentSlices.Value[PushCount++] = spanInfo;
+        }
+
         //now we push as well the updated length so we basically pushed a '(int start, int length)'
         return copyOfPoolSlice;
     }
 
     /// <summary>
-    /// Gives you back, based on FIFO model, the current frame of the Pool
+    /// Gives you back a slice within the buffer based on <param name="index"></param>
+    /// if 'sliceCount2Track' is not null otherwise throws notsupported exception
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The Span based on <param name="index"></param></returns>
     public ReadOnlySpan<T> Peek(int index)
     {
         if (PushCount == 0)
             return [];
 
-        var slice = (Range)_slices[index];
+        if (_ContentSlices is null)
+            throw new NotSupportedException("Since we do not care about the internal positioning of " +
+                                            "our pushed-slices/spans, you make a statement that you dont want to get these spans in any order back" +
+                                            "bur rather you want to get back the last pushed");
+
+        var slice = (Range)_ContentSlices.Value[index];
         return _content.Span[slice];
     }
 
@@ -100,8 +117,6 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
         _enQCharIdx = 0;
         PushCount = 0;
     }
-
-    public int PushCount { get; private set; }
 
     public void Dispose()
     {
