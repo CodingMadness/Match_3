@@ -92,7 +92,7 @@ public static class QuestBuilder
         foreach (ref readonly var quest in quests)
         {
             UpdateQuestLogger(in quest, logger);
-            int x = logger._next;
+            // int x = logger._next;
         }
     }
 }

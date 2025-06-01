@@ -1,6 +1,4 @@
-﻿using System.Numerics;
-
-namespace Match_3.DataObjects;
+﻿namespace Match_3.DataObjects;
 
 /// <summary>
 /// This Record defines data which has to be known BEFORE the actual Game runs!

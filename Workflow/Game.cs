@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Match_3.DataObjects;
+﻿using Match_3.DataObjects;
 using Match_3.Setup;
 using Raylib_cs;
 using rlImGui_cs;
@@ -87,6 +86,9 @@ public static class Game
 
                 if (TileClicked(out var firstClickedTile))
                 {
+                    if (firstClickedTile is  null)
+                        return;
+
                     var currState = MainState.QuestStates.Single(x => x.ColourType == firstClickedTile.Body.Colour.Type);
                     currState.Current = firstClickedTile;
                     OnTileClicked();
