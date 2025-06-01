@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Diagnostics;
 using DotNext;
 using DotNext.Buffers;
 using Match_3.DataObjects;
@@ -22,9 +21,7 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
     private MemoryOwner<T> _content = new(ArrayPool<T>.Shared, length);
     private readonly MemoryOwner<Slice<T>> _slices = new(ArrayPool<Slice<T>>.Shared, sliceCount2Track ?? 0);
 
-    private int
-        _pushCount,
-        _enQCharIdx,
+    private int _enQCharIdx,
         _currLogLen;
 
     /// <summary>
@@ -78,7 +75,7 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
         int first = _enQCharIdx;
         var copyOfPoolSlice = CorePush(input);
         Slice<T> spanInfo = new(first..(first + _currLogLen), entireSpan.Length);
-        _slices[_pushCount++] = spanInfo;
+        _slices[PushCount++] = spanInfo;
         //now we push as well the updated length so we basically pushed a '(int start, int length)'
         return copyOfPoolSlice;
     }
@@ -89,7 +86,7 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
     /// <returns></returns>
     public ReadOnlySpan<T> Peek(int index)
     {
-        if (_pushCount == 0)
+        if (PushCount == 0)
             return [];
 
         var slice = (Range)_slices[index];
@@ -101,8 +98,10 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
     private void Flush()
     {
         _enQCharIdx = 0;
-        _pushCount = 0;
+        PushCount = 0;
     }
+
+    public int PushCount { get; private set; }
 
     public void Dispose()
     {

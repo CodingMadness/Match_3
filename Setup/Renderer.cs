@@ -229,15 +229,14 @@ public static class UiRenderer
         }
     }
 
-    public static void DrawQuests(QuestLogger logger)
+    public static void DrawQuestsFrom(QuestLogger logger)
     {
-        for (int i = 0; i < logger.QuestCount; i++)
+        for (int i = 0; i < logger.QuestIndex; i++)
         {
             CanvasStartingPoints start = i is 0 ? CanvasStartingPoints.Center : CanvasStartingPoints.MidLeft;
-            DrawText(logger.CurrentLog, start);
-            break;
+            DrawText(logger.CurrentLog, start);  //---> TODO: Investigate Endless loop!
         }
-        logger.Reset();
+        logger.BeginFromStart();
     }
 }
 

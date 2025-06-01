@@ -39,12 +39,12 @@
   
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.0" />
     <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
-    <PackageReference Include="DotNext" Version="5.21.0" />
-    <PackageReference Include="DotNext.Unsafe" Version="5.21.0" />
+    <PackageReference Include="DotNext" Version="5.22.0" />
+    <PackageReference Include="DotNext.Unsafe" Version="5.22.0" />
     <PackageReference Include="ImGui.NET" Version="1.91.6.1" />
-    <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
+    <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
     <PackageReference Include="NoAlloq" Version="0.2.0" />
     <PackageReference Include="Raylib-cs" Version="7.0.1" />
     <PackageReference Include="rlImgui-cs" Version="3.1.0" />
