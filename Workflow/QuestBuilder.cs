@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using DotNext.Buffers;
 using Match_3.DataObjects;
 using Match_3.Service;
 
@@ -32,7 +33,7 @@ public static class QuestBuilder
         }
     }
 
-    public static QuestHolder BuildQuests()
+    public static void DefineGameRules(out QuestState[] states, out Quest[] quests)
     {
         static int GetRandomInterval()
         {
@@ -46,41 +47,51 @@ public static class QuestBuilder
             return toEven;
         }
 
-        var currLvl = GameState.Instance;
-        const int tileCount = Config.TileColorCount;
-        // const int questLogParts = 4;
-        scoped Span<TileColorTypes> subset = stackalloc TileColorTypes[tileCount];
-        FadeableColor.Fill(subset);
-        subset.Shuffle();
-        subset = subset.TakeRndItemsAtRndPos(currLvl.LevelId);
-        int questCount = subset.Length;
-        int idx = 0;
-        var quests = new Quest[questCount];
-        
-        GameState.Instance.InitStates(questCount);
-        
-        foreach (var colorType in subset)
+        static int ComputeQuestRelatedData(out Span<TileColorTypes> allColorTypes)
         {
+            var currLvl = GameState.Instance;
+            const int tileCount = Config.TileColorCount;
+            var pool = new SpanOwner<TileColorTypes>(tileCount);
+            FadeableColor.Fill(pool.Span);
+            pool.Span.Shuffle();
+            var subset = pool.Span.TakeRndItemsAtRndPos(currLvl.LevelId);
+            int questCount = subset.Length;
+            allColorTypes = pool.Span;
+            return questCount;
+        }
+
+        var questCount = ComputeQuestRelatedData(out var allColorTypes);
+        var tmpQuests = new Quest[questCount];
+        var tmpStates = new QuestState[questCount];
+
+        for (var index = 0; index < questCount; index++)
+        {
+            var colorType = allColorTypes[index];
             int toEven = GetRandomInterval();
-            (int Count, float CountDown) match = new(BaseTypeUtility.Randomizer.Next(2,5), toEven);
+            (int Count, float CountDown) match = new(BaseTypeUtility.Randomizer.Next(2, 5), toEven);
             (int Count, float CountDown) swap = new(4, -1f);
             (int Count, float CountDown) replacement = new(5, -1f);
             (int Count, float CountDown) tolerance = new(6, -1f);
-            quests[idx] = new Quest(Color.FromKnownColor(colorType), GameTime.CreateTimer(toEven) ,match, swap, replacement, tolerance);
-            GameState.Instance.DefineStateType(idx, colorType);
-            idx++;
+
+            tmpQuests[index] = new Quest(Color.FromKnownColor(colorType),
+                GameTime.CreateTimer(toEven),
+                match,
+                swap,
+                replacement,
+                tolerance);
+
+            tmpStates[index] = new(colorType);
         }
-        
-        QuestHolder holder = new(quests);
-        return holder;
+
+        states = tmpStates;
+        quests = tmpQuests;
     }
 
-    public static void BuildQuestText(Span<Quest> quests, QuestLogger logger)
+    public static void DefineQuestTextPerQuest(ReadOnlySpan<Quest> quests, QuestLogger logger)
     {
         foreach (ref readonly var quest in quests)
         {
             UpdateQuestLogger(in quest, logger);
         }
-        logger.Reset();
     }
 }
