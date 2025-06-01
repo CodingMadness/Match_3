@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using DotNext;
-using JetBrains.Annotations;
+﻿using DotNext;
 using Match_3.Service;
 
 namespace Match_3.DataObjects;
@@ -37,32 +35,11 @@ public readonly record struct Quest(
     }
 }
 
-public record QuestHolder(Quest[] Quests)
-{
-    private static readonly Quest Empty   = default!;
-    public int QuestCount { get; set; } = Quests.Length;
-
-    public ref readonly Quest GetQuestBy(TileColorTypes tileColorTypes)
-    {
-        var onlyNeededQuests = Quests.AsSpan(0, QuestCount);
-
-        foreach (ref readonly Quest quest in onlyNeededQuests)
-        {
-            if (quest.Colour.Type == tileColorTypes)
-                return ref quest;
-        }
-
-        return ref Empty;
-    }
-}
-
-public class QuestLogger(QuestHolder Holder)
+public class QuestLogger(int QuestCount)
 {
     // --- Lazy-Loaded Resources ---
-    private SpanPool<char> _pool = new(Config.QuestLog.Length * Holder.QuestCount, Config.SegmentsOfQuestLog);
-    private int _next;
-
-    public int QuestCount => Holder.QuestCount;
+    private SpanPool<char> _pool = new(Config.QuestLog.Length * QuestCount, Config.SegmentsOfQuestLog);
+    public int _next;
 
     public ReadOnlySpan<char> CurrentLog
     {
@@ -74,7 +51,9 @@ public class QuestLogger(QuestHolder Holder)
         }
     }
 
-    public void Reset() => _next = 0;
+    public int QuestIndex => _pool.PushCount;
+
+    public void BeginFromStart() => _next = 0;
 
     public void UpdateNextQuestLog(Quest quest)
     {
