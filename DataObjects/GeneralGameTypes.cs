@@ -2,6 +2,9 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Match_3.Service;
+using Raylib_cs;
+using Color = System.Drawing.Color;
+using Rectangle = System.Drawing.Rectangle;
 
 namespace Match_3.DataObjects;
 
@@ -50,7 +53,7 @@ public struct FadeableColor : IEquatable<FadeableColor>
     public FadeableColor Apply()
     {
         Lerp();
-        return Fade(AsRayColor(), _currentAlpha);
+        return Raylib.Fade(AsRayColor(), _currentAlpha);
     }
 
     private static readonly TileColorTypes[] AllTileColors =
@@ -214,11 +217,11 @@ public struct GameTime
     {
         if (CurrentSeconds <= MaxTimerValue / 2f)
         {
-            CurrentSeconds -= (GetFrameTime() * 1.15f).Trunc(1);
+            CurrentSeconds -= (Raylib.GetFrameTime() * 1.15f).Trunc(1);
         }
 
         // subtract this frame from the globalTimer if it's not already expired
-        CurrentSeconds -= (1.15f * MathF.Round(GetFrameTime(), 2));
+        CurrentSeconds -= (1.15f * MathF.Round(Raylib.GetFrameTime(), 2));
 
         return MathF.Max(CurrentSeconds, 0f) == 0f;
     }
