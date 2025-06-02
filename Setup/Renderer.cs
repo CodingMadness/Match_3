@@ -1,5 +1,5 @@
 global using Vector2 = System.Numerics.Vector2;
-using static Match_3.Setup.AssetManager;
+using static Raylib_cs.Raylib;
 
 using System.Runtime.CompilerServices;
 using ImGuiNET;
@@ -48,42 +48,15 @@ public static class UiRenderer
         }
     }
 
-    public static void SetCurrentContext()
-    {
-        // Validate existing context
-        var ctx = ImGui.GetCurrentContext();
-
-        if (ctx == IntPtr.Zero)
-        {
-            var newCtx = ImGui.CreateContext();
-            ImGui.SetCurrentContext(newCtx);
-        }
-    }
-
-    public static void Begin()
+    public static void BeginRaylib()
     {
         BeginDrawing();
-        {
-            ClearBackground(White);
-
-            rlImGui.Begin();
-            {
-                ImGui.PushFont(CustomFont);
-                ImGui.SetNextWindowPos(Vector2.Zero);
-                ImGui.SetNextWindowSize(Game.ConfigPerStartUp.WindowInWorldCoordinates);
-            }
-        }
+        ClearBackground(White);
     }
 
-    public static void End()
-    {
-        ImGui.PopFont();
-        ImGui.End();
-        rlImGui.End();
-        EndDrawing();
-    }
+    public static void EndRaylib() => EndDrawing();
 
-    public static void CreateWindowSizedCanvas()
+    public static void CreateCanvas(in Config config)
     {
         const ImGuiWindowFlags emptyCanvas =
             ImGuiWindowFlags.NoScrollbar |
@@ -96,7 +69,18 @@ public static class UiRenderer
             ImGuiWindowFlags.NoBringToFrontOnFocus |
             ImGuiWindowFlags.NoTitleBar;
 
+        rlImGui.Begin();
+        ImGui.SetNextWindowPos(Vector2.Zero);
+        ImGui.SetNextWindowSize(config.WindowSize);
         ImGui.Begin("Tilemap-overlaying-Canvas", emptyCanvas);
+        //ImGui.PushFont(AssetManager.CustomFont);
+    }
+
+    public static void EndCanvas()
+    {
+        // ImGui.PopFont();
+        ImGui.End();
+        rlImGui.End();
     }
 
     public static void DrawText(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints anchor)
@@ -104,7 +88,7 @@ public static class UiRenderer
         static Vector2 SetUiStartingPoint(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints offset)
         {
             Vector2 result = Vector2.Zero;
-            Vector2 screen = Game.ConfigPerStartUp.WindowInWorldCoordinates;
+            Vector2 screen = Game.ConfigPerStartUp.WindowSize;
             Vector2 txtSize = ImGui.CalcTextSize(colorCodedTxt);
             Vector2 paddingAdjustedScreen = new(screen.X - txtSize.X, screen.Y - txtSize.Y);
             Vector2 halfTxtSize = new(txtSize.X * 0.5f, txtSize.Y * 0.5f);
@@ -133,7 +117,7 @@ public static class UiRenderer
 
         static bool TextShouldWrap(ref readonly Vector2? current, Vector2 textSize)
         {
-            var canvas = Game.ConfigPerStartUp.WindowInWorldCoordinates;
+            var canvas = Game.ConfigPerStartUp.WindowSize;
             var wrappedAt = (int)(canvas.X - (current!.Value.X + textSize.X));
             return wrappedAt < 0;
         }
@@ -247,7 +231,7 @@ public static class TileRenderer
     {
         var body = tile.Body;
         body.ScaleBox(currTime);
-        DrawTexturePro(atlas, body.AtlasInfo, body.WorldRect, Vector2.Zero, 0f, body.Colour);
+        Raylib.DrawTexturePro(atlas, body.AtlasInfo, body.WorldRect, Vector2.Zero, 0f, body.Colour);
     }
 
     public static void DrawGrid(float elapsedTime, int gridWidth, int gridHeight)
@@ -262,7 +246,7 @@ public static class TileRenderer
 
                     if (basicTile is not null && !basicTile.IsDeleted)
                     {
-                        DrawTile(DefaultTileAtlas, basicTile, elapsedTime);
+                        DrawTile(AssetManager.DefaultTileAtlas, basicTile, elapsedTime);
                     }
                 }
             }
@@ -278,7 +262,7 @@ public static class TileRenderer
         foreach (var tile in match)
         {
             tile.Body.ScaleBox(currTime);
-            DrawTile(DefaultTileAtlas, tile, currTime);
+            DrawTile(AssetManager.DefaultTileAtlas, tile, currTime);
         }
     }
 }
