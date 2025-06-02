@@ -1,8 +1,8 @@
-﻿using Match_3.DataObjects;
+﻿using ImGuiNET;
+using Match_3.DataObjects;
 using Match_3.Setup;
 using Raylib_cs;
 using rlImGui_cs;
-using static Match_3.Setup.AssetManager;
 
 namespace Match_3.Workflow;
 
@@ -14,12 +14,13 @@ public static class Game
     public static Config ConfigPerStartUp { get; private set; }
 
     private static readonly GameState MainState = GameState.Instance;
+
     public static event Action OnTileClicked = null!;
 
     private static void Main()
     {
         Initialize();
-        MainGameLoop();
+        MainGameEntryPoint();
         CleanUp();
     }
 
@@ -28,22 +29,22 @@ public static class Game
         //Singleton!
         //config only once when the application/game is started and never changed!
         ConfigPerStartUp = new(0, 300, 1, 20, 20);
-         
+
         static void InitRaylib()
-        { 
-            SetTargetFPS(60);
-            InitWindow(ConfigPerStartUp.WindowWidth, ConfigPerStartUp.WindowHeight, "Match3 By Shpendicus");
-            SetTextureFilter(BgIngameTexture, TextureFilter.Bilinear);
+        {
+            Raylib.SetConfigFlags(ConfigFlags.BorderlessWindowMode);
+            Raylib.InitWindow(ConfigPerStartUp.WindowWidth, ConfigPerStartUp.WindowHeight, "Match3 By Shpendicus");
+            Raylib.SetTextureFilter(AssetManager.BgIngameTexture, TextureFilter.Bilinear);
+            Raylib.SetTargetFPS(144);
         }
 
         static void InitImGui()
         {
             //<this has to be initialized RIGHT HERE in order to work!>
-            rlImGui.Setup(false);
-            UiRenderer.SetCurrentContext();
-            LoadAssets(new(ConfigPerStartUp.GridWidth, ConfigPerStartUp.GridHeight), 32f);
-            // For raylib only, because raylib needs to update the imgui-font at gpu-level
-            rlImGui.ReloadFonts();
+            rlImGui.BeginInitImGui();
+            AssetManager.LoadAssets(32f);
+            rlImGui.EndInitImGui();
+            // For raylib only, because raylib needs to update the imgui-font at gpu-level;
         }
 
         static void InitGameLevel()
@@ -64,7 +65,7 @@ public static class Game
         InitGameLevel();
     }
 
-    private static void MainGameLoop()
+    private static unsafe void MainGameEntryPoint()
     {
         //this checks for a lot of scenarios in which the game could end, either by failure OR by actually winning in time
         static void HandleGameInput()
@@ -75,10 +76,10 @@ public static class Game
                 {
                     tile = null!;
 
-                    if (!IsMouseButtonPressed(MouseButton.Left))
+                    if (!Raylib.IsMouseButtonPressed(MouseButton.Left))
                         return false;
 
-                    SingleCell tileCell = GetMousePosition();
+                    SingleCell tileCell = Raylib.GetMousePosition();
                     tile = TileMap.GetTile(tileCell.Start);
                     // Console.WriteLine(tile);
                     return tile is not null;
@@ -86,10 +87,11 @@ public static class Game
 
                 if (TileClicked(out var firstClickedTile))
                 {
-                    if (firstClickedTile is  null)
+                    if (firstClickedTile is null)
                         return;
 
-                    var currState = MainState.QuestStates.Single(x => x.ColourType == firstClickedTile.Body.Colour.Type);
+                    var currState =
+                        MainState.QuestStates.Single(x => x.ColourType == firstClickedTile.Body.Colour.Type);
                     currState.Current = firstClickedTile;
                     OnTileClicked();
                     Console.WriteLine(firstClickedTile);
@@ -98,7 +100,7 @@ public static class Game
 
             var gameTimer = MainState.GetCurrentTime(ConfigPerStartUp);
             float currTime = gameTimer.CurrentSeconds;
-            MainState.IsInGame |= IsKeyDown(KeyboardKey.Enter);
+            MainState.IsInGame |= Raylib.IsKeyDown(KeyboardKey.Enter);
 
             if (!MainState.IsInGame)
             {
@@ -125,20 +127,23 @@ public static class Game
             }
         }
 
-        while (!WindowShouldClose())
+        //Game loop
+        while (!Raylib.WindowShouldClose())
         {
-            UiRenderer.Begin();
-
-            UiRenderer.CreateWindowSizedCanvas();
-            HandleGameInput();
-
-            UiRenderer.End();
+            //THIS ORDER OF DRAW CALLS WORKS PERFECTLY!
+            UiRenderer.BeginRaylib();
+            UiRenderer.CreateCanvas(ConfigPerStartUp);
+            //all draw-calls begin here
+            ImGui.Text("this is a nice working text!");
+            //all draw-calls end here
+            UiRenderer.EndCanvas();
+            UiRenderer.EndRaylib();
         }
     }
 
-    private static void CleanUp()
+    private static unsafe void CleanUp()
     {
-        UnloadTexture(DefaultTileAtlas);
-        CloseWindow();
+        rlImGui.Shutdown();
+        Raylib.CloseWindow();
     }
 }
