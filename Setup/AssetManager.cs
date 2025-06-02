@@ -1,7 +1,10 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ImGuiNET;
 using Raylib_cs;
+using rlImGui_cs;
+using static Raylib_cs.Raylib;
 
 namespace Match_3.Setup;
 
@@ -17,6 +20,8 @@ public static class AssetManager
     public static Texture2D FeatureBtn;
     public static Sound SplashSound;
     public static ImFontPtr CustomFont;
+    public static nint copyOfFontBytesPtr;
+    public static GCHandle Handle2CustomFont;
 
     private static Sound LoadSound(string relativePath)
     {
@@ -45,27 +50,32 @@ public static class AssetManager
     {       
         var fontConfig = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig());
         var fontBytes = GetEmbeddedResource($"Fonts.{relativePath}");
-        GCHandle handle = GCHandle.Alloc(fontBytes, GCHandleType.Pinned);
+        var customFontHandle = GCHandle.Alloc(fontBytes, GCHandleType.Pinned);
         var io = ImGui.GetIO();
+        ImFontPtr customFont;
+        copyOfFontBytesPtr = customFontHandle.AddrOfPinnedObject();
 
         try
         {
-            nint nativeInt = handle.AddrOfPinnedObject();
-            var customFont = io.Fonts.AddFontFromMemoryTTF(
-                nativeInt,
+            copyOfFontBytesPtr = customFontHandle.AddrOfPinnedObject();
+            customFont = io.Fonts.AddFontFromMemoryTTF(
+                copyOfFontBytesPtr,
                 fontBytes.Length,
                 fontSize,
                 fontConfig,
                 io.Fonts.GetGlyphRangesDefault()
             );
             io.Fonts.Build();
-            return customFont;
+            rlImGui.ReloadFonts();
         }
         finally
         {
+            customFontHandle.Free();
             fontConfig.Destroy();
-            handle.Free();
+            GC.Collect();
         }
+
+        return customFont;
     }
 
     /// <summary>
@@ -84,7 +94,7 @@ public static class AssetManager
 
     private static Texture2D LoadInGameTexture(string relativePath) => LoadTexture($"Sprites.Tiles.{relativePath}");
 
-    public static void LoadAssets(Vector2 gridSize, float fontSize)
+    public static void LoadAssets(float fontSize)
     {
         InitAudioDevice();
 
