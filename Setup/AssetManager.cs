@@ -1,6 +1,8 @@
+using System.Buffers;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using DotNext;
 using ImGuiNET;
 using Raylib_cs;
 using rlImGui_cs;
@@ -20,8 +22,6 @@ public static class AssetManager
     public static Texture2D FeatureBtn;
     public static Sound SplashSound;
     public static ImFontPtr CustomFont;
-    public static nint copyOfFontBytesPtr;
-    public static GCHandle Handle2CustomFont;
 
     private static Sound LoadSound(string relativePath)
     {
@@ -37,46 +37,42 @@ public static class AssetManager
     /// <exception cref="FileNotFoundException"></exception>
     private static byte[] GetEmbeddedResource(string relativePath)
     {
-       
         var fileName = $"Match_3.Assets.{relativePath}";
         var assembly = Assembly.GetEntryAssembly();     
         using var stream = (assembly?.GetManifestResourceStream(fileName)) ?? throw new FileNotFoundException("Cannot find mappings file.", nameof(fileName) + ": " + fileName);
-        byte[] data = new byte[stream.Length];
-        stream.ReadExactly(data, 0, data.Length);
+        byte[] data = ArrayPool<byte>.Shared.Rent((int)stream.Length);
+        stream.ReadExactly(data, 0, (int)stream.Length);
         return data;
     }
 
     private static unsafe ImFontPtr LoadCustomFont(string relativePath, float fontSize)
     {       
-        var fontConfig = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig());
         var fontBytes = GetEmbeddedResource($"Fonts.{relativePath}");
-        var customFontHandle = GCHandle.Alloc(fontBytes, GCHandleType.Pinned);
         var io = ImGui.GetIO();
         ImFontPtr customFont;
-        copyOfFontBytesPtr = customFontHandle.AddrOfPinnedObject();
 
-        try
+        fixed (byte* customPtr = fontBytes)
         {
-            copyOfFontBytesPtr = customFontHandle.AddrOfPinnedObject();
-            customFont = io.Fonts.AddFontFromMemoryTTF(
-                copyOfFontBytesPtr,
-                fontBytes.Length,
-                fontSize,
-                fontConfig,
-                io.Fonts.GetGlyphRangesDefault()
-            );
-            io.Fonts.Build();
-            rlImGui.ReloadFonts();
-        }
-        finally
-        {
-            customFontHandle.Free();
-            fontConfig.Destroy();
-            GC.Collect();
+            customFont = io.Fonts.AddFontFromMemoryTTF((IntPtr)customPtr, fontBytes.Length, fontSize);
         }
 
         return customFont;
     }
+
+    // private static ImFontPtr LoadCustomFontFromFile(string onlyFileName, float fontSize)
+    // {
+    //     var io = ImGui.GetIO();
+    //     var fullPath = $"Match_3.Assets.{onlyFileName}";
+    //     var assembly = Assembly.GetEntryAssembly();
+    //     var paths = assembly.GetManifestResourceNames();
+    //     var containsFile = paths.Any(x => x.EndsWith(onlyFileName));
+    //
+    //     if (!containsFile)
+    //         return null;
+    //
+    //     var font = io.Fonts.AddFontFromFileTTF(fullPath, fontSize);
+    //     return font;
+    // }
 
     /// <summary>
     /// 
@@ -105,6 +101,8 @@ public static class AssetManager
         GameOverTexture = LoadGuiTexture("Background.bgGameOver.png");
         DefaultTileAtlas = LoadInGameTexture("set3_1.png");
         EnemySprite = LoadInGameTexture("set2.png");
-        CustomFont = LoadCustomFont("font6.ttf", fontSize);
+
+        //TODO: this function causes memory leaks!
+        // CustomFont = LoadCustomFontFromFile("font6.ttf", fontSize);
     } 
 }
