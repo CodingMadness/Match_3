@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.HighPerformance.Buffers;
 using DotNext;
 using ImGuiNET;
 using Raylib_cs;
@@ -23,67 +24,54 @@ public static class AssetManager
     public static Sound SplashSound;
     public static ImFontPtr CustomFont;
 
-    private static Sound LoadSound(string relativePath)
-    {
-        var buffer = GetEmbeddedResource($"Sounds.{relativePath}");
-        var wave = LoadWaveFromMemory(".mp3", buffer);
-        return LoadSoundFromWave(wave);
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="relativePath">the path looks like: Root.Sub or Fonts.font3.oft</param>
-    /// <exception cref="FileNotFoundException"></exception>
-    private static byte[] GetEmbeddedResource(string relativePath)
+    private static Span<byte> GetEmbeddedResource(string relativePath)
     {
         var fileName = $"Match_3.Assets.{relativePath}";
-        var assembly = Assembly.GetEntryAssembly();     
-        using var stream = (assembly?.GetManifestResourceStream(fileName)) ?? throw new FileNotFoundException("Cannot find mappings file.", nameof(fileName) + ": " + fileName);
-        byte[] data = ArrayPool<byte>.Shared.Rent((int)stream.Length);
-        stream.ReadExactly(data, 0, (int)stream.Length);
-        return data;
-    }
-
-    private static unsafe ImFontPtr LoadCustomFont(string relativePath, float fontSize)
-    {       
-        var fontBytes = GetEmbeddedResource($"Fonts.{relativePath}");
-        var io = ImGui.GetIO();
-        ImFontPtr customFont;
-
-        fixed (byte* customPtr = fontBytes)
+        var assembly = Assembly.GetEntryAssembly();
+        MemoryOwner<byte> pool;
+        using (var stream = assembly?.GetManifestResourceStream(fileName) ??
+                            throw new FileNotFoundException("Cannot find mappings file.",
+                                nameof(fileName) + ": " + fileName))
         {
-            customFont = io.Fonts.AddFontFromMemoryTTF((IntPtr)customPtr, fontBytes.Length, fontSize);
+            pool = MemoryOwner<byte>.Allocate((int)stream.Length);
+
+            stream.ReadAtLeast(pool.Span, (int)stream.Length);
         }
 
-        return customFont;
+        return pool.Span;
     }
 
-    // private static ImFontPtr LoadCustomFontFromFile(string onlyFileName, float fontSize)
-    // {
-    //     var io = ImGui.GetIO();
-    //     var fullPath = $"Match_3.Assets.{onlyFileName}";
-    //     var assembly = Assembly.GetEntryAssembly();
-    //     var paths = assembly.GetManifestResourceNames();
-    //     var containsFile = paths.Any(x => x.EndsWith(onlyFileName));
-    //
-    //     if (!containsFile)
-    //         return null;
-    //
-    //     var font = io.Fonts.AddFontFromFileTTF(fullPath, fontSize);
-    //     return font;
-    // }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="fullPath">For instance: Background.bg1.png OR Button.FeatureBtn.png</param>
-    /// <returns></returns>
-    private static Texture2D LoadTexture(string fullPath)
+    private static unsafe void Get2FileFormatAndData(string relativePath,
+        out sbyte* fileFormat, out byte* data, out int size)
     {
-        var buffer = GetEmbeddedResource(fullPath);
-        Image bg = LoadImageFromMemory(".png", buffer);
-        return LoadTextureFromImage(bg);
+        var buffer = GetEmbeddedResource($"Sounds.{relativePath}");
+
+        fixed (byte* customPtr = buffer)
+        {
+            var format = relativePath.AsSpan(relativePath.LastIndexOf('.'));
+
+            fixed (char* cPtr = format)
+            {
+                sbyte* conversion = (sbyte*)cPtr;
+                fileFormat = conversion;
+                data = customPtr;
+                size = buffer.Length;
+            }
+        }
+    }
+
+    private static unsafe Sound LoadSound(string relativePath)
+    {
+        Get2FileFormatAndData(relativePath, out sbyte* fileFormat, out byte* data, out int size);
+        Wave file = LoadWaveFromMemory(fileFormat, data, size);
+        return LoadSoundFromWave(file);
+    }
+
+    private static unsafe Texture2D LoadTexture(string relativePath)
+    {
+        Get2FileFormatAndData(relativePath, out sbyte* fileFormat, out byte* data, out int size);
+        var file = LoadImageFromMemory(fileFormat, data, size);
+        return LoadTextureFromImage(file);
     }
 
     private static Texture2D LoadGuiTexture(string relativePath) => LoadTexture($"Sprites.GUI.{relativePath}");
@@ -104,5 +92,5 @@ public static class AssetManager
 
         //TODO: this function causes memory leaks!
         // CustomFont = LoadCustomFontFromFile("font6.ttf", fontSize);
-    } 
+    }
 }

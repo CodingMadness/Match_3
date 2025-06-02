@@ -66,14 +66,15 @@ public static class UiRenderer
             ImGuiWindowFlags.NoCollapse |
             ImGuiWindowFlags.NoMove |
             ImGuiWindowFlags.NoResize |
-            ImGuiWindowFlags.NoBringToFrontOnFocus |
-            ImGuiWindowFlags.NoTitleBar;
+            ImGuiWindowFlags.NoTitleBar |
+            ImGuiWindowFlags.NoBackground|
+            ImGuiWindowFlags.NoBringToFrontOnFocus;
 
         rlImGui.Begin();
         ImGui.SetNextWindowPos(Vector2.Zero);
         ImGui.SetNextWindowSize(config.WindowSize);
         ImGui.Begin("Tilemap-overlaying-Canvas", emptyCanvas);
-        //ImGui.PushFont(AssetManager.CustomFont);
+        // ImGui.PushFont(AssetManager.CustomFont);
     }
 
     public static void EndCanvas()
@@ -227,11 +228,11 @@ public static class UiRenderer
 
 public static class TileRenderer
 {
-    private static void DrawTile(Texture2D atlas, Tile tile, float currTime)
+    public static void DrawTile(Texture2D atlas, Tile tile, float currTime)
     {
         var body = tile.Body;
-        body.ScaleBox(currTime);
-        Raylib.DrawTexturePro(atlas, body.AtlasInfo, body.WorldRect, Vector2.Zero, 0f, body.Colour);
+        // body.ScaleBox(currTime);
+        DrawTexturePro(atlas, body.AtlasInfo, body.WorldRect, Vector2.Zero, 0f, body.Colour);
     }
 
     public static void DrawGrid(float elapsedTime, int gridWidth, int gridHeight)

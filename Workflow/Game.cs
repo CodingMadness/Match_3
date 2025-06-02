@@ -34,16 +34,15 @@ public static class Game
         {
             Raylib.SetConfigFlags(ConfigFlags.BorderlessWindowMode);
             Raylib.InitWindow(ConfigPerStartUp.WindowWidth, ConfigPerStartUp.WindowHeight, "Match3 By Shpendicus");
-            Raylib.SetTextureFilter(AssetManager.BgIngameTexture, TextureFilter.Bilinear);
+            Raylib.SetTextureFilter(AssetManager.DefaultTileAtlas, TextureFilter.Bilinear);
             Raylib.SetTargetFPS(144);
         }
 
         static void InitImGui()
         {
             //<this has to be initialized RIGHT HERE in order to work!>
-            rlImGui.BeginInitImGui();
+            rlImGui.Setup(false);
             AssetManager.LoadAssets(32f);
-            rlImGui.EndInitImGui();
             // For raylib only, because raylib needs to update the imgui-font at gpu-level;
         }
 
@@ -65,7 +64,7 @@ public static class Game
         InitGameLevel();
     }
 
-    private static unsafe void MainGameEntryPoint()
+    private static void MainGameEntryPoint()
     {
         //this checks for a lot of scenarios in which the game could end, either by failure OR by actually winning in time
         static void HandleGameInput()
@@ -130,18 +129,18 @@ public static class Game
         //Game loop
         while (!Raylib.WindowShouldClose())
         {
-            //THIS ORDER OF DRAW CALLS WORKS PERFECTLY!
             UiRenderer.BeginRaylib();
             UiRenderer.CreateCanvas(ConfigPerStartUp);
             //all draw-calls begin here
-            ImGui.Text("this is a nice working text!");
+            var tile = Bakery.CreateTile(new Vector2(0, 0), TileColorTypes.Red);
+            TileRenderer.DrawTile(AssetManager.DefaultTileAtlas, tile, 0f);
             //all draw-calls end here
             UiRenderer.EndCanvas();
             UiRenderer.EndRaylib();
         }
     }
 
-    private static unsafe void CleanUp()
+    private static void CleanUp()
     {
         rlImGui.Shutdown();
         Raylib.CloseWindow();
