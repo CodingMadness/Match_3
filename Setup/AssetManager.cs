@@ -14,25 +14,25 @@ public class AssetManager : IDisposable
 {
     private static readonly AssetManager _instance = new();
 
+    private const int LargeEnough2FitAllResources = 1024 * 100; //100KB for now
+    private readonly MemoryOwner<byte> fileData = MemoryOwner<byte>.Allocate(LargeEnough2FitAllResources);
+    private readonly Assembly? ResourceFile = Assembly.GetEntryAssembly();
+
     private AssetManager()
     {
     }
 
     public static readonly AssetManager Instance = _instance;
+    public Texture2D DefaultTileAtlas { get; private set; }
 
-    public Texture2D DefaultTileAtlas;
-    public ImFontPtr CustomFont;
-
-    private const int LargeEnough2FitAllResources = 1024 * 100; //100KB for now
-    private readonly MemoryOwner<byte> fileData = MemoryOwner<byte>.Allocate(LargeEnough2FitAllResources);
+    public ImFontPtr CustomFont { get; private set; }
 
     private Span<byte> GetEmbeddedResourceBytes(string relativePath)
     {
-        var fileName = $"Match_3.Assets.{relativePath}";
-        var assembly = Assembly.GetEntryAssembly();
+        var fullPath = $"Match_3.Assets.{relativePath}";
 
-        using var stream = assembly?.GetManifestResourceStream(fileName) ??
-                           throw new FileNotFoundException("Cannot find resource file.", fileName);
+        using var stream = ResourceFile?.GetManifestResourceStream(fullPath) ??
+                           throw new FileNotFoundException("Cannot find resource file.", fullPath);
 
         var length = (int)stream.Length;
         var usableBuffer = fileData.Span[..length];
@@ -44,6 +44,7 @@ public class AssetManager : IDisposable
         out sbyte* fileFormat, out byte* data, out int size)
     {
         var buffer = GetEmbeddedResourceBytes(relativePath);
+
         fixed (byte* customPtr = buffer)
         {
             var format = relativePath[relativePath.LastIndexOf('.')..];
