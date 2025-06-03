@@ -83,7 +83,6 @@ public class AssetManager : IDisposable
         var path = "set3_1.png";
         DefaultTileAtlas = LoadInGameTexture(ref path);
         path = "font6.ttf";
-        //TODO: this function causes memory leaks!
         CustomFont = LoadCustomFont(path, fontSize);
     }
 
