@@ -176,8 +176,10 @@ public sealed class GameState
     public GameTime GetCurrentTime(in Config config) => GameTime.CreateTimer(config.GameBeginAt);
     public bool WasGameLost { get; set; }
     public bool WasGameWon { get; set; }
+    public bool IsGameStillRunning => !WasGameLost && !WasGameWon;
     public bool HaveAMatch { get; set; }
     public bool WasSwapped { get; set; }
+
 
     public int LevelId { get; set; }
     public Tile? TileY; //they must be fields, because I need later them to be used via "ref" directly!
