@@ -102,8 +102,9 @@ public static class Game
             var gameTimer = MainState.GetCurrentTime(ConfigPerStartUp);
             float currTime = gameTimer.CurrentSeconds;
             MainState.IsInGame |= Raylib.IsKeyDown(KeyboardKey.Enter);
+            bool inMenu = !MainState.IsInGame;
 
-            if (!MainState.IsInGame)
+            if (inMenu)
             {
                 UiRenderer.DrawQuestsFrom(MainState.Logger);
             }
@@ -119,8 +120,7 @@ public static class Game
                 {
                     //print to the main-window that the user has won
                 }
-                //game still running...!
-                else
+                else if (MainState.IsGameStillRunning)
                 {
                     NotifyClickHandler();
                     TileRenderer.DrawGrid(currTime, ConfigPerStartUp.GridWidth, ConfigPerStartUp.GridHeight);
