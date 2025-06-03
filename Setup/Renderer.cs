@@ -1,4 +1,5 @@
 global using Vector2 = System.Numerics.Vector2;
+using System.Diagnostics;
 using static Raylib_cs.Raylib;
 
 using System.Runtime.CompilerServices;
@@ -84,7 +85,7 @@ public static class UiRenderer
         rlImGui.End();
     }
 
-    public static void DrawText(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints anchor)
+    private static void DrawText(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints anchor)
     {
         static Vector2 SetUiStartingPoint(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints offset)
         {
@@ -142,7 +143,7 @@ public static class UiRenderer
             MoveCursorRight(ref current, in segment);
         }
 
-        //I am passing a null but only for easier code usage, semantically this is usually not good practise!
+        //I am passing null, but only for easier code usage, semantically this is usually not good practise!
         static void MoveCursorRight(ref Vector2? current, ref readonly TextInfo txtInfo)
         {
             current = current!.Value with { X = current.Value.X + txtInfo.TextSize.X };
@@ -193,6 +194,8 @@ public static class UiRenderer
         var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt);
         Vector2? fixStartingPos = null, current = null;
 
+        ref readonly var runThroughWords = ref formatTextEnumerator.EnumerateSegment();
+
         while (formatTextEnumerator.MoveNext())
         {
             ref readonly var phraseSegment = ref formatTextEnumerator.Current;
@@ -205,24 +208,29 @@ public static class UiRenderer
 
             if (TextShouldWrap(in current, phraseSegment.TextSize))
             {
-                SplitText(in formatTextEnumerator.EnumerateSegment(), ref current, in fixStartingPos, in phraseSegment);
+                SplitText(in runThroughWords, ref current, in fixStartingPos, in phraseSegment);
             }
             else
             {
-                //this part simply draws each segments directly 1 by 1 next to each other
+                //this part simply draws each segment directly 1 by 1 next to each other
                 DrawSegment(in phraseSegment, ref current);
             }
         }
+        runThroughWords.Dispose();
     }
 
     public static void DrawQuestsFrom(QuestLogger logger)
     {
         for (int i = 0; i < logger.QuestIndex; i++)
         {
-            CanvasStartingPoints start = i is 0 ? CanvasStartingPoints.Center : CanvasStartingPoints.MidLeft;
+            CanvasStartingPoints start = i is 0 ? CanvasStartingPoints.MidLeft : CanvasStartingPoints.MidLeft;
             DrawText(logger.CurrentLog, start);
         }
         logger.BeginFromStart();
+    }
+
+    public static void TestRefs()
+    {
     }
 }
 
@@ -247,7 +255,7 @@ public static class TileRenderer
 
                     if (basicTile is not null && !basicTile.IsDeleted)
                     {
-                        DrawTile(AssetManager.DefaultTileAtlas, basicTile, elapsedTime);
+                        DrawTile(AssetManager.Instance.DefaultTileAtlas, basicTile, elapsedTime);
                     }
                 }
             }
@@ -263,7 +271,7 @@ public static class TileRenderer
         foreach (var tile in match)
         {
             tile.Body.ScaleBox(currTime);
-            DrawTile(AssetManager.DefaultTileAtlas, tile, currTime);
+            DrawTile(AssetManager.Instance.DefaultTileAtlas, tile, currTime);
         }
     }
 }
