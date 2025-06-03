@@ -216,7 +216,7 @@ public static class UiRenderer
                 DrawSegment(in phraseSegment, ref current);
             }
         }
-        runThroughWords.Dispose();
+        // runThroughWords.Dispose();
     }
 
     public static void DrawQuestsFrom(QuestLogger logger)

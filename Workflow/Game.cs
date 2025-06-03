@@ -41,10 +41,10 @@ public static class Game
         static void InitImGui()
         {
             //<this has to be initialized RIGHT HERE in order to work!>
-            //rlImGui.Setup(false);
+            rlImGui.Setup(false);
             rlImGui.BeginInitImGui();
             AssetManager.Instance.LoadAssets(32f);
-            AssetManager.Instance.Dispose();
+            // AssetManager.Instance.Dispose();
             rlImGui.EndInitImGui();
             // For raylib only, because raylib needs to update the imgui-font at gpu-level;
         }
@@ -128,18 +128,16 @@ public static class Game
                 }
             }
         }
-
         //Game loop
         while (!Raylib.WindowShouldClose())
         {
-
-            //AM NOW AT BRANCH "TESTING-IDEAS"!
-
             UiRenderer.BeginRaylib();
             UiRenderer.CreateCanvas(ConfigPerStartUp);
             //all draw-calls begin here
-            var tile = Bakery.CreateTile(new Vector2(0, 0), TileColorTypes.Red);
-            TileRenderer.DrawTile(AssetManager.Instance.DefaultTileAtlas, tile, 0f);
+            UiRenderer.DrawQuestsFrom(MainState.Logger);
+
+            // var tile = Bakery.CreateTile(new Vector2(0, 0), TileColorTypes.Red);
+            // TileRenderer.DrawTile(AssetManager.Instance.DefaultTileAtlas, tile, 0f);
             //all draw-calls end here
             UiRenderer.EndCanvas();
             UiRenderer.EndRaylib();
@@ -148,6 +146,7 @@ public static class Game
 
     private static void CleanUp()
     {
+        AssetManager.Instance.Dispose();
         rlImGui.Shutdown();
         Raylib.CloseWindow();
     }
