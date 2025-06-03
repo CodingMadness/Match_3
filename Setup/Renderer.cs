@@ -1,7 +1,6 @@
 global using Vector2 = System.Numerics.Vector2;
 using System.Diagnostics;
 using static Raylib_cs.Raylib;
-
 using System.Runtime.CompilerServices;
 using ImGuiNET;
 using Match_3.DataObjects;
@@ -68,7 +67,7 @@ public static class UiRenderer
             ImGuiWindowFlags.NoMove |
             ImGuiWindowFlags.NoResize |
             ImGuiWindowFlags.NoTitleBar |
-            ImGuiWindowFlags.NoBackground|
+            ImGuiWindowFlags.NoBackground |
             ImGuiWindowFlags.NoBringToFrontOnFocus;
 
         rlImGui.Begin();
@@ -87,70 +86,70 @@ public static class UiRenderer
 
     private static void DrawText(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints anchor)
     {
-        static Vector2 SetUiStartingPoint(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints offset)
+        static (Vector2 start, float toWrapAt) SetUiStartingPoint(ReadOnlySpan<char> colorCodedTxt,
+            CanvasStartingPoints offset, out bool callThisMethodOnlyOnce)
         {
-            Vector2 result = Vector2.Zero;
-            Vector2 screen = Game.ConfigPerStartUp.WindowSize;
+            (Vector2 start, float toWrapAt) = (Vector2.Zero, 0f);
+            Vector2 canvas = Game.ConfigPerStartUp.WindowSize;
             Vector2 txtSize = ImGui.CalcTextSize(colorCodedTxt);
-            Vector2 paddingAdjustedScreen = new(screen.X - txtSize.X, screen.Y - txtSize.Y);
+            Vector2 paddingAdjustedScreen = new(canvas.X - txtSize.X, canvas.Y - txtSize.Y);
             Vector2 halfTxtSize = new(txtSize.X * 0.5f, txtSize.Y * 0.5f);
-            Vector2 center = new(screen.X * 0.5f - halfTxtSize.X, screen.Y * 0.5f - halfTxtSize.Y);
+            Vector2 center = new(canvas.X * 0.5f - halfTxtSize.X, canvas.Y * 0.5f - halfTxtSize.Y);
 
-            result = offset switch
+            (start, toWrapAt) = offset switch
             {
-                CanvasStartingPoints.TopLeft => ImGui.GetStyle().FramePadding,
-                CanvasStartingPoints.TopCenter => result with { X = center.X, Y = 0f },
-                CanvasStartingPoints.TopRight => result with { X = paddingAdjustedScreen.X, Y = 0f },
-                CanvasStartingPoints.BottomLeft => result with { X = 0f, Y = screen.Y - txtSize.Y },
-                CanvasStartingPoints.BottomCenter => result with { X = center.X, Y = paddingAdjustedScreen.Y },
-                CanvasStartingPoints.BottomRight => result with
-                {
-                    X = paddingAdjustedScreen.X, Y = paddingAdjustedScreen.Y
-                },
-                CanvasStartingPoints.MidLeft => result with { X = 0f, Y = center.Y },
-                CanvasStartingPoints.Center => result with { X = center.X, Y = center.Y },
-                CanvasStartingPoints.MidRight => result with { X = paddingAdjustedScreen.X, Y = center.Y },
-                _ => result
+                CanvasStartingPoints.TopLeft => (ImGui.GetStyle().FramePadding, center.X),
+                CanvasStartingPoints.TopCenter => (start with { X = center.X, Y = 0f }, canvas.X),
+                CanvasStartingPoints.TopRight => (start with { X = paddingAdjustedScreen.X, Y = 0f }, canvas.X),
+                CanvasStartingPoints.BottomLeft => (start with { X = 0f, Y = canvas.Y - txtSize.Y }, center.X),
+                CanvasStartingPoints.BottomCenter => (start with { X = center.X, Y = paddingAdjustedScreen.Y },
+                    canvas.X),
+                CanvasStartingPoints.BottomRight => (
+                    start with { X = paddingAdjustedScreen.X, Y = paddingAdjustedScreen.Y }, canvas.X),
+                CanvasStartingPoints.MidLeft => (start with { X = 0f, Y = center.Y }, center.X),
+                CanvasStartingPoints.Center => (start with { X = center.X, Y = center.Y }, canvas.X),
+                CanvasStartingPoints.MidRight => (start with { X = paddingAdjustedScreen.X, Y = center.Y }, canvas.X),
+                _ => (Vector2.Zero, 0f)
             };
 
-            ImGui.SetCursorPos(result);
-            return result;
+            ImGui.SetCursorPos(start);
+            callThisMethodOnlyOnce = true;
+            return (start, toWrapAt);
         }
 
-        static bool TextShouldWrap(ref readonly Vector2? current, Vector2 textSize)
+        static bool TextShouldWrap(scoped in Vector2 current, float toWrapAt, Vector2 textSize)
         {
-            var canvas = Game.ConfigPerStartUp.WindowSize;
-            var wrappedAt = (int)(canvas.X - (current!.Value.X + textSize.X));
+            var wrappedAt = (int)(toWrapAt - (current.X + textSize.X));
             return wrappedAt < 0;
         }
 
-        static void SetNextLine(scoped ref readonly Vector2? fixStart, ref Vector2? current)
+        static void SetNextLine(scoped in Vector2 fixStart, ref Vector2 current)
         {
             ImGui.NewLine();
             Vector2 framePadding = ImGui.GetStyle().FramePadding;
-            Vector2 newLine = fixStart!.Value with
+            Vector2 newLine = fixStart with
             {
-                X = fixStart.Value.X + framePadding.X + ImGui.GetStyle().ItemSpacing.X,
+                X = fixStart.X + framePadding.X + ImGui.GetStyle().ItemSpacing.X,
                 Y = ImGui.GetCursorPosY() + framePadding.Y
             };
             ImGui.SetCursorPos(newLine);
             current = newLine;
         }
 
-        static void DrawSegment(scoped in TextInfo segment, ref Vector2? current)
+        static void DrawSegment(scoped in TextInfo segment, ref Vector2 current)
         {
             ImGui.TextColored(segment.Colour.Vector, segment.Text);
             MoveCursorRight(ref current, in segment);
         }
 
         //I am passing null, but only for easier code usage, semantically this is usually not good practise!
-        static void MoveCursorRight(ref Vector2? current, ref readonly TextInfo txtInfo)
+        static void MoveCursorRight(scoped ref Vector2 current, scoped in TextInfo txtInfo)
         {
-            current = current!.Value with { X = current.Value.X + txtInfo.TextSize.X };
-            ImGui.SetCursorPos(current.Value);
+            current = current with { X = current.X + txtInfo.TextSize.X };
+            ImGui.SetCursorPos(current);
         }
 
-        static void DrawUntilEnd(scoped in WordEnumerator enumerator, scoped ref Vector2? current)
+        static void DrawUntilEnd(scoped in WordEnumerator enumerator, scoped ref Vector2 current, float toWrapAt)
         {
             ref var blackWordsEnumerator = ref Unsafe.AsRef(in enumerator);
 
@@ -158,7 +157,7 @@ public static class UiRenderer
             {
                 ref readonly var wordSegment = ref blackWordsEnumerator.Current;
 
-                if (TextShouldWrap(ref current, wordSegment.TextSize))
+                if (TextShouldWrap(in current, toWrapAt ,wordSegment.TextSize))
                 {
                     blackWordsEnumerator.MoveBack();
                     return;
@@ -169,15 +168,17 @@ public static class UiRenderer
         }
 
         static void SplitText(scoped in WordEnumerator enumerator,
-            scoped ref Vector2? current, scoped ref readonly Vector2? fixStart,
-            scoped ref readonly TextInfo segment)
+                              scoped ref Vector2 current,
+                              scoped in Vector2 fixStart,
+                              scoped in TextInfo segment,
+                              float toWrapAt)
         {
             //if we are about to wrap the text,
             //we need to know if its only black-default text so we  
             //put the words 1 by 1 while they fit still in the same line 
             //and only then put the non-fitting ones into the next line
             if (segment.Colour.Type is TileColorTypes.Black)
-                DrawUntilEnd(in enumerator, ref current);
+                DrawUntilEnd(in enumerator, ref current, toWrapAt);
 
             //if its colored-text which has to be actually wrapped
             //we need to place it directly to the next line since we   
@@ -186,29 +187,34 @@ public static class UiRenderer
 
             while (!enumerator.EndReached)
             {
-                DrawUntilEnd(in enumerator, ref current);
+                DrawUntilEnd(in enumerator, ref current, toWrapAt);
             }
         }
         //------------------------------------------------------------------------------------------------------------//
 
         var formatTextEnumerator = new FormatTextEnumerator(colorCodedTxt);
-        Vector2? fixStartingPos = null, current = null;
-
+        Vector2 current = Vector2.Zero;
+        (Vector2 fixStartingPos, float toWrapAt) = (Vector2.Zero, 0f);
+        bool hasBeenExecuted = false;
         ref readonly var runThroughWords = ref formatTextEnumerator.EnumerateSegment();
 
         while (formatTextEnumerator.MoveNext())
         {
             ref readonly var phraseSegment = ref formatTextEnumerator.Current;
 
-            fixStartingPos ??= anchor is not CanvasStartingPoints.CursorPos
-                ? SetUiStartingPoint(phraseSegment.Text, anchor)
-                : ImGui.GetCursorPos();
-
-            current ??= fixStartingPos;
-
-            if (TextShouldWrap(in current, phraseSegment.TextSize))
+            if (!hasBeenExecuted)
             {
-                SplitText(in runThroughWords, ref current, in fixStartingPos, in phraseSegment);
+                (fixStartingPos, toWrapAt) = SetUiStartingPoint(phraseSegment.Text, anchor, out hasBeenExecuted);
+                current = fixStartingPos;
+            }
+
+            if (TextShouldWrap(in current, toWrapAt, phraseSegment.TextSize))
+            {
+                SplitText(in runThroughWords,
+                          ref current,
+                          in fixStartingPos,
+                          in phraseSegment,
+                          toWrapAt);
             }
             else
             {
@@ -216,7 +222,7 @@ public static class UiRenderer
                 DrawSegment(in phraseSegment, ref current);
             }
         }
-        // runThroughWords.Dispose();
+        runThroughWords.Dispose();
     }
 
     public static void DrawQuestsFrom(QuestLogger logger)
@@ -226,11 +232,8 @@ public static class UiRenderer
             CanvasStartingPoints start = i is 0 ? CanvasStartingPoints.MidLeft : CanvasStartingPoints.MidLeft;
             DrawText(logger.CurrentLog, start);
         }
-        logger.BeginFromStart();
-    }
 
-    public static void TestRefs()
-    {
+        logger.BeginFromStart();
     }
 }
 
