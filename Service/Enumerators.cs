@@ -136,7 +136,6 @@ public unsafe ref struct WordEnumerator(scoped in TextInfo rootSegment, char sep
 
     public readonly void Dispose()
     {
-        // TODO release managed resources here
         ref var blackWordsEnumerator = ref Unsafe.AsRef(in this);
         blackWordsEnumerator._rootSegment = null;
         blackWordsEnumerator.Reset();
