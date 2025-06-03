@@ -6,91 +6,102 @@ using CommunityToolkit.HighPerformance.Buffers;
 using DotNext;
 using ImGuiNET;
 using Raylib_cs;
-using rlImGui_cs;
 using static Raylib_cs.Raylib;
 
 namespace Match_3.Setup;
 
-public static class AssetManager
+public class AssetManager : IDisposable
 {
-    public static Texture2D WelcomeTexture;
-    public static Texture2D GameOverTexture;
-    public static Texture2D DefaultTileAtlas;
-    public static Texture2D EnemySprite;
-    public static Texture2D BgIngameTexture;
-    public static Shader WobbleEffect;
-    public static (int secondsLoc, int gridSizeLoc, int shouldWobbleLoc) ShaderData;
-    public static Texture2D FeatureBtn;
-    public static Sound SplashSound;
-    public static ImFontPtr CustomFont;
+    private static readonly AssetManager _instance = new();
 
-    private static Span<byte> GetEmbeddedResource(string relativePath)
+    private AssetManager()
+    {
+    }
+
+    public static readonly AssetManager Instance = _instance;
+
+    public Texture2D DefaultTileAtlas;
+    public ImFontPtr CustomFont;
+
+    private const int LargeEnough2FitAllResources = 1024 * 100; //100KB for now
+    private readonly MemoryOwner<byte> fileData = MemoryOwner<byte>.Allocate(LargeEnough2FitAllResources);
+
+    private Span<byte> GetEmbeddedResourceBytes(string relativePath)
     {
         var fileName = $"Match_3.Assets.{relativePath}";
         var assembly = Assembly.GetEntryAssembly();
-        MemoryOwner<byte> pool;
-        using (var stream = assembly?.GetManifestResourceStream(fileName) ??
-                            throw new FileNotFoundException("Cannot find mappings file.",
-                                nameof(fileName) + ": " + fileName))
-        {
-            pool = MemoryOwner<byte>.Allocate((int)stream.Length);
 
-            stream.ReadAtLeast(pool.Span, (int)stream.Length);
-        }
+        using var stream = assembly?.GetManifestResourceStream(fileName) ??
+                           throw new FileNotFoundException("Cannot find resource file.", fileName);
 
-        return pool.Span;
+        var length = (int)stream.Length;
+        var usableBuffer = fileData.Span[..length];
+        stream.ReadExactly(usableBuffer);
+        return usableBuffer;
     }
 
-    private static unsafe void Get2FileFormatAndData(string relativePath,
+    private unsafe void Get2FileFormatAndData(in string relativePath,
         out sbyte* fileFormat, out byte* data, out int size)
     {
-        var buffer = GetEmbeddedResource($"Sounds.{relativePath}");
-
+        var buffer = GetEmbeddedResourceBytes(relativePath);
         fixed (byte* customPtr = buffer)
         {
-            var format = relativePath.AsSpan(relativePath.LastIndexOf('.'));
+            var format = relativePath[relativePath.LastIndexOf('.')..];
 
-            fixed (char* cPtr = format)
-            {
-                sbyte* conversion = (sbyte*)cPtr;
-                fileFormat = conversion;
-                data = customPtr;
-                size = buffer.Length;
-            }
+            fileFormat = (sbyte*)Marshal.StringToHGlobalAnsi(format);
+            data = customPtr;
+            size = buffer.Length;
         }
     }
 
-    private static unsafe Sound LoadSound(string relativePath)
+    private unsafe Texture2D LoadTexture(in string relativePath)
     {
-        Get2FileFormatAndData(relativePath, out sbyte* fileFormat, out byte* data, out int size);
-        Wave file = LoadWaveFromMemory(fileFormat, data, size);
-        return LoadSoundFromWave(file);
-    }
-
-    private static unsafe Texture2D LoadTexture(string relativePath)
-    {
-        Get2FileFormatAndData(relativePath, out sbyte* fileFormat, out byte* data, out int size);
+        Get2FileFormatAndData(in relativePath, out sbyte* fileFormat, out byte* data, out int size);
         var file = LoadImageFromMemory(fileFormat, data, size);
         return LoadTextureFromImage(file);
     }
 
-    private static Texture2D LoadGuiTexture(string relativePath) => LoadTexture($"Sprites.GUI.{relativePath}");
-
-    private static Texture2D LoadInGameTexture(string relativePath) => LoadTexture($"Sprites.Tiles.{relativePath}");
-
-    public static void LoadAssets(float fontSize)
+    private Texture2D LoadInGameTexture(ref string relativePath)
     {
-        InitAudioDevice();
+        ref var path = ref relativePath;
+        path = $"Sprites.Tiles.{relativePath}";
+        return LoadTexture(path);
+    }
 
-        SplashSound = LoadSound("splash.mp3");
-        WelcomeTexture = LoadGuiTexture("Background.bgWelcome1.png");
-        FeatureBtn = LoadGuiTexture("Button.btn1.png");
-        BgIngameTexture = LoadGuiTexture("Background.bgIngame1.png");
-        GameOverTexture = LoadGuiTexture("Background.bgGameOver.png");
-        DefaultTileAtlas = LoadInGameTexture("set3_1.png");
-        EnemySprite = LoadInGameTexture("set2.png");
+    private unsafe ImFontPtr LoadCustomFont(in string relativePath, float fontSize)
+    {
+        var fullPath = $"Fonts.{relativePath}";
+        Get2FileFormatAndData(in fullPath, out _, out byte* data, out int size);
+        var io = ImGui.GetIO();
+        var customFont = io.Fonts.AddFontFromMemoryTTF((nint)data, size, fontSize);
+        return customFont;
+    }
 
+    public void LoadAssets(float fontSize)
+    {
+        var path = "set3_1.png";
+        DefaultTileAtlas = LoadInGameTexture(ref path);
+        path = "font6.ttf";
         //TODO: this function causes memory leaks!
-        // CustomFont = LoadCustomFontFromFile("font6.ttf", fontSize);
+        CustomFont = LoadCustomFont(path, fontSize);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            fileData.Dispose();
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    ~AssetManager()
+    {
+        Dispose(false);
     }
 }
