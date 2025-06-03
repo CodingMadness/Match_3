@@ -52,7 +52,7 @@ public readonly ref struct TextInfo
     public override string ToString() => Text.ToString();
 }
 
-public unsafe ref struct WordEnumerator(scoped in TextInfo rootSegment, char separator = ' ')
+public unsafe ref struct WordEnumerator(scoped in TextInfo rootSegment, char separator = ' ') : IDisposable
 {
     private TextInfo* _rootSegment = rootSegment.GetPtr();
     private TextInfo _currentWordInfo;
@@ -132,6 +132,14 @@ public unsafe ref struct WordEnumerator(scoped in TextInfo rootSegment, char sep
         _remainder = [];
         _currentWordInfo = default;
         EndReached = false;
+    }
+
+    public readonly void Dispose()
+    {
+        // TODO release managed resources here
+        ref var blackWordsEnumerator = ref Unsafe.AsRef(in this);
+        blackWordsEnumerator._rootSegment = null;
+        blackWordsEnumerator.Reset();
     }
 }
 
