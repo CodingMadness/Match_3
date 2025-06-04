@@ -1,5 +1,4 @@
-﻿using ImGuiNET;
-using Match_3.DataObjects;
+﻿using Match_3.DataObjects;
 using Match_3.Setup;
 using Raylib_cs;
 using rlImGui_cs;
@@ -9,6 +8,9 @@ namespace Match_3.Workflow;
 //TODO: 1. Make all the "TileRelatedTypes" structs because they represent nothing but value holder with minimal state change
 //TODO: 2. Fix the entire "QuestHandler" related Event logic, like what shall happen when certain tiles or matches are done, etc...
 //TODO: 3. Write the algorithm for "TileGraph" which shall exchange 1 Graph with another so that there are not any distant tiles anymore
+//TODO: 4. Investigate why their is a long delay when you close the window via top-right red [X] button, it has something to do with the
+//         AssetManager and the internal buffer being leaked.
+//TODO: 5. Remove these "ref"'s out inside AssetManager's methods, rewrite it to use params without those.
 public static class Game
 {
     public static Config ConfigPerStartUp { get; private set; }
