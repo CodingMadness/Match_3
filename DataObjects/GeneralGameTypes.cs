@@ -12,8 +12,7 @@ public enum CanvasStartingPoints
 {
     TopLeft, TopCenter, TopRight,
     BottomLeft, BottomCenter ,BottomRight,
-    MidLeft, Center, MidRight,
-    CursorPos
+    MidLeft, Center, MidRight
 }
 
 public struct FadeableColor : IEquatable<FadeableColor>
@@ -179,7 +178,6 @@ public sealed class GameState
     public bool IsGameStillRunning => !WasGameLost && !WasGameWon;
     public bool HaveAMatch { get; set; }
     public bool WasSwapped { get; set; }
-
 
     public int LevelId { get; set; }
     public Tile? TileY; //they must be fields, because I need later them to be used via "ref" directly!
