@@ -149,7 +149,7 @@ public static class UiRenderer
             ImGui.SetCursorPos(current);
         }
 
-        static void DrawUntilEnd(scoped in WordEnumerator enumerator, scoped ref Vector2 current, float toWrapAt)
+        static void DrawOnSameLine(scoped in WordEnumerator enumerator, scoped ref Vector2 current, float toWrapAt)
         {
             ref var blackWordsEnumerator = ref Unsafe.AsRef(in enumerator);
 
@@ -157,7 +157,7 @@ public static class UiRenderer
             {
                 ref readonly var wordSegment = ref blackWordsEnumerator.Current;
 
-                if (TextShouldWrap(in current, toWrapAt ,wordSegment.TextSize))
+                if (TextShouldWrap(in current, toWrapAt, wordSegment.TextSize))
                 {
                     blackWordsEnumerator.MoveBack();
                     return;
@@ -168,26 +168,29 @@ public static class UiRenderer
         }
 
         static void SplitText(scoped in WordEnumerator enumerator,
-                              scoped ref Vector2 current,
-                              scoped in Vector2 fixStart,
-                              scoped in TextInfo segment,
-                              float toWrapAt)
+            scoped ref Vector2 current,
+            scoped in Vector2 fixStart,
+            scoped in TextInfo segment,
+            float toWrapAt)
         {
             //if we are about to wrap the text,
             //we need to know if its only black-default text so we  
             //put the words 1 by 1 while they fit still in the same line 
             //and only then put the non-fitting ones into the next line
-            if (segment.Colour.Type is TileColorTypes.Black)
-                DrawUntilEnd(in enumerator, ref current, toWrapAt);
+            bool isBlackColor = segment.Colour.Type is TileColorTypes.Black;
 
             //if its colored-text which has to be actually wrapped
-            //we need to place it directly to the next line since we   
-            //don't want a 2-line split colored-text only a sequential line 
-            SetNextLine(in fixStart, ref current);
+            //we need to place it directly to the next line since we
+            //don't want a 2-line split colored-text only a sequential line
+            if (!isBlackColor)
+                SetNextLine(in fixStart, ref current);
+
+            DrawOnSameLine(in enumerator, ref current, toWrapAt);
 
             while (!enumerator.EndReached)
             {
-                DrawUntilEnd(in enumerator, ref current, toWrapAt);
+                SetNextLine(in fixStart, ref current);
+                DrawOnSameLine(in enumerator, ref current, toWrapAt);
             }
         }
         //------------------------------------------------------------------------------------------------------------//
@@ -211,10 +214,10 @@ public static class UiRenderer
             if (TextShouldWrap(in current, toWrapAt, phraseSegment.TextSize))
             {
                 SplitText(in runThroughWords,
-                          ref current,
-                          in fixStartingPos,
-                          in phraseSegment,
-                          toWrapAt);
+                    ref current,
+                    in fixStartingPos,
+                    in phraseSegment,
+                    toWrapAt);
             }
             else
             {
@@ -222,15 +225,15 @@ public static class UiRenderer
                 DrawSegment(in phraseSegment, ref current);
             }
         }
+
         runThroughWords.Dispose();
     }
 
-    public static void DrawQuestsFrom(QuestLogger logger)
+    public static void DrawQuestsFrom(QuestLogger logger, CanvasStartingPoints offset)
     {
         for (int i = 0; i < logger.QuestIndex; i++)
         {
-            CanvasStartingPoints start = i is 0 ? CanvasStartingPoints.MidLeft : CanvasStartingPoints.MidLeft;
-            DrawText(logger.CurrentLog, start);
+            DrawText(logger.CurrentLog, offset);
         }
 
         logger.BeginFromStart();
