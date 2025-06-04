@@ -1,5 +1,4 @@
 global using Vector2 = System.Numerics.Vector2;
-using System.Diagnostics;
 using static Raylib_cs.Raylib;
 using System.Runtime.CompilerServices;
 using ImGuiNET;
@@ -130,7 +129,7 @@ public static class UiRenderer
             Vector2 newLine = fixStart with
             {
                 X = fixStart.X + framePadding.X + ImGui.GetStyle().ItemSpacing.X,
-                Y = ImGui.GetCursorPosY() + framePadding.Y
+                Y = ImGui.GetCursorPos().Y + framePadding.Y
             };
             ImGui.SetCursorPos(newLine);
             current = newLine;
@@ -142,28 +141,38 @@ public static class UiRenderer
             MoveCursorRight(ref current, in segment);
         }
 
-        //I am passing null, but only for easier code usage, semantically this is usually not good practise!
+        //I am passing null, but only for easier code usage, semantically, this is usually not good practise!
         static void MoveCursorRight(scoped ref Vector2 current, scoped in TextInfo txtInfo)
         {
             current = current with { X = current.X + txtInfo.TextSize.X };
             ImGui.SetCursorPos(current);
         }
 
-        static void DrawOnSameLine(scoped in WordEnumerator enumerator, scoped ref Vector2 current, float toWrapAt)
+        static void DrawUntilNeed2Wrap(scoped in WordEnumerator enumerator,
+                                   scoped ref Vector2 current,
+                                   scoped in Vector2 fixPoint,
+                                   float toWrapAt)
         {
             ref var blackWordsEnumerator = ref Unsafe.AsRef(in enumerator);
+            bool doesRootSegmentFit = true; //has to be true otherwise the entire expression below will ALWAYS result in false...
 
             while (blackWordsEnumerator.MoveNext())
             {
                 ref readonly var wordSegment = ref blackWordsEnumerator.Current;
+                ref TextInfo fittingSegment = ref Unsafe.AsRef(in wordSegment);
 
-                if (TextShouldWrap(in current, toWrapAt, wordSegment.TextSize))
+                doesRootSegmentFit &= !TextShouldWrap(in current, toWrapAt, blackWordsEnumerator.RootSegment.TextSize);
+
+                if (doesRootSegmentFit)
+                    fittingSegment = ref Unsafe.AsRef(in blackWordsEnumerator.RootSegment);
+
+                else if (TextShouldWrap(in current, toWrapAt, wordSegment.TextSize))
                 {
-                    blackWordsEnumerator.MoveBack();
-                    return;
+                    // blackWordsEnumerator.MoveBack();
+                    SetNextLine(fixPoint, ref current);
                 }
 
-                DrawSegment(in wordSegment, ref current);
+                DrawSegment(in fittingSegment, ref current);
             }
         }
 
@@ -174,23 +183,20 @@ public static class UiRenderer
             float toWrapAt)
         {
             //if we are about to wrap the text,
-            //we need to know if its only black-default text so we  
-            //put the words 1 by 1 while they fit still in the same line 
+            //we need to know if its only black-default text so we,
+            //put words 1 by 1 while they fit still in the same line
             //and only then put the non-fitting ones into the next line
-            bool isBlackColor = segment.Colour.Type is TileColorTypes.Black;
+            bool isColor = segment.Colour.Type is not TileColorTypes.Black;
 
             //if its colored-text which has to be actually wrapped
             //we need to place it directly to the next line since we
             //don't want a 2-line split colored-text only a sequential line
-            if (!isBlackColor)
+            if (isColor)
                 SetNextLine(in fixStart, ref current);
-
-            DrawOnSameLine(in enumerator, ref current, toWrapAt);
 
             while (!enumerator.EndReached)
             {
-                SetNextLine(in fixStart, ref current);
-                DrawOnSameLine(in enumerator, ref current, toWrapAt);
+                DrawUntilNeed2Wrap(in enumerator, ref current, in fixStart, toWrapAt);
             }
         }
         //------------------------------------------------------------------------------------------------------------//
@@ -199,11 +205,12 @@ public static class UiRenderer
         Vector2 current = Vector2.Zero;
         (Vector2 fixStartingPos, float toWrapAt) = (Vector2.Zero, 0f);
         bool hasBeenExecuted = false;
-        ref readonly var runThroughWords = ref formatTextEnumerator.EnumerateSegment();
+        scoped ref readonly var runThroughWords = ref formatTextEnumerator.GetCleanWordEnumerator();
 
         while (formatTextEnumerator.MoveNext())
         {
             ref readonly var phraseSegment = ref formatTextEnumerator.Current;
+            runThroughWords = ref formatTextEnumerator.GetCleanWordEnumerator();
 
             if (!hasBeenExecuted)
             {
@@ -225,7 +232,6 @@ public static class UiRenderer
                 DrawSegment(in phraseSegment, ref current);
             }
         }
-
         runThroughWords.Dispose();
     }
 
@@ -233,6 +239,7 @@ public static class UiRenderer
     {
         for (int i = 0; i < logger.QuestIndex; i++)
         {
+            // var txt = logger.CurrentLog.Slice(0, logger.CurrentLog.LastIndexOf("help"));
             DrawText(logger.CurrentLog, offset);
         }
 
