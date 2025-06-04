@@ -10,8 +10,7 @@ namespace Match_3.Workflow;
 //TODO: 3. Write the algorithm for "TileGraph" which shall exchange 1 Graph with another so that there are not any distant tiles anymore
 //TODO: 4. Investigate why their is a long delay when you close the window via top-right red [X] button, it has something to do with the
 //         AssetManager and the internal buffer being leaked.
-//TODO: 5. Remove these "ref"'s out inside AssetManager's methods, rewrite it to use params without those.
-//TODO: 6. Somehow, the bigger the fontsize, the more crap result's my "UiRenderer.DrawText(..)" produces?
+//TODO: 5. Somehow, the bigger the fontsize, the more crap result's my "UiRenderer.DrawText(..)" produces?
 public static class Game
 {
     public static Config ConfigPerStartUp { get; private set; }
@@ -31,7 +30,7 @@ public static class Game
     {
         //Singleton!
         //config only once when the application/game is started and never changed!
-        ConfigPerStartUp = new(0, 300, 1, 27, 27);
+        ConfigPerStartUp = new(0, 300, 1, 20, 20);
 
         static void InitRaylib()
         {
@@ -47,6 +46,7 @@ public static class Game
             // rlImGui.Setup(false);
             rlImGui.BeginInitImGui();
             AssetManager.Instance.LoadAssets(21);
+            AssetManager.Instance.Dispose();
             rlImGui.EndInitImGui();
             // For raylib only, because raylib needs to update the imgui-font at gpu-level;
         }
@@ -148,7 +148,6 @@ public static class Game
 
     private static void CleanUp()
     {
-        AssetManager.Instance.Dispose();
         rlImGui.Shutdown();
         Raylib.CloseWindow();
     }

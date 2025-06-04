@@ -137,11 +137,8 @@ public static class UiRenderer
 
         static void DrawSegment(scoped in TextInfo segment, ref Vector2 current)
         {
-            var b4CursorSet = current;
             ImGui.TextColored(segment.Colour.Vector, segment.Text);
             MoveCursorRight(ref current, in segment);
-            //Debug code
-            Console.WriteLine($"{segment.Text} rendered from {b4CursorSet.X} to {current.X}");
         }
 
         //I am passing null, but only for easier code usage, semantically, this is usually not good practise!
