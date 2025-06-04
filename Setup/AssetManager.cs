@@ -23,7 +23,7 @@ public class AssetManager : IDisposable
     public Texture2D DefaultTileAtlas { get; private set; }
     public ImFontPtr CustomFont { get; private set; }
 
-    private Span<byte> GetEmbeddedResourceBytes(string relativePath)
+    private Span<byte> GetEmbeddedResourceBytes(in string relativePath)
     {
         var fullPath = $"Match_3.Assets.{relativePath}";
 
@@ -44,7 +44,6 @@ public class AssetManager : IDisposable
         fixed (byte* customPtr = buffer)
         {
             var format = relativePath[relativePath.LastIndexOf('.')..];
-
             fileFormat = (sbyte*)Marshal.StringToHGlobalAnsi(format);
             data = customPtr;
             size = buffer.Length;
@@ -58,11 +57,9 @@ public class AssetManager : IDisposable
         return LoadTextureFromImage(file);
     }
 
-    private Texture2D LoadInGameTexture(ref string relativePath)
+    private Texture2D LoadInGameTexture(in string relativePath)
     {
-        ref var path = ref relativePath;
-        path = $"Sprites.Tiles.{relativePath}";
-        return LoadTexture(path);
+        return LoadTexture($"Sprites.Tiles.{relativePath}");
     }
 
     private unsafe ImFontPtr LoadCustomFont(in string relativePath, float fontSize)
@@ -76,10 +73,8 @@ public class AssetManager : IDisposable
 
     public void LoadAssets(float fontSize)
     {
-        var path = "set3_1.png";
-        DefaultTileAtlas = LoadInGameTexture(ref path);
-        path = "font6.ttf";
-        CustomFont = LoadCustomFont(path, fontSize);
+        DefaultTileAtlas = LoadInGameTexture("set3_1.png");
+        CustomFont = LoadCustomFont("font6.ttf", fontSize);
     }
 
     private void Dispose(bool disposing)
