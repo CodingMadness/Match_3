@@ -1,9 +1,6 @@
-using System.Buffers;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance.Buffers;
-using DotNext;
 using ImGuiNET;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
@@ -83,7 +80,7 @@ public class AssetManager : IDisposable
         var path = "set3_1.png";
         DefaultTileAtlas = LoadInGameTexture(ref path);
         path = "font6.ttf";
-        CustomFont = LoadCustomFont(path, fontSize);
+        // CustomFont = LoadCustomFont(path, fontSize);
     }
 
     private void Dispose(bool disposing)
