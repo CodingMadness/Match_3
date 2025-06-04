@@ -60,7 +60,7 @@ public unsafe ref struct WordEnumerator(scoped in TextInfo rootSegment, char sep
 
     [UnscopedRef] public ref readonly TextInfo Current => ref _currentWordInfo;
 
-    [UnscopedRef] private ref readonly TextInfo RootSegment => ref *_rootSegment;
+    [UnscopedRef] public readonly ref readonly TextInfo RootSegment => ref Unsafe.AsRef<TextInfo>(_rootSegment);
 
     public bool EndReached { get; private set; }
 
@@ -115,18 +115,6 @@ public unsafe ref struct WordEnumerator(scoped in TextInfo rootSegment, char sep
         return true;
     }
 
-    public bool MoveBack()
-    {
-        //current remainder: "those only really like "
-        //desired remainder: "between those only really like "
-        //root:              " and you have in between those only really like " 
-        var root = RootSegment.Text;
-        var currentPos = root.IndexOf(Current.Text);
-        _remainder = root.Slice(currentPos);
-        EndReached = false;
-        return true;
-    }
-
     public void Reset()
     {
         _remainder = [];
@@ -137,6 +125,8 @@ public unsafe ref struct WordEnumerator(scoped in TextInfo rootSegment, char sep
     public readonly void Dispose()
     {
         ref var blackWordsEnumerator = ref Unsafe.AsRef(in this);
+        ref var rootSeg = ref Unsafe.AsRef(in blackWordsEnumerator.RootSegment);
+        rootSeg  = ref Unsafe.NullRef<TextInfo>();
         blackWordsEnumerator._rootSegment = null;
         blackWordsEnumerator.Reset();
     }
@@ -250,7 +240,7 @@ public ref partial struct FormatTextEnumerator
     }
 
     [UnscopedRef]
-    public ref readonly WordEnumerator EnumerateSegment()
+    public ref readonly WordEnumerator GetCleanWordEnumerator()
     {
         ref readonly var tmp = ref _wordEnumerator;
         ref var mutable = ref Unsafe.AsRef(in tmp);
