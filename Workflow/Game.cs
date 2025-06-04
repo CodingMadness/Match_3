@@ -106,7 +106,7 @@ public static class Game
 
             if (inMenu)
             {
-                UiRenderer.DrawQuestsFrom(MainState.Logger);
+                UiRenderer.DrawQuestsFrom(MainState.Logger, CanvasStartingPoints.MidLeft);
             }
             else
             {
