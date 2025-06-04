@@ -137,8 +137,11 @@ public static class UiRenderer
 
         static void DrawSegment(scoped in TextInfo segment, ref Vector2 current)
         {
+            var b4CursorSet = current;
             ImGui.TextColored(segment.Colour.Vector, segment.Text);
             MoveCursorRight(ref current, in segment);
+            //Debug code
+            Console.WriteLine($"{segment.Text} rendered from {b4CursorSet.X} to {current.X}");
         }
 
         //I am passing null, but only for easier code usage, semantically, this is usually not good practise!
@@ -154,7 +157,9 @@ public static class UiRenderer
                                    float toWrapAt)
         {
             ref var blackWordsEnumerator = ref Unsafe.AsRef(in enumerator);
-            bool doesRootSegmentFit = true; //has to be true otherwise the entire expression below will ALWAYS result in false...
+
+            //has to be true otherwise the entire '&=' expression below will ALWAYS result in false...
+            bool doesRootSegmentFit = true;
 
             while (blackWordsEnumerator.MoveNext())
             {
@@ -167,10 +172,7 @@ public static class UiRenderer
                     fittingSegment = ref Unsafe.AsRef(in blackWordsEnumerator.RootSegment);
 
                 else if (TextShouldWrap(in current, toWrapAt, wordSegment.TextSize))
-                {
-                    // blackWordsEnumerator.MoveBack();
                     SetNextLine(fixPoint, ref current);
-                }
 
                 DrawSegment(in fittingSegment, ref current);
             }

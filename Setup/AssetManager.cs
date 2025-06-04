@@ -21,7 +21,6 @@ public class AssetManager : IDisposable
 
     public static readonly AssetManager Instance = _instance;
     public Texture2D DefaultTileAtlas { get; private set; }
-
     public ImFontPtr CustomFont { get; private set; }
 
     private Span<byte> GetEmbeddedResourceBytes(string relativePath)
@@ -80,7 +79,7 @@ public class AssetManager : IDisposable
         var path = "set3_1.png";
         DefaultTileAtlas = LoadInGameTexture(ref path);
         path = "font6.ttf";
-        // CustomFont = LoadCustomFont(path, fontSize);
+        CustomFont = LoadCustomFont(path, fontSize);
     }
 
     private void Dispose(bool disposing)

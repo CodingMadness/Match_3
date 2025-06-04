@@ -51,7 +51,7 @@ file static class SingletonManager
 /// Collect N-Type1, N-Type2, N-Type3 up to maxTilesActive
 ///----->within a TimeSpan of X-sec
 ///----->without any miss-swap!
-///the stats is to make per new Level the Quests harder!!
+///the stats are to make per new Level the Quests harder!!
 /// </summary>
 public abstract class QuestHandler
 {

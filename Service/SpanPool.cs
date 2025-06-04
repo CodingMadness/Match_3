@@ -28,7 +28,7 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
     /// <summary>
     /// The amount of times a Push(span) has been made
     /// </summary>
-    public int PushCount { get; private set; }
+    private int PushCount { get; set; }
 
     /// <summary>
     /// This one is only for internal use, like for performance-based algorithms,

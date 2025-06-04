@@ -8,10 +8,10 @@ public static class Comparer
     public sealed class BodyComparer : EqualityComparer<IGameObject>
     {
         /// <summary>
-        /// Since I derive this class from "EqualityComparer", I HAVE TO take IGameObject? params
-        /// but I make sure that they NEVER can be null, it is illogical for that to ever happen
+        /// Since I derive this class from "EqualityComparer", I HAVE TO take IGameObject? params,
+        /// but I make sure that they NEVER can be null, it is illogical for that to ever happen,
         /// and I make sure that I check that in the specific sections of code where needed but not here
-        /// since it is not needed for every Equals() call and would waste senselessly performance
+        /// since it is unnecessary for every 'Equals()' call and would waste senseless performance
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
@@ -55,14 +55,12 @@ public static class Comparer
             //Numerics.Vector2, I have to cast them from float to int,
             //because they are by default floats
 
-            //Intrinsics.Bitcast(x!.Position, out (int x0, int y0) tuple0);
-            //Intrinsics.Bitcast(y!.Position, out (int x1, int y1) tuple1);
             (int x0, int y0) = ((int)x!.Position.X, (int)x.Position.Y);
             (int x1, int y1) = ((int)y!.Position.X, (int)y.Position.Y);
 
-            //So, when "_orderByColumns" is true, we first consider "x" only if x1==x2 then 
-            //then we only do care for those x values because it
-            //doesnt matter if y is different, x is sufficient then
+            //So, when "_orderByColumns" is true, we first consider "x" only if x1==x2 then
+            // we only do care for those x values because it
+            //doesn't matter if y is different, x is sufficient then
             //but IF x1==x2 THEN we care for y and we check for that, 
             int result;
             bool orderByRows = !_orderByColumns;
@@ -73,7 +71,7 @@ public static class Comparer
                     return y0.CompareTo(y1);
                 return result;
             }
-            //we have to order first by rows!
+            //we have to order it first by rows!
             if (orderByRows)
             {
                 if ((result=y0.CompareTo(y1)) == 0)
