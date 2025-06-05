@@ -1,5 +1,4 @@
 global using Vector2 = System.Numerics.Vector2;
-using static Raylib_cs.Raylib;
 using System.Runtime.CompilerServices;
 using ImGuiNET;
 using Match_3.DataObjects;
@@ -7,6 +6,7 @@ using Match_3.Service;
 using Match_3.Workflow;
 using Raylib_cs;
 using rlImGui_cs;
+using static Raylib_cs.Raylib;
 
 namespace Match_3.Setup;
 
@@ -28,8 +28,9 @@ public static class UiRenderer
     /// <param name="text"></param>
     /// <param name="thickness"></param>
     /// <param name="scaleMultiplier"></param>
-    private static void DrawShape(DebugImGuiShapes shape, Vector2 position, TileColorTypes colorTypesKind,
-        ReadOnlySpan<char> text, float thickness = 1f, float scaleMultiplier = 1f)
+    private static void DrawShape(Vector2 position, TileColorTypes colorTypesKind, ReadOnlySpan<char> text,
+                                  DebugImGuiShapes shape = DebugImGuiShapes.Rectangle,
+                                  float thickness = 1f, float scaleMultiplier = 1f)
     {
         switch (shape)
         {
@@ -85,15 +86,15 @@ public static class UiRenderer
 
     private static void DrawText(ReadOnlySpan<char> colorCodedTxt, CanvasStartingPoints anchor)
     {
-        static (Vector2 start, float toWrapAt) SetUiStartingPoint(ReadOnlySpan<char> colorCodedTxt,
+        static (Vector2 start, float toWrapAt) SetUiStartingPoint(ReadOnlySpan<char> textBlock,
             CanvasStartingPoints offset, out bool callThisMethodOnlyOnce)
         {
             (Vector2 start, float toWrapAt) = (Vector2.Zero, 0f);
             Vector2 canvas = Game.ConfigPerStartUp.WindowSize;
-            Vector2 txtSize = ImGui.CalcTextSize(colorCodedTxt);
+            Vector2 txtSize = ImGui.CalcTextSize(textBlock);
             Vector2 paddingAdjustedScreen = new(canvas.X - txtSize.X, canvas.Y - txtSize.Y);
             Vector2 halfTxtSize = new(txtSize.X * 0.5f, txtSize.Y * 0.5f);
-            Vector2 center = new(canvas.X * 0.5f - halfTxtSize.X, canvas.Y * 0.5f - halfTxtSize.Y);
+            Vector2 center = new(canvas.X * 0.5f - txtSize.X, canvas.Y * 0.5f - txtSize.Y);
 
             (start, toWrapAt) = offset switch
             {
@@ -101,10 +102,8 @@ public static class UiRenderer
                 CanvasStartingPoints.TopCenter => (start with { X = center.X, Y = 0f }, canvas.X),
                 CanvasStartingPoints.TopRight => (start with { X = paddingAdjustedScreen.X, Y = 0f }, canvas.X),
                 CanvasStartingPoints.BottomLeft => (start with { X = 0f, Y = canvas.Y - txtSize.Y }, center.X),
-                CanvasStartingPoints.BottomCenter => (start with { X = center.X, Y = paddingAdjustedScreen.Y },
-                    canvas.X),
-                CanvasStartingPoints.BottomRight => (
-                    start with { X = paddingAdjustedScreen.X, Y = paddingAdjustedScreen.Y }, canvas.X),
+                CanvasStartingPoints.BottomCenter => (start with { X = center.X, Y = paddingAdjustedScreen.Y }, canvas.X),
+                CanvasStartingPoints.BottomRight => (start with { X = paddingAdjustedScreen.X, Y = paddingAdjustedScreen.Y }, canvas.X),
                 CanvasStartingPoints.MidLeft => (start with { X = 0f, Y = center.Y }, center.X),
                 CanvasStartingPoints.Center => (start with { X = center.X, Y = center.Y }, canvas.X),
                 CanvasStartingPoints.MidRight => (start with { X = paddingAdjustedScreen.X, Y = center.Y }, canvas.X),
@@ -231,6 +230,7 @@ public static class UiRenderer
                 DrawSegment(in phraseSegment, ref current);
             }
         }
+
         runThroughWords.Dispose();
     }
 
