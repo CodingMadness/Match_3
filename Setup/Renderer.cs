@@ -136,7 +136,7 @@ public static class UiRenderer
 
         static void DrawSegment(scoped in TextInfo segment, ref Vector2 current)
         {
-            ImGui.TextColored(segment.Colour.Vector, segment.Text);
+            ImGui.TextColored(segment.Colour.Vector, segment.Slice2Colorize);
             MoveCursorRight(ref current, in segment);
         }
 
@@ -212,7 +212,7 @@ public static class UiRenderer
 
             if (!hasBeenExecuted)
             {
-                (fixStartingPos, toWrapAt) = SetUiStartingPoint(phraseSegment.Text, anchor, out hasBeenExecuted);
+                (fixStartingPos, toWrapAt) = SetUiStartingPoint(phraseSegment.Slice2Colorize, anchor, out hasBeenExecuted);
                 current = fixStartingPos;
             }
 
