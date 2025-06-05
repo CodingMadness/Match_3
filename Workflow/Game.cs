@@ -5,12 +5,12 @@ using rlImGui_cs;
 
 namespace Match_3.Workflow;
 
-//TODO: 1. Make all the "TileRelatedTypes" structs because they represent nothing but value holder with minimal state change
-//TODO: 2. Fix the entire "QuestHandler" related Event logic, like what shall happen when certain tiles or matches are done, etc...
-//TODO: 3. Write the algorithm for "TileGraph" which shall exchange 1 Graph with another so that there are not any distant tiles anymore
-//TODO: 4. Investigate why their is a long delay when you close the window via top-right red [X] button, it has something to do with the
+//TODO: 1. Somehow, the bigger the fontsize, the more crap result's my "UiRenderer.DrawText(..)" produces?
+//TODO: 2. Make all the "TileRelatedTypes" structs because they represent nothing but value holder with minimal state change
+//TODO: 3. Fix the entire "QuestHandler" related Event logic, like what shall happen when certain tiles or matches are done, etc...
+//TODO: 4. Write the algorithm for "TileGraph" which shall exchange 1 Graph with another so that there are not any distant tiles anymore
+//TODO: 5. Investigate why their is a long delay when you close the window via top-right red [X] button, it has something to do with the
 //         AssetManager and the internal buffer being leaked.
-//TODO: 5. Somehow, the bigger the fontsize, the more crap result's my "UiRenderer.DrawText(..)" produces?
 public static class Game
 {
     public static Config ConfigPerStartUp { get; private set; }
@@ -43,7 +43,6 @@ public static class Game
         static void InitImGui()
         {
             //<this has to be initialized RIGHT HERE in order to work!>
-            // rlImGui.Setup(false);
             rlImGui.BeginInitImGui();
             AssetManager.Instance.LoadAssets(21);
             AssetManager.Instance.Dispose();
