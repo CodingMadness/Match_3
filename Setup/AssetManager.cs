@@ -7,16 +7,16 @@ using static Raylib_cs.Raylib;
 
 namespace Match_3.Setup;
 
-public class AssetManager : IDisposable
+public unsafe class AssetManager : IDisposable
 {
     private static readonly AssetManager _instance = new();
-
     private const int LargeEnough2FitAllResources = 1024 * 100; //100KB for now
     private readonly MemoryOwner<byte> fileData = MemoryOwner<byte>.Allocate(LargeEnough2FitAllResources);
     private readonly Assembly? ResourceFile = Assembly.GetEntryAssembly();
 
     private AssetManager()
     {
+
     }
 
     public static readonly AssetManager Instance = _instance;
@@ -36,7 +36,7 @@ public class AssetManager : IDisposable
         return usableBuffer;
     }
 
-    private unsafe void Get2FileFormatAndData(in string relativePath,
+    private void Get2FileFormatAndData(in string relativePath,
         out sbyte* fileFormat, out byte* data, out int size)
     {
         var buffer = GetEmbeddedResourceBytes(relativePath);
@@ -50,7 +50,7 @@ public class AssetManager : IDisposable
         }
     }
 
-    private unsafe Texture2D LoadTexture(in string relativePath)
+    private Texture2D LoadTexture(in string relativePath)
     {
         Get2FileFormatAndData(in relativePath, out sbyte* fileFormat, out byte* data, out int size);
         var file = LoadImageFromMemory(fileFormat, data, size);
@@ -62,7 +62,7 @@ public class AssetManager : IDisposable
         return LoadTexture($"Sprites.Tiles.{relativePath}");
     }
 
-    private unsafe ImFontPtr LoadCustomFont(in string relativePath, float fontSize)
+    private ImFontPtr LoadCustomFont(in string relativePath, float fontSize)
     {
         var fullPath = $"Fonts.{relativePath}";
         Get2FileFormatAndData(in fullPath, out _, out byte* data, out int size);
