@@ -5,22 +5,21 @@ namespace Match_3.Service;
 
 public static class Comparer
 {
+    /// <summary>
+    /// Since I derive this class from "EqualityComparer", I HAVE TO take IGameObject? params,
+    /// but I make sure that they NEVER can be null, it is illogical for that to ever happen,
+    /// and I make sure that I check that in the specific sections of code where needed but not here
+    /// since it is unnecessary for every 'Equals()' call and would waste senseless performance
+    /// </summary>
     public sealed class BodyComparer : EqualityComparer<IGameObject>
     {
-        /// <summary>
-        /// Since I derive this class from "EqualityComparer", I HAVE TO take IGameObject? params,
-        /// but I make sure that they NEVER can be null, it is illogical for that to ever happen,
-        /// and I make sure that I check that in the specific sections of code where needed but not here
-        /// since it is unnecessary for every 'Equals()' call and would waste senseless performance
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <returns></returns>
+        [Pure]
         public override bool Equals(IGameObject? x, IGameObject? y)
         {
             return ReferenceEquals(x, y) || x!.Body.Colour.Type == y!.Body.Colour.Type;
         }
 
+        [Pure]
         public override int GetHashCode(IGameObject obj)
         {
             return obj.GetHashCode();
@@ -85,6 +84,7 @@ public static class Comparer
 
     public sealed class DistanceComparer(float toleratedDistance = 3.5f) : CellComparer
     {
+        [Pure]
         public override int Compare(IGameObject? x, IGameObject? y)
         {
             if (Equals(x, y))
@@ -108,6 +108,7 @@ public static class Comparer
             return result;
         }
 
+        [Pure]
         public bool? Are2Close(IGameObject? x, IGameObject? y)
         {
             //-1 => TOP/LEFT;
@@ -130,7 +131,8 @@ public static class Comparer
         private EdgeComparer() { }
         
         public static readonly EdgeComparer Singleton = new();
-        
+
+        [Pure]
         public override bool Equals(TileGraph.Node? x, TileGraph.Node? y)
         {
             return ReferenceEquals(x, y) ||
@@ -138,11 +140,13 @@ public static class Comparer
                    x.Edges == y.Edges;
         }
 
+        [Pure]
         public override int GetHashCode(TileGraph.Node obj)
         {
             return obj.Edges;
         }
 
+        [Pure]
         public int Compare(TileGraph.Node? x, TileGraph.Node? y)
         {
             return Equals(x, y) 
