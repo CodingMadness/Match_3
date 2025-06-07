@@ -247,8 +247,7 @@ public static class UiRenderer
 
     public static void Test_NewDrawLogic(QuestLogger logger, CanvasOffset  offset)
     {
-        scoped var enumerator =
-            new FormatTextEnumerator(logger.CurrentLog, offset, TextAlignmentRule.ColoredSegmentsInOneLine);
+        scoped var enumerator = new FormatTextEnumerator(logger.CurrentLog, offset, TextAlignmentRule.ColoredSegmentsInOneLine);
 
         while (enumerator.MoveNext())
         {

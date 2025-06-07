@@ -298,11 +298,15 @@ public ref partial struct FormatTextEnumerator
         }
 
         _allSegments = _allSegments.Span[.._position];
-        //we set to -1 in order for 'MoveNext()' logic to work
-        _position = -1;
 
         if (!skipBlackColor)
+        {
+            //only here we need the 1st index to be valid since there are also black-color coded ones in the pool
+            _position = 0;
             _wordEnumerator = new(in Unsafe.AsRef(in Current));
+        }
+        //needed to skip segments from the pool based on if we actually need black colorcodes
+        _position = -1;
     }
 
     public static FormatTextEnumerator CreateQuestLogEnumerator(ReadOnlySpan<char> text)
