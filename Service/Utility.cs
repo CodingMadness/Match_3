@@ -42,8 +42,13 @@ public static class SpanUtility
         }
     }
 
-    public static Span<T> Mutable<T>(this scoped ReadOnlySpan<T> readOnlySpan) =>
+    public static Span<T> Mutable<T>(this scoped in ReadOnlySpan<T> readOnlySpan) =>
         MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in readOnlySpan[0]), readOnlySpan.Length);
+
+    public static Span<T> Mutable<T>(this in View<T> readOnlySpan) => ((ReadOnlySpan<T>)readOnlySpan).Mutable();
+
+    public static ref T RefValue<T>(in T? nullable) where T:  struct =>
+        ref Unsafe.AsRef(in Nullable.GetValueRefOrDefaultRef(in nullable));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int Move2<T>(this scoped ReadOnlySpan<T> input, Range slice2Move, int newPos)
