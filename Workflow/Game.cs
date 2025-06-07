@@ -1,4 +1,5 @@
-﻿using Match_3.DataObjects;
+﻿using ImGuiNET;
+using Match_3.DataObjects;
 using Match_3.Setup;
 using Raylib_cs;
 using rlImGui_cs;
@@ -13,7 +14,7 @@ namespace Match_3.Workflow;
 //         AssetManager and the internal buffer being leaked.
 public static class Game
 {
-    public static Config ConfigPerStartUp { get; private set; }
+    public static Config ConfigPerStartUp { get; private set; } = null!;
 
     private static readonly GameState MainState = GameState.Instance;
 
@@ -30,7 +31,7 @@ public static class Game
     {
         //Singleton!
         //config only once when the application/game is started and never changed!
-        ConfigPerStartUp = new(0, 300, 1, 20, 20);
+        ConfigPerStartUp = new(300,20, 20);
 
         static void InitRaylib()
         {
@@ -108,7 +109,8 @@ public static class Game
 
             if (inMenu)
             {
-                UiRenderer.DrawQuestsFrom(MainState.Logger, CanvasStartingPoints.MidLeft);
+                // UiRenderer.DrawQuestsFrom(MainState.Logger, CanvasOffset.MidLeft);
+                UiRenderer.Test_NewDrawLogic(MainState.Logger, CanvasOffset.MidLeft);
             }
             else
             {
@@ -136,6 +138,7 @@ public static class Game
             UiRenderer.BeginRaylib();
             UiRenderer.CreateCanvas(ConfigPerStartUp);
 
+            var x = ImGui.CalcTextSize("hdjsihjdhsifju");
             #region ALL GAME LOGIC HAVE TO BEGIN HERE
             HandleGameInput();
             #endregion
