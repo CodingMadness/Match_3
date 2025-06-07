@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using System.Runtime.CompilerServices;
 using DotNext.Buffers;
 using Match_3.DataObjects;
 using Match_3.Service;
@@ -7,16 +8,16 @@ namespace Match_3.Workflow;
 
 public static class QuestBuilder
 {
-    private static void UpdateQuestLogger(ref readonly Quest quest, QuestLogger questLogger)
+    private static void ReplacePlaceHolderMembers(ref readonly Quest quest, QuestLogger questLogger)
     {
-        static void SwapMemberNameWithValue(ref readonly Quest quest, ref readonly Segment segment)
+        static void SwapMemberNameWithValue(ref readonly Quest quest, ref Segment segment)
         {
-            //e.g.: Swap Quest.MemberName with <corresponding value>
-            ReadOnlySpan<char> memberName = segment.MemberName2Replace!.Value;
-            var mutableMemberName = memberName.Mutable();
-            var value = quest.GetValueByMemberName(mutableMemberName.Mutable()).ToString();
+            ref var memberName = ref SpanUtility.RefValue(segment.MemberName2Replace);
+            Span<char> mutableMemberName = memberName.Mutable();
+            var value = quest.GetValueByMemberName(mutableMemberName).ToString();
             value.CopyTo(mutableMemberName);
             mutableMemberName[value.Length..].Clear();
+            memberName = memberName with { Length = value.Length };
         }
 
         questLogger.UpdateNextQuestLog(quest);
@@ -28,8 +29,8 @@ public static class QuestBuilder
         //       hence my original iterator is empty hence I need valid data!
         while (enumerator.MoveNext())
         {
-            ref readonly var segment = ref enumerator.Current;
-            SwapMemberNameWithValue(in quest, in segment);
+            ref var segment = ref Unsafe.AsRef(in enumerator.Current);
+            SwapMemberNameWithValue(in quest, ref segment);
         }
     }
 
@@ -91,7 +92,7 @@ public static class QuestBuilder
     {
         foreach (ref readonly var quest in quests)
         {
-            UpdateQuestLogger(in quest, logger);
+            ReplacePlaceHolderMembers(in quest, logger);
         }
     }
 }
