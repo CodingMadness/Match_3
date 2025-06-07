@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using CommunityToolkit.HighPerformance;
 using DotNext.Buffers;
 using DotNext.Runtime;
 using ImGuiNET;
@@ -27,7 +29,7 @@ public readonly struct View<T>(in ReadOnlySpan<T> data)
     //wraps "ref char _reference" from ReadOnlySpan<char> because I cannot use ref in non-ref struct
     private readonly ValueReference<T> _first = new(ref data.Mutable()[0]);
 
-    public readonly int Length = data.Length;
+    public int Length { get; init; } = data.Length;
 
     private ref readonly T First => ref _first.Value;
 
@@ -35,6 +37,8 @@ public readonly struct View<T>(in ReadOnlySpan<T> data)
 
     public static implicit operator ReadOnlySpan<T>(View<T> wrapper)
         => MemoryMarshal.CreateReadOnlySpan(in wrapper.First, wrapper.Length);
+
+    public override string ToString() => ((ReadOnlySpan<T>)this).ToString();
 }
 
 public readonly struct Segment
@@ -42,6 +46,7 @@ public readonly struct Segment
     public readonly View<char>? MemberName2Replace;
     public readonly View<char> Slice2Colorize;
     public readonly (int spanIdx, int spanLen) Occurence;
+
     //Render Logic:
     public readonly TextAlignmentRule? AlignmentRule;
     public readonly CanvasOffset? PosInCanvas;
@@ -89,7 +94,7 @@ public readonly struct Segment
         Slice2Colorize = new(slice2Colorize.TrimEnd('\0').ToString());
         var colorAsText = code.TrimEnd('\0').ToString();
         Colour = Color.FromName(colorAsText);
-        MemberName2Replace = new(memberName2Replace.ToString());
+        MemberName2Replace = memberName2Replace is [] ? null : new(memberName2Replace.ToString());
 
         if (start is not null)
         {
@@ -205,7 +210,7 @@ public ref partial struct FormatTextEnumerator
 {
     private int _position;
 
-    private readonly SpanOwner<Segment> _allSegments;
+    private readonly SpanOwner<Segment?> _allSegments;
     private readonly ReadOnlySpan<char> _text;
     private readonly WordEnumerator _wordEnumerator;
     private readonly TextAlignmentRule? AlignmentRule;
@@ -223,10 +228,13 @@ public ref partial struct FormatTextEnumerator
                 {
                     foreach (var segment in _allSegments.Span)
                     {
-                        if (segment.ShouldWrap is not null &&
-                            segment.ShouldWrap.Value)
+                        if (segment is null)
+                            continue;
+
+                        if (segment.Value.ShouldWrap is not null &&
+                            segment.Value.ShouldWrap.Value)
                         {
-                            field += segment.TextSize;
+                            field += segment.Value.TextSize;
                         }
                     }
                 }
@@ -235,7 +243,7 @@ public ref partial struct FormatTextEnumerator
         }
     }
 
-    private Segment GetNextColoredSegment(ValueMatch match, int position, CanvasOffset? offset,
+    private Segment GetNextSegment(ValueMatch match, CanvasOffset? offset,
         TextAlignmentRule? rule)
     {
         var color2Use = _text.Slice(match.Index, match.Length);
@@ -249,40 +257,13 @@ public ref partial struct FormatTextEnumerator
                             textStartAtSlice2Colorize.Slice(0, beginOfNextColorCode) :
                             textStartAtSlice2Colorize;
 
-        bool isAMemberName = slice2Colorize.Contains('.'); //like: Match.Count and so on...
+        bool isAMemberName = slice2Colorize.Contains('.');
         Range onlyTheMember = ..slice2Colorize.IndexOf(' ');
         var fieldValue2Replace = isAMemberName
             ? slice2Colorize[onlyTheMember]
             : [];
         var occurence = (match.Index, match.Length);
         Segment phrase = new(color2Use, slice2Colorize, fieldValue2Replace, occurence, offset, rule);
-        return phrase;
-    }
-
-    private Segment GetNextBlackSegment(ValueMatch match, int position, CanvasOffset? offset,
-        TextAlignmentRule? rule)
-    {
-        var color2Use = _text.Slice(match.Index, match.Length);
-        int beginOfBlack = match.Index + 1;
-        int properStart = match.Index + match.Length;
-        int lengthTilNextColor = position < _allSegments.Length - 1
-            ? _text[beginOfBlack..].IndexOf('(') + beginOfBlack
-            : _text.Length;
-
-        //we need here to check if we have empty chars inside this slice and get rid of them
-        //span looks like: {11 Matches }
-        var sliceInBlack = _text[properStart..lengthTilNextColor];
-
-        //try to remove them if you can, if not, execute the below code
-        if (sliceInBlack.TrimEnd('\0').Contains(char.MinValue))
-        {
-            Range allZeroes = sliceInBlack.IndexOf(char.MinValue)..sliceInBlack.LastIndexOf(char.MinValue);
-            Range desired = (allZeroes.End.Value + 1)..;
-            sliceInBlack.Swap(allZeroes, desired);
-        }
-
-        var occurence = (match.Index, match.Length);
-        Segment phrase = new( color2Use,sliceInBlack, [], occurence, offset, rule);
         return phrase;
     }
 
@@ -299,36 +280,52 @@ public ref partial struct FormatTextEnumerator
         AlignmentRule = alignmentRule;
 
         //{Black} This is a {Red} super nice {Green} shiny looking text
-        var colorFinder = skipBlackColor
-            ? FindNonBlackColorCodes().EnumerateMatches(text)
-            : FindAllColorCodes().EnumerateMatches(text);
+        var colorFinder = FindAllColorCodes().EnumerateMatches(text);
 
         foreach (var result in colorFinder)
         {
-            _allSegments[_position] = skipBlackColor
-                ? GetNextColoredSegment(result, _position, offset, alignmentRule)
-                : GetNextBlackSegment(result, _position, offset, alignmentRule);
+            if (skipBlackColor)
+            {
+                if (_position % 2 == 0)
+                {
+                    _position++;
+                    continue;
+                }
+            }
 
-            _position++;
+            _allSegments[_position++] = GetNextSegment(result, offset, alignmentRule);
+            //Console.WriteLine($"Start:{result.Index}, Length: {result.Length}");
         }
 
         _allSegments = _allSegments.Span[.._position];
-        _position = 0;
+        //we set to -1 in order for 'MoveNext()' logic to work
+        _position = -1;
 
-        _wordEnumerator = new(in Unsafe.AsRef(in Current));
+        if (!skipBlackColor)
+            _wordEnumerator = new(in Unsafe.AsRef(in Current));
     }
 
     public static FormatTextEnumerator CreateQuestLogEnumerator(ReadOnlySpan<char> text)
     {
-        var qlEnumerator = new FormatTextEnumerator(text, nrOfSlices2Format: 10, skipBlackColor: true);
+        var qlEnumerator = new FormatTextEnumerator(text, nrOfSlices2Format: 5, skipBlackColor: true);
         return qlEnumerator;
     }
 
-    [UnscopedRef] public ref readonly Segment Current => ref _allSegments[_position];
+    public ref readonly Segment Current => ref SpanUtility.RefValue(_allSegments[_position]);
 
     public bool MoveNext()
     {
-        return _position++ < _allSegments.Length;
+        bool skipBlackColor = _allSegments[0] is null;
+
+        if (skipBlackColor)
+        {
+            _position += 2;
+        }
+        else
+        {
+            _position++;
+        }
+        return _position < _allSegments.Length;
     }
 
     [UnscopedRef]
@@ -342,8 +339,4 @@ public ref partial struct FormatTextEnumerator
 
     [GeneratedRegex(pattern: @"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex FindAllColorCodes();
-
-    [GeneratedRegex(pattern: @"\((?!black\b)[A-Za-z]+[\s\0]*\)",
-        RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex FindNonBlackColorCodes();
 }
