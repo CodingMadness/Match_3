@@ -3,14 +3,9 @@
 /// <summary>
 /// This Record defines data which has to be known BEFORE the actual Game runs!
 /// </summary>
-/// <param name="Id">The current levelID, like 0, 1, 2: the higher the number the harder the level gets</param>
-/// <param name="GameBeginAt">The startup time of the Game</param>
-/// <param name="GameOverScreenCountdown">The countdown which runs to 0, and so long you see a "GameOverScreen"</param>
 /// <param name="GridWidth">an integer number defining the count of tiles PER WIDTH</param>
 /// <param name="GridHeight">an integer number defining the count of tiles PER HEIGHT</param>
-public readonly record struct Config(int Id, 
-    int GameBeginAt, int GameOverScreenCountdown,
-    int GridWidth, int GridHeight)
+public record Config(int GameBeginsAt, int GridWidth, int GridHeight)
 {
     public const int MaxTilesPerMatch = 3;
     public const int TileSize = 64 / 1;
@@ -22,7 +17,7 @@ public readonly record struct Config(int Id,
 
     /// <summary>
     /// This is the Number in which the below 'QuestLog' variable HAVE TO be iterated
-    /// in order to get all the proper segements been drawn properly,
+    /// in order to get all the proper segements been drawn properly
     /// </summary>
     public const int SegmentsOfQuestLog = 8;
     // QuestLog remains a computed string (now with instance access)

@@ -8,7 +8,7 @@ using Rectangle = System.Drawing.Rectangle;
 
 namespace Match_3.DataObjects;
 
-public enum CanvasStartingPoints
+public enum CanvasOffset
 {
     TopLeft, TopCenter, TopRight,
     BottomLeft, BottomCenter ,BottomRight,
@@ -172,7 +172,7 @@ public sealed class GameState
     }
 
     public bool IsInGame { get; set; }
-    public GameTime GetCurrentTime(in Config config) => GameTime.CreateTimer(config.GameBeginAt);
+    public GameTime GetCurrentTime(in Config config) => GameTime.CreateTimer(config.GameBeginsAt);
     public bool WasGameLost { get; set; }
     public bool WasGameWon { get; set; }
     public bool IsGameStillRunning => !WasGameLost && !WasGameWon;

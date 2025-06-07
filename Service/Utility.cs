@@ -331,8 +331,8 @@ public static class BaseTypeUtility
         tuple.Item1 += value2IncreaseBy;
     }
 
-    public static unsafe TextInfo* GetPtr(this in TextInfo textInfo)
+    public static unsafe Segment* GetPtr(this in Segment segment)
     {
-        return (TextInfo*)Unsafe.AsPointer(ref Unsafe.AsRef(in textInfo));
+        return (Segment*)Unsafe.AsPointer(ref Unsafe.AsRef(in segment));
     }
 }

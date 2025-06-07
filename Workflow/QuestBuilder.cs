@@ -9,19 +9,19 @@ public static class QuestBuilder
 {
     private static void UpdateQuestLogger(ref readonly Quest quest, QuestLogger questLogger)
     {
-        static void SwapMemberNameWithValue(ref readonly Quest quest, ref readonly TextInfo segment)
+        static void SwapMemberNameWithValue(ref readonly Quest quest, ref readonly Segment segment)
         {
-            //e.g: Swap Quest.MemberName with <corresponding value>
-            var memberName = segment.MemberName2Replace.Mutable();
-            var value = quest.GetValueByMemberName(memberName).ToString();
-            value.CopyTo(memberName);
-            memberName[value.Length..].Clear();
+            //e.g.: Swap Quest.MemberName with <corresponding value>
+            ReadOnlySpan<char> memberName = segment.MemberName2Replace!.Value;
+            var mutableMemberName = memberName.Mutable();
+            var value = quest.GetValueByMemberName(mutableMemberName.Mutable()).ToString();
+            value.CopyTo(mutableMemberName);
+            mutableMemberName[value.Length..].Clear();
         }
 
         questLogger.UpdateNextQuestLog(quest);
-        var nextLog = questLogger.CurrentLog;
-
-        scoped var enumerator = new FormatTextEnumerator(nextLog, 5,true);
+        var cleanLog = questLogger.CurrentLog;
+        scoped var enumerator = FormatTextEnumerator.CreateQuestLogEnumerator(cleanLog);
 
         // NOTE: we need to use while loop
         //       because foreach creates a hidden copy of my iterator and
@@ -92,7 +92,6 @@ public static class QuestBuilder
         foreach (ref readonly var quest in quests)
         {
             UpdateQuestLogger(in quest, logger);
-            // int x = logger._next;
         }
     }
 }
