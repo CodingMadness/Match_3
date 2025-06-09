@@ -2,73 +2,49 @@
 
 namespace Match_3.DataObjects;
 
-public readonly struct Distance<T> : IEquatable<Distance<T>>, IComparable<Distance<T>>
-    where T : unmanaged, IEquatable<T>
+public record Distance(Range Breadth, int SourceLength)
 {
-    public override int GetHashCode() => Start.GetHashCode();
+    private (int offset, int length) tplRange => Breadth.GetOffsetAndLength(SourceLength);
 
-    private readonly int _srcLen;
-    public readonly int Start;
-    private readonly int _length;
-    public readonly int End;
+    public int Start => tplRange.offset;
+    public int End => Start + tplRange.length;
 
-    public Distance(Range r, int srcLen)
+    public Distance(int Start, int Length, int SourceLength)
+        : this(new Range(Start, Start + Length), SourceLength)
     {
-        _srcLen = srcLen;
-        (int offset, int len) = r.GetOffsetAndLength(srcLen);
-        Start  = offset;
-        _length = len;
-        End    = offset + len;
+
     }
 
-    public Distance<T> GetSlice(Distance<T> other)
+    public Distance GetSlice(Distance other)
     {
-        int diff = Math.Abs(_length - other._length);
-        Distance<T> newOne = this - diff;
+        int diff = Math.Abs(SourceLength - other.SourceLength);
+        Distance newOne = this - diff;
         return newOne;
     }
 
-    public (int start, int length, int end) Deconstruct() => (Start, _length, End);
-
-    public bool Equals(Distance<T> other) => Start == other.Start;
-
-    public int CompareTo(Distance<T> other) => Start.CompareTo(other.Start);
-
-    public override string ToString() => ((Range)this).ToString();
-
-    public static Distance<T> operator +(Distance<T> self, int incRangeBy)
+    public static Distance operator +(Distance self, int incRangeBy)
     {
-        var copy = new Distance<T>(self.Start..(self.End + incRangeBy), self._srcLen);
+        var copy = new Distance(self.Start..(self.End + incRangeBy), self.SourceLength);
         return copy;
     }
 
-    public static Distance<T> operator -(Distance<T> self, int incRangeBy)
+    public static Distance operator -(Distance self, int incRangeBy)
     {
-        var copy = new Distance<T>(self.Start..(self.End - incRangeBy), self._srcLen);
+        var copy = new Distance(self.Start..(self.End - incRangeBy), self.SourceLength);
         return copy;
     }
 
-    public static bool operator ==(Distance<T> self, Distance<T> other) => other.Equals(self);
+    public static bool operator >(Distance self, Distance other)
+        => Math.Abs(self.Start - self.End) > Math.Abs(other.Start - other.End);
 
-    public static bool operator !=(Distance<T> self, Distance<T> other) => !(self == other);
+    public static bool operator <(Distance self, Distance other) => !(self > other || self == other);
 
-    public static bool operator >(Distance<T> self, Distance<T> other) => self.CompareTo(other) == 1;
+    public static implicit operator Range(Distance self) => self.Start..self.End;
 
-    public static bool operator <(Distance<T> self, Distance<T> other) => !(self > other || self == other);
-
-    public static implicit operator Range(Distance<T> self) => self.Start..self.End;
-
-    public int Overlaps(Distance<T> other)
+    public int Overlaps(Distance other)
     {
-        (int startOther, _, int endOther) = other.Deconstruct();
-
-        bool isOverlap = Start < endOther && startOther < endOther;
-        return isOverlap ? endOther - startOther : 0;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is Distance<T> slice && Equals(slice);
+        bool isOverlap = Start < other.End && other.Start < other.End;
+        return isOverlap ? other.End - other.Start : 0;
     }
 }
 
@@ -83,14 +59,14 @@ public readonly ref struct SpanInfo<T> where T : unmanaged, IEquatable<T>
     public readonly bool AreXYNext2EachOther;
     public readonly bool IsFirstLargerThanLast;
     public readonly int LengthDiff;
-    public readonly Distance<T> LargeOneArea, SmallOneArea;
+    public readonly Distance LargeOneArea = null!, SmallOneArea = null!;
 
     public SpanInfo(ReadOnlySpan<T> src, Range x, Range y)
     {
         var srcLength = src.Length;
 
-        Distance<T> areaX = new(x, srcLength);
-        Distance<T> areaY = new(y, srcLength);
+        Distance areaX = new(x, srcLength);
+        Distance areaY = new(y, srcLength);
 
         var isImpossible2Swap = src == ReadOnlySpan<T>.Empty || areaX == areaY;
 
