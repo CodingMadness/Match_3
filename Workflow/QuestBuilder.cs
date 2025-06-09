@@ -10,6 +10,12 @@ public static class QuestBuilder
 {
     private static void ReplacePlaceHolderMembers(ref readonly Quest quest, QuestLogger questLogger)
     {
+        static FormatTextEnumerator CreateQuestLogEnumerator(ReadOnlySpan<char> questLog)
+        {
+            var qlEnumerator = new FormatTextEnumerator(questLog, nrOfSlices2Format: 5, skipBlackColor: true);
+            return qlEnumerator;
+        }
+
         static void SwapMemberNameWithValue(ref readonly Quest quest, ref Segment segment)
         {
             ref var memberName = ref SpanUtility.RefValue(segment.MemberName2Replace);
@@ -22,7 +28,7 @@ public static class QuestBuilder
 
         questLogger.UpdateNextQuestLog(quest);
         var cleanLog = questLogger.CurrentLog;
-        scoped var enumerator = FormatTextEnumerator.CreateQuestLogEnumerator(cleanLog);
+        scoped var enumerator = CreateQuestLogEnumerator(cleanLog);
 
         // NOTE: we need to use while loop
         //       because foreach creates a hidden copy of my iterator and
