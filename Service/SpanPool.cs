@@ -20,8 +20,8 @@ namespace Match_3.Service;
 public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where T : unmanaged, IEquatable<T>
 {
     private MemoryOwner<T> _content = new(ArrayPool<T>.Shared, length);
-    private readonly MemoryOwner<Distance<T>>? _ContentSlices
-        = sliceCount2Track is not null ? new(ArrayPool<Distance<T>>.Shared, sliceCount2Track.Value) : null;
+    private readonly MemoryOwner<Distance>? _ContentSlices
+        = sliceCount2Track is not null ? new(ArrayPool<Distance>.Shared, sliceCount2Track.Value) : null;
 
     private int _enQCharIdx, _currLogLen;
 
@@ -83,7 +83,7 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
 
         if (_ContentSlices is not null)
         {
-            Distance<T> spanInfo = new(first..(first + _currLogLen), entireSpan.Length);
+            Distance spanInfo = new(first..(first + _currLogLen), entireSpan.Length);
             _ContentSlices.Value[PushCount++] = spanInfo;
         }
 
