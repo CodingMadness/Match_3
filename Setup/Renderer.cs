@@ -1,5 +1,6 @@
 global using Vector2 = System.Numerics.Vector2;
 using System.Runtime.CompilerServices;
+using Hexa.NET.ImGui;
 using ImGuiNET;
 using Match_3.DataObjects;
 using Match_3.Service;
@@ -86,42 +87,6 @@ public static class UiRenderer
 
     private static void DrawText(ReadOnlySpan<char> colorCodedTxt, CanvasOffset anchor)
     {
-        static (Vector2 start, float toWrapAt) SetUiStartingPoint(ReadOnlySpan<char> textBlock,
-                                                                  CanvasOffset offset,
-                                                                  out bool callThisMethodOnlyOnce)
-        {
-            (Vector2 start, float toWrapAt) = (Vector2.Zero, 0f);
-            Vector2 canvas = Game.ConfigPerStartUp.WindowSize;
-            Vector2 txtSize = ImGui.CalcTextSize(textBlock);
-            Vector2 paddingAdjustedScreen = new(canvas.X - txtSize.X, canvas.Y - txtSize.Y);
-            Vector2 halfTxtSize = new(txtSize.X * 0.5f, txtSize.Y * 0.5f);
-            Vector2 center = new(canvas.X * 0.5f - txtSize.X, canvas.Y * 0.5f - txtSize.Y);
-
-            (start, toWrapAt) = offset switch
-            {
-                CanvasOffset.TopLeft => (ImGui.GetStyle().FramePadding, center.X),
-                CanvasOffset.TopCenter => (start with { X = center.X, Y = 0f }, canvas.X),
-                CanvasOffset.TopRight => (start with { X = paddingAdjustedScreen.X, Y = 0f }, canvas.X),
-                CanvasOffset.BottomLeft => (start with { X = 0f, Y = canvas.Y - txtSize.Y }, center.X),
-                CanvasOffset.BottomCenter => (start with { X = center.X, Y = paddingAdjustedScreen.Y }, canvas.X),
-                CanvasOffset.BottomRight => (start with { X = paddingAdjustedScreen.X, Y = paddingAdjustedScreen.Y }, canvas.X),
-                CanvasOffset.MidLeft => (start with { X = 0f, Y = center.Y }, center.X),
-                CanvasOffset.Center => (start with { X = center.X, Y = center.Y }, canvas.X),
-                CanvasOffset.MidRight => (start with { X = paddingAdjustedScreen.X, Y = center.Y }, canvas.X),
-                _ => (Vector2.Zero, 0f)
-            };
-
-            ImGui.SetCursorPos(start);
-            callThisMethodOnlyOnce = true;
-            return (start, toWrapAt);
-        }
-
-        static bool TextShouldWrap(scoped in Vector2 current, float toWrapAt, Vector2 textSize)
-        {
-            var wrappedAt = (int)(toWrapAt - (current.X + textSize.X));
-            return wrappedAt < 0;
-        }
-
         static void SetNextLine(scoped in Vector2 fixStart, ref Vector2 current)
         {
             ImGui.NewLine();
@@ -138,20 +103,13 @@ public static class UiRenderer
         static void DrawSegment(scoped in Segment segment, ref Vector2 current)
         {
             ImGui.TextColored(segment.Colour.Vector, segment.Slice2Colorize);
-            MoveCursorRight(ref current, in segment);
-        }
-
-        //I am passing null, but only for easier code usage, semantically, this is usually not good practise!
-        static void MoveCursorRight(scoped ref Vector2 current, scoped in Segment txtInfo)
-        {
-            current = current with { X = current.X + txtInfo.TextSize.X };
+            current = current with { X = current.X + segment.TextSize.X };
             ImGui.SetCursorPos(current);
         }
 
         static void DrawUntilNeed2Wrap(scoped in WordEnumerator enumerator,
                                    scoped ref Vector2 current,
-                                   scoped in Vector2 fixPoint,
-                                   float toWrapAt)
+                                   scoped in Vector2 fixPoint)
         {
             ref var blackWordsEnumerator = ref Unsafe.AsRef(in enumerator);
 
@@ -162,13 +120,13 @@ public static class UiRenderer
             {
                 ref readonly var wordSegment = ref blackWordsEnumerator.Current;
                 ref Segment fittingSegment = ref Unsafe.AsRef(in wordSegment);
-
-                doesRootSegmentFit &= !TextShouldWrap(in current, toWrapAt, blackWordsEnumerator.RootSegment.TextSize);
+                bool shouldWrap = blackWordsEnumerator.RootSegment.WrapInfo!.Value.ShouldWrap;
+                doesRootSegmentFit &= shouldWrap;
 
                 if (doesRootSegmentFit)
                     fittingSegment = ref Unsafe.AsRef(in blackWordsEnumerator.RootSegment);
 
-                else if (TextShouldWrap(in current, toWrapAt, wordSegment.TextSize))
+                else if (wordSegment.WrapInfo!.Value.ShouldWrap)
                     SetNextLine(fixPoint, ref current);
 
                 DrawSegment(in fittingSegment, ref current);
@@ -178,8 +136,7 @@ public static class UiRenderer
         static void SplitText(scoped in WordEnumerator enumerator,
             scoped ref Vector2 current,
             scoped in Vector2 fixStart,
-            scoped in Segment segment,
-            float toWrapAt)
+            scoped in Segment segment)
         {
             //if we are about to wrap the text,
             //we need to know if its only black-default text so we,
@@ -195,7 +152,7 @@ public static class UiRenderer
 
             while (!enumerator.EndReached)
             {
-                DrawUntilNeed2Wrap(in enumerator, ref current, in fixStart, toWrapAt);
+                DrawUntilNeed2Wrap(in enumerator, ref current, in fixStart);
             }
         }
         //------------------------------------------------------------------------------------------------------------//
@@ -213,17 +170,16 @@ public static class UiRenderer
 
             if (!hasBeenExecuted)
             {
-                (fixStartingPos, toWrapAt) = SetUiStartingPoint(phraseSegment.Slice2Colorize, anchor, out hasBeenExecuted);
+                fixStartingPos = phraseSegment.RenderPosition!.Value;
                 current = fixStartingPos;
             }
 
-            if (TextShouldWrap(in current, toWrapAt, phraseSegment.TextSize))
+            if (phraseSegment.WrapInfo!.Value.ShouldWrap)
             {
                 SplitText(in runThroughWords,
                     ref current,
                     in fixStartingPos,
-                    in phraseSegment,
-                    toWrapAt);
+                    in phraseSegment);
             }
             else
             {
@@ -247,11 +203,43 @@ public static class UiRenderer
 
     public static void Test_NewDrawLogic(QuestLogger logger, CanvasOffset  offset)
     {
-        scoped var enumerator = new FormatTextEnumerator(logger.CurrentLog, offset, TextAlignmentRule.ColoredSegmentsInOneLine);
-
-        while (enumerator.MoveNext())
+        static void DrawSegment(scoped in Segment segment, ref Vector2 current)
         {
-            ref  readonly var segment = ref enumerator.Current;
+            ImGui.TextColored(segment.Colour.Vector, segment.Slice2Colorize.Mutable());
+            current = current with { X = current.X + segment.TextSize.X };
+            ImGui.SetCursorPos(current);
+        }
+
+        scoped var formatTextEnumerator = new FormatTextEnumerator(logger.CurrentLog, offset, TextAlignmentRule.ColoredSegmentsInOneLine);
+        Vector2 fixStartingPos = Vector2.Zero;
+        bool hasBeenExecuted = false;
+        Vector2 current = Vector2.Zero;
+        bool segmentShouldWrap = false;
+        Vector2 entireTextBlockSize = (Vector2)formatTextEnumerator.TotalTextSize!;
+
+        while (formatTextEnumerator.MoveNext())
+        {
+            ref readonly var phraseSegment = ref formatTextEnumerator.Current;
+            ref readonly var runThroughWords = ref formatTextEnumerator.GetCleanWordEnumerator();
+
+            if (!hasBeenExecuted)
+            {
+                (fixStartingPos,segmentShouldWrap) = (phraseSegment.RenderPosition!.Value, phraseSegment.WrapInfo!.Value.ShouldWrap);
+                current = fixStartingPos;
+            }
+
+            if (segmentShouldWrap)
+            {
+                // SplitText(in runThroughWords,
+                //     ref current,
+                //     in fixStartingPos,
+                //     in phraseSegment);
+            }
+            else
+            {
+                //this part simply draws each segment directly 1 by 1 next to each other
+                DrawSegment(in phraseSegment, ref current);
+            }
         }
     }
 }
