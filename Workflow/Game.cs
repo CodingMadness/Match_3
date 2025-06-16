@@ -1,4 +1,5 @@
-﻿using ImGuiNET;
+﻿using System.Reflection;
+using ImGuiNET;
 using Match_3.DataObjects;
 using Match_3.Setup;
 using Raylib_cs;
@@ -110,7 +111,7 @@ public static class Game
             if (inMenu)
             {
                 // UiRenderer.DrawQuestsFrom(MainState.Logger, CanvasOffset.MidLeft);
-                UiRenderer.Test_NewDrawLogic(MainState.Logger, CanvasOffset.MidLeft);
+                //UiRenderer.Test_NewDrawLogic(MainState.Logger, CanvasOffset.MidLeft);
             }
             else
             {

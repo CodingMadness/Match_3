@@ -1,6 +1,5 @@
 global using Vector2 = System.Numerics.Vector2;
 using System.Runtime.CompilerServices;
-using Hexa.NET.ImGui;
 using ImGuiNET;
 using Match_3.DataObjects;
 using Match_3.Service;
@@ -120,13 +119,13 @@ public static class UiRenderer
             {
                 ref readonly var wordSegment = ref blackWordsEnumerator.Current;
                 ref Segment fittingSegment = ref Unsafe.AsRef(in wordSegment);
-                bool shouldWrap = blackWordsEnumerator.RootSegment.WrapInfo!.Value.ShouldWrap;
+                bool shouldWrap = blackWordsEnumerator.RootSegment.ShouldWrap!.Value;
                 doesRootSegmentFit &= shouldWrap;
 
                 if (doesRootSegmentFit)
                     fittingSegment = ref Unsafe.AsRef(in blackWordsEnumerator.RootSegment);
 
-                else if (wordSegment.WrapInfo!.Value.ShouldWrap)
+                else if (wordSegment.ShouldWrap!.Value)
                     SetNextLine(fixPoint, ref current);
 
                 DrawSegment(in fittingSegment, ref current);
@@ -174,7 +173,7 @@ public static class UiRenderer
                 current = fixStartingPos;
             }
 
-            if (phraseSegment.WrapInfo!.Value.ShouldWrap)
+            if (phraseSegment.ShouldWrap!.Value)
             {
                 SplitText(in runThroughWords,
                     ref current,
@@ -224,7 +223,7 @@ public static class UiRenderer
 
             if (!hasBeenExecuted)
             {
-                (fixStartingPos,segmentShouldWrap) = (phraseSegment.RenderPosition!.Value, phraseSegment.WrapInfo!.Value.ShouldWrap);
+                (fixStartingPos,segmentShouldWrap) = (phraseSegment.RenderPosition!.Value, phraseSegment.ShouldWrap!.Value);
                 current = fixStartingPos;
             }
 
