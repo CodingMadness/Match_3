@@ -44,6 +44,12 @@
     <PackageReference Include="DotNext" Version="5.22.0" />
     <PackageReference Include="DotNext.Unsafe" Version="5.22.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
+    <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta48" />
+    <PackageReference Include="NetFabric.Hyperlinq.Abstractions" Version="1.3.0" />
+    <PackageReference Include="NetFabric.Hyperlinq.Analyzer" Version="2.3.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="NoAlloq" Version="0.2.0" />
     <PackageReference Include="Raylib-cs" Version="7.0.1" />
     <PackageReference Include="rlImgui-cs" Version="3.2.0" />
@@ -73,15 +79,13 @@
     <EmbeddedResource Include="Assets\Shaders\wobble2.frag">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-       
-
-    <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgGameOver.png" />
-    <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgIngame1.png" />
-    <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgIngame2.png" />
-    <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgWelcome1.png" />
-    <EmbeddedResource Include="Assets\Sprites\GUI\Background\bgWelcome2.png" />
     <None Remove="Assets\Shaders\wobble.frag" />
     <None Remove="Assets\Sprites\Tiles\set1.png" />
+    <EmbeddedResource Include="Assets\Sprites\GUI\Background\GameOver\bgGameOver.png" />
+    <EmbeddedResource Include="Assets\Sprites\GUI\Background\Ingame\bgIngame1.png" />
+    <EmbeddedResource Include="Assets\Sprites\GUI\Background\Ingame\bgIngame2.png" />
+    <EmbeddedResource Include="Assets\Sprites\GUI\Background\Welcome\bgWelcome1.png" />
+    <EmbeddedResource Include="Assets\Sprites\GUI\Background\Welcome\bgWelcome2.png" />
     <EmbeddedResource Include="Assets\Sprites\Tiles\set1.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>

@@ -25,11 +25,11 @@ public readonly struct View<T>(in ReadOnlySpan<T> data)
     public int Length { get; init; } = data.Length;
 
     private ref readonly T First => ref _first.Value;
-
-    public ref T this[int index] => ref _first.Value;
-
+    
     public static implicit operator ReadOnlySpan<T>(View<T> wrapper)
         => MemoryMarshal.CreateReadOnlySpan(in wrapper.First, wrapper.Length);
+    public static implicit operator View<T>(ReadOnlySpan<T> wrapper)
+        => new(wrapper);
 
     public override string ToString() => ((ReadOnlySpan<T>)this).ToString();
 }

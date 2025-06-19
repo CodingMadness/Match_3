@@ -117,6 +117,16 @@ public static class SpanUtility
     public static void Shuffle<T>(this Span<T> span)
     {
     }
+    
+    public static unsafe string FirstLetter2Upper(this string input)
+    {
+        fixed (char* p = input)
+        {
+            *p = char.ToUpper(*p);
+        }
+
+        return input;
+    }
 }
 
 public static class BaseTypeUtility

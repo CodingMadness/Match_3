@@ -93,7 +93,7 @@ public ref partial struct FormatTextEnumerator
 
     private readonly SpanOwner<Segment?> _allSegments;
     private readonly ReadOnlySpan<char> _text;
-    private readonly WordEnumerator _wordEnumerator;
+    private WordEnumerator _wordEnumerator;
     private readonly TextAlignmentRule? AlignmentRule;
 
     public Vector2 TotalTextSize

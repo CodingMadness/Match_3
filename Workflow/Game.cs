@@ -46,7 +46,7 @@ public static class Game
         {
             //<this has to be initialized RIGHT HERE in order to work!>
             rlImGui.BeginInitImGui();
-            AssetManager.Instance.LoadAssets(21);
+            AssetManager.Instance.LoadAssets();
             AssetManager.Instance.Dispose();
             rlImGui.EndInitImGui();
             // For raylib only, because raylib needs to update the imgui-font at gpu-level;
@@ -112,6 +112,11 @@ public static class Game
             {
                 // UiRenderer.DrawQuestsFrom(MainState.Logger, CanvasOffset.MidLeft);
                 //UiRenderer.Test_NewDrawLogic(MainState.Logger, CanvasOffset.MidLeft);
+                var root = Assembly.GetExecutingAssembly();
+                var fullAsmName = root.FullName!;
+                
+                var slnName = fullAsmName.AsSpan(0, fullAsmName.IndexOf(',')); 
+                var fullPath = $"{slnName}.Assets.Fonts.font6.ttf";
             }
             else
             {
