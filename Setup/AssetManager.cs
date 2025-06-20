@@ -68,64 +68,39 @@ public class AssetFolder
 
     public static AssetFolder LoadAssetFolder(int maxFolders)
     {
-        static bool Contains(string src, string toCheck)
-        {
-            return toCheck is not [] && src.Contains(toCheck);
-        }
-
-        static ReadOnlySpan<char> TrySlice(string src)
+        static ReadOnlySpan<char> TrySlice(ReadOnlySpan<char> src)
         {
             int idx = src.LastIndexOf('\\');
             int? maybeFound = idx == -1 ? null : idx;
-            return maybeFound is not null ? src.AsSpan(idx + 1) : src;
+            return maybeFound is not null ? src.Slice(idx + 1) : src;
         }
 
         //Match_3.Assets.Sprites.GUI.BackGround.Welcome.<file>.<format>
         AssetFolder head = new("Assets");
-        using var folderIterator = head.YieldSubFolders().GetEnumerator();
-        bool isNested = false;
-        string prevFolderName = string.Empty;
-        List<AssetFolder> remainingFolders = new(maxFolders);
+        AssetFolder current = head;
+        AssetFolder next = head;
 
-        int debugIndex = 0;
-        bool debugCanMove;
-
-        AssetFolder IterateRecursively(in AssetFolder subFolder, IEnumerator<char>? iterator=null)
+        using var folderIterator = new BidirectionalEnumerator<string>(head.YieldSubFolders().GetEnumerator());
+        
+        AssetFolder IterateRecursively()
         {
-            AssetFolder last = subFolder;
-            string current = string.Empty;
-            var rightIterator = iterator is null ? folderIterator :remainingFolders.GetEnumerator();
-            
-            while (debugCanMove = rightIterator.MoveNext())
+            //...need to think exactly how to do that....
+            while (folderIterator.MoveNext())
             {
-                var next = !isNested ? folderIterator.Current : prevFolderName;
-                Console.WriteLine(next);
-
-                if (Contains(next, current))
+                ReadOnlySpan<char> currFolderName = folderIterator.Current;
+              
+                //next level nesting was found
+                if (currFolderName.Contains('\\'))
                 {
-                    debugIndex++;
-                    isNested = true;
-                    prevFolderName = next;
-                    IterateRecursively(in last);
+                    next = current;
+                    return IterateRecursively();
                 }
-                if (isNested)
-                    remainingFolders.Add(folderIterator.Current);
-                
-                //root can add subfolder directly because no files are in them
-                var nestedFolderName = TrySlice(next);
-                last = subFolder.AddSubFolder(nestedFolderName);
-                current = next;
-                isNested = false;
-                debugIndex++;
-                
-                if(!debugCanMove)
-                    break;
+                current = next.AddSubFolder(currFolderName);
             }
-
-            return IterateRecursively(remainingFolders[0]);
+            return head;
         }
 
-        return IterateRecursively(head);
+        return IterateRecursively();
     }
 
     public override string ToString() => Name.ToString();

@@ -3,6 +3,7 @@ global using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAtt
 global using DAMTypes = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using DotNext.Runtime.InteropServices;
 using Match_3.DataObjects;
 
 namespace Match_3.Service;
@@ -47,7 +48,7 @@ public static class SpanUtility
 
     public static Span<T> Mutable<T>(this in View<T> readOnlySpan) => ((ReadOnlySpan<T>)readOnlySpan).Mutable();
 
-    public static ref T RefValue<T>(in T? nullable) where T:  struct =>
+    public static ref T RefValue<T>(in T? nullable) where T : struct =>
         ref Unsafe.AsRef(in Nullable.GetValueRefOrDefaultRef(in nullable));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -117,7 +118,7 @@ public static class SpanUtility
     public static void Shuffle<T>(this Span<T> span)
     {
     }
-    
+
     public static unsafe string FirstLetter2Upper(this string input)
     {
         fixed (char* p = input)
@@ -131,6 +132,7 @@ public static class SpanUtility
 
 public static class BaseTypeUtility
 {
+
     public static readonly Random Randomizer = new(DateTime.UtcNow.Ticks.GetHashCode());
 
     public static bool Equals(this float x, float y, float tolerance)
@@ -157,9 +159,5 @@ public static class BaseTypeUtility
     {
         tuple.Item1 += value2IncreaseBy;
     }
-
-    public static unsafe Segment* GetPtr(this in Segment segment)
-    {
-        return (Segment*)Unsafe.AsPointer(ref Unsafe.AsRef(in segment));
-    }
+ 
 }

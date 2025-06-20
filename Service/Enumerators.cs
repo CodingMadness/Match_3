@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -224,4 +225,96 @@ public ref partial struct FormatTextEnumerator
 
     [GeneratedRegex(pattern: @"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex FindAllColorCodes();
+}
+
+public class BidirectionalEnumerator<T> : IEnumerator<T>
+{
+    private readonly IEnumerator<T> _forwardEnumerator;
+    private readonly Stack<T> _buffer;
+    private T _current;
+    private bool _justMovedBack, _firstItemAdded;
+
+    public BidirectionalEnumerator(IEnumerator<T> forwardEnumerator)
+    {
+        _forwardEnumerator = forwardEnumerator;
+        _buffer = new(2);
+        _current = default!;
+    }
+
+    public T Current => _current;
+    object IEnumerator.Current => Current!;
+
+    public bool MoveNext()
+    {
+        if (!_forwardEnumerator.MoveNext())
+            return false;
+        
+        _current = _forwardEnumerator.Current;
+        
+        // Push previous current to back buffer (if not first item)
+        if (_firstItemAdded && Current != null)
+            _buffer.Push(_current);
+        
+        _current = _forwardEnumerator.Current;
+        _buffer.Push(_current);
+        
+        if (_buffer.Count > 2)  // Maintain size limit
+            _buffer.Pop();
+        
+        _firstItemAdded = true;
+        
+        return true;
+    }
+
+    public bool MoveBack()
+    {
+        if (_buffer.Count is 0)
+            return false;
+
+        //this one has to go because it is the very first who was just returned after MoveNext(), so 
+        //so we would just get current = prev, which is nonsensical so we actually need to go 1x further behind 
+        //to get the actual "before moveNext()" call.
+        // _ = _buffer.Pop(); 
+        _current = _buffer.Pop();
+        _justMovedBack = true;
+        return true;
+    }
+
+    public void Dispose() => _forwardEnumerator.Dispose();
+    
+    public void Reset() => throw new NotSupportedException();
+}
+
+public class BufferedEnumerator<T>
+{
+    private readonly IEnumerator<T> _enumerator;
+    private readonly Queue<T> _buffer = new Queue<T>(1);
+    private bool _hasBufferedItem;
+    
+    public BufferedEnumerator(IEnumerable<T> source)
+    {
+        _enumerator = source.GetEnumerator();
+    }
+    
+    public bool MoveNext()
+    {
+        if (_hasBufferedItem)
+        {
+            _hasBufferedItem = false;
+            return true;
+        }
+        return _enumerator.MoveNext();
+    }
+    
+    public bool MoveBack()
+    {
+        if (_buffer.Count == 0) return false;
+        _hasBufferedItem = true;
+        Current = _buffer.Dequeue();
+        return true;
+    }
+    
+    public T Current { get; private set; }
+    
+    public void Dispose() => _enumerator.Dispose();
 }
