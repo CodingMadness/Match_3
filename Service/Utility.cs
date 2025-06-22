@@ -119,7 +119,7 @@ public static class SpanUtility
     {
     }
 
-    public static unsafe string FirstLetter2Upper(this string input)
+    public static unsafe ReadOnlySpan<char>  FirstLetter2Upper(this ReadOnlySpan<char> input)
     {
         fixed (char* p = input)
         {

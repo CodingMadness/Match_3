@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 using DotNext.Buffers;
-
+using DotNext.Runtime;
 using Match_3.DataObjects;
 
 namespace Match_3.Service;
@@ -232,12 +232,12 @@ public class BidirectionalEnumerator<T> : IEnumerator<T>
     private readonly IEnumerator<T> _forwardEnumerator;
     private readonly Stack<T> _buffer;
     private T _current;
-    private bool _justMovedBack, _firstItemAdded;
+    private bool _firstItemAdded;
 
     public BidirectionalEnumerator(IEnumerator<T> forwardEnumerator)
     {
         _forwardEnumerator = forwardEnumerator;
-        _buffer = new(2);
+        _buffer = new(15);
         _current = default!;
     }
 
@@ -248,36 +248,23 @@ public class BidirectionalEnumerator<T> : IEnumerator<T>
     {
         if (!_forwardEnumerator.MoveNext())
             return false;
-        
-        _current = _forwardEnumerator.Current;
-        
-        // Push previous current to back buffer (if not first item)
-        if (_firstItemAdded && Current != null)
+
+        if (_current != null)
             _buffer.Push(_current);
         
         _current = _forwardEnumerator.Current;
-        _buffer.Push(_current);
-        
-        if (_buffer.Count > 2)  // Maintain size limit
-            _buffer.Pop();
         
         _firstItemAdded = true;
         
         return true;
     }
 
-    public bool MoveBack()
+    public void MoveBack()
     {
         if (_buffer.Count is 0)
-            return false;
-
-        //this one has to go because it is the very first who was just returned after MoveNext(), so 
-        //so we would just get current = prev, which is nonsensical so we actually need to go 1x further behind 
-        //to get the actual "before moveNext()" call.
-        // _ = _buffer.Pop(); 
-        _current = _buffer.Pop();
-        _justMovedBack = true;
-        return true;
+            return;
+        
+        
     }
 
     public void Dispose() => _forwardEnumerator.Dispose();

@@ -28,8 +28,9 @@ public readonly struct View<T>(in ReadOnlySpan<T> data)
     
     public static implicit operator ReadOnlySpan<T>(View<T> wrapper)
         => MemoryMarshal.CreateReadOnlySpan(in wrapper.First, wrapper.Length);
-    public static implicit operator View<T>(ReadOnlySpan<T> wrapper)
-        => new(wrapper);
+    
+    public ReadOnlySpan<T> AsSpan() => this;
+   // public static implicit operator View<T>(scoped in ReadOnlySpan<T> wrapper) => new(wrapper);
 
     public override string ToString() => ((ReadOnlySpan<T>)this).ToString();
 }

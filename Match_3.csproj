@@ -137,6 +137,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\Sprites\GUI\Button" />
+    <Folder Include="Assets\Sprites\TEST\" />
   </ItemGroup>
 </Project>
 

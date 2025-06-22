@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using DotNext.Buffers;
@@ -9,7 +10,7 @@ using Raylib_cs;
 
 namespace Match_3.Setup;
 
-public class AssetFolder
+public class AssetFolder : IEnumerable<AssetFolder>
 {
     private List<AssetFolder> SubAssetFolders { get; }
 
@@ -37,14 +38,16 @@ public class AssetFolder
         return Directory.EnumerateDirectories(Path.Join(projPath, "Assets"), "*", options);
     }, LazyThreadSafetyMode.ExecutionAndPublication);
 
-    private IEnumerable<string> YieldSubFolders()
+    private IEnumerable<(View<char> folderName, int nestLvl)> YieldSubFolders()
     {
         return
-            from folderName in _folders.Value
+            from fullAssetPath in _folders.Value
             orderby '\\'
-            let beginOfAssetFolder = folderName.AsSpan().IndexOf(Name, StringComparison.Ordinal)
+            let beginOfAssetFolder = fullAssetPath.AsSpan().IndexOf(Name, StringComparison.Ordinal)
             let endOfAssetFolder = beginOfAssetFolder + Name.Length + 1
-            select folderName[endOfAssetFolder..].FirstLetter2Upper();
+            let folderName = new View<char>(fullAssetPath.AsSpan(endOfAssetFolder..).FirstLetter2Upper())
+            let subLvlCount = folderName.AsSpan().Count('\\')
+            select (folderName, subLvlCount);
     }
 
     public AssetFolder(View<char> name)
@@ -54,19 +57,18 @@ public class AssetFolder
         Files = new();
     }
 
-    private AssetFolder AddSubFolder(ReadOnlySpan<char> name)
+    private void AddSubFolder(ReadOnlySpan<char> name)
     {
-        var folder = new AssetFolder(name)
+        var folder = new AssetFolder(new(name))
         {
             Files = new(0),
             Name = new(name),
         };
 
         SubAssetFolders.Add(folder);
-        return folder;
     }
 
-    public static AssetFolder LoadAssetFolder(int maxFolders)
+    public static AssetFolder LoadAssetFolder()
     {
         static ReadOnlySpan<char> TrySlice(ReadOnlySpan<char> src)
         {
@@ -75,27 +77,66 @@ public class AssetFolder
             return maybeFound is not null ? src.Slice(idx + 1) : src;
         }
 
-        //Match_3.Assets.Sprites.GUI.BackGround.Welcome.<file>.<format>
-        AssetFolder head = new("Assets");
-        AssetFolder current = head;
-        AssetFolder next = head;
+        static ReadOnlySpan<char> GetNextSubFolderByNestLvl(ReadOnlySpan<char> currentFolder, int nestingLvl)
+        {
+            int i = 0;
+            ReadOnlySpan<char> result = currentFolder;
+            //we do not want to slice 1x more, the loop shall stop at the last found '/'
+            int maxNesting = nestingLvl;
+            
+            while (i++ < maxNesting)
+            {
+                //sprites/gui/button
+                var found = currentFolder.IndexOf('\\');
+                result =  currentFolder[(found+1)..];
+            }
 
-        using var folderIterator = new BidirectionalEnumerator<string>(head.YieldSubFolders().GetEnumerator());
+            return result;
+        }
+        
+        static View<char> Dequeue(Queue<View<char>> buffer, int nestingLvl, bool shallPrepare)
+        {
+            // return nestingLvl > 0 ? GetNextSubFolderByNestLvl(buffer.Dequeue(), nestingLvl).ToString() : buffer.Dequeue();
+            View<char> result;
+            
+            if (shallPrepare)
+            {
+                var first = buffer.Dequeue() ;
+                result = new(GetNextSubFolderByNestLvl(first, nestingLvl));
+            }
+            else
+            {
+                result = buffer.Dequeue();
+            }
+
+            return result;
+        }
+
+        //Match_3.Assets.Sprites.GUI.BackGround.Welcome.<file>.<format>
+        AssetFolder head = new(new("Assets"));
+        using var folderIterator = head.YieldSubFolders().GetEnumerator();
+        AssetFolder next = head;
+        Queue<View<char>> buffer = new(2);
+        bool shallPrepare;
+        int currNestLvl = -1;
         
         AssetFolder IterateRecursively()
         {
-            //...need to think exactly how to do that....
             while (folderIterator.MoveNext())
             {
-                ReadOnlySpan<char> currFolderName = folderIterator.Current;
-              
+                var (folderName, nestingLvl) = folderIterator.Current;
+                buffer.Enqueue(folderName);
+                var currFolderName = Dequeue(buffer, nestingLvl, currNestLvl < nestingLvl);
+                shallPrepare = currNestLvl == nestingLvl;
+                
                 //next level nesting was found
-                if (currFolderName.Contains('\\'))
+                if (shallPrepare)
                 {
-                    next = current;
+                    next = head.First(x => currFolderName.AsSpan().StartsWith(x.Name, StringComparison.OrdinalIgnoreCase));
+                    buffer.Enqueue(folderName);
                     return IterateRecursively();
                 }
-                current = next.AddSubFolder(currFolderName);
+                next.AddSubFolder(currFolderName);
             }
             return head;
         }
@@ -103,7 +144,17 @@ public class AssetFolder
         return IterateRecursively();
     }
 
+    public IEnumerator<AssetFolder> GetEnumerator()
+    {
+        return ((IEnumerable<AssetFolder>)SubAssetFolders).GetEnumerator();
+    }
+
     public override string ToString() => Name.ToString();
+    
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
 }
 
 public unsafe class AssetManager : IDisposable
@@ -173,7 +224,7 @@ public unsafe class AssetManager : IDisposable
 
     public void LoadAssets()
     {
-        var assets = AssetFolder.LoadAssetFolder(11);
+        var assets = AssetFolder.LoadAssetFolder();
     }
 
     public void Dispose()
