@@ -38,11 +38,21 @@ public class AssetFolder : IEnumerable<AssetFolder>
 
     private IEnumerable<(View<char> folderName, int nestLvl)> YieldSubFolders()
     {
+        static unsafe ReadOnlySpan<char>  FirstLetter2Upper(ReadOnlySpan<char> input)
+        {
+            fixed (char* p = input)
+            {
+                *p = char.ToUpper(*p);
+            }
+
+            return input;
+        }
+        
         return
             from fullAssetPath in _folders.Value
             let beginOfAssetFolder = fullAssetPath.AsSpan().IndexOf(Name, StringComparison.Ordinal)
             let endOfAssetFolder = beginOfAssetFolder + Name.Length + 1
-            let folderName = new View<char>(fullAssetPath.AsSpan(endOfAssetFolder..).FirstLetter2Upper())
+            let folderName = new View<char>(FirstLetter2Upper(fullAssetPath.AsSpan(endOfAssetFolder..)))
             let depth = folderName.AsSpan().Count('\\') + 1
             select (folderName, depth);
     }

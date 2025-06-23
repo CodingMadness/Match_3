@@ -119,21 +119,6 @@ public static class SpanUtility
     public static void Shuffle<T>(this Span<T> span)
     {
     }
-
-    public static unsafe ReadOnlySpan<char>  FirstLetter2Upper(this ReadOnlySpan<char> input)
-    {
-        AssetFolder a = new()
-        {
-            Name = new("bla")
-        };
-      
-        fixed (char* p = input)
-        {
-            *p = char.ToUpper(*p);
-        }
-
-        return input;
-    }
 }
 
 public static class BaseTypeUtility
