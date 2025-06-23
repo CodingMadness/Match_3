@@ -32,7 +32,7 @@ public readonly struct View<T>(in ReadOnlySpan<T> data)
     public ReadOnlySpan<T> AsSpan() => this;
    // public static implicit operator View<T>(scoped in ReadOnlySpan<T> wrapper) => new(wrapper);
 
-    public override string ToString() => ((ReadOnlySpan<T>)this).ToString();
+    public override string ToString() => AsSpan().ToString();
 }
 
 public readonly struct Segment

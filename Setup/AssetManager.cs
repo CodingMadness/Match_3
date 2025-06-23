@@ -12,14 +12,11 @@ namespace Match_3.Setup;
 
 public class AssetFolder : IEnumerable<AssetFolder>
 {
-    private List<AssetFolder> SubAssetFolders { get; }
-
-    private List<string> Files { get; init; }
-
-    public View<char> Name { get; init; }
-
+    private List<AssetFolder> SubAssetFolders { get; } = [];
+    public required View<char> Name { get; init; }
+    public required int Depth { get; init; }
+    
     public static readonly Assembly Root = Assembly.GetExecutingAssembly();
-
     private static readonly Lazy<IEnumerable<string>> _folders = new(() =>
     {
         var asmLocation = Root.Location;
@@ -46,63 +43,68 @@ public class AssetFolder : IEnumerable<AssetFolder>
             let beginOfAssetFolder = fullAssetPath.AsSpan().IndexOf(Name, StringComparison.Ordinal)
             let endOfAssetFolder = beginOfAssetFolder + Name.Length + 1
             let folderName = new View<char>(fullAssetPath.AsSpan(endOfAssetFolder..).FirstLetter2Upper())
-            let subLvlCount = folderName.AsSpan().Count('\\')
-            select (folderName, subLvlCount);
+            let depth = folderName.AsSpan().Count('\\') + 1
+            select (folderName, depth);
     }
-
-    public AssetFolder(View<char> name)
+    private void AddSubFolder(ReadOnlySpan<char> name, int depth)
     {
-        Name = name;
-        SubAssetFolders = new();
-        Files = new();
-    }
-
-    private void AddSubFolder(ReadOnlySpan<char> name)
-    {
-        var folder = new AssetFolder(new(name))
+        var folder = new AssetFolder
         {
-            Files = new(0),
             Name = new(name),
+            Depth = depth
         };
 
         SubAssetFolders.Add(folder);
     }
 
+    public static IEnumerable<AssetFolder> GetFoldersAtDepthBFS(AssetFolder root, int targetDepth)
+    {
+        var queue = new Queue<(AssetFolder folder, int depth)>();
+        queue.Enqueue((root, 0));
+
+        while (queue.Count > 0)
+        {
+            var (current, depth) = queue.Dequeue();
+        
+            if (depth == targetDepth)
+            {
+                yield return current;
+            }
+            else if (depth < targetDepth)
+            {
+                foreach (ref var subfolder in CollectionsMarshal.AsSpan(current.SubAssetFolders))
+                {
+                    queue.Enqueue((subfolder, depth + 1));
+                }
+            }
+        }
+    }
     public static AssetFolder LoadAssetFolder()
     {
-        static ReadOnlySpan<char> TrySlice(ReadOnlySpan<char> src)
-        {
-            int idx = src.LastIndexOf('\\');
-            int? maybeFound = idx == -1 ? null : idx;
-            return maybeFound is not null ? src.Slice(idx + 1) : src;
-        }
-
-        static ReadOnlySpan<char> GetNextSubFolderByNestLvl(ReadOnlySpan<char> currentFolder, int nestingLvl)
+        static ReadOnlySpan<char> GetNextSubFolderByNestLvl(ReadOnlySpan<char> currentFolder, int depth)
         {
             int i = 0;
-            ReadOnlySpan<char> result = currentFolder;
             //we do not want to slice 1x more, the loop shall stop at the last found '/'
-            int maxNesting = nestingLvl;
-            
-            while (i++ < maxNesting)
+            int iterations = depth-1;
+
+            while (i++ < iterations)
             {
                 //sprites/gui/button
                 var found = currentFolder.IndexOf('\\');
-                result =  currentFolder[(found+1)..];
+                currentFolder = currentFolder[(found + 1)..];
             }
 
-            return result;
+            return currentFolder;
         }
-        
-        static View<char> Dequeue(Queue<View<char>> buffer, int nestingLvl, bool shallPrepare)
+
+        static View<char> GetFolderName(Queue<View<char>> buffer, int folderDepth)
         {
-            // return nestingLvl > 0 ? GetNextSubFolderByNestLvl(buffer.Dequeue(), nestingLvl).ToString() : buffer.Dequeue();
             View<char> result;
-            
-            if (shallPrepare)
+
+            if (folderDepth > 1)
             {
-                var first = buffer.Dequeue() ;
-                result = new(GetNextSubFolderByNestLvl(first, nestingLvl));
+                var first = buffer.Dequeue();
+                result = new(GetNextSubFolderByNestLvl(first, folderDepth));
             }
             else
             {
@@ -112,49 +114,49 @@ public class AssetFolder : IEnumerable<AssetFolder>
             return result;
         }
 
+        static AssetFolder GetParentFolder(AssetFolder head, int depth, View<char> fullFolderPath, View<char> childFolderName)
+        {
+            int parentLvl = depth - 1;
+            var foldersFromDepth = GetFoldersAtDepthBFS(head, parentLvl);
+            return foldersFromDepth.First(folder => fullFolderPath.AsSpan().EndsWith(Path.Join(folder.Name, childFolderName)));
+        }
+        
         //Match_3.Assets.Sprites.GUI.BackGround.Welcome.<file>.<format>
-        AssetFolder head = new(new("Assets"));
+        AssetFolder head = new()
+        {
+            Name = new("Assets"),
+            Depth = 0
+        };
+        
         using var folderIterator = head.YieldSubFolders().GetEnumerator();
         AssetFolder next = head;
         Queue<View<char>> buffer = new(2);
-        bool shallPrepare;
-        int currNestLvl = -1;
+        int currDepth = 1;
         
-        AssetFolder IterateRecursively()
+        while (folderIterator.MoveNext())
         {
-            while (folderIterator.MoveNext())
-            {
-                var (folderName, nestingLvl) = folderIterator.Current;
-                buffer.Enqueue(folderName);
-                var currFolderName = Dequeue(buffer, nestingLvl, currNestLvl < nestingLvl);
-                shallPrepare = currNestLvl == nestingLvl;
+            var (view, depth) = folderIterator.Current;
+            buffer.Enqueue(view);
+            var folderName = GetFolderName(buffer, depth);
                 
-                //next level nesting was found
-                if (shallPrepare)
-                {
-                    next = head.First(x => currFolderName.AsSpan().StartsWith(x.Name, StringComparison.OrdinalIgnoreCase));
-                    buffer.Enqueue(folderName);
-                    return IterateRecursively();
-                }
-                next.AddSubFolder(currFolderName);
+            if (depth > currDepth)
+            {
+                next = GetParentFolder(head, depth, view, folderName);
+                currDepth++;
             }
-            return head;
+
+            next.AddSubFolder(folderName,  depth);
         }
 
-        return IterateRecursively();
+        return head;
     }
 
-    public IEnumerator<AssetFolder> GetEnumerator()
-    {
-        return ((IEnumerable<AssetFolder>)SubAssetFolders).GetEnumerator();
-    }
-
-    public override string ToString() => Name.ToString();
-    
+    public IEnumerator<AssetFolder> GetEnumerator() => SubAssetFolders.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();
     }
+    public override string ToString() => Name.ToString();
 }
 
 public unsafe class AssetManager : IDisposable
