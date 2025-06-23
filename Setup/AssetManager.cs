@@ -6,6 +6,7 @@ using DotNext.Buffers;
 using ImGuiNET;
 using Match_3.DataObjects;
 using Match_3.Service;
+using NetFabric.Hyperlinq;
 using Raylib_cs;
 
 namespace Match_3.Setup;
@@ -39,7 +40,6 @@ public class AssetFolder : IEnumerable<AssetFolder>
     {
         return
             from fullAssetPath in _folders.Value
-            orderby '\\'
             let beginOfAssetFolder = fullAssetPath.AsSpan().IndexOf(Name, StringComparison.Ordinal)
             let endOfAssetFolder = beginOfAssetFolder + Name.Length + 1
             let folderName = new View<char>(fullAssetPath.AsSpan(endOfAssetFolder..).FirstLetter2Upper())
@@ -97,9 +97,10 @@ public class AssetFolder : IEnumerable<AssetFolder>
             return currentFolder;
         }
 
-        static View<char> GetFolderName(Queue<View<char>> buffer, int folderDepth)
+        static View<char> GetFolderName(View<char> fullFolderPath, Queue<View<char>> buffer, int folderDepth)
         {
             View<char> result;
+            buffer.Enqueue(fullFolderPath);
 
             if (folderDepth > 1)
             {
@@ -127,7 +128,6 @@ public class AssetFolder : IEnumerable<AssetFolder>
             Name = new("Assets"),
             Depth = 0
         };
-        
         using var folderIterator = head.YieldSubFolders().GetEnumerator();
         AssetFolder next = head;
         Queue<View<char>> buffer = new(2);
@@ -135,13 +135,12 @@ public class AssetFolder : IEnumerable<AssetFolder>
         
         while (folderIterator.MoveNext())
         {
-            var (view, depth) = folderIterator.Current;
-            buffer.Enqueue(view);
-            var folderName = GetFolderName(buffer, depth);
+            var (fullFolderPath, depth) = folderIterator.Current;
+            var folderName = GetFolderName(fullFolderPath, buffer, depth);
                 
             if (depth > currDepth)
             {
-                next = GetParentFolder(head, depth, view, folderName);
+                next = GetParentFolder(head, depth, fullFolderPath, folderName);
                 currDepth++;
             }
 
