@@ -13,7 +13,7 @@ namespace Match_3.Setup;
 
 public class AssetFolder : IEnumerable<AssetFolder>
 {
-    private List<AssetFolder> SubAssetFolders { get; } = [];
+    private readonly List<AssetFolder> SubAssetFolders = [];
     public required View<char> Name { get; init; }
     public required int Depth { get; init; }
     
@@ -56,25 +56,24 @@ public class AssetFolder : IEnumerable<AssetFolder>
 
         SubAssetFolders.Add(folder);
     }
-
-    public static IEnumerable<AssetFolder> GetFoldersAtDepthBFS(AssetFolder root, int targetDepth)
+    private static IEnumerable<AssetFolder> GetFoldersAtDepthBFS(AssetFolder root, int targetDepth)
     {
-        var queue = new Queue<(AssetFolder folder, int depth)>();
-        queue.Enqueue((root, 0));
+        var queue = new Queue<AssetFolder>();
+        queue.Enqueue(root);
 
         while (queue.Count > 0)
         {
-            var (current, depth) = queue.Dequeue();
+            var current = queue.Dequeue();
         
-            if (depth == targetDepth)
+            if (current.Depth == targetDepth)
             {
                 yield return current;
             }
-            else if (depth < targetDepth)
+            else if (current.Depth < targetDepth)
             {
                 foreach (ref var subfolder in CollectionsMarshal.AsSpan(current.SubAssetFolders))
                 {
-                    queue.Enqueue((subfolder, depth + 1));
+                    queue.Enqueue(subfolder);
                 }
             }
         }
@@ -140,7 +139,7 @@ public class AssetFolder : IEnumerable<AssetFolder>
                 
             if (depth > currDepth)
             {
-                next = GetParentFolder(head, depth, fullFolderPath, folderName);
+                next = GetParentFolder(next, depth, fullFolderPath, folderName);
                 currDepth++;
             }
 
@@ -149,7 +148,6 @@ public class AssetFolder : IEnumerable<AssetFolder>
 
         return head;
     }
-
     public IEnumerator<AssetFolder> GetEnumerator() => SubAssetFolders.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator()
     {

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DotNext.Runtime.InteropServices;
 using Match_3.DataObjects;
+using Match_3.Setup;
 
 namespace Match_3.Service;
 
@@ -121,6 +122,11 @@ public static class SpanUtility
 
     public static unsafe ReadOnlySpan<char>  FirstLetter2Upper(this ReadOnlySpan<char> input)
     {
+        AssetFolder a = new()
+        {
+            Name = new("bla")
+        };
+      
         fixed (char* p = input)
         {
             *p = char.ToUpper(*p);
