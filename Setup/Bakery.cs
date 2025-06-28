@@ -28,7 +28,7 @@ public static class Bakery
         };
     }
 
-    public static Tile CreateTile(in SingleCell cell, TileColorTypes kind)
+    public static Tile CreateTile(in Cell cell, TileColorTypes kind)
     {
         var tile = new Tile
         {

@@ -265,8 +265,8 @@ public readonly struct UpAndDownScale(float speed = 1f, float min = 1f, float ma
     {
         scale.Change();
         (Rectangle newBox, var factor) = (default, _factor + 1f);
-        newBox.Width = (int)(rect.GridBox.Width * factor);
-        newBox.Height = (int)(rect.GridBox.Height * factor);
+        newBox.Width = (int)(rect.Skeleton.Width * factor);
+        newBox.Height = (int)(rect.Skeleton.Height * factor);
         return newBox;
     }
 

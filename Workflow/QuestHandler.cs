@@ -31,7 +31,7 @@ file static class SingletonManager
 
             if (constructor == null)
             {
-                throw new InvalidOperationException($"Type {typeof(T).Name} must have a parameterless constructor (private or protected).");
+                throw new InvalidOperationException($"Format {typeof(T).Name} must have a parameterless constructor (private or protected).");
             }
 
             // Now create the instance (suppress warning since we've validated at runtime)

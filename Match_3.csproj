@@ -51,6 +51,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="NoAlloq" Version="0.2.0" />
+    <PackageReference Include="OneOf" Version="3.0.271" />
     <PackageReference Include="Raylib-cs" Version="7.0.1" />
     <PackageReference Include="rlImgui-cs" Version="3.2.0" />
   </ItemGroup>
@@ -66,16 +67,12 @@
     <None Remove="Assets\Sprites\Background\bg1.png" />
     <None Remove="Assets\Sprites\Background\bg2.png" />
     <None Remove="Assets\Sprites\Background\bg3.png" />
-       
-
     <None Remove="Wobble_Shader.frag" />
        
 
     <EmbeddedResource Include="Assets\Fonts\font6.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-       
-
     <EmbeddedResource Include="Assets\Shaders\wobble2.frag">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>

@@ -92,7 +92,7 @@ public struct SpanPool<T>(int length, int? sliceCount2Track) : IDisposable where
     }
 
     /// <summary>
-    /// Gives you back a slice within the buffer based on <param name="index"></param>
+    /// Gives you back a slice within the Content based on <param name="index"></param>
     /// if 'sliceCount2Track' is not null otherwise throws notsupported exception
     /// </summary>
     /// <returns>The Span based on <param name="index"></param></returns>

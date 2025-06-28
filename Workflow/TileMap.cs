@@ -28,7 +28,7 @@ public static class TileMap
             for (int y = (int)begin.Y; y < twoBy4Block.Y-1; y++)
             {
                 Vector2 current = new(x, y);
-                SingleCell cell = new Vector2(current.X, current.Y);
+                Cell cell = new Vector2(current.X, current.Y);
                 Tile tmpTile = _map[x, y] = Bakery.CreateTile(cell, allKinds[j++]);
                 int index = FadeableColor.ToIndex(tmpTile.Body.Colour.Type);
                 counts[index]++;

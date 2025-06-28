@@ -12,7 +12,7 @@ namespace Match_3.Workflow;
 //TODO: 3. Fix the entire "QuestHandler" related Event logic, like what shall happen when certain tiles or matches are done, etc...
 //TODO: 4. Write the algorithm for "TileGraph" which shall exchange 1 Graph with another so that there are not any distant tiles anymore
 //TODO: 5. Investigate why their is a long delay when you close the window via top-right red [X] button, it has something to do with the
-//         AssetManager and the internal buffer being leaked.
+//         AssetManager and the internal Content being leaked.
 public static class Game
 {
     public static Config ConfigPerStartUp { get; private set; } = null!;
@@ -38,7 +38,7 @@ public static class Game
         {
             Raylib.SetConfigFlags(ConfigFlags.BorderlessWindowMode);
             Raylib.InitWindow(ConfigPerStartUp.WindowWidth, ConfigPerStartUp.WindowHeight, "Match3 By Shpendicus");
-            Raylib.SetTextureFilter(AssetManager.Instance.DefaultTileAtlas, TextureFilter.Bilinear);
+            // Raylib.SetTextureFilter(AssetManager.Instance.DefaultTileAtlas, TextureFilter.Bilinear);
             Raylib.SetTargetFPS(144);
         }
 
@@ -46,7 +46,7 @@ public static class Game
         {
             //<this has to be initialized RIGHT HERE in order to work!>
             rlImGui.BeginInitImGui();
-            AssetManager.Instance.LoadAssets();
+            AssetManager.Instance.LoadAssetFolder();
             AssetManager.Instance.Dispose();
             rlImGui.EndInitImGui();
             // For raylib only, because raylib needs to update the imgui-font at gpu-level;
@@ -84,7 +84,7 @@ public static class Game
                     if (!Raylib.IsMouseButtonPressed(MouseButton.Left))
                         return false;
 
-                    SingleCell tileCell = Raylib.GetMousePosition();
+                    Cell tileCell = Raylib.GetMousePosition();
                     tile = TileMap.GetTile(tileCell.Start);
                     // Console.WriteLine(tile);
                     return tile is not null;

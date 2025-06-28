@@ -3,9 +3,7 @@ global using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAtt
 global using DAMTypes = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using DotNext.Runtime.InteropServices;
 using Match_3.DataObjects;
-using Match_3.Setup;
 
 namespace Match_3.Service;
 
@@ -13,7 +11,7 @@ public static class SpanUtility
 {
     public static readonly Random Randomizer = new(DateTime.UtcNow.Ticks.GetHashCode());
 
-    public static void Replace(this ReadOnlySpan<char> input,
+    public static ReadOnlySpan<char> Replace(this ReadOnlySpan<char> input,
         ReadOnlySpan<char> oldValue,
         ReadOnlySpan<char> newValue)
     {
@@ -42,6 +40,8 @@ public static class SpanUtility
                 tmpOld[newValueLen..].Clear();
             }
         }
+
+        return input;
     }
 
     public static Span<T> Mutable<T>(this scoped in ReadOnlySpan<T> readOnlySpan) =>

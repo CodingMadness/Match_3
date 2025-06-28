@@ -209,7 +209,7 @@ public static class UiRenderer
             ImGui.SetCursorPos(current);
         }
 
-        scoped var formatTextEnumerator = new FormatTextEnumerator(logger.CurrentLog, offset, TextAlignmentRule.ColoredSegmentsInOneLine);
+        scoped var formatTextEnumerator = new FormatTextEnumerator(logger.CurrentLog, offset, WrappingRule.PatternBased);
         Vector2 fixStartingPos = Vector2.Zero;
         bool hasBeenExecuted = false;
         Vector2 current = Vector2.Zero;
@@ -264,7 +264,7 @@ public static class TileRenderer
 
                     if (basicTile is not null && !basicTile.IsDeleted)
                     {
-                        DrawTile(AssetManager.Instance.DefaultTileAtlas, basicTile, elapsedTime);
+                        //DrawTile(AssetManager.Instance.DefaultTileAtlas, basicTile, elapsedTime);
                     }
                 }
             }
@@ -280,7 +280,7 @@ public static class TileRenderer
         foreach (var tile in match)
         {
             tile.Body.ScaleBox(currTime);
-            DrawTile(AssetManager.Instance.DefaultTileAtlas, tile, currTime);
+            //DrawTile(AssetManager.Instance.DefaultTileAtlas, tile, currTime);
         }
     }
 }
