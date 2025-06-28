@@ -1,10 +1,8 @@
-using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 using DotNext.Buffers;
-using DotNext.Runtime;
 using Match_3.DataObjects;
 
 namespace Match_3.Service;
@@ -95,7 +93,7 @@ public ref partial struct FormatTextEnumerator
     private readonly SpanOwner<Segment?> _allSegments;
     private readonly ReadOnlySpan<char> _text;
     private WordEnumerator _wordEnumerator;
-    private readonly TextAlignmentRule? AlignmentRule;
+    private readonly WrappingRule? AlignmentRule;
 
     public Vector2 TotalTextSize
     {
@@ -106,14 +104,11 @@ public ref partial struct FormatTextEnumerator
 
             switch (AlignmentRule)
             {
-                case TextAlignmentRule.ColoredSegmentsInOneLine:
+                case WrappingRule.PatternBased:
                 {
-                    foreach (var segment in _allSegments.Span)
+                    foreach (ref var segment in _allSegments.Span)
                     {
-                        if (segment is null)
-                            continue;
-
-                        if (segment.Value.ShouldWrap is not null &&
+                        if (segment?.ShouldWrap != null &&
                             segment.Value.ShouldWrap.Value)
                         {
                             field += segment.Value.TextSize;
@@ -126,7 +121,7 @@ public ref partial struct FormatTextEnumerator
     }
 
     private Segment GetNextSegment(ValueMatch match, CanvasOffset? offset,
-        TextAlignmentRule? rule)
+        WrappingRule? rule)
     {
         var color2Use = _text.Slice(match.Index, match.Length);
         int endOfColorCode = match.Index + match.Length;
@@ -151,7 +146,7 @@ public ref partial struct FormatTextEnumerator
 
     public FormatTextEnumerator(ReadOnlySpan<char> text,
         CanvasOffset? offset = null,
-        TextAlignmentRule? alignmentRule = null,
+        WrappingRule? alignmentRule = null,
         int nrOfSlices2Format = 10,
         bool skipBlackColor = false)
     {
@@ -225,83 +220,4 @@ public ref partial struct FormatTextEnumerator
 
     [GeneratedRegex(pattern: @"\([a-zA-Z0-9\0]+\)", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex FindAllColorCodes();
-}
-
-public class BidirectionalEnumerator<T> : IEnumerator<T>
-{
-    private readonly IEnumerator<T> _forwardEnumerator;
-    private readonly Stack<T> _buffer;
-    private T _current;
-    private bool _firstItemAdded;
-
-    public BidirectionalEnumerator(IEnumerator<T> forwardEnumerator)
-    {
-        _forwardEnumerator = forwardEnumerator;
-        _buffer = new(15);
-        _current = default!;
-    }
-
-    public T Current => _current;
-    object IEnumerator.Current => Current!;
-
-    public bool MoveNext()
-    {
-        if (!_forwardEnumerator.MoveNext())
-            return false;
-
-        if (_current != null)
-            _buffer.Push(_current);
-        
-        _current = _forwardEnumerator.Current;
-        
-        _firstItemAdded = true;
-        
-        return true;
-    }
-
-    public void MoveBack()
-    {
-        if (_buffer.Count is 0)
-            return;
-        
-        
-    }
-
-    public void Dispose() => _forwardEnumerator.Dispose();
-    
-    public void Reset() => throw new NotSupportedException();
-}
-
-public class BufferedEnumerator<T>
-{
-    private readonly IEnumerator<T> _enumerator;
-    private readonly Queue<T> _buffer = new Queue<T>(1);
-    private bool _hasBufferedItem;
-    
-    public BufferedEnumerator(IEnumerable<T> source)
-    {
-        _enumerator = source.GetEnumerator();
-    }
-    
-    public bool MoveNext()
-    {
-        if (_hasBufferedItem)
-        {
-            _hasBufferedItem = false;
-            return true;
-        }
-        return _enumerator.MoveNext();
-    }
-    
-    public bool MoveBack()
-    {
-        if (_buffer.Count == 0) return false;
-        _hasBufferedItem = true;
-        Current = _buffer.Dequeue();
-        return true;
-    }
-    
-    public T Current { get; private set; }
-    
-    public void Dispose() => _enumerator.Dispose();
 }
