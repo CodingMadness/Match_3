@@ -1,8 +1,11 @@
 ﻿global using TileColorTypes = System.Drawing.KnownColor;
 global using Comparer = Match_3.Service.Comparer;
 using System.Collections;
+using System.Data.SqlTypes;
 using System.Diagnostics.Contracts;
 using System.Drawing;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using DotNext.Collections.Generic;
@@ -35,34 +38,29 @@ public enum Layout : byte
     Linear
 }
 
-public interface ICell
+public interface ICoordinates
 {
     public Vector2 Start { get; }
+    public Vector2 End { get; }
 
-    public int Count { get; }
+    public float Distance(ICoordinates other) => Vector2.Distance(Start, other.Start);
 
-    public bool IsEmpty => Count is 0;
-
-    public Vector2 WorldPos => Start * Config.TileSize;
-
-    public float Distance(Vector2 other) => Vector2.Distance(Start, other);
-
-    public bool IsDiagonal(Vector2 other)
+    public bool IsDiagonal(ICoordinates other)
     {
-        float distanceX = Math.Abs(Start.X - other.X);
-        float distanceY = MathF.Abs(Start.Y - other.Y);
+        float distanceX = Math.Abs(Start.X - other.Start.X);
+        float distanceY = MathF.Abs(Start.Y - other.Start.Y);
         return (int)distanceX == (int)distanceY;
     }
 
-    public Vector2 GetDirectionTo(Vector2 next)
+    public Vector2 GetDirectionTo(ICoordinates next)
     {
-        Vector2 direction = Vector2.Normalize(Start - next);
-        float distance = Vector2.Distance(Start, next);
-        Vector2 newVector = Start + direction * distance;
+        Vector2 direction = Vector2.Normalize(Start - next.Start);
+        float distance = Vector2.Distance(Start, next.Start);
+        var newVector = Start + direction * distance;
         return newVector;
     }
 
-    public Vector2 GetDiametricalCell(Vector2 begin)
+    public Vector2 GetDiametricalCell(ICoordinates begin)
     {
         var direction = GetDirectionTo(begin);
         return Vector2.Negate(direction);
@@ -71,72 +69,25 @@ public interface ICell
     public string ToString() => $"Starts at: {Start}";
 }
 
-public interface IMultiCell : ICell
-{
-    public SingleCell Begin { get; }
-    public SingleCell End { get; }
-    public Direction Route { get; }
-    
-    public static Layout GetLayoutFrom(Direction route)
-    {
-        return route switch
-        {
-            Direction.Right or Direction.Left
-                or Direction.Top or Direction.Bot => Layout.Linear,
-
-            Direction.DiagonalBotLeft or Direction.DiagonalBotRight
-                or Direction.DiagonalTopLeft or Direction.DiagonalTopRight => Layout.Diagonal,
-
-            Direction.RectBotLeft or Direction.RectBotRight
-                or Direction.RectTopLeft or Direction.RectTopRight
-                or Direction.EntireMap => Layout.Block,
-
-            _ or _ => throw new ArgumentOutOfRangeException(nameof(route), route, null)
-        };
-    }
-
-    public Layout Layout => GetLayoutFrom(Route);
-
-    public new string ToString() => $"Starts at: {Begin.Start} and ends at: {End.Start}";
-}
-
-public interface IGridRect : ICell
+public interface IGridRect : ICoordinates
 {
     public Size UnitSize { get; }
-    public new int Count => UnitSize.Width * UnitSize.Height;
-    public Rectangle GridBox => new((int)Start.X, (int)Start.Y, UnitSize.Width, UnitSize.Width);
+    public int Count => UnitSize.Width * UnitSize.Height;
+    public Rectangle Skeleton => new((int)Start.X, (int)Start.Y, UnitSize.Width, UnitSize.Width);
 }
 
 [StructLayout(LayoutKind.Auto)]
-public readonly struct SingleCell : IGridRect
+public readonly struct Cell : IGridRect
 {
-    public static implicit operator SingleCell(Vector2 position)
-    {
-        var gameWindowSize = Game.ConfigPerStartUp.WindowInGridCoordinates;
-        var gridPos = new Vector2((int)position.X, (int)position.Y);
-
-        if (gridPos.Length() <= gameWindowSize.Length())
-        {
-            return new()
-            {
-                Start = gridPos,
-            };
-        }
-
-        return gridPos / Config.TileSize;
-    }
-
-    public static implicit operator Vector2(SingleCell position) => position.Start;
-
     public required Vector2 Start { get; init; }
-
-    public int Count => 1; //1x1, cause UnitSize=1x1
-
+    public Vector2 End => Start;
     public Size UnitSize => new(1, 1);
+    public static implicit operator Cell(Vector2 position) => new() { Start = position };
+    public static implicit operator Vector2(Cell position) => position.Start;
 }
 
 [StructLayout(LayoutKind.Auto)]
-public readonly struct Grid : IGridRect, IMultiCell
+public readonly struct Grid : IGridRect
 {
     public ref struct CellEnumerator
     {
@@ -149,9 +100,9 @@ public readonly struct Grid : IGridRect, IMultiCell
         private readonly int _currLine;
         private readonly int _direction;
 
-        public CellEnumerator(Grid caller)
+        public CellEnumerator(in Grid caller)
         {
-            _totalCount = ((ICell)_caller).Count;
+            _totalCount = ((IGridRect)_caller).Count;
             _currLine = _totalCount / caller.UnitSize.Height; //this gets us the 'width'
             _direction = (_caller.Route switch
             {
@@ -167,7 +118,7 @@ public readonly struct Grid : IGridRect, IMultiCell
 
         private Vector2 GetNextCell()
         {
-            _current = _caller.Begin.Start with { Y = _caller.Begin.Start.Y + _direction };
+            _current = _caller.Start.Start with { Y = _caller.Start.Start.Y + _direction };
             //need to know the exact amount of rows/columns!
 
             if (_nextLine++ < _currLine)
@@ -194,11 +145,11 @@ public readonly struct Grid : IGridRect, IMultiCell
         public void Reset()
         {
             _currCount = 0;
-            _current = _caller.Begin;
+            _current = _caller.Start;
             _nextLine = 0;
         }
 
-        public readonly SingleCell Current => _current;
+        public readonly Cell Current => _current;
 
         public void Dispose()
         {
@@ -207,14 +158,14 @@ public readonly struct Grid : IGridRect, IMultiCell
     }
 
     public required Direction Route { get; init; }
-    public required SingleCell Begin { get; init; }
+    public required Cell Start { get; init; }
 
-    public SingleCell End
+    public Cell End
     {
         get
         {
             var step = new Vector2(UnitSize.Width, UnitSize.Height);
-            Vector2 start = Begin;
+            Vector2 start = Start;
 
             return Route switch
             {
@@ -232,20 +183,19 @@ public readonly struct Grid : IGridRect, IMultiCell
 
     public CellEnumerator GetEnumerator()
     {
-        return new CellEnumerator(this);
+        return new CellEnumerator(in Unsafe.AsRef(in this));
     }
 
-    Vector2 ICell.Start => Begin.Start;
-
-    int ICell.Count => ((IGridRect)this).Count;
-
-    public new string ToString() => ((IMultiCell)this).ToString();
+    Vector2 ICoordinates.Start => Start;
+    Vector2 ICoordinates.End => End;
+    
+    public new string ToString() => ((IGridRect)this).Skeleton.ToString();
 }
 
 [StructLayout(LayoutKind.Auto)]
-public readonly struct LinearCellLine : IGridRect, IMultiCell
+public readonly struct Line : IGridRect
 {
-    Vector2 ICell.Start => Begin.Start;
+    Vector2 ICoordinates.Start => Begin.Start;
 
     public Size UnitSize
     {
@@ -260,7 +210,7 @@ public readonly struct LinearCellLine : IGridRect, IMultiCell
         }
     }
 
-    public SingleCell End
+    public Cell End
     {
         get
         {
@@ -275,28 +225,29 @@ public readonly struct LinearCellLine : IGridRect, IMultiCell
         }
     }
 
-    public required SingleCell Begin { get; init; }
+    public required Cell Begin { get; init; }
     public required Direction Route { get; init; }
     public required int Count { get; init; }
 
-    public IEnumerator<ICell> GetEnumerator()
+    Vector2 ICoordinates.End => End;
+    
+    public IEnumerator<ICoordinates> GetEnumerator()
     {
         throw new NotImplementedException();
     }
 
-    public override string ToString() => $"{((IMultiCell)this).ToString()} and follows {Route} pathing";
+    public override string ToString() => $"{((IGridRect)this).ToString()} and follows {Route} pathing";
 }
 
 [StructLayout(LayoutKind.Auto)]
-public readonly struct DiagonalCellLine : IMultiCell
+public readonly struct Diagonal : IGridRect
 {
-    public required SingleCell Begin { get; init; }
+    public required Cell Begin { get; init; }
+    public Size UnitSize { get; }
     public required int Count { get; init; }
     public required Direction Route { get; init; }
-
-    Vector2 ICell.Start => Begin.Start;
-
-    public SingleCell End
+    
+    public Cell End
     {
         get
         {
@@ -311,34 +262,15 @@ public readonly struct DiagonalCellLine : IMultiCell
         }
     }
 
-    public IEnumerator<ICell> GetEnumerator()
+    public IEnumerator<ICoordinates> GetEnumerator()
     {
         throw new NotImplementedException();
     }
 
-    public override string ToString() => ((IMultiCell)this).ToString();
-}
-
-public class MultiCell<TCell> : IMultiCell where TCell : struct, IMultiCell
-{
-    public TCell Cell;
-
-    // Implement IMultiCell interface methods by delegating to 'Cell'
-    public Vector2 Start => Cell.Start;
-
-    public int Count => Cell.Count;
-
-    public SingleCell Begin => Cell.Begin;
-
-    public SingleCell End => Cell.End;
-
-    public Direction Route => Cell.Route;
-
-    public Layout Layout => Cell.Layout;
-
-    public override string ToString() => ((IMultiCell)Cell).ToString();
-
-    public static MultiCell<TCell> FromIMultiCell(TCell self) => new() { Cell = self };
+    Vector2 ICoordinates.Start => Begin;
+    Vector2 ICoordinates.End => Begin;
+    
+    public override string ToString() => ((IGridRect)this).ToString();
 }
 
 public interface IGameObject
@@ -381,7 +313,7 @@ public class TileGraph : IEnumerable<Tile>
             Edges = 0;
         }
 
-        public SingleCell Cell => Root.Cell;
+        public Cell Cell => Root.Cell;
 
         Vector2 IGameObject.Position => Root.Cell.Start;
 
@@ -512,7 +444,7 @@ public class ConcreteShape : Texture
 public class ConcreteRectangularBody(IGridRect cellRect) : ConcreteShape
 {
     private UpAndDownScale _resizeFactor;
-    private Rectangle _scaledRect = cellRect.GridBox;
+    private Rectangle _scaledRect = cellRect.Skeleton;
 
     private Rectangle AsWorld => new(
         _scaledRect.X * Config.TileSize,
@@ -540,9 +472,9 @@ public class Tile : IGameObject
 {
     public TileState State { get; set; }
 
-    public SingleCell CellB4Swap { get; set; }
+    public Cell CellB4Swap { get; set; }
 
-    public required SingleCell Cell { get; set; }
+    public required Cell Cell { get; set; }
 
     public bool IsDeleted => State.HasFlag(TileState.Disabled) &&
                              State.HasFlag(TileState.NotRendered);
@@ -559,7 +491,7 @@ public class Tile : IGameObject
 
     Vector2 IGameObject.Position => Cell.Start;
 
-    public override string ToString() => $"SingleCell: {Cell.Start}; ---- {Body}";
+    public override string ToString() => $"Cell: {Cell.Start}; ---- {Body}";
 }
 
 public class MatchX : IGameObject, IEnumerable<Tile>
@@ -568,63 +500,64 @@ public class MatchX : IGameObject, IEnumerable<Tile>
 
     private readonly SortedSet<Tile> _matches = new(Comparer.CellComparer.Singleton);
 
-    private static readonly Dictionary<Layout, IMultiCell> CachedCellTemplates = new(3)
+    private static readonly Dictionary<Layout, IGridRect> CachedCellTemplates = new(3)
     {
         {
             Layout.Block,
-            MultiCell<Grid>.FromIMultiCell(new Grid
+            new Grid
             {
-                Begin = default,
+                Start = default,
                 UnitSize = default,
                 Route = Direction.None
-            })
+            }
         },
         {
             Layout.Linear,
-            MultiCell<LinearCellLine>.FromIMultiCell(new LinearCellLine
+            new Line
             {
                 Count = 0,
                 Begin = default,
                 Route = Direction.None
-            })
+            }
         },
         {
             Layout.Diagonal,
-            MultiCell<DiagonalCellLine>.FromIMultiCell(new DiagonalCellLine
+            new Diagonal
             {
                 Count = 0,
                 Begin = default,
                 Route = Direction.None,
-            })
+            }
         }
     };
 
     private static void ClearMatchBox(Direction lookUpUsedInMatchFinder)
     {
-        if (lookUpUsedInMatchFinder is Direction.None)
-            return;
-        var matchBox = CachedCellTemplates[IMultiCell.GetLayoutFrom(lookUpUsedInMatchFinder)];
-
-        switch (matchBox)
-        {
-            case MultiCell<LinearCellLine> wrapper:
-            {
-                wrapper.Cell = default;
-                break;
-            }
-            case MultiCell<DiagonalCellLine> wrapper:
-            {
-                wrapper.Cell = default;
-                break;
-            }
-        }
+        // if (lookUpUsedInMatchFinder is Direction.None)
+        //     return;
+        //
+        // var matchBox = CachedCellTemplates[IMultiCell.GetLayoutFrom(lookUpUsedInMatchFinder)];
+        //
+        // switch (matchBox)
+        // {
+        //     case Line wrapper:
+        //     {
+        //         wrapper.Cell = default;
+        //         break;
+        //     }
+        //     case Diagonal wrapper:
+        //     {
+        //         wrapper.Cell = default;
+        //         break;
+        //     }
+        // }
     }
 
     public int Count => _matches.Count;
 
     public bool IsMatchFilled => Count == Config.MaxTilesPerMatch;
 
-    private IMultiCell? _place;
+    // private IMultiCell? _place;
 
     public Tile? FirstInOrder { get; set; }
 
@@ -647,40 +580,40 @@ public class MatchX : IGameObject, IEnumerable<Tile>
 
     public void BuildMatchBox(Direction direction)
     {
-        //we use pre-cached cell types to avoid runtime-boxing,
-        //by instantiating them at startup and using a class as a wrapper for the actual
-        //structs which implement IMultiCell, so then we have allocation free interfaces.
-        var matchBox = CachedCellTemplates[IMultiCell.GetLayoutFrom(direction)];
-
-        switch (matchBox)
-        {
-            case MultiCell<LinearCellLine> wrapper:
-            {
-                var lcl = new LinearCellLine
-                {
-                    Begin = FirstInOrder!.Cell,
-                    Count = Count,
-                    Route = direction
-                };
-
-                wrapper.Cell = lcl;
-                break;
-            }
-            case MultiCell<DiagonalCellLine> wrapper:
-            {
-                var lcl = new DiagonalCellLine
-                {
-                    Begin = FirstInOrder!.Cell,
-                    Count = Count,
-                    Route = direction
-                };
-
-                wrapper.Cell = lcl;
-                break;
-            }
-        }
-
-        _place = matchBox;
+        // //we use pre-cached cell types to avoid runtime-boxing,
+        // //by instantiating them at startup and using a class as a wrapper for the actual
+        // //structs which implement IMultiCell, so then we have allocation free interfaces.
+        // var matchBox = CachedCellTemplates[IMultiCell.GetLayoutFrom(direction)];
+        //
+        // switch (matchBox)
+        // {
+        //     case MultiCell<Line> wrapper:
+        //     {
+        //         var lcl = new Line
+        //         {
+        //             Begin = FirstInOrder!.Cell,
+        //             Count = Count,
+        //             Route = direction
+        //         };
+        //
+        //         wrapper.Cell = lcl;
+        //         break;
+        //     }
+        //     case MultiCell<Diagonal> wrapper:
+        //     {
+        //         var lcl = new Diagonal
+        //         {
+        //             Begin = FirstInOrder!.Cell,
+        //             Count = Count,
+        //             Route = direction
+        //         };
+        //
+        //         wrapper.Cell = lcl;
+        //         break;
+        //     }
+        // }
+        //
+        // _place = matchBox;
     }
 
     public void Clear(Direction lookUpUsedInMatchFinder)
@@ -701,5 +634,5 @@ public class MatchX : IGameObject, IEnumerable<Tile>
         return GetEnumerator();
     }
 
-    public new string ToString() => $"A match{Count} of type: {Body.Colour.Name} starting at position: {_place}";
+    public new string ToString() => $"A match{Count} of type: {Body!.Colour.Name} starting at position: {_position}";
 }
