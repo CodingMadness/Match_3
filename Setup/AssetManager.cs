@@ -1,29 +1,27 @@
 using System.Buffers;
-using System.Collections;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using DotNext.Buffers;
 using ImGuiNET;
 using Match_3.DataObjects;
 using Match_3.Service;
-using NetFabric.Hyperlinq;
 using Raylib_cs;
 
 namespace Match_3.Setup;
 
-public class AssetFolder : IEnumerable<AssetFolder>
+public unsafe class AssetManager : IDisposable
 {
-    private readonly List<AssetFolder> SubAssetFolders = [];
-    public required View<char> Name { get; init; }
-    public required int Depth { get; init; }
-    
-    public static readonly Assembly Root = Assembly.GetExecutingAssembly();
-    private static readonly Lazy<IEnumerable<string>> _folders = new(() =>
+    private static readonly AssetManager _instance = new();
+    private const int LargeEnough2FitAllResources = 1024 * 100; //100KB for now
+    private MemoryOwner<byte> fileData = new(ArrayPool<byte>.Shared, LargeEnough2FitAllResources);
+    private static readonly Assembly EmbeddedResources = Assembly.GetExecutingAssembly();
+
+    private static readonly Lazy<IEnumerable<string>> AllFolders = new(() =>
     {
-        var asmLocation = Root.Location;
-        var fullName = Root.FullName!;
-        var slnName = fullName.AsSpan(0, fullName.IndexOf(','));
-        var projPath = asmLocation.AsSpan(0, asmLocation.IndexOf(slnName) + slnName.Length);
+        var asmPath = EmbeddedResources.Location;
+        var asmName = EmbeddedResources.FullName!;
+        var slnName = asmName.AsSpan(0, asmName.IndexOf(','));
+        var projPath = asmPath.AsSpan(0, asmPath.IndexOf(slnName) + slnName.Length);
 
         var options = new EnumerationOptions
         {
@@ -31,70 +29,67 @@ public class AssetFolder : IEnumerable<AssetFolder>
             AttributesToSkip = FileAttributes.Hidden | FileAttributes.System,
             IgnoreInaccessible = true,
             MatchType = MatchType.Simple,
-            BufferSize = 32768 // Use the full 32KB buffer (powers of two are better)
+            BufferSize = 32768 // Use the full 32KB Content (powers of two are better)
         };
         return Directory.EnumerateDirectories(Path.Join(projPath, "Assets"), "*", options);
     }, LazyThreadSafetyMode.ExecutionAndPublication);
 
-    private IEnumerable<(View<char> folderName, int nestLvl)> YieldSubFolders()
+    private AssetManager()
     {
-        static unsafe ReadOnlySpan<char>  FirstLetter2Upper(ReadOnlySpan<char> input)
-        {
-            fixed (char* p = input)
-            {
-                *p = char.ToUpper(*p);
-            }
+    }
 
-            return input;
+    public static readonly AssetManager Instance = _instance;
+
+    private Span<byte> GetEmbeddedResourceAsBytes(string relativePath)
+    {
+        var slnName = EmbeddedResources.GetName().Name;
+        var fullPath = $"{slnName}.Assets.{relativePath}";
+
+        using var stream = EmbeddedResources.GetManifestResourceStream(fullPath) ??
+                           throw new FileNotFoundException("Cannot find resource file.", fullPath);
+
+        var length = (int)stream.Length;
+        var usableBuffer = fileData.Span[..length];
+        stream.ReadExactly(usableBuffer);
+        return usableBuffer;
+    }
+
+    private void Get2FileFormatAndData(string relativePath,
+        out byte* fileFormat, out byte* data, out int size)
+    {
+        var buffer = GetEmbeddedResourceAsBytes(relativePath);
+
+        fixed (byte* customPtr = buffer)
+        {
+            var format = relativePath[relativePath.LastIndexOf('.')..];
+            fileFormat = (byte*)Marshal.StringToHGlobalAnsi(format);
+            data = customPtr;
+            size = buffer.Length;
         }
-        
+    }
+
+    public IEnumerable<string> YieldManifestNames()
+    {
+        return EmbeddedResources.GetManifestResourceNames();
+    }
+
+    public IEnumerable<AssetFolderInfo> YieldSubFolderEntries()
+    {
         return
-            from fullAssetPath in _folders.Value
-            let beginOfAssetFolder = fullAssetPath.AsSpan().IndexOf(Name, StringComparison.Ordinal)
-            let endOfAssetFolder = beginOfAssetFolder + Name.Length + 1
-            let folderName = new View<char>(FirstLetter2Upper(fullAssetPath.AsSpan(endOfAssetFolder..)))
-            let depth = folderName.AsSpan().Count('\\') + 1
-            select (folderName, depth);
+            from fullAssetPath in AllFolders.Value
+            let projName = EmbeddedResources.GetName().Name
+            let startOfProj = fullAssetPath.IndexOf(projName, StringComparison.OrdinalIgnoreCase)
+            let relativePath = fullAssetPath.AsSpan(startOfProj + projName.Length + 1).ToString()
+            select new AssetFolderInfo(fullAssetPath, relativePath, null);
     }
-    private void AddSubFolder(ReadOnlySpan<char> name, int depth)
-    {
-        var folder = new AssetFolder
-        {
-            Name = new(name),
-            Depth = depth
-        };
 
-        SubAssetFolders.Add(folder);
-    }
-    private static IEnumerable<AssetFolder> GetFoldersAtDepthBFS(AssetFolder root, int targetDepth)
-    {
-        var queue = new Queue<AssetFolder>();
-        queue.Enqueue(root);
-
-        while (queue.Count > 0)
-        {
-            var current = queue.Dequeue();
-        
-            if (current.Depth == targetDepth)
-            {
-                yield return current;
-            }
-            else if (current.Depth < targetDepth)
-            {
-                foreach (ref var subfolder in CollectionsMarshal.AsSpan(current.SubAssetFolders))
-                {
-                    queue.Enqueue(subfolder);
-                }
-            }
-        }
-    }
-    public static AssetFolder LoadAssetFolder()
+    public AssetContainer LoadAssetFolder()
     {
         static ReadOnlySpan<char> GetNextSubFolderByNestLvl(ReadOnlySpan<char> currentFolder, int depth)
         {
             int i = 0;
             //we do not want to slice 1x more, the loop shall stop at the last found '/'
-            int iterations = depth-1;
+            int iterations = depth - 1;
 
             while (i++ < iterations)
             {
@@ -106,15 +101,15 @@ public class AssetFolder : IEnumerable<AssetFolder>
             return currentFolder;
         }
 
-        static View<char> GetFolderName(View<char> fullFolderPath, Queue<View<char>> buffer, int folderDepth)
+        static View<char> GetFolderName(Queue<View<char>> buffer, in AssetFolderInfo folder)
         {
             View<char> result;
-            buffer.Enqueue(fullFolderPath);
+            buffer.Enqueue(folder.PhysicalLocation);
 
-            if (folderDepth > 1)
+            if (folder.Depth > 1)
             {
                 var first = buffer.Dequeue();
-                result = new(GetNextSubFolderByNestLvl(first, folderDepth));
+                result = new(GetNextSubFolderByNestLvl(first, folder.Depth));
             }
             else
             {
@@ -124,116 +119,62 @@ public class AssetFolder : IEnumerable<AssetFolder>
             return result;
         }
 
-        static AssetFolder GetParentFolder(AssetFolder head, int depth, View<char> fullFolderPath, View<char> childFolderName)
+        static AssetContainer GetParentFolder(AssetContainer head, AssetFolderInfo folderInfo, View<char> childFolderName)
         {
-            int parentLvl = depth - 1;
-            var foldersFromDepth = GetFoldersAtDepthBFS(head, parentLvl);
-            return foldersFromDepth.First(folder => fullFolderPath.AsSpan().EndsWith(Path.Join(folder.Name, childFolderName)));
+            int parentLvl = folderInfo.Depth - 1;
+            var foldersFromDepth = head.GetFoldersAtDepth(parentLvl);
+            return foldersFromDepth.First(folder =>
+                folderInfo.PhysicalLocation.AsSpan()
+                    .EndsWith(Path.Join(folder.CurrentInfo.PhysicalLocation, childFolderName)));
+        }
+
+        static View<char> GetPhysicalProjectPath(Assembly loaded, ReadOnlySpan<char> folderName)
+        {
+            var projName = loaded.GetName().Name!;
+            var fullAsmPath = loaded.Location;
+            int startOfProjOccurence = fullAsmPath.IndexOf(projName, StringComparison.OrdinalIgnoreCase);
+            int endOfProjOccurence = startOfProjOccurence + projName.Length;
+            var result = fullAsmPath.AsSpan(..endOfProjOccurence);
+            int x = 1;
+            return Path.Join(result, folderName);
+        }
+
+        static View<char> GetEmbeddedAssetFolderPath(Assembly loaded, ReadOnlySpan<char> folderName)
+        {
+            var physicalPath = GetPhysicalProjectPath(loaded, folderName).AsSpan();
+            var projName = EmbeddedResources.GetName().Name!;
+            var startOfProj = physicalPath.IndexOf(projName, StringComparison.OrdinalIgnoreCase);
+            var relativePath = physicalPath.Slice(startOfProj);
+            return relativePath.Replace(['\\'], ['.']);
         }
         
-        //Match_3.Assets.Sprites.GUI.BackGround.Welcome.<file>.<format>
-        AssetFolder head = new()
+        AssetContainer head = new()
         {
-            Name = new("Assets"),
-            Depth = 0
+            CurrentInfo = new(
+                GetPhysicalProjectPath(EmbeddedResources, "Assets").ToString(),
+                GetEmbeddedAssetFolderPath(EmbeddedResources, "Assets").ToString(), null)
         };
-        using var folderIterator = head.YieldSubFolders().GetEnumerator();
-        AssetFolder next = head;
+        
+        using var folderIterator = YieldSubFolderEntries().GetEnumerator();
+        AssetContainer parent = head;
         Queue<View<char>> buffer = new(2);
         int currDepth = 1;
-        
+
         while (folderIterator.MoveNext())
         {
-            var (fullFolderPath, depth) = folderIterator.Current;
-            var folderName = GetFolderName(fullFolderPath, buffer, depth);
-                
-            if (depth > currDepth)
+            var folderInfo = folderIterator.Current;
+            var childFolderName = GetFolderName(buffer, in folderInfo);
+
+            if (folderInfo.Depth > currDepth)
             {
-                next = GetParentFolder(next, depth, fullFolderPath, folderName);
+                parent = GetParentFolder(parent, folderInfo, childFolderName);
                 currDepth++;
             }
 
-            next.AddSubFolder(folderName,  depth);
+            parent.AddSubFolder(folderInfo);
         }
 
         return head;
-    }
-    public IEnumerator<AssetFolder> GetEnumerator() => SubAssetFolders.GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-    public override string ToString() => Name.ToString();
-}
-
-public unsafe class AssetManager : IDisposable
-{
-    private static readonly AssetManager _instance = new();
-    private const int LargeEnough2FitAllResources = 1024 * 100; //100KB for now
-    private MemoryOwner<byte> fileData = new(ArrayPool<byte>.Shared, LargeEnough2FitAllResources);
-    private readonly Assembly ResourceFile = Assembly.GetEntryAssembly()!;
-
-    private AssetManager()
-    {
-    }
-
-    public static readonly AssetManager Instance = _instance;
-    public Texture2D DefaultTileAtlas { get; private set; }
-    public ImFontPtr CustomFont { get; private set; }
-
-    private Span<byte> GetEmbeddedResourceBytes(in string relativePath)
-    {
-        var fullAsmName = ResourceFile.FullName!;
-        var slnName = fullAsmName.AsSpan(0, fullAsmName.IndexOf(','));
-        var fullPath = $"{slnName}.Assets.{relativePath}";
-
-        using var stream = ResourceFile?.GetManifestResourceStream(fullPath) ??
-                           throw new FileNotFoundException("Cannot find resource file.", fullPath);
-
-        var length = (int)stream.Length;
-        var usableBuffer = fileData.Span[..length];
-        stream.ReadExactly(usableBuffer);
-        return usableBuffer;
-    }
-
-    private void Get2FileFormatAndData(in string relativePath,
-        out byte* fileFormat, out byte* data, out int size)
-    {
-        var buffer = GetEmbeddedResourceBytes(relativePath);
-
-        fixed (byte* customPtr = buffer)
-        {
-            var format = relativePath[relativePath.LastIndexOf('.')..];
-            fileFormat = (byte*)Marshal.StringToHGlobalAnsi(format);
-            data = customPtr;
-            size = buffer.Length;
-        }
-    }
-
-    private Texture2D LoadTexture(in string relativePath)
-    {
-        Get2FileFormatAndData(in relativePath, out byte* fileFormat, out byte* data, out int size);
-        var file = Raylib.LoadImageFromMemory((sbyte*)fileFormat, data, size);
-        return Raylib.LoadTextureFromImage(file);
-    }
-
-    private Texture2D LoadInGameTexture(in string relativePath)
-    {
-        return LoadTexture($"Sprites.Tiles.{relativePath}");
-    }
-
-    private ImFontPtr LoadCustomFont(in string relativePath, float fontSize)
-    {
-        var fullPath = $"Fonts.{relativePath}";
-        Get2FileFormatAndData(in fullPath, out _, out byte* data, out int size);
-        var io = ImGui.GetIO();
-        var customFont = io.Fonts.AddFontFromMemoryTTF((nint)data, size, fontSize);
-        return customFont;
-    }
-
-    public void LoadAssets()
-    {
-        var assets = AssetFolder.LoadAssetFolder();
     }
 
     public void Dispose()
