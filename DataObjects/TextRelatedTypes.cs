@@ -1,15 +1,19 @@
 ﻿using System.Drawing;
 using System.Runtime.InteropServices;
+
 using DotNext.Runtime;
+
 using ImGuiNET;
+
 using Match_3.Service;
 using Match_3.Workflow;
 
 namespace Match_3.DataObjects;
 
-public enum TextAlignmentRule
+public enum WrappingRule
 {
-    ColoredSegmentsInOneLine,
+    PatternBased,
+    WindowBased
 }
 
 /// <summary>
@@ -28,11 +32,14 @@ public readonly struct View<T>(in ReadOnlySpan<T> data)
     
     public static implicit operator ReadOnlySpan<T>(View<T> wrapper)
         => MemoryMarshal.CreateReadOnlySpan(in wrapper.First, wrapper.Length);
+
+    public ReadOnlySpan<T> AsSpan() => (ReadOnlySpan<T>)this;
     
-    public ReadOnlySpan<T> AsSpan() => this;
-   // public static implicit operator View<T>(scoped in ReadOnlySpan<T> wrapper) => new(wrapper);
+    public static implicit operator View<T>(scoped in ReadOnlySpan<T> wrapper) => new(wrapper);
 
     public override string ToString() => AsSpan().ToString();
+
+    public ref T GetPinnableReference() => ref _first.GetPinnableReference();
 }
 
 public readonly struct Segment
@@ -41,13 +48,13 @@ public readonly struct Segment
     public readonly View<char> Slice2Colorize;
 
     //Render Logic:
-    public readonly TextAlignmentRule? AlignmentRule;
+    public readonly WrappingRule? AlignmentRule;
     public readonly CanvasOffset? PosInCanvas;
     public readonly FadeableColor Colour;
     public readonly Vector2? RenderPosition;
     public readonly bool? ShouldWrap;
 
-    private (Vector2 start, float toWrapAt) GetRawOffset(CanvasOffset offset)
+    public (Vector2 start, float toWrapAt) GetRawOffset(CanvasOffset offset)
     {
         (Vector2 start, float toWrapAt) = (Vector2.Zero, 0f);
         Vector2 canvas = Game.ConfigPerStartUp.WindowSize;
@@ -72,7 +79,7 @@ public readonly struct Segment
 
     public Segment(ReadOnlySpan<char> colorCode, ReadOnlySpan<char> slice2Colorize,
         ReadOnlySpan<char> memberName2Replace, CanvasOffset? start,
-        TextAlignmentRule? alignmentRule)
+        WrappingRule? alignmentRule)
     {
         ReadOnlySpan<char> code;
 
@@ -91,11 +98,11 @@ public readonly struct Segment
         if (start is not null)
         {
             //we have yet to 'clean' the "RenderPosition" after the call below
-            var result = GetRawOffset(start.Value);
-            bool isInCheck = result.toWrapAt - (result.start.X + TextSize.X) > 0;
-            bool isRightAlignmentRule = alignmentRule is TextAlignmentRule.ColoredSegmentsInOneLine;
-            ShouldWrap = isRightAlignmentRule && isInCheck;
-            RenderPosition = result.start;
+            // var result = GetRawOffset(start.Value);
+            // bool isInCheck = result.toWrapAt - (result.start.X + TextSize.X) > 0;
+            // bool isRightAlignmentRule = alignmentRule is WrappingRule.ColoredSegmentsInOneLine;
+            // ShouldWrap = isRightAlignmentRule && isInCheck;
+            // RenderPosition = result.start;
         }
 
         AlignmentRule = alignmentRule;
@@ -113,3 +120,54 @@ public readonly struct Segment
 
     public override string ToString() => ((ReadOnlySpan<char>)Slice2Colorize).ToString();
 }
+
+public record TextInfo(bool ShallWrap, Vector2? WrapAt, 
+    float Size, ValueReference<byte> FontDataPtr, 
+    WrappingRule Rule, FadeableColor Color);
+
+public interface IContainer<out T>
+{
+    public T? VirtualObject { get; }
+}
+
+public interface IDrawableContainer<out T> : IContainer<T>
+{
+    public Vector2 GetRawOffset(CanvasOffset offset)
+    {
+        Vector2 start = Vector2.Zero;
+        Vector2 canvas = Game.ConfigPerStartUp.WindowSize;
+        Vector2 center = new(canvas.X * 0.5f, canvas.Y * 0.5f);
+
+        start = offset switch
+        {
+            CanvasOffset.TopLeft => Vector2.Zero,
+            CanvasOffset.TopCenter => start with { X = center.X, Y = 0f },
+            CanvasOffset.TopRight => start with { X = canvas.X, Y = 0f },
+            CanvasOffset.BottomLeft => start with { X = 0f, Y = canvas.Y },
+            CanvasOffset.BottomCenter => start with { X = center.X, Y = canvas.Y },
+            CanvasOffset.BottomRight => start with { X = canvas.X, Y = canvas.Y },
+            CanvasOffset.MidLeft => start with { X = 0f, Y = center.Y },
+            CanvasOffset.Center => start with { X = center.X, Y = center.Y },
+            CanvasOffset.MidRight => start with { X = canvas.X, Y = center.Y },
+            _ => Vector2.Zero
+        };
+
+        return start;
+    }
+}
+
+/* virtual-objects 
+ *   - AssetContainer is a virtual-map for a local file-and-folder Structure
+ 
+ *   - Segment is a virtual-map for a piece of text which can be drawn
+ *   - GameObject is a virtual-map for a bunch of pixel-objects which can be drawn
+ */
+public record TextRenderSegment(Segment VirtualObject, TextInfo Info) : IDrawableContainer<Segment>;
+public record GameObjectRenderElement(IGameObject VirtualObject) : IDrawableContainer<IGameObject>;
+
+/* Externalizer's are:
+ * Render-API (ImGui, raylib, UI-frameworks)
+ * File-Operations (locally)
+ * NFS-operations
+ * Database-API
+ */
