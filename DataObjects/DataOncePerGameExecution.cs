@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
 using ImGuiNET;
-using Match_3.Service;
 using OneOf;
 using Raylib_cs;
 
@@ -19,25 +18,14 @@ public class AssetType : OneOfBase<ImFontPtr, Texture2D, Sound, Shader>
 /// <summary>
 /// Wraps all necessary information about an AssetType-folder 
 /// </summary>
-/// <param name="PhysicalLocation">The full raw path to the Folder-entry</param> 
-/// <param name="FileFormat">The format for ALL files in this specific folder</param>
-public readonly record struct AssetFolderInfo(string PhysicalLocation, string RelativeLocation, AssetType? FileFormat)
+/// <param name="FullPath">The full raw path to the Folder-entry</param>
+public readonly record struct AssetFolderInfo(string FullPath)
 {
     public bool IsRoot => Depth is 0;
-
-    public ReadOnlySpan<char> Root => RelativeLocation.AsSpan(0,RelativeLocation.IndexOf('\\'));
-
-    public ReadOnlySpan<char> Name
-    {
-        get
-        {
-            var result = RelativeLocation.AsSpan(RelativeLocation.LastIndexOf('\\') + 1);
-            result.Mutable()[0] = char.ToUpper(result.Mutable()[0]);
-            return result;
-        }
-    }
-
-    public int Depth { get; } = RelativeLocation.AsSpan().Count('\\'); 
+    public ReadOnlySpan<char> RelativeLocation => IsRoot ? [] : FullPath.AsSpan(FullPath.IndexOf('\\'));
+    public ReadOnlySpan<char> Name => IsRoot ? FullPath : RelativeLocation.Slice(0, RelativeLocation.IndexOf('\\'));
+    public int Depth => FullPath.Contains('\\') ?
+                        FullPath.AsSpan(0, FullPath.IndexOf(Name)).Count('\\') : 0; 
 }
 
 /// <summary>
@@ -47,10 +35,10 @@ public readonly record struct AssetFolderInfo(string PhysicalLocation, string Re
 /// <param name="Content"></param>
 public readonly record struct AssetFile(AssetContainer Parent, string FileName, View<byte> Content)
 {
-    public ReadOnlySpan<char> FullPath => Path.Join(Parent.CurrentInfo.PhysicalLocation, FileName);
+    public ReadOnlySpan<char> FullPath => Path.Join(Parent.CurrentInfo.FullPath, FileName);
     public ReadOnlySpan<char> Name => Path.GetFileName(FullPath);
     public ReadOnlySpan<char> Extension => Path.GetExtension(FullPath);
-    public AssetType Format => Parent.CurrentInfo.FileFormat!;
+    // public AssetType Format => Parent.CurrentInfo.FileFormat!;
 }
 
 public class AssetContainer : IContainer<List<AssetFile>>
@@ -68,24 +56,11 @@ public class AssetContainer : IContainer<List<AssetFile>>
         _subAssetFolders.Add(folder);
     }
 
-    public void AddFiles(Span<byte> fileContent)
+    public void AddFiles(Span<byte> content)
     {
-        var options = new EnumerationOptions
-        {
-            RecurseSubdirectories = true,
-            AttributesToSkip = FileAttributes.Hidden | FileAttributes.System,
-            IgnoreInaccessible = true,
-            MatchType = MatchType.Simple,
-            BufferSize = 32768 // Use the full 32KB Content (powers of two are better)
-        };
-        var fileNames = Directory.EnumerateFiles(CurrentInfo.PhysicalLocation.ToString(), "*", options);
-
-        foreach (var fileName in fileNames)
-        {
-            AssetFile fileData = new(this, fileName, fileContent);
-            _allFiles.Add(fileData);
-        }
+         
     }
+   
     public IEnumerable<AssetContainer> GetFoldersAtDepth(int targetDepth)
     {
         var queue = new Queue<AssetContainer>();
