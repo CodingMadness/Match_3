@@ -1,15 +1,12 @@
 ﻿global using TileColorTypes = System.Drawing.KnownColor;
 global using Comparer = Match_3.Service.Comparer;
 using System.Collections;
-using System.Data.SqlTypes;
 using System.Diagnostics.Contracts;
 using System.Drawing;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using DotNext.Collections.Generic;
-using Match_3.Workflow;
 
 namespace Match_3.DataObjects;
 
