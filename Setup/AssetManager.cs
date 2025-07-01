@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Reflection;
 using DotNext.Buffers;
 using Match_3.DataObjects;
+using Match_3.Service;
 
 namespace Match_3.Setup;
 
@@ -11,29 +12,62 @@ public class AssetManager : IDisposable
     private const int LargeEnough2FitAllResources = 1024 * 100; //100KB for now
     private MemoryOwner<byte> fileData = new(ArrayPool<byte>.Shared, LargeEnough2FitAllResources);
     private static readonly Assembly EmbeddedResources = Assembly.GetExecutingAssembly();
-
-    static string GetProjectDirectory()
+    
+    private static string GetResourceDir(out string projDir)
     {
-        var fullPath = EmbeddedResources.GetManifestResourceNames()[0];
-        return fullPath.AsSpan(0, fullPath.IndexOf('\\')).ToString();
+        projDir = EmbeddedResources.GetName().Name!;
+        var resFolder = EmbeddedResources.GetManifestResourceNames()[0].AsSpan();
+        resFolder = resFolder.Slice(0, resFolder.IndexOf('\\'));
+        return resFolder.ToString();
     }
 
-    private static readonly Lazy<IEnumerable<string>> AllFolderNames =
+    private static readonly Lazy<IEnumerable<string>> AllFilePaths =
         new(() => EmbeddedResources.GetManifestResourceNames(), LazyThreadSafetyMode.ExecutionAndPublication);
+
+    private Span<byte> GetEmbeddedResourceAsBytes(string relativePath)
+    {
+        var resourceDir = GetResourceDir(out _);
+        var fullPath = Path.Join(resourceDir, relativePath);
+        
+        using var stream = EmbeddedResources.GetManifestResourceStream(fullPath) ??
+                           throw new FileNotFoundException("Cannot find resource file.", fullPath);
+
+        var length = (int)stream.Length;
+        var content = fileData.Span[length..];
+        stream.ReadExactly(content);
+        return content;
+    }
 
     private AssetManager()
     {
+     
     }
 
     public static readonly AssetManager Instance = _instance;
 
-    public IEnumerable<AssetFolderInfo> YieldSubFolderEntries()
+    private IEnumerable<(string fileName, View<byte> fileData)> YieldFiles()
     {
-        return
-            from fullAssetPath in AllFolderNames.Value
-            select new AssetFolderInfo(fullAssetPath);
+        var uniqueFolders = YieldSubFolders();
+        
+        foreach (var folder in uniqueFolders)
+        {
+            var res = AllFilePaths.Value.Select(path => path.AsSpan().Contains(folder.Name, StringComparison.OrdinalIgnoreCase) ? Path.GetFileName(path): "");
+
+            foreach (var fileName in res)
+            {
+                yield return (fileName, new(GetEmbeddedResourceAsBytes(Path.Join(folder.Name, fileName))));
+            }
+        }
     }
 
+    private IEnumerable<AssetFolderInfo> YieldSubFolders()
+    {
+        return AllFilePaths.Value
+            .Select(Path.GetDirectoryName)
+            .Distinct()  // This ensures we only process each folder once
+            .Select(onlyDir => new AssetFolderInfo(onlyDir!, null!));
+    }
+    
     public AssetContainer LoadAssetFolder()
     {
         static ReadOnlySpan<char> GetNextSubFolderByNestLvl(ReadOnlySpan<char> currentFolder, int depth)
@@ -80,16 +114,17 @@ public class AssetManager : IDisposable
                     .EndsWith(Path.Join(folder.CurrentInfo.FullPath, childFolderName)));
         }
 
+        var resDir = GetResourceDir(out var projDir);
         AssetContainer head = new()
         {
-            CurrentInfo = new(GetProjectDirectory())
+            CurrentInfo = new(Path.Join(projDir, resDir), null)
         };
-
-        using var folderIterator = YieldSubFolderEntries().GetEnumerator();
-        AssetContainer parent = head;
+        var x = YieldSubFolders().ToArray();
+        using var folderIterator = YieldSubFolders().GetEnumerator();
+        var parent = head;
         Queue<View<char>> buffer = new(2);
         int currDepth = 1;
-
+        
         while (folderIterator.MoveNext())
         {
             var folderInfo = folderIterator.Current;
@@ -100,9 +135,9 @@ public class AssetManager : IDisposable
                 parent = GetParentFolder(parent, folderInfo, childFolderName);
                 currDepth++;
             }
-
             parent.AddSubFolder(folderInfo);
-            parent.AddFiles();
+            
+            parent.AddFiles(YieldFiles());
         }
 
         return head;
