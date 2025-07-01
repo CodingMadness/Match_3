@@ -123,7 +123,6 @@ public static class SpanUtility
 
 public static class BaseTypeUtility
 {
-
     public static readonly Random Randomizer = new(DateTime.UtcNow.Ticks.GetHashCode());
 
     public static bool Equals(this float x, float y, float tolerance)
@@ -150,5 +149,6 @@ public static class BaseTypeUtility
     {
         tuple.Item1 += value2IncreaseBy;
     }
+    
  
 }

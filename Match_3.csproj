@@ -63,7 +63,8 @@
     <EmbeddedResource Remove="Assets\SpriteSheets\Super_Match3_Bundle\**" />
     <EmbeddedResource Include="Assets\**"
                       Exclude="Assets\**\.*;Assets\**\Thumbs.db;Assets\**\~*"
-                      LogicalName="%(RelativeDir)%(Filename)%(Extension)" />
+                      LogicalName="%(RelativeDir)%(Filename)%(Extension)"
+                      CopyToOutputDirectory="Always"/>
     <None Remove="Assets\Sprites\Background\bg1.png" />
     <None Remove="Assets\Sprites\Background\bg2.png" />
     <None Remove="Assets\Sprites\Background\bg3.png" />
@@ -86,6 +87,7 @@
   <ItemGroup>
     <Folder Include="Assets\Sprites\GUI\Button" />
     <Folder Include="Assets\Sprites\TEST\" />
+    <Folder Include="Assets\Sprites\Tiles\Random Tiles\" />
   </ItemGroup>
 </Project>
 

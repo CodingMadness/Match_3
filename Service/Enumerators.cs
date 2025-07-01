@@ -9,7 +9,7 @@ namespace Match_3.Service;
 
 public unsafe ref struct WordEnumerator(scoped in Segment rootSegment, char separator = ' ') : IDisposable
 {
-    public readonly ref readonly Segment RootSegment = ref rootSegment;
+     public readonly ref readonly Segment RootSegment = ref rootSegment;
     private Segment _currentWordInfo;
     private ReadOnlySpan<char> _remainder;
 
