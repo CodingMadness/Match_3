@@ -1,5 +1,7 @@
 ﻿global using Font = ImGuiNET.ImFontPtr;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Match_3.Service;
 using OneOf;
 using Raylib_cs;
 
@@ -19,7 +21,7 @@ public class AssetType : OneOfBase<Font, Texture2D, Sound, Shader>
 /// Wraps all necessary information about an AssetType-folder 
 /// </summary>
 /// <param name="FullPath">The full raw path to the Folder-entry</param>
-public readonly record struct AssetFolderInfo(string FullPath, IEnumerable<AssetFileInfo> AssetFiles)
+public readonly record struct AssetFolderInfo(string FullPath)
 {
     public ReadOnlySpan<char> Name
     {
@@ -39,8 +41,30 @@ public readonly record struct AssetFolderInfo(string FullPath, IEnumerable<Asset
 /// </summary>
 /// <param name="Parent">The full path to the file</param>
 /// <param name="Content"></param>
-public readonly record struct AssetFileInfo(in AssetFolderInfo Parent, View<char> FileName, View<byte> Content)
+public readonly record struct AssetFile(in AssetFolderInfo Parent, View<char> FileName, View<byte> Content)
 {
+    private unsafe void GetPointers(out sbyte* ext, out byte* data)
+    {
+        data = (byte*)Unsafe.AsPointer(ref Unsafe.AsRef(in Content.First));
+        View<char> tmp = Extension.ToAnsiString();
+        ext = (sbyte*)Unsafe.AsPointer(ref Unsafe.AsRef(in tmp.First));
+    }
+    
+    private unsafe Texture2D GetTextureFromContent()
+    {
+        GetPointers(out sbyte* ext, out byte* data);
+        var image = Raylib.LoadImageFromMemory(ext, data, Content.Length);
+        var res = Raylib.LoadTextureFromImage(image);
+        return res;
+    }
+    private unsafe Sound GetSoundFromContent()
+    {
+        GetPointers(out sbyte* ext, out byte* data);
+        var image = Raylib.LoadWaveFromMemory(ext, data, Content.Length);
+        var res = Raylib.LoadSoundFromWave(image);
+        return res;
+    }
+     
     public ReadOnlySpan<char> FullPath => Path.Join(Parent.FullPath, FileName);
     public ReadOnlySpan<char> Name => Path.GetFileName(FullPath);
     public ReadOnlySpan<char> Extension => Path.GetExtension(FullPath);
@@ -51,8 +75,8 @@ public readonly record struct AssetFileInfo(in AssetFolderInfo Parent, View<char
             return Extension switch
             {
                 ".otf" or ".ttf" => new(new Font()),
-                ".png" or "jpg" or "jpeg" => new(new Texture2D()),
-                ".mp3" or ".wav" or ".ogg" => new(new Sound()),
+                ".png" or "jpg" or "jpeg" => new(GetTextureFromContent()),
+                ".mp3" or ".wav" or ".ogg" => new(GetSoundFromContent()),
                 ".frag" or ".vert" => new(new Shader()),
                 _ => throw new ArgumentOutOfRangeException()
             };
@@ -60,18 +84,20 @@ public readonly record struct AssetFileInfo(in AssetFolderInfo Parent, View<char
     }
 }
 
-public class AssetContainer : IContainer<List<AssetFileInfo>>
+public record AssetContainer(in AssetFolderInfo CurrentInfo) : IContainer<List<AssetFile>>
 {
     private readonly List<AssetContainer> _subAssetFolders = [];
-    private readonly List<AssetFileInfo> _allFiles = [];
-    
-    List<AssetFileInfo> IContainer<List<AssetFileInfo>>.VirtualObject => _allFiles;
-    public required AssetFolderInfo CurrentInfo { get; init; }
-    public void AddSubFolder(in AssetFolderInfo subFolderInfo)
+    private readonly List<AssetFile> _allFiles = [];
+
+    List<AssetFile> IContainer<List<AssetFile>>.VirtualObject => _allFiles;
+
+    public AssetContainer AddSubFolder(in AssetFolderInfo subFolderInfo)
     {
-        var folder = new AssetContainer { CurrentInfo = subFolderInfo };
+        var folder = new AssetContainer(subFolderInfo);
         _subAssetFolders.Add(folder);
+        return folder;
     }
+
     public void AddFiles(IEnumerable<(string fileName, View<byte> fileData)> allFileInfos)
     {
         foreach (var fileInfo in allFileInfos)
@@ -79,6 +105,7 @@ public class AssetContainer : IContainer<List<AssetFileInfo>>
             _allFiles.Add(new(CurrentInfo, fileInfo.fileName, fileInfo.fileData));
         }
     }
+
     public IEnumerable<AssetContainer> GetFoldersAtDepth(int targetDepth)
     {
         var queue = new Queue<AssetContainer>();
@@ -87,7 +114,7 @@ public class AssetContainer : IContainer<List<AssetFileInfo>>
         while (queue.Count > 0)
         {
             var current = queue.Dequeue();
-        
+
             if (current.CurrentInfo.Depth == targetDepth)
             {
                 yield return current;
@@ -101,5 +128,4 @@ public class AssetContainer : IContainer<List<AssetFileInfo>>
             }
         }
     }
-    public override string ToString() => CurrentInfo.ToString();
 }
