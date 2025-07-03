@@ -2,14 +2,13 @@ using System.Buffers;
 using System.Reflection;
 using DotNext.Buffers;
 using Match_3.DataObjects;
-using Match_3.Service;
 
 namespace Match_3.Setup;
 
 public class AssetManager : IDisposable
 {
     private static readonly AssetManager _instance = new();
-    private const int LargeEnough2FitAllResources = 1024 * 100; //100KB for now
+    private const int LargeEnough2FitAllResources = 1024 * 1000; //1MB for now
     private MemoryOwner<byte> fileData = new(ArrayPool<byte>.Shared, LargeEnough2FitAllResources);
     private static readonly Assembly EmbeddedResources = Assembly.GetExecutingAssembly();
     
@@ -29,12 +28,13 @@ public class AssetManager : IDisposable
         var resourceDir = GetResourceDir(out _);
         var fullPath = Path.Join(resourceDir, relativePath);
         
-        using var stream = EmbeddedResources.GetManifestResourceStream(fullPath) ??
-                           throw new FileNotFoundException("Cannot find resource file.", fullPath);
-
-        var length = (int)stream.Length;
-        var content = fileData.Span[length..];
-        stream.ReadExactly(content);
+        // using var stream = EmbeddedResources.GetManifestResourceStream(fullPath) ??
+        //                    throw new FileNotFoundException("Cannot find resource file.", fullPath);
+        //
+        // var length = (int)stream.Length;
+        // var content = fileData.Span[..length];
+        // stream.ReadExactly(content);
+        Span<byte> content = new([1, 2, 3]);
         return content;
     }
 
@@ -45,18 +45,15 @@ public class AssetManager : IDisposable
 
     public static readonly AssetManager Instance = _instance;
 
-    private IEnumerable<(string fileName, View<byte> fileData)> YieldFiles()
+    private IEnumerable<(string fileName, View<byte> fileData)> YieldFiles(AssetFolderInfo folderInfo)
     {
-        var uniqueFolders = YieldSubFolders();
+        var res = AllFilePaths.Value.Select(path =>
+            path.AsSpan().Contains(folderInfo.Name, StringComparison.OrdinalIgnoreCase) ? Path.GetFileName(path) : "")
+            .Where(path => !string.IsNullOrWhiteSpace(path));
         
-        foreach (var folder in uniqueFolders)
+        foreach (var fileName in res)
         {
-            var res = AllFilePaths.Value.Select(path => path.AsSpan().Contains(folder.Name, StringComparison.OrdinalIgnoreCase) ? Path.GetFileName(path): "");
-
-            foreach (var fileName in res)
-            {
-                yield return (fileName, new(GetEmbeddedResourceAsBytes(Path.Join(folder.Name, fileName))));
-            }
+            yield return (fileName, new(GetEmbeddedResourceAsBytes(Path.Join(folderInfo.Name, fileName))));
         }
     }
 
@@ -65,7 +62,7 @@ public class AssetManager : IDisposable
         return AllFilePaths.Value
             .Select(Path.GetDirectoryName)
             .Distinct()  // This ensures we only process each folder once
-            .Select(onlyDir => new AssetFolderInfo(onlyDir!, null!));
+            .Select(onlyDir => new AssetFolderInfo(onlyDir!));
     }
     
     public AssetContainer LoadAssetFolder()
@@ -115,10 +112,8 @@ public class AssetManager : IDisposable
         }
 
         var resDir = GetResourceDir(out var projDir);
-        AssetContainer head = new()
-        {
-            CurrentInfo = new(Path.Join(projDir, resDir), null)
-        };
+        AssetContainer head = new(new(Path.Join(projDir, resDir)));
+         
         var x = YieldSubFolders().ToArray();
         using var folderIterator = YieldSubFolders().GetEnumerator();
         var parent = head;
@@ -135,9 +130,9 @@ public class AssetManager : IDisposable
                 parent = GetParentFolder(parent, folderInfo, childFolderName);
                 currDepth++;
             }
-            parent.AddSubFolder(folderInfo);
-            
-            parent.AddFiles(YieldFiles());
+            var current = parent.AddSubFolder(folderInfo);
+            current.AddFiles(YieldFiles (folderInfo));
+            int a = 1;
         }
 
         return head;
