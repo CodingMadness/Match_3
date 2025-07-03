@@ -28,11 +28,11 @@ public readonly struct View<T>(in ReadOnlySpan<T> data)
 
     public int Length { get; init; } = data.Length;
 
-    private ref readonly T First => ref _first.Value;
+    public ref readonly T First => ref _first.Value;
     
     public static implicit operator ReadOnlySpan<T>(View<T> wrapper)
         => MemoryMarshal.CreateReadOnlySpan(in wrapper.First, wrapper.Length);
-
+    
     public ReadOnlySpan<T> AsSpan() => (ReadOnlySpan<T>)this;
     
     public static implicit operator View<T>(scoped in ReadOnlySpan<T> wrapper) => new(wrapper);
@@ -157,7 +157,7 @@ public interface IDrawableContainer<out T> : IContainer<T>
 }
 
 /* virtual-objects 
- *   - AssetContainer is a virtual-map for a local file-and-folder Structure
+ *   - AssetContainer is a virtual-map for an existing local file-and-folder Structure
  
  *   - Segment is a virtual-map for a piece of text which can be drawn
  *   - GameObject is a virtual-map for a bunch of pixel-objects which can be drawn

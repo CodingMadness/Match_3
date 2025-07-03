@@ -3,6 +3,7 @@ global using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAtt
 global using DAMTypes = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using Match_3.DataObjects;
 
 namespace Match_3.Service;
@@ -118,6 +119,29 @@ public static class SpanUtility
 
     public static void Shuffle<T>(this Span<T> span)
     {
+    }
+    
+    public static unsafe string ToAnsiString(this ReadOnlySpan<char> span)
+    {
+        // Get the Windows-1252 encoding (ANSI)
+        Encoding ansiEncoding = Encoding.GetEncoding(1252);
+        
+        // Calculate the maximum possible byte count
+        int maxByteCount = ansiEncoding.GetMaxByteCount(span.Length);
+        
+        // Allocate a buffer for the bytes
+        Span<byte> byteSpan = maxByteCount <= 256 
+            ? stackalloc byte[maxByteCount] 
+            : new byte[maxByteCount];
+        
+        // Convert the characters to bytes
+        int bytesWritten = ansiEncoding.GetBytes(span, byteSpan);
+        
+        // Create the ANSI string from the bytes
+        fixed (byte* ptr = byteSpan)
+        {
+            return ansiEncoding.GetString(ptr, bytesWritten);
+        }
     }
 }
 
