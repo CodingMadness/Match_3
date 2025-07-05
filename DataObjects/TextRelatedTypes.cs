@@ -42,11 +42,11 @@ public readonly struct View<T>(in ReadOnlySpan<T> data)
     public ref T GetPinnableReference() => ref _first.GetPinnableReference();
 }
 
-public readonly struct Segment
+public readonly   struct Segment
 {
     public readonly View<char>? MemberName2Replace;
     public readonly View<char> Slice2Colorize;
-
+    
     //Render Logic:
     public readonly WrappingRule? AlignmentRule;
     public readonly CanvasOffset? PosInCanvas;
@@ -77,6 +77,7 @@ public readonly struct Segment
         return (start, toWrapAt);
     }
 
+ 
     public Segment(ReadOnlySpan<char> colorCode, ReadOnlySpan<char> slice2Colorize,
         ReadOnlySpan<char> memberName2Replace, CanvasOffset? start,
         WrappingRule? alignmentRule)
