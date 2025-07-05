@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Match_3.Service;
+using NoAlloq;
 using OneOf;
 using Raylib_cs;
 
@@ -21,18 +22,22 @@ public class AssetType : OneOfBase<Font, Texture2D, Sound, Shader>
 /// Wraps all necessary information about an AssetType-folder 
 /// </summary>
 /// <param name="FullPath">The full raw path to the Folder-entry</param>
-public readonly record struct AssetFolderInfo(string FullPath)
+public readonly record struct AssetFolderInfo(View<char> FullPath)
 {
+    public AssetFolderInfo(string fullPath) :  this(fullPath.AsSpan())
+    {
+        
+    }
     public ReadOnlySpan<char> Name
     {
         get
         {
-            var lastDirPos = FullPath.LastIndexOf('\\') + 1;
-            var name = FullPath.AsSpan(lastDirPos..);
+            var lastDirPos = FullPath.AsSpan().LastIndexOf('\\') + 1;
+            var name = FullPath.AsSpan()[(lastDirPos..)];
             return name;
         }
     }
-    public int Depth => FullPath.Count('\\');
+    public int Depth => FullPath.AsSpan().Count('\\');
     public bool IsRoot => Depth is 0;
 }
 
@@ -82,6 +87,8 @@ public readonly record struct AssetFile(in AssetFolderInfo Parent, View<char> Fi
             };
         }
     }
+
+    public override string ToString() => FileName.AsSpan().ToString();
 }
 
 public record AssetContainer(in AssetFolderInfo CurrentInfo) : IContainer<List<AssetFile>>
@@ -97,7 +104,17 @@ public record AssetContainer(in AssetFolderInfo CurrentInfo) : IContainer<List<A
         _subAssetFolders.Add(folder);
         return folder;
     }
-
+    
+    public AssetFile this[string fileNameWithExt]
+    {
+        get
+        {
+            var span = CollectionsMarshal.AsSpan(_allFiles);
+            return span.First(file => file.Name == fileNameWithExt);
+            /* return the specified index here */ 
+        }
+    }
+    
     public void AddFiles(IEnumerable<(string fileName, View<byte> fileData)> allFileInfos)
     {
         foreach (var fileInfo in allFileInfos)
