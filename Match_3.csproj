@@ -86,8 +86,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\Sprites\GUI\Button" />
-    <Folder Include="Assets\Sprites\TEST\" />
-    <Folder Include="Assets\Sprites\Tiles\Random Tiles\" />
   </ItemGroup>
 </Project>
 
