@@ -1,6 +1,8 @@
 using System.Buffers;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using DotNext.Buffers;
+using DotNext.Runtime;
 using Match_3.DataObjects;
 
 namespace Match_3.Setup;
@@ -62,78 +64,43 @@ public class AssetManager : IDisposable
         return AllFilePaths.Value
             .Select(Path.GetDirectoryName)
             .Distinct()  // This ensures we only process each folder once
-            .Select(onlyDir => new AssetFolderInfo(onlyDir!));
+            .Select(onlyDir => new AssetFolderInfo(onlyDir!))
+            .OrderBy(folder =>  folder.Depth);
     }
     
     public AssetContainer LoadAssetFolder()
     {
-        static ReadOnlySpan<char> GetNextSubFolderByNestLvl(ReadOnlySpan<char> currentFolder, int depth)
+        static AssetContainer LinkParentWithChild(AssetContainer current, in AssetFolderInfo folderInfo)
         {
-            int i = 0;
-            //we do not want to slice 1x more, the loop shall stop at the last found '/'
-            int iterations = depth - 1;
-
-            while (i++ < iterations)
-            {
-                //sprites/gui/button
-                var found = currentFolder.IndexOf('\\');
-                currentFolder = currentFolder[(found + 1)..];
-            }
-
-            return currentFolder;
+            var fullPath = folderInfo.FullPath;
+            int folderNameAppearance = fullPath.AsSpan().IndexOf(folderInfo.Name) - 1;
+            var parentPath = fullPath.AsSpan().Slice(0, folderNameAppearance);            
+            AssetFolderInfo parent = new(parentPath);
+            return current.AddSubFolder(parent);
         }
-
-        static View<char> GetFolderName(Queue<View<char>> buffer, in AssetFolderInfo folder)
-        {
-            View<char> result;
-            buffer.Enqueue(folder.FullPath);
-
-            if (folder.Depth > 1)
-            {
-                var first = buffer.Dequeue();
-                result = new(GetNextSubFolderByNestLvl(first, folder.Depth));
-            }
-            else
-            {
-                result = buffer.Dequeue();
-            }
-
-            return result;
-        }
-
-        static AssetContainer GetParentFolder(AssetContainer head, AssetFolderInfo folderInfo,
-            View<char> childFolderName)
-        {
-            int parentLvl = folderInfo.Depth - 1;
-            var foldersFromDepth = head.GetFoldersAtDepth(parentLvl);
-            return foldersFromDepth.First(folder =>
-                folderInfo.FullPath.AsSpan()
-                    .EndsWith(Path.Join(folder.CurrentInfo.FullPath, childFolderName)));
-        }
-
-        var resDir = GetResourceDir(out var projDir);
-        AssetContainer head = new(new(Path.Join(projDir, resDir)));
-         
-        var x = YieldSubFolders().ToArray();
+        
+        var resDir = GetResourceDir(out _);
+        AssetContainer head = new(new(resDir));
         using var folderIterator = YieldSubFolders().GetEnumerator();
         var parent = head;
-        Queue<View<char>> buffer = new(2);
         int currDepth = 1;
+
+        // var test = YieldSubFolders().ToArray();
         
         while (folderIterator.MoveNext())
         {
-            var folderInfo = folderIterator.Current;
-            var childFolderName = GetFolderName(buffer, in folderInfo);
+            var childFolderInfo = folderIterator.Current;
 
-            if (folderInfo.Depth > currDepth)
+            if (childFolderInfo.Depth > currDepth)
             {
-                parent = GetParentFolder(parent, folderInfo, childFolderName);
+                parent = LinkParentWithChild(parent, childFolderInfo);
                 currDepth++;
             }
-            var current = parent.AddSubFolder(folderInfo);
-            current.AddFiles(YieldFiles (folderInfo));
-            int a = 1;
+            var current = parent.AddSubFolder(childFolderInfo);
+            current.AddFiles(YieldFiles (childFolderInfo));
         }
+
+        var tileAtlas = head["set1.png"];
 
         return head;
     }
