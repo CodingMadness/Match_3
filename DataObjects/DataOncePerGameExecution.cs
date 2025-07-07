@@ -1,6 +1,7 @@
 ﻿global using Font = ImGuiNET.ImFontPtr;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using DotNext;
 using Match_3.Service;
 using NetFabric.Hyperlinq;
 using NoAlloq;
@@ -19,35 +20,7 @@ public class AssetType : OneOfBase<Font, Texture2D, Sound, Shader>
     }
 }
 
-/// <summary>
-/// Wraps all necessary information about an AssetType-folder 
-/// </summary>
-/// <param name="FullPath">The full raw path to the Folder-entry</param>
-public readonly record struct AssetFolderInfo(string FullPath)
-{
-    // public AssetFolderInfo(string fullPath) :  this(fullPath.AsSpan())
-    // {
-    //     
-    // }
-    public ReadOnlySpan<char> Name
-    {
-        get
-        {
-            var lastDirPos = FullPath.AsSpan().LastIndexOf('\\') + 1;
-            var name = FullPath.AsSpan()[(lastDirPos..)];
-            return name;
-        }
-    }
-    public int Depth => FullPath.AsSpan().Count('\\');
-    public bool IsRoot => Depth is 0;
-}
-
-/// <summary>
-/// Maps an embedded file (asset) from the project-hierarchy
-/// </summary>
-/// <param name="Parent">The full path to the file</param>
-/// <param name="Content"></param>
-public readonly record struct AssetFile(in AssetFolderInfo Parent, View<char> FileName, View<byte> Content)
+public readonly record struct AssetFile(string FullPath, View<byte> Content)
 {
     private unsafe void GetPointers(out sbyte* ext, out byte* data)
     {
@@ -55,7 +28,6 @@ public readonly record struct AssetFile(in AssetFolderInfo Parent, View<char> Fi
         View<char> tmp = Extension.ToAnsiString();
         ext = (sbyte*)Unsafe.AsPointer(ref Unsafe.AsRef(in tmp.First));
     }
-    
     private unsafe Texture2D GetTextureFromContent()
     {
         GetPointers(out sbyte* ext, out byte* data);
@@ -70,8 +42,8 @@ public readonly record struct AssetFile(in AssetFolderInfo Parent, View<char> Fi
         var res = Raylib.LoadSoundFromWave(image);
         return res;
     }
-     
-    public ReadOnlySpan<char> FullPath => Path.Join(Parent.FullPath, FileName);
+    
+    public ReadOnlySpan<char> ParentFolder => Path.GetDirectoryName(FullPath);
     public ReadOnlySpan<char> Name => Path.GetFileName(FullPath);
     public ReadOnlySpan<char> Extension => Path.GetExtension(FullPath);
     public AssetType Format
@@ -88,84 +60,22 @@ public readonly record struct AssetFile(in AssetFolderInfo Parent, View<char> Fi
             };
         }
     }
-
-    public override string ToString() => FileName.AsSpan().ToString();
+    public override string ToString() => Name.ToString();
 }
 
-public record AssetContainer(in AssetFolderInfo CurrentInfo) : IContainer<List<AssetFile>>
+public record AssetContainer : IContainer<List<AssetFile>>
 {
-    private readonly List<AssetContainer> _subAssetFolders = [];
     private readonly List<AssetFile> _allFiles = [];
-    private readonly Dictionary<AssetFolderInfo, IEnumerable<AssetFile>> _typedFolder = new();
+    
     List<AssetFile> IContainer<List<AssetFile>>.VirtualObject => _allFiles;
-    public AssetContainer AddSubFolder(in AssetFolderInfo subFolderInfo)
-    {
-        var folder = new AssetContainer(subFolderInfo);
-        _subAssetFolders.Add(folder);
-        return folder;
-    }
-    public AssetFile this[string folderName]
-    {
-        get
-        {
-            var folderByName = GetFoldersAtName(folderName);
-            var folder = _typedFolder[folderByName.CurrentInfo];
-            return folder.First(file => file.Name == "");
-        }
-    }
+    public AssetFile this[string fileName] => _allFiles.Find(file => file.Name.BitwiseEquals(fileName));
+
     public void AddFiles(IEnumerable<string> filePathsOfFiles, Func<string,Span<byte>> GetByteData)
     {
         foreach (var fullFilePath in filePathsOfFiles)
         {
-            AssetFile file = new(CurrentInfo, Path.GetFileName(fullFilePath), GetByteData(fullFilePath));
+            AssetFile file = new(Path.GetFileName(fullFilePath), GetByteData(fullFilePath));
             _allFiles.Add(file);
         }
-        _typedFolder.Add(CurrentInfo, _allFiles);
-    }
-    private IEnumerable<AssetContainer> GetFoldersAtDepth(int targetDepth)
-    {
-        var queue = new Queue<AssetContainer>();
-        queue.Enqueue(this);
-
-        while (queue.Count > 0)
-        {
-            var current = queue.Dequeue();
-
-            if (current.CurrentInfo.Depth == targetDepth)
-            {
-                yield return current;
-            }
-            else if (current.CurrentInfo.Depth < targetDepth)
-            {
-                foreach (ref var subfolder in CollectionsMarshal.AsSpan(current._subAssetFolders))
-                {
-                    queue.Enqueue(subfolder);
-                }
-            }
-        }
-    }
-    private AssetContainer GetFoldersAtName(string targetFolderName)
-    {
-        var queue = new Queue<AssetContainer>();
-        queue.Enqueue(this);
-
-        while (queue.Count > 0)
-        {
-            var current = queue.Dequeue();
-
-            if (current.CurrentInfo.Name == targetFolderName)
-            {
-                return current;
-            }
-            else 
-            {
-                foreach (ref var subfolder in CollectionsMarshal.AsSpan(current._subAssetFolders))
-                {
-                    queue.Enqueue(subfolder);
-                }
-            }
-        }
-
-        throw new ArgumentOutOfRangeException(nameof(targetFolderName));
     }
 }
