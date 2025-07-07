@@ -12,18 +12,9 @@ namespace Match_3.Setup;
 public class AssetManager : IDisposable
 {
     private static readonly AssetManager _instance = new();
-    private const int LargeEnough2FitAllResources = 1024 * 1000; //1MB for now
+    private const int LargeEnough2FitAllResources = 1024 * 10000; //10MB for now
     private MemoryOwner<byte> fileData = new(ArrayPool<byte>.Shared, LargeEnough2FitAllResources);
     private static readonly Assembly EmbeddedResources = Assembly.GetExecutingAssembly();
-    
-    private static string GetResourceDir(out string projDir)
-    {
-        projDir = EmbeddedResources.GetName().Name!;
-        var resFolder = EmbeddedResources.GetManifestResourceNames()[0].AsSpan();
-        resFolder = resFolder.Slice(0, resFolder.IndexOf('\\'));
-        return resFolder.ToString();
-    }
-
     private static readonly Lazy<IEnumerable<string>> AllFilePaths =
         new(() => EmbeddedResources.GetManifestResourceNames(), LazyThreadSafetyMode.ExecutionAndPublication);
 
@@ -37,7 +28,13 @@ public class AssetManager : IDisposable
         stream.ReadExactly(content);
         return content;
     }
-
+    private IEnumerable<string> YieldFileNames(string parentFolderName)
+    {
+        return AllFilePaths.Value
+            .Select(path => path.Contains(parentFolderName, StringComparison.OrdinalIgnoreCase) ? path : "")
+            .Where(path => !string.IsNullOrWhiteSpace(path));
+    }
+    
     private AssetManager()
     {
      
@@ -45,29 +42,17 @@ public class AssetManager : IDisposable
 
     public static readonly AssetManager Instance = _instance;
 
-    private IEnumerable<string> YieldFileNames(AssetFolderInfo folderInfo)
+    public AssetContainer LoadAssetFolder()
     {
-        return AllFilePaths.Value
-            .Select(path => path.Contains(folderInfo.Name, StringComparison.OrdinalIgnoreCase) ? path : "")
-            .Where(path => !string.IsNullOrWhiteSpace(path));
-        
-        // foreach (var fileName in res)
-        // {
-        //     yield return (fileName, new (GetEmbeddedResourceAsBytes(Path.Join(folderInfo.FullPath, fileName))));
-        // }
-    }
-
-    public AssetContainer LoadAssetFolder(string resourceFolderName)
-    {
-        AssetContainer head = new(new(resourceFolderName));
+        AssetContainer head = new();
         
         foreach (var filePath in AllFilePaths.Value)
         {
-            AssetFolderInfo folderInfo = new(Path.GetDirectoryName(filePath)!);
-            var current = head.AddSubFolder(folderInfo);
-            current.AddFiles(YieldFileNames(folderInfo), GetEmbeddedResourceAsBytes);
+            head.AddFiles(YieldFileNames(filePath), GetEmbeddedResourceAsBytes);
         }
-        // var tileAtlas = head["Dangerous"];
+        var tileAtlas = head["set1.png"];
+        var f = tileAtlas.Format;
+     
         return head;
     }
 
