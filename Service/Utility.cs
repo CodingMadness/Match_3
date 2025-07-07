@@ -124,6 +124,7 @@ public static class SpanUtility
     public static unsafe string ToAnsiString(this ReadOnlySpan<char> span)
     {
         // Get the Windows-1252 encoding (ANSI)
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         Encoding ansiEncoding = Encoding.GetEncoding(1252);
         
         // Calculate the maximum possible byte count
@@ -173,6 +174,4 @@ public static class BaseTypeUtility
     {
         tuple.Item1 += value2IncreaseBy;
     }
-    
- 
 }
