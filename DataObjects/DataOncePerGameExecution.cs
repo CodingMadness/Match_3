@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Match_3.Service;
+using NetFabric.Hyperlinq;
 using NoAlloq;
 using OneOf;
 using Raylib_cs;
@@ -22,12 +23,12 @@ public class AssetType : OneOfBase<Font, Texture2D, Sound, Shader>
 /// Wraps all necessary information about an AssetType-folder 
 /// </summary>
 /// <param name="FullPath">The full raw path to the Folder-entry</param>
-public readonly record struct AssetFolderInfo(View<char> FullPath)
+public readonly record struct AssetFolderInfo(string FullPath)
 {
-    public AssetFolderInfo(string fullPath) :  this(fullPath.AsSpan())
-    {
-        
-    }
+    // public AssetFolderInfo(string fullPath) :  this(fullPath.AsSpan())
+    // {
+    //     
+    // }
     public ReadOnlySpan<char> Name
     {
         get
@@ -95,35 +96,33 @@ public record AssetContainer(in AssetFolderInfo CurrentInfo) : IContainer<List<A
 {
     private readonly List<AssetContainer> _subAssetFolders = [];
     private readonly List<AssetFile> _allFiles = [];
-
+    private readonly Dictionary<AssetFolderInfo, IEnumerable<AssetFile>> _typedFolder = new();
     List<AssetFile> IContainer<List<AssetFile>>.VirtualObject => _allFiles;
-
     public AssetContainer AddSubFolder(in AssetFolderInfo subFolderInfo)
     {
         var folder = new AssetContainer(subFolderInfo);
         _subAssetFolders.Add(folder);
         return folder;
     }
-    
-    public AssetFile this[string fileNameWithExt]
+    public AssetFile this[string folderName]
     {
         get
         {
-            var span = CollectionsMarshal.AsSpan(_allFiles);
-            return span.First(file => file.Name == fileNameWithExt);
-            /* return the specified index here */ 
+            var folderByName = GetFoldersAtName(folderName);
+            var folder = _typedFolder[folderByName.CurrentInfo];
+            return folder.First(file => file.Name == "");
         }
     }
-    
-    public void AddFiles(IEnumerable<(string fileName, View<byte> fileData)> allFileInfos)
+    public void AddFiles(IEnumerable<string> filePathsOfFiles, Func<string,Span<byte>> GetByteData)
     {
-        foreach (var fileInfo in allFileInfos)
+        foreach (var fullFilePath in filePathsOfFiles)
         {
-            _allFiles.Add(new(CurrentInfo, fileInfo.fileName, fileInfo.fileData));
+            AssetFile file = new(CurrentInfo, Path.GetFileName(fullFilePath), GetByteData(fullFilePath));
+            _allFiles.Add(file);
         }
+        _typedFolder.Add(CurrentInfo, _allFiles);
     }
-
-    public IEnumerable<AssetContainer> GetFoldersAtDepth(int targetDepth)
+    private IEnumerable<AssetContainer> GetFoldersAtDepth(int targetDepth)
     {
         var queue = new Queue<AssetContainer>();
         queue.Enqueue(this);
@@ -144,5 +143,29 @@ public record AssetContainer(in AssetFolderInfo CurrentInfo) : IContainer<List<A
                 }
             }
         }
+    }
+    private AssetContainer GetFoldersAtName(string targetFolderName)
+    {
+        var queue = new Queue<AssetContainer>();
+        queue.Enqueue(this);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+
+            if (current.CurrentInfo.Name == targetFolderName)
+            {
+                return current;
+            }
+            else 
+            {
+                foreach (ref var subfolder in CollectionsMarshal.AsSpan(current._subAssetFolders))
+                {
+                    queue.Enqueue(subfolder);
+                }
+            }
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(targetFolderName));
     }
 }

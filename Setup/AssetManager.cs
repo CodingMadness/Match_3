@@ -1,9 +1,11 @@
 using System.Buffers;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using CommunityToolkit.HighPerformance;
 using DotNext.Buffers;
 using DotNext.Runtime;
 using Match_3.DataObjects;
+using NetFabric.Hyperlinq;
 
 namespace Match_3.Setup;
 
@@ -25,18 +27,14 @@ public class AssetManager : IDisposable
     private static readonly Lazy<IEnumerable<string>> AllFilePaths =
         new(() => EmbeddedResources.GetManifestResourceNames(), LazyThreadSafetyMode.ExecutionAndPublication);
 
-    private Span<byte> GetEmbeddedResourceAsBytes(string relativePath)
+    private Span<byte> GetEmbeddedResourceAsBytes(string fullPath)
     {
-        var resourceDir = GetResourceDir(out _);
-        var fullPath = Path.Join(resourceDir, relativePath);
+        using var stream = EmbeddedResources.GetManifestResourceStream(fullPath) ??
+                           throw new FileNotFoundException("Cannot find resource file.", fullPath);
         
-        // using var stream = EmbeddedResources.GetManifestResourceStream(fullPath) ??
-        //                    throw new FileNotFoundException("Cannot find resource file.", fullPath);
-        //
-        // var length = (int)stream.Length;
-        // var content = fileData.Span[..length];
-        // stream.ReadExactly(content);
-        Span<byte> content = new([1, 2, 3]);
+        var length = (int)stream.Length;
+        var content = fileData.Span[..length];
+        stream.ReadExactly(content);
         return content;
     }
 
@@ -47,61 +45,29 @@ public class AssetManager : IDisposable
 
     public static readonly AssetManager Instance = _instance;
 
-    private IEnumerable<(string fileName, View<byte> fileData)> YieldFiles(AssetFolderInfo folderInfo)
-    {
-        var res = AllFilePaths.Value.Select(path =>
-            path.AsSpan().Contains(folderInfo.Name, StringComparison.OrdinalIgnoreCase) ? Path.GetFileName(path) : "")
-            .Where(path => !string.IsNullOrWhiteSpace(path));
-        
-        foreach (var fileName in res)
-        {
-            yield return (fileName, new(GetEmbeddedResourceAsBytes(Path.Join(folderInfo.Name, fileName))));
-        }
-    }
-
-    private IEnumerable<AssetFolderInfo> YieldSubFolders()
+    private IEnumerable<string> YieldFileNames(AssetFolderInfo folderInfo)
     {
         return AllFilePaths.Value
-            .Select(Path.GetDirectoryName)
-            .Distinct()  // This ensures we only process each folder once
-            .Select(onlyDir => new AssetFolderInfo(onlyDir!))
-            .OrderBy(folder =>  folder.Depth);
+            .Select(path => path.Contains(folderInfo.Name, StringComparison.OrdinalIgnoreCase) ? path : "")
+            .Where(path => !string.IsNullOrWhiteSpace(path));
+        
+        // foreach (var fileName in res)
+        // {
+        //     yield return (fileName, new (GetEmbeddedResourceAsBytes(Path.Join(folderInfo.FullPath, fileName))));
+        // }
     }
-    
-    public AssetContainer LoadAssetFolder()
+
+    public AssetContainer LoadAssetFolder(string resourceFolderName)
     {
-        static AssetContainer LinkParentWithChild(AssetContainer current, in AssetFolderInfo folderInfo)
-        {
-            var fullPath = folderInfo.FullPath;
-            int folderNameAppearance = fullPath.AsSpan().IndexOf(folderInfo.Name) - 1;
-            var parentPath = fullPath.AsSpan().Slice(0, folderNameAppearance);            
-            AssetFolderInfo parent = new(parentPath);
-            return current.AddSubFolder(parent);
-        }
+        AssetContainer head = new(new(resourceFolderName));
         
-        var resDir = GetResourceDir(out _);
-        AssetContainer head = new(new(resDir));
-        using var folderIterator = YieldSubFolders().GetEnumerator();
-        var parent = head;
-        int currDepth = 1;
-
-        // var test = YieldSubFolders().ToArray();
-        
-        while (folderIterator.MoveNext())
+        foreach (var filePath in AllFilePaths.Value)
         {
-            var childFolderInfo = folderIterator.Current;
-
-            if (childFolderInfo.Depth > currDepth)
-            {
-                parent = LinkParentWithChild(parent, childFolderInfo);
-                currDepth++;
-            }
-            var current = parent.AddSubFolder(childFolderInfo);
-            current.AddFiles(YieldFiles (childFolderInfo));
+            AssetFolderInfo folderInfo = new(Path.GetDirectoryName(filePath)!);
+            var current = head.AddSubFolder(folderInfo);
+            current.AddFiles(YieldFileNames(folderInfo), GetEmbeddedResourceAsBytes);
         }
-
-        var tileAtlas = head["set1.png"];
-
+        // var tileAtlas = head["Dangerous"];
         return head;
     }
 
