@@ -47,15 +47,13 @@ public readonly record struct AssetFile(in AssetFileInfo FileInfo, View<byte> Co
 {
     private unsafe void GetPointers(out sbyte* ext, out byte* content)
     {
-        fixed (byte* ptr = Content)
+        fixed (byte* customPtr = Content)
         {
-            content = ptr;
+            ext = (sbyte*)Marshal.StringToHGlobalAnsi(FileInfo.Extension.ToString());
+            content = customPtr;
         }
-
-        var ansiExt = Marshal.StringToHGlobalAnsi(".png"/*FileInfo.Extension.ToString()*/);
-
-        ext = (sbyte*)(char*)ansiExt;
     }
+    
     private unsafe Texture2D GetTextureFromContent()
     {
         GetPointers(out sbyte* ext, out byte* data);
@@ -63,6 +61,7 @@ public readonly record struct AssetFile(in AssetFileInfo FileInfo, View<byte> Co
         var res = Raylib.LoadTextureFromImage(image);
         return res;
     }
+    
     private unsafe Sound GetSoundFromContent()
     {
         GetPointers(out sbyte* ext, out byte* data);
