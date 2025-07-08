@@ -29,12 +29,6 @@ public class AssetManager : IDisposable
         stream.ReadExactly(content);
         return content;
     }
-    // private static IEnumerable<string> YieldFileNames(string parentFolderName)
-    // {
-    //     return AllFilePaths.Value
-    //         .Select(path => path.Contains(parentFolderName, StringComparison.OrdinalIgnoreCase) ? path : "")
-    //         .Where(path => !string.IsNullOrWhiteSpace(path));
-    // }
     
     private AssetManager()
     {
