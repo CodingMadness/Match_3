@@ -254,6 +254,8 @@ public static class TileRenderer
 
     public static void DrawGrid(float elapsedTime, int gridWidth, int gridHeight)
     {
+        var file = AssetManager.Instance.GetFile("set1.png");
+        var matchSet = file.Format.AsT1;
         //BeginShaderMode(WobbleEffect);
         {
             for (int x = 0; x < gridWidth; x++)
@@ -261,10 +263,10 @@ public static class TileRenderer
                 for (int y = 0; y < gridHeight; y++)
                 {
                     Tile? basicTile = TileMap.GetTile(new(x, y));
-
+                    
                     if (basicTile is not null && !basicTile.IsDeleted)
                     {
-                        //DrawTile(AssetManager.Instance.DefaultTileAtlas, basicTile, elapsedTime);
+                        DrawTile(matchSet, basicTile, elapsedTime);
                     }
                 }
             }
