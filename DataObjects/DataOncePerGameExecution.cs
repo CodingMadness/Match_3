@@ -20,13 +20,41 @@ public class AssetType : OneOfBase<Font, Texture2D, Sound, Shader>
     }
 }
 
-public readonly record struct AssetFile(string FullPath, View<byte> Content)
+public readonly record struct AssetFileInfo(string FullPath)
 {
-    private unsafe void GetPointers(out sbyte* ext, out byte* data)
+    public ReadOnlySpan<char> ParentFolder => Path.GetDirectoryName(FullPath);
+    public ReadOnlySpan<char> Name => Path.GetFileName(FullPath);
+    public ReadOnlySpan<char> Extension => Path.GetExtension(FullPath);
+    public ReadOnlySpan<char> Type
     {
-        data = (byte*)Unsafe.AsPointer(ref Unsafe.AsRef(in Content.First));
-        View<char> tmp = Extension.ToAnsiString();
-        ext = (sbyte*)Unsafe.AsPointer(ref Unsafe.AsRef(in tmp.First));
+        get
+        {
+            return Extension switch
+            {
+                ".otf" or ".ttf" => "Font",
+                ".png" or "jpg" or "jpeg" => "Texture",
+                ".mp3" or ".wav" or ".ogg" => "Sound",
+                ".frag" or ".vert" => "Shader",
+                _ => throw new ArgumentOutOfRangeException()
+            };
+        }
+    }
+    
+    public override string ToString() => Name.ToString();
+}
+
+public readonly record struct AssetFile(in AssetFileInfo FileInfo, View<byte> Content) : IContainer<AssetFileInfo>
+{
+    private unsafe void GetPointers(out sbyte* ext, out byte* content)
+    {
+        fixed (byte* ptr = Content)
+        {
+            content = ptr;
+        }
+
+        var ansiExt = Marshal.StringToHGlobalAnsi(".png"/*FileInfo.Extension.ToString()*/);
+
+        ext = (sbyte*)(char*)ansiExt;
     }
     private unsafe Texture2D GetTextureFromContent()
     {
@@ -42,40 +70,21 @@ public readonly record struct AssetFile(string FullPath, View<byte> Content)
         var res = Raylib.LoadSoundFromWave(image);
         return res;
     }
-    
-    public ReadOnlySpan<char> ParentFolder => Path.GetDirectoryName(FullPath);
-    public ReadOnlySpan<char> Name => Path.GetFileName(FullPath);
-    public ReadOnlySpan<char> Extension => Path.GetExtension(FullPath);
     public AssetType Format
     {
         get
-        {
-            return Extension switch
+        { 
+            return FileInfo.Type switch
             {
-                ".otf" or ".ttf" => new(new Font()),
-                ".png" or "jpg" or "jpeg" => new(GetTextureFromContent()),
-                ".mp3" or ".wav" or ".ogg" => new(GetSoundFromContent()),
-                ".frag" or ".vert" => new(new Shader()),
+                "Font" => new(new Font()),
+                "Texture" => new(GetTextureFromContent()),
+                "Sound" => new(GetSoundFromContent()),
+                "Shader" => new(new Shader()),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
     }
-    public override string ToString() => Name.ToString();
+    AssetFileInfo IContainer<AssetFileInfo>.VirtualObject => FileInfo;
 }
 
-public record AssetContainer : IContainer<List<AssetFile>>
-{
-    private readonly List<AssetFile> _allFiles = [];
-    
-    List<AssetFile> IContainer<List<AssetFile>>.VirtualObject => _allFiles;
-    public AssetFile this[string fileName] => _allFiles.Find(file => file.Name.BitwiseEquals(fileName));
-
-    public void AddFiles(IEnumerable<string> filePathsOfFiles, Func<string,Span<byte>> GetByteData)
-    {
-        foreach (var fullFilePath in filePathsOfFiles)
-        {
-            AssetFile file = new(Path.GetFileName(fullFilePath), GetByteData(fullFilePath));
-            _allFiles.Add(file);
-        }
-    }
-}
+ 
