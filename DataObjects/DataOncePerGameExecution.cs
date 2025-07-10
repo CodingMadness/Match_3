@@ -56,10 +56,24 @@ public readonly record struct AssetFile(in AssetFileInfo FileInfo, View<byte> Co
     
     private unsafe Texture2D GetTextureFromContent()
     {
-        GetPointers(out sbyte* ext, out byte* data);
-        var image = Raylib.LoadImageFromMemory(ext, data, Content.Length);
-        var res = Raylib.LoadTextureFromImage(image);
-        return res;
+        // Convert extension to ANSI
+        var extAnsi = Marshal.StringToHGlobalAnsi(FileInfo.Extension.ToString());
+        
+        try
+        {
+            fixed (byte* dataPtr = Content)
+            {
+                // Load the image while the content is pinned
+                var image = Raylib.LoadImageFromMemory((sbyte*)extAnsi, dataPtr, Content.Length);
+                var texture = Raylib.LoadTextureFromImage(image);
+                Raylib.UnloadImage(image); // Don't forget to unload the image
+                return texture;
+            }
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(extAnsi);
+        }
     }
     
     private unsafe Sound GetSoundFromContent()
@@ -69,6 +83,7 @@ public readonly record struct AssetFile(in AssetFileInfo FileInfo, View<byte> Co
         var res = Raylib.LoadSoundFromWave(image);
         return res;
     }
+    
     public AssetType Format
     {
         get
