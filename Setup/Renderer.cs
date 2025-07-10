@@ -245,6 +245,8 @@ public static class UiRenderer
 
 public static class TileRenderer
 {
+    private static AssetFile? MatchSet;
+    
     public static void DrawTile(Texture2D atlas, Tile tile, float currTime)
     {
         var body = tile.Body;
@@ -254,8 +256,12 @@ public static class TileRenderer
 
     public static void DrawGrid(float elapsedTime, int gridWidth, int gridHeight)
     {
-        var file = AssetManager.Instance.GetFile("set1.png");
-        var matchSet = file.Format.AsT1;
+        if (MatchSet is null)
+        {
+            AssetManager.Instance.GetFile("set1.png", out var assetFile);
+            MatchSet = assetFile;
+        }
+
         //BeginShaderMode(WobbleEffect);
         {
             for (int x = 0; x < gridWidth; x++)
@@ -266,7 +272,7 @@ public static class TileRenderer
                     
                     if (basicTile is not null && !basicTile.IsDeleted)
                     {
-                        DrawTile(matchSet, basicTile, elapsedTime);
+                        DrawTile(MatchSet.Value.Format.AsT1, basicTile, elapsedTime);
                     }
                 }
             }
