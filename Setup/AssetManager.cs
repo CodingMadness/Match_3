@@ -10,46 +10,46 @@ using NetFabric.Hyperlinq;
 
 namespace Match_3.Setup;
 
-public class AssetManager : IDisposable
+public class AssetManager 
 {
     private static readonly AssetManager _instance = new();
-    private const int LargeEnough2FitAllResources = 1024 * 10000; //10MB for now
-    private MemoryOwner<byte> fileData = new(ArrayPool<byte>.Shared, LargeEnough2FitAllResources);
     private readonly Assembly EmbeddedResources = Assembly.GetExecutingAssembly();
-    private Lazy<IEnumerable<string>> AllFilePaths => new(() => EmbeddedResources.GetManifestResourceNames(), LazyThreadSafetyMode.ExecutionAndPublication);
+    private Lazy<IEnumerable<string>> AllFilePaths => new(() => EmbeddedResources.GetManifestResourceNames(),
+        LazyThreadSafetyMode.ExecutionAndPublication);
     private readonly List<AssetFile> _allFiles = [];
-    
-    private Span<byte> GetEmbeddedResourceAsBytes(string fullPath)
+
+    private MemoryOwner<byte> GetEmbeddedResourceAsBytes(string fullPath)
     {
         using var stream = EmbeddedResources.GetManifestResourceStream(fullPath) ??
                            throw new FileNotFoundException("Cannot find resource file.", fullPath);
-        
-        var length = (int)stream.Length;
-        var content = fileData.Span[..length];
-        stream.ReadExactly(content);
-        return content;
+        var owner = new MemoryOwner<byte>(ArrayPool<byte>.Shared, (int)stream.Length);
+        stream.ReadExactly(owner.Span);
+        return owner; // Caller must dispose
     }
-    
+
     private AssetManager()
     {
-     
     }
 
     public static readonly AssetManager Instance = _instance;
 
-    public AssetFile GetFile(string fileName) => _allFiles.Find(file => file.FileInfo.Name.BitwiseEquals(fileName));
-    
+    public void GetFile(string fileName, out AssetFile assetFile)
+    {
+        var span = CollectionsMarshal.AsSpan(_allFiles);
+        var result = span.FirstOrNone(file => file.FileInfo.Name.BitwiseEquals(fileName));
+        assetFile = result.ValueRef;
+    }
+
     public void LoadAssetFolder()
     {
         foreach (var filePath in AllFilePaths.Value)
-        {
-            var file = new AssetFile(new(filePath), GetEmbeddedResourceAsBytes(filePath));
+        { 
+            using var buffer = GetEmbeddedResourceAsBytes(filePath);
+            var file = new AssetFile(new(filePath), buffer.Span);
             _allFiles.Add(file);
         }
-    }
 
-    public void Dispose()
-    {
-        fileData.Dispose();
+        // var fileData2 = GetFile("set1.png");
+        //File.WriteAllBytes(@"C:\users\maho3\desktop\mySet.png", fileData2.Content);
     }
 }
