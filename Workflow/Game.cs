@@ -47,7 +47,6 @@ public static class Game
             //<this has to be initialized RIGHT HERE in order to work!>
             rlImGui.BeginInitImGui();
             AssetManager.Instance.LoadAssetFolder();
-            AssetManager.Instance.Dispose();
             rlImGui.EndInitImGui();
             // For raylib only, because raylib needs to update the imgui-font at gpu-level;
         }
