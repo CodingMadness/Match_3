@@ -1,4 +1,5 @@
 global using Vector2 = System.Numerics.Vector2;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using ImGuiNET;
 using Match_3.DataObjects;
@@ -261,7 +262,7 @@ public static class TileRenderer
             AssetManager.Instance.GetFile("set1.png", out var assetFile);
             MatchSet = assetFile;
         }
-
+        // Console.WriteLine(MatchSet.Value.FileInfo.Name.ToString());
         //BeginShaderMode(WobbleEffect);
         {
             for (int x = 0; x < gridWidth; x++)
@@ -272,7 +273,12 @@ public static class TileRenderer
                     
                     if (basicTile is not null && !basicTile.IsDeleted)
                     {
-                        DrawTile(MatchSet.Value.Format.AsT1, basicTile, elapsedTime);
+                        var set = MatchSet.Value.Format.AsT1;
+                        if (set.Id is 0)
+                        {
+                            int x2 = (int)set.Id; //at some point ID becomes 0 and idk why...
+                        }
+                        DrawTile(set, basicTile, elapsedTime);
                     }
                 }
             }
