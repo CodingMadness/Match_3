@@ -43,21 +43,14 @@ public readonly record struct AssetFileInfo(string FullPath)
     public override string ToString() => Name.ToString();
 }
 
-public readonly record struct AssetFile(in AssetFileInfo FileInfo, View<byte> Content) : IContainer<AssetFileInfo>
+public readonly record struct AssetFile(string FullFilePath, View<byte> Content) : IPublishable<AssetFileInfo>
 {
-    private unsafe void GetPointers(out sbyte* ext, out byte* content)
-    {
-        fixed (byte* customPtr = Content)
-        {
-            ext = (sbyte*)Marshal.StringToHGlobalAnsi(FileInfo.Extension.ToString());
-            content = customPtr;
-        }
-    }
+    private readonly AssetFileInfo _fileInfo = new(FullFilePath);
     
-    private unsafe Texture2D GetTextureFromContent()
+    private unsafe Texture2D GetTexture()
     {
         // Convert extension to ANSI
-        var extAnsi = Marshal.StringToHGlobalAnsi(FileInfo.Extension.ToString());
+        var extAnsi = Marshal.StringToHGlobalAnsi(_fileInfo.Extension.ToString());
         
         try
         {
@@ -76,29 +69,24 @@ public readonly record struct AssetFile(in AssetFileInfo FileInfo, View<byte> Co
         }
     }
     
-    private unsafe Sound GetSoundFromContent()
-    {
-        GetPointers(out sbyte* ext, out byte* data);
-        var image = Raylib.LoadWaveFromMemory(ext, data, Content.Length);
-        var res = Raylib.LoadSoundFromWave(image);
-        return res;
-    }
-    
     public AssetType Format
     {
         get
         { 
-            return FileInfo.Type switch
+            return _fileInfo.Type switch
             {
+                "Texture" => new(GetTexture()),
                 "Font" => new(new Font()),
-                "Texture" => new(GetTextureFromContent()),
-                "Sound" => new(GetSoundFromContent()),
+                "Sound" => new(new Sound()),
                 "Shader" => new(new Shader()),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
     }
-    AssetFileInfo IContainer<AssetFileInfo>.VirtualObject => FileInfo;
+
+    public ReadOnlySpan<char> Name => _fileInfo.Name;
+    
+    AssetFileInfo IPublishable<AssetFileInfo>.VirtualObject => _fileInfo;
 }
 
  
