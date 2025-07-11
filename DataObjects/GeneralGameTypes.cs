@@ -142,6 +142,8 @@ public struct FadeableColor : IEquatable<FadeableColor>
     public readonly override string ToString() => _toWrap.Name;
 }
 
+public readonly record struct Sprite(Texture2D SpriteSheet, IGridRect Dimension, FadeableColor Tint);
+
 public class QuestState(TileColorTypes ColourType)
 {
     public (int Count, float Elapsed) FoundMatch { get; set; }
