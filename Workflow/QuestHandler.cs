@@ -347,7 +347,7 @@ public class MatchHandler : QuestHandler
             
             if (diffCount > 0)
             {
-                Debug.WriteLine($"Okay, good catch, you got that match, you have only to do now {diffCount} more of kind: {kindWhoTriggeredMatch}");
+                Debug.WriteLine($"Okay, good catch, you got that match, you have only to do now {diffCount} more of TileKind: {kindWhoTriggeredMatch}");
             }
             else
             {

@@ -170,7 +170,7 @@ public readonly struct Grid : IGridRect
                 Direction.RectBotRight => start with { X = start.X + step.X, Y = start.Y + step.Y },
                 Direction.RectTopLeft => start with { X = start.X - step.X, Y = start.Y - step.Y },
                 Direction.RectTopRight => start with { X = start.X + step.X, Y = start.Y - step.Y },
-                _ => throw new ArgumentException("Only a direction of kind 'Cell' in its name can be validated" +
+                _ => throw new ArgumentException("Only a direction of TileKind 'Cell' in its name can be validated" +
                                                  "all other directional values are invalid for this type!")
             };
         }
@@ -422,14 +422,14 @@ public enum TileState : byte
 
 public abstract class Texture
 {
-    public required Vector2 TextureLocation
+    public required Vector2 SpriteLocation
     {
         init => field = value * Config.TileSize;
         get;
     }
 
     private static readonly Size TextureSize = new(Config.TileSize, Config.TileSize);
-    public Raylib_cs.Rectangle AtlasInfo => new((int)TextureLocation.X, (int)TextureLocation.Y, TextureSize.Width, TextureSize.Height);
+    public Raylib_cs.Rectangle AtlasInfo => new((int)SpriteLocation.X, (int)SpriteLocation.Y, TextureSize.Width, TextureSize.Height);
 }
 
 public class ConcreteShape : Texture

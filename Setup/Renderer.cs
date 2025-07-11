@@ -30,8 +30,8 @@ public static class UiRenderer
     /// <param name="thickness"></param>
     /// <param name="scaleMultiplier"></param>
     private static void DrawShape(Vector2 position, TileColorTypes colorTypesKind, ReadOnlySpan<char> text,
-                                  DebugImGuiShapes shape = DebugImGuiShapes.Rectangle,
-                                  float thickness = 1f, float scaleMultiplier = 1f)
+        DebugImGuiShapes shape = DebugImGuiShapes.Rectangle,
+        float thickness = 1f, float scaleMultiplier = 1f)
     {
         switch (shape)
         {
@@ -108,8 +108,8 @@ public static class UiRenderer
         }
 
         static void DrawUntilNeed2Wrap(scoped in WordEnumerator enumerator,
-                                   scoped ref Vector2 current,
-                                   scoped in Vector2 fixPoint)
+            scoped ref Vector2 current,
+            scoped in Vector2 fixPoint)
         {
             ref var blackWordsEnumerator = ref Unsafe.AsRef(in enumerator);
 
@@ -187,6 +187,7 @@ public static class UiRenderer
                 DrawSegment(in phraseSegment, ref current);
             }
         }
+
         runThroughWords.Dispose();
     }
 
@@ -201,7 +202,7 @@ public static class UiRenderer
         logger.BeginFromStart();
     }
 
-    public static void Test_NewDrawLogic(QuestLogger logger, CanvasOffset  offset)
+    public static void Test_NewDrawLogic(QuestLogger logger, CanvasOffset offset)
     {
         static void DrawSegment(scoped in Segment segment, ref Vector2 current)
         {
@@ -210,7 +211,8 @@ public static class UiRenderer
             ImGui.SetCursorPos(current);
         }
 
-        scoped var formatTextEnumerator = new FormatTextEnumerator(logger.CurrentLog, offset, WrappingRule.PatternBased);
+        scoped var formatTextEnumerator =
+            new FormatTextEnumerator(logger.CurrentLog, offset, WrappingRule.PatternBased);
         Vector2 fixStartingPos = Vector2.Zero;
         bool hasBeenExecuted = false;
         Vector2 current = Vector2.Zero;
@@ -224,7 +226,8 @@ public static class UiRenderer
 
             if (!hasBeenExecuted)
             {
-                (fixStartingPos,segmentShouldWrap) = (phraseSegment.RenderPosition!.Value, phraseSegment.ShouldWrap!.Value);
+                (fixStartingPos, segmentShouldWrap) =
+                    (phraseSegment.RenderPosition!.Value, phraseSegment.ShouldWrap!.Value);
                 current = fixStartingPos;
             }
 
@@ -246,39 +249,26 @@ public static class UiRenderer
 
 public static class TileRenderer
 {
-    private static AssetFile? MatchSet;
-    
-    public static void DrawTile(Texture2D atlas, Tile tile, float currTime)
+    public static void DrawGameObject(Tile obj)
     {
-        var body = tile.Body;
+        var body = obj.Body;
         // body.ScaleBox(currTime);
-        DrawTexturePro(atlas, body.AtlasInfo, body.WorldRect, Vector2.Zero, 0f, body.Colour);
+        //DrawTextureRec(atlas, body.AtlasInfo, body.WorldRect.Position, White);
     }
 
     public static void DrawGrid(float elapsedTime, int gridWidth, int gridHeight)
     {
-        if (MatchSet is null)
-        {
-            AssetManager.Instance.GetFile("set1.png", out var assetFile);
-            MatchSet = assetFile;
-        }
-        // Console.WriteLine(MatchSet.Value.FileInfo.Name.ToString());
         //BeginShaderMode(WobbleEffect);
         {
-            for (int x = 0; x < gridWidth; x++)
+            for (int x = 0; x < 5; x++)
             {
-                for (int y = 0; y < gridHeight; y++)
+                for (int y = 0; y < 5; y++)
                 {
                     Tile? basicTile = TileMap.GetTile(new(x, y));
-                    
+
                     if (basicTile is not null && !basicTile.IsDeleted)
                     {
-                        var set = MatchSet.Value.Format.AsT1;
-                        if (set.Id is 0)
-                        {
-                            int x2 = (int)set.Id; //at some point ID becomes 0 and idk why...
-                        }
-                        DrawTile(set, basicTile, elapsedTime);
+                        //DrawGameObject(AssetManager.Instance.MySprite, basicTile, elapsedTime);
                     }
                 }
             }
@@ -294,7 +284,7 @@ public static class TileRenderer
         foreach (var tile in match)
         {
             tile.Body.ScaleBox(currTime);
-            //DrawTile(AssetManager.Instance.DefaultTileAtlas, tile, currTime);
+            //DrawGameObject(AssetManager.Instance.DefaultTileAtlas, tile, currTime);
         }
     }
 }

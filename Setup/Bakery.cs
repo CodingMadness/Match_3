@@ -9,7 +9,7 @@ public static class Bakery
     {
         return new ConcreteRectangularBody(gridBox)
         {
-            TextureLocation = kind switch
+            SpriteLocation = kind switch
             {
                 TileColorTypes.LightBlue => new(1f, 3f),
                 TileColorTypes.Turquoise => new Vector2(2f, 1f),
@@ -28,14 +28,14 @@ public static class Bakery
         };
     }
 
-    public static Tile CreateTile(in Cell cell, TileColorTypes kind)
+    public static Tile CreateTile(Cell cell, TileColorTypes kind)
     {
         var tile = new Tile
         {
             Cell = cell,
             CellB4Swap = -Vector2.One,
             State = TileState.UnChanged,
-            Body = DefineBody(kind,cell) 
+            Body = DefineBody(kind, cell) 
         };
         
         return tile;
