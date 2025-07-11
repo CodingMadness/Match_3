@@ -1,5 +1,4 @@
-﻿using System.Drawing;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 using DotNext.Runtime;
 
@@ -7,6 +6,8 @@ using ImGuiNET;
 
 using Match_3.Service;
 using Match_3.Workflow;
+using Raylib_cs;
+using Color = System.Drawing.Color;
 
 namespace Match_3.DataObjects;
 
@@ -42,7 +43,7 @@ public readonly struct View<T>(in ReadOnlySpan<T> data)
     public ref T GetPinnableReference() => ref _first.GetPinnableReference();
 }
 
-public readonly   struct Segment
+public readonly struct Segment
 {
     public readonly View<char>? MemberName2Replace;
     public readonly View<char> Slice2Colorize;
@@ -126,12 +127,23 @@ public record TextInfo(bool ShallWrap, Vector2? WrapAt,
     float Size, ValueReference<byte> FontDataPtr, 
     WrappingRule Rule, FadeableColor Color);
 
-public interface IContainer<out T>
+/* 'Publishers' are:
+ * Render-API (ImGui, raylib, UI-frameworks)
+ * File-Operations (locally)
+ * NFS-operations
+ * Database-API
+ */
+/* 'VirtualObjects'
+ *   - AssetFile is a virtual-map for an existing local file-and-folder Structure
+ *   - Segment is a virtual-map for a piece of text which can be drawn
+ *   - GameObject is a virtual-map for a bunch of pixel-objects which can be drawn
+ */
+public interface IPublishable<out T>
 {
     public T? VirtualObject { get; }
 }
 
-public interface IDrawableContainer<out T> : IContainer<T>
+public interface IDrawable<out T> : IPublishable<T>
 {
     public Vector2 GetRawOffset(CanvasOffset offset)
     {
@@ -157,18 +169,32 @@ public interface IDrawableContainer<out T> : IContainer<T>
     }
 }
 
-/* virtual-objects 
- *   - AssetContainer is a virtual-map for an existing local file-and-folder Structure
- 
- *   - Segment is a virtual-map for a piece of text which can be drawn
- *   - GameObject is a virtual-map for a bunch of pixel-objects which can be drawn
- */
-public record TextRenderSegment(Segment VirtualObject, TextInfo Info) : IDrawableContainer<Segment>;
-public record GameObjectRenderElement(IGameObject VirtualObject) : IDrawableContainer<IGameObject>;
+public record TextRenderSegment(Segment VirtualObject, TextInfo Info) : IDrawable<Segment>;
 
-/* Externalizer's are:
- * Render-API (ImGui, raylib, UI-frameworks)
- * File-Operations (locally)
- * NFS-operations
- * Database-API
- */
+public record DrawableGameObject(IGameObject VirtualObject) : IDrawable<IGameObject>;
+
+public record DrawableTile(IGameObject Tile, Texture2D SpriteSheet, TileColorTypes TileKind) : DrawableGameObject(Tile)
+{
+    public Vector2 OffsetInSpriteSheet
+    {
+        get
+        {
+            return TileKind switch
+            {
+                TileColorTypes.LightBlue => new(1f, 3f),
+                TileColorTypes.Turquoise => new Vector2(2f, 1f),
+                TileColorTypes.Blue => new Vector2(3f, 2f),
+                TileColorTypes.LightGreen => new Vector2(0f, 3f),
+                TileColorTypes.Green => new Vector2(3f, 1f),
+                TileColorTypes.Brown => new Vector2(0f, 2f),
+                TileColorTypes.Orange => new Vector2(1f, 2f),
+                TileColorTypes.Yellow => new Vector2(1f, 1f),
+                TileColorTypes.Purple => new Vector2(3f, 0f),
+                TileColorTypes.Magenta => new Vector2(3f, 3f),
+                TileColorTypes.Red => new Vector2(2f, 0f),
+                _ => throw new ArgumentOutOfRangeException(nameof(TileKind), TileKind, "undefined color was passed!")
+            };
+        }
+    }
+}
+
